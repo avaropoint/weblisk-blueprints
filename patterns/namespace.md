@@ -135,8 +135,9 @@ contracts:
       description: Verify a catalog release against a registry's state
       required: true
       rules:
-        - Meets release-by-holder-or-publisher (Requirements)
-        - Refuses a release whose index drops a ref an earlier index held, or gives a retired ref a digest
+        - Meets release-by-holder-or-publisher and release-continues (Requirements)
+        - Decides each release by Deciding a statement's steps for a catalog release, in order, giving the first refusal that applies
+        - Gives every release step of vectors/namespace-registry.json its stated verdict
   guarantees:
     - Who holds a namespace is read from a sealed log, never from a hub's say-so
     - A retired namespace and a retired part id are never issued again
@@ -190,9 +191,18 @@ requirements:
       and appends nothing for a refused one.
   - id: release-by-holder-or-publisher
     level: must
-    text: A catalog release verifies only when its signer was, at the
-      registry's tip, the namespace's holder or an identity the holder granted
-      publish.
+    text: A catalog release verifies only when, at its own released_at as the
+      registry's log records it, the namespace was held and not frozen and its
+      signer was the holder or an identity the holder had granted publish. A
+      release made before a rotation, a transfer, a withdrawn grant or a
+      retirement still verifies after it.
+  - id: release-continues
+    level: must
+    text: A release continues the release before it, as the releases a verifier
+      holds record it. Release 1 names no previous; release N names release
+      N-1's index as previous, is dated no earlier than it, and its index keeps
+      every ref release N-1's index held, a retired ref still retired. A second
+      index for a release number the verifier holds is refused.
 ```
 
 ---
@@ -263,20 +273,31 @@ move the namespace.
 ```
 
 A release names no registry, since it is published to be read anywhere. Its
-verifier reads the namespace's state from a registry it trusts and refuses a
-release whose signer was neither the holder nor a `publish` grantee there
-(`release-by-holder-or-publisher`).
+verifier reads the namespace's state from a registry it trusts, as that
+registry's log recorded it at the release's `released_at`, and refuses a
+release whose signer was neither the holder nor a `publish` grantee then
+(`release-by-holder-or-publisher`). Judging at the release's own time, rather
+than at the registry's tip, is what keeps a release checkable after its signer's
+authority ends: a holder's rotation, a transfer or a withdrawn grant ends what
+a key may release from then on, never what it released before.
+
+The signer writes `released_at`, so an identity whose authority has ended could
+date a release back into the time it held it. The chain bounds that
+(`release-continues`): a release must be the next number after the latest a
+verifier holds, name that release's index, and be dated no earlier than it, so a
+back-dated release cannot follow one made after its signer's authority ended,
+and cannot replace a release a verifier already holds.
 
 **The index** is UTF-8 text, one line per file and per part the namespace's
 catalog holds, each line the item's full ref ([`schemas/names`](../schemas/names.md#the-grammar)),
 one space, and either its digest — the file's bytes, or the part's projection
 digest ([`patterns/content-identity`](content-identity.md)), written
 `sha256:<hex>` — or the word `retired`. Lines are in bytewise order of the ref,
-each ends with one line feed, and nothing else is in the file. A ref in one
-release's index is in every later one: a ref that disappears, and a `retired`
-ref that comes back with a digest, make the later release invalid. That is how
-a validator holds a part id to "retired is never reused" against the previous
-signed release.
+no ref appears twice, each line ends with one line feed, and nothing else is in
+the file. A ref in one release's index is in every later one: a ref that
+disappears, and a `retired` ref that comes back with a digest, make the later
+release invalid (`release-continues`). That is how a validator holds a part id
+to "retired is never reused" against the previous signed release.
 
 ---
 
@@ -357,11 +378,30 @@ a refused one is not recorded: the namespace has been claimed
 Freezing a frozen namespace, or unfreezing a held one, is recorded and changes
 nothing.
 
-A **catalog release** is decided by a verifier rather than appended: steps 1,
-3 and 5 for its own form and signature, then, against the registry's state,
-the namespace held (`NAMESPACE_UNKNOWN`, `NAMESPACE_RETIRED`,
-`NAMESPACE_FROZEN`) and the signer its holder or a `publish` grantee
-(`NAMESPACE_NOT_PUBLISHER`).
+A **catalog release** is decided by a verifier rather than appended, by these
+steps, in order:
+
+1. Steps 1 and 3 above, for its own form and signature. The index the release
+   names, as the verifier fetched it, has that digest and is in the index's
+   form (The index) — else `NAMESPACE_MALFORMED`.
+2. `released_at` is no later than the replay window past `now` — else
+   `NAMESPACE_STATEMENT_STALE`. A release from further ahead cannot be judged
+   yet, since the state at its time is not yet recorded. A release is not
+   refused for being old.
+3. Step 5 above, for `<namespace>`.
+4. Against the namespace's state at `released_at` — the registry's log entries
+   whose `recorded_at` ([`architecture/storage`](../architecture/storage.md#what-a-sealed-log-holds))
+   is at or before it: the namespace had been claimed (`NAMESPACE_UNKNOWN`),
+   was not retired (`NAMESPACE_RETIRED`) and not frozen (`NAMESPACE_FROZEN`),
+   and the signer was its holder or a `publish` grantee
+   (`NAMESPACE_NOT_PUBLISHER`).
+5. Against the releases the verifier already holds for the namespace
+   (`release-continues`): if it holds this release number, the index is the
+   same; otherwise release 1 names no previous, and release N holds release N-1
+   (a verifier fetches it from where it found release N), names its index as
+   `previous`, is dated no earlier, and keeps every ref of its index, a retired
+   ref still `retired` — else `NAMESPACE_RELEASE_BROKEN`. A release that passes
+   is one the verifier now holds.
 
 ### Private and public
 
@@ -401,10 +441,10 @@ proves itself.
 
 | Code | Status | When |
 |------|--------|------|
-| `NAMESPACE_MALFORMED` | 400 | Unknown prefix, wrong field count, or a field not in its form |
+| `NAMESPACE_MALFORMED` | 400 | Unknown prefix, wrong field count, or a field not in its form; for a release, an index that is not its digest's or not in its form |
 | `NAMESPACE_WRONG_REGISTRY` | 400 | `<registry>` names another registry's log |
 | `NAMESPACE_SIGNATURE_INVALID` | 401 | A signature does not verify under the key it names |
-| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is outside the replay window of the registry's clock |
+| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is outside the replay window of the registry's clock; a release's `released_at` is further ahead of the verifier's clock than that window |
 | `NAMESPACE_STATEMENT_REPLAYED` | 409 | The log already holds these bytes |
 | `NAMESPACE_INVALID` | 400 | The name is not in the namespace grammar |
 | `NAMESPACE_RESERVED` | 403 | A reserved name, place code or issuer code |
@@ -417,7 +457,8 @@ proves itself.
 | `NAMESPACE_TRANSFER_ONE_SIDED` | 403 | A transfer or rotation without the incoming holder's signature |
 | `NAMESPACE_IDENTITY_UNKNOWN` | 403 | The holder, grantee or incoming holder, a reassignment's included, is not enrolled at this hub, or is revoked |
 | `NAMESPACE_SERVICE_IDENTITY` | 403 | A service identity as claimant or incoming holder, a reassignment's included |
-| `NAMESPACE_NOT_PUBLISHER` | 403 | A release signed by neither the holder nor a `publish` grantee |
+| `NAMESPACE_NOT_PUBLISHER` | 403 | A release signed by neither the holder nor a `publish` grantee at its `released_at` |
+| `NAMESPACE_RELEASE_BROKEN` | 409 | A release that does not continue the one before it: a number out of turn, another `previous`, an earlier date, a ref dropped or a retired ref given a digest, or a second index for one number |
 
 ---
 
@@ -455,4 +496,5 @@ registry, and every verifier of a release, is bound by both.
 - [ ] A rotation keeps the claim and its grants; a transfer ends the grants
 - [ ] A statement made at one registry is refused at every other
 - [ ] Nothing is appended for a refused statement, and an accepted one is in the log before the answer
-- [ ] A release whose index drops a ref, or revives a retired one, is invalid
+- [ ] A release is judged at its own `released_at`: one made before a rotation, a transfer or a withdrawn grant still verifies after it, and the old key cannot release after it
+- [ ] A release whose index drops a ref, revives a retired one, skips a number, names another `previous`, is dated before the release it follows, or gives a held number a second index is refused with `NAMESPACE_RELEASE_BROKEN`

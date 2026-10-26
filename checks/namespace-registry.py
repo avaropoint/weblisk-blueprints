@@ -11,11 +11,13 @@ defines to protocol/identity's registry and to the published vectors.
     checks/namespace-registry.py --variant NAME      the same rules with one
         broken, which must be reported at exactly the steps that rule decides:
         accept-confusables, accept-one-sided, reclaim-retired,
-        rotation-drops-grants
+        rotation-drops-grants, release-at-tip (a release judged against the
+        registry's latest state, not its own released_at), release-unchained
+        (no release held to the one before it)
     checks/namespace-registry.py --pattern FILE      read the pattern's
         statements and routes from FILE instead of patterns/namespace.md
 """
-import json, os, re, sys
+import copy, hashlib, json, os, re, sys
 import yaml
 import importlib.util
 
@@ -31,6 +33,7 @@ LAYOUT = {CLAIM: ["registry", "namespace", "holder", "issued_at"],
           TRANSFER: ["registry", "namespace", "from", "to", "kind", "issued_at"],
           RELEASE: ["namespace", "release", "index", "previous", "released_at"]}
 HEX64, DEC = re.compile(r"[0-9a-f]{64}"), re.compile(r"0|[1-9][0-9]*")
+INDEX_LINE = re.compile(r"(\S+) (sha256:[0-9a-f]{64}|retired)")
 DIGEST, NAME = re.compile(r"sha256:[0-9a-f]{64}"), re.compile(r"[a-z][a-z0-9-]{1,38}")
 variant = sys.argv[sys.argv.index("--variant") + 1] if "--variant" in sys.argv else None
 PATTERN = sys.argv[sys.argv.index("--pattern") + 1] if "--pattern" in sys.argv else None
@@ -64,8 +67,19 @@ class Registry:
         self.enrolled = {keys[n]["fp"]: kind for n, kind in vec["enrolled"].items()}
         self.never = {c.lower() for codes in vec["never_claimable"].values() for c in codes}
         self.log, self.ns = set(), {}
+        # Every change to a namespace's state, as (recorded_at, state after),
+        # so a release is judged at its own released_at; and the releases a
+        # verifier holds, by namespace and number.
+        self.history, self.releases = {}, {}
 
-    def ruling(self, r):
+    def record(self, name, at):
+        self.history.setdefault(name, []).append((at, copy.deepcopy(self.ns[name])))
+
+    def state_at(self, name, t):
+        past = [st for at, st in self.history.get(name, []) if at <= t]
+        return past[-1] if past else None
+
+    def ruling(self, r, at):
         s = self.ns.get(r["namespace"])
         if not s: return "NAMESPACE_UNKNOWN"
         if s["status"] == "retired": return "NAMESPACE_RETIRED"
@@ -76,9 +90,10 @@ class Registry:
             v = self.who(to)
             if v: return v
             s.update(holder=to, grants={})
+        self.record(r["namespace"], at)
         return "accepted"
 
-    def decide(self, st, at, release=False):
+    def decide(self, st, at, release=False, index=None):
         prefix, fields = st["prefix"], st["fields"]
         if prefix not in ((RELEASE,) if release else (CLAIM, GRANT, TRANSFER)) or [x["name"] for x in fields] != LAYOUT[prefix]:
             return "NAMESPACE_MALFORMED"
@@ -90,11 +105,18 @@ class Registry:
             k = self.keys.get(s["by"])
             if not k or not self.ver.verify(k["pk"], msg, statements.b64(s["signature"])): return "NAMESPACE_SIGNATURE_INVALID"
             signers.add(k["fp"])
-        if not release:
+        if release:
+            # After the signature: steps 1 and 3 come first for a release too.
+            lines = index_lines(index, f["index"])
+            if lines is None: return "NAMESPACE_MALFORMED"
+            if int(f["released_at"]) - at > WINDOW: return "NAMESPACE_STATEMENT_STALE"
+        else:
             if abs(at - int(f["issued_at"])) > WINDOW: return "NAMESPACE_STATEMENT_STALE"
             if msg in self.log: return "NAMESPACE_STATEMENT_REPLAYED"
         name = f["namespace"]
         if not NAME.fullmatch(name): return "NAMESPACE_INVALID"
+        if release:
+            return self.release(name, f, lines, signers, at)
         s = self.ns.get(name)
         if prefix == CLAIM:
             if s and s["status"] == "retired" and variant != "reclaim-retired": return "NAMESPACE_RETIRED"
@@ -106,13 +128,11 @@ class Registry:
             if f["holder"] not in signers: return "NAMESPACE_NOT_HOLDER"
             self.ns[name] = {"status": "held", "holder": f["holder"], "grants": {}}
             self.log.add(msg)
+            self.record(name, at)
             return "accepted"
         if not s: return "NAMESPACE_UNKNOWN"
         if s["status"] == "retired": return "NAMESPACE_RETIRED"
         if s["status"] == "frozen": return "NAMESPACE_FROZEN"
-        if release:
-            if s["holder"] in signers or any(s["grants"].get(x) == "publish" for x in signers): return "accepted"
-            return "NAMESPACE_NOT_PUBLISHER"
         if prefix == GRANT:
             if s["holder"] not in signers: return "NAMESPACE_NOT_HOLDER"
             v = self.who(f["grantee"], person=False)
@@ -130,12 +150,50 @@ class Registry:
                 keep = f["kind"] == "rotation" and variant != "rotation-drops-grants"
                 s.update(holder=f["to"], grants=s["grants"] if keep else {})
         self.log.add(msg)
+        self.record(name, at)
+        return "accepted"
+
+    def release(self, name, f, lines, signers, at):
+        """A catalog release: the namespace's state at its released_at, then
+        the releases this verifier already holds for the namespace."""
+        when = at if variant == "release-at-tip" else int(f["released_at"])
+        s = self.state_at(name, when)
+        if not s: return "NAMESPACE_UNKNOWN"
+        if s["status"] == "retired": return "NAMESPACE_RETIRED"
+        if s["status"] == "frozen": return "NAMESPACE_FROZEN"
+        if s["holder"] not in signers and not any(s["grants"].get(x) == "publish" for x in signers):
+            return "NAMESPACE_NOT_PUBLISHER"
+        held, n = self.releases.setdefault(name, {}), int(f["release"])
+        if variant != "release-unchained":
+            if n in held:
+                return "accepted" if held[n]["index"] == f["index"] else "NAMESPACE_RELEASE_BROKEN"
+            if n > 1:
+                prev = held.get(n - 1)
+                if not prev or f["previous"] != prev["index"] or int(f["released_at"]) < prev["released_at"]:
+                    return "NAMESPACE_RELEASE_BROKEN"
+                for ref, d in prev["lines"].items():
+                    if ref not in lines or (d == "retired" and lines[ref] != "retired"):
+                        return "NAMESPACE_RELEASE_BROKEN"
+        held[n] = {"index": f["index"], "released_at": int(f["released_at"]), "lines": lines}
         return "accepted"
 
     def who(self, fp, person=True):
         if fp not in self.enrolled: return "NAMESPACE_IDENTITY_UNKNOWN"
         if person and self.enrolled[fp] != "user": return "NAMESPACE_SERVICE_IDENTITY"
         return None
+
+
+def index_lines(text, digest):
+    """The index a release names, as {ref: digest or 'retired'}, or None when
+    the text is not that digest's or not in the index's form."""
+    if text is None or "sha256:" + hashlib.sha256(text.encode()).hexdigest() != digest:
+        return None
+    if not text.endswith("\n"): return None
+    lines = [INDEX_LINE.fullmatch(l) for l in text[:-1].split("\n")]
+    if not all(lines): return None
+    refs = [m.group(1) for m in lines]
+    if refs != sorted(refs, key=lambda r: r.encode()) or len(set(refs)) != len(refs): return None
+    return {m.group(1): m.group(2) for m in lines}
 
 
 def defined_here():
@@ -182,8 +240,8 @@ def main():
             reg = Registry(vec, keys, ver)
             for i, step in enumerate(seq["steps"], 1):
                 steps += 1
-                if "ruling" in step: got = reg.ruling(step["ruling"])
-                elif "release" in step: got = reg.decide(step["release"], step["at"], release=True)
+                if "ruling" in step: got = reg.ruling(step["ruling"], step["at"])
+                elif "release" in step: got = reg.decide(step["release"], step["at"], release=True, index=step.get("index"))
                 else: got = reg.decide(step["statement"], step["at"])
                 if got != step["expect"]:
                     faults.append(f"{seq['id']} step {i}: got {got}, want {step['expect']}")

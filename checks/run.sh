@@ -372,10 +372,11 @@ PY
 fi
 
 # The namespace registry's rules over its vectors; a registry that accepts
-# confusable names, and one that accepts a one-sided transfer, must each be
-# reported at exactly the steps the vectors refuse for that reason.
+# confusable names, one that accepts a one-sided transfer, and a verifier that
+# holds no release to the one before it, must each be reported at exactly the
+# steps the vectors refuse for that reason.
 expect 0 "namespace-registry: every step gets its stated verdict" python3 checks/namespace-registry.py
-for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED; do
+for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED release-unchained:NAMESPACE_RELEASE_BROKEN; do
 	variant=${v%%:*} code=${v#*:}
 	# expect() sets $want, so the count has a name of its own.
 	steps=$(python3 -c 'import json, sys; print(sum(s["expect"] == sys.argv[1] for q in json.load(open("vectors/namespace-registry.json"))["sequences"] for s in q["steps"]))' "$code")
@@ -402,19 +403,23 @@ else
 	fails=$((fails + 1))
 fi
 
-# Two more of the registry's rules broken, each reported only in the sequence
-# that exercises it: a registry that lets a retired name be claimed again is
-# caught at the first re-claim, and one whose rotation drops the grants at the
-# first act a kept grant allows.
+# Three more of the rules broken, each reported only in the sequence that
+# exercises it: a registry that lets a retired name be claimed again is caught
+# at the first re-claim, one whose rotation drops the grants at the first act a
+# kept grant allows, and a verifier that judges a release against the
+# registry's latest state, not its released_at, at the release the old key
+# made before its rotation.
 for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMESPACE_RETIRED" \
-	"rotation-drops-grants:rotation-keeps-the-binding:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted"; do
+	"rotation-drops-grants:rotation-keeps-the-binding+release-at-its-own-time:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted" \
+	"release-at-tip:release-at-its-own-time:step 4: got NAMESPACE_NOT_PUBLISHER, want accepted"; do
+	# variant:sequence[+other sequences it may also reach]:first bite
 	variant=${v%%:*} rest=${v#*:}
-	seq=${rest%%:*} line="$seq ${rest#*:}"
+	seqs=${rest%%:*} seq=${seqs%%+*} line="$seq ${rest#*:}"
 	expect 1 "namespace-registry control: a registry that does $variant fails" python3 checks/namespace-registry.py --variant "$variant"
-	if grep -qxF "$line" "$tmp/out" && [ "$(grep -vc "^$seq " "$tmp/out")" -eq 0 ]; then
-		echo "ok   namespace-registry control: $variant is reported in $seq alone, at its first bite"
+	if grep -qxF "$line" "$tmp/out" && [ "$(grep -Evc "^($(echo "$seqs" | tr + '|')) " "$tmp/out")" -eq 0 ]; then
+		echo "ok   namespace-registry control: $variant is reported in $seqs alone, $seq ${rest#*:} among it"
 	else
-		echo "FAIL namespace-registry control: want '$line', and nothing outside $seq"
+		echo "FAIL namespace-registry control: want '$line', and nothing outside $seqs"
 		sed 's/^/     /' "$tmp/out"
 		fails=$((fails + 1))
 	fi

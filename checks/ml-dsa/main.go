@@ -174,17 +174,25 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 	credNonce := b64.EncodeToString(mustHex(sha("weblisk test vector credential challenge")))
 	authNonce := b64.EncodeToString(mustHex(sha("weblisk test vector auth challenge"))[:16])
 	// The namespace registry's log id, the one vectors/namespace-registry.json
-	// names as `registry`, and two release indexes (patterns/namespace, The
-	// index), each the digest of its stated text.
+	// names as `registry`, a stated constant.
 	registry := "051d89f50429c33375260edf33167e397e1e2701ed833ae8230279032e7989a9"
-	index1 := "sha256:f2bd32ff5970c1083dce6ac7e8647e2acbc1d386a7f4619e3f0f76a1a8fbd484"
-	index2 := "sha256:7a9600695e63fdaae5132dc73626ceb66dbc007f3118e0ed5998128bb0a1b0a5"
+	// Two release indexes (patterns/namespace, The index), the same texts
+	// vectors/namespace-registry.json carries for its releases 1 and 2. Each
+	// line's digest is the SHA-256 of a stated text naming the ref and the
+	// release that set it.
+	ns := "vector-one"
+	policy, hazards, stopWork := "blueprint://"+ns+"/ohs/policy",
+		"requirement://"+ns+"/ohs/policy:report-hazards", "requirement://"+ns+"/ohs/policy:stop-work"
+	at := func(ref string, n int) string {
+		return "sha256:" + sha(fmt.Sprintf("weblisk test vector entry: %s at release %d", ref, n))
+	}
+	index1 := "sha256:" + sha(policy+" "+at(policy, 1)+"\n"+hazards+" "+at(hazards, 1)+"\n")
+	index2 := "sha256:" + sha(policy+" "+at(policy, 2)+"\n"+hazards+" retired\n"+stopWork+" "+at(stopWork, 2)+"\n")
 
 	cc := func(role, path, op, bef, aft, scope, prop string) []field {
 		return []field{{"log id", contentLogID}, {"role", role}, {"path", path}, {"operation", op},
 			{"before", bef}, {"after", aft}, {"scope", scope}, {"proposal", prop}, {"signed_at", "1767225600"}}
 	}
-	ns := "vector-one"
 	claim := func(holder *key, at string) []field {
 		return []field{{"registry", registry}, {"namespace", ns}, {"holder", holder.Fingerprint}, {"issued_at", at}}
 	}
