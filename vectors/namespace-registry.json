@@ -1482,7 +1482,7 @@
     },
     {
       "id": "retired-never-returns",
-      "case": "a retirement names no incoming holder; once retired, the name is never claimed again, by its last holder or anyone, and nothing is granted or released under it",
+      "case": "a retirement names no incoming holder; once retired, the name is never claimed again, by its last holder or anyone, and nothing is granted, released or reassigned under it",
       "steps": [
         {
           "at": 1767225660,
@@ -1724,6 +1724,16 @@
             ]
           },
           "expect": "NAMESPACE_RETIRED"
+        },
+        {
+          "at": 1767226080,
+          "ruling": {
+            "namespace": "vector-one",
+            "ruling": "reassign",
+            "to": "holder-2",
+            "reason": "a ruling never un-retires a namespace"
+          },
+          "expect": "NAMESPACE_RETIRED"
         }
       ],
       "state": {
@@ -1734,7 +1744,7 @@
     },
     {
       "id": "rulings",
-      "case": "a frozen namespace accepts no grant and is still held; a reassignment moves it and ends its grants, and the earlier holder can no longer act",
+      "case": "a frozen namespace accepts no grant and is still held; a reassignment moves it and ends its grants, and the earlier holder can no longer act; a reassignment only to an enrolled user, and no ruling on a name nobody claimed",
       "steps": [
         {
           "at": 1767225660,
@@ -1965,6 +1975,35 @@
             ]
           },
           "expect": "accepted"
+        },
+        {
+          "at": 1767226200,
+          "ruling": {
+            "namespace": "vector-one",
+            "ruling": "reassign",
+            "to": "credential",
+            "reason": "a reassignment to an identity this hub never enrolled"
+          },
+          "expect": "NAMESPACE_IDENTITY_UNKNOWN"
+        },
+        {
+          "at": 1767226260,
+          "ruling": {
+            "namespace": "vector-one",
+            "ruling": "reassign",
+            "to": "service",
+            "reason": "a reassignment to a service identity"
+          },
+          "expect": "NAMESPACE_SERVICE_IDENTITY"
+        },
+        {
+          "at": 1767226320,
+          "ruling": {
+            "namespace": "vector-two",
+            "ruling": "freeze",
+            "reason": "a freeze of a name nobody claimed"
+          },
+          "expect": "NAMESPACE_UNKNOWN"
         }
       ],
       "state": {

@@ -313,8 +313,9 @@ a claim for is `unheld`.
 A registry decides each statement by these steps, in order, and the first that
 fails gives the refusal. The registry's clock is `now`.
 
-1. The prefix is one of the three a registry accepts, the field count is the
-   prefix's, and every field is in its stated form, `to` empty exactly when
+1. The prefix is one of the three a registry accepts — or, for a catalog
+   release a verifier decides, `weblisk/catalog-release/v1` — the field count
+   is the prefix's, and every field is in its stated form, `to` empty exactly when
    `kind` is `retirement` — else `NAMESPACE_MALFORMED`.
 2. `<registry>` is this registry's log id — else `NAMESPACE_WRONG_REGISTRY`.
 3. Every signature the request carries verifies, by
@@ -347,6 +348,14 @@ fails gives the refusal. The registry's clock is `now`.
 
 An accepted statement is appended before the registry answers
 (`log-is-the-record`). A refusal appends nothing.
+
+A **ruling** carries no holder's signature, but is decided all the same, and
+a refused one is not recorded: the namespace has been claimed
+(`NAMESPACE_UNKNOWN`) and is not retired (`NAMESPACE_RETIRED`); for
+`reassign`, the incoming identity is enrolled and not revoked
+(`NAMESPACE_IDENTITY_UNKNOWN`) and is a user (`NAMESPACE_SERVICE_IDENTITY`).
+Freezing a frozen namespace, or unfreezing a held one, is recorded and changes
+nothing.
 
 A **catalog release** is decided by a verifier rather than appended: steps 1,
 3 and 5 for its own form and signature, then, against the registry's state,
@@ -406,8 +415,8 @@ proves itself.
 | `NAMESPACE_FROZEN` | 423 | A ruling froze the namespace |
 | `NAMESPACE_NOT_HOLDER` | 403 | Not signed by the holder the act needs |
 | `NAMESPACE_TRANSFER_ONE_SIDED` | 403 | A transfer or rotation without the incoming holder's signature |
-| `NAMESPACE_IDENTITY_UNKNOWN` | 403 | The holder, grantee or incoming holder is not enrolled at this hub, or is revoked |
-| `NAMESPACE_SERVICE_IDENTITY` | 403 | A service identity as claimant or incoming holder |
+| `NAMESPACE_IDENTITY_UNKNOWN` | 403 | The holder, grantee or incoming holder, a reassignment's included, is not enrolled at this hub, or is revoked |
+| `NAMESPACE_SERVICE_IDENTITY` | 403 | A service identity as claimant or incoming holder, a reassignment's included |
 | `NAMESPACE_NOT_PUBLISHER` | 403 | A release signed by neither the holder nor a `publish` grantee |
 
 ---

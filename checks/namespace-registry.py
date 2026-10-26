@@ -73,7 +73,8 @@ class Registry:
         elif r["ruling"] == "unfreeze": s["status"] = "held"
         else:
             to = self.keys[r["to"]]["fp"]
-            if self.enrolled.get(to) != "user": return "NAMESPACE_SERVICE_IDENTITY"
+            v = self.who(to)
+            if v: return v
             s.update(holder=to, grants={})
         return "accepted"
 
