@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs the corpus's checks, each with the control that proves it reaches what
 # it claims to. Exits 0 only when every check passes and every control fails.
-# Needs python3 with PyYAML.
+# Needs python3 with PyYAML, and OpenSSL 3.5 or later (as $OPENSSL or on PATH).
 cd "$(dirname "$0")/.." || exit 2
 # retired.py imports ids.py; leave no bytecode in the corpus.
 export PYTHONDONTWRITEBYTECODE=1
@@ -79,6 +79,48 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 # milliseconds that must be the one disagreement reported.
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
 expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
+
+# The fixed-form statement vectors against OpenSSL, which did not make them;
+# the signed directory push must have one. Copies whose push body differs by
+# one byte, and whose push is signed by another key, must each fail.
+expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v1
+python3 - "$tmp" <<'PY'
+import json, sys
+p = "vectors/fixed-form-statements.json"
+t = open(p, encoding="utf-8").read()
+body = '"http://content-analyzer.example:9710"'
+assert t.count(body) == 1
+open(sys.argv[1] + "/byte.json", "w", encoding="utf-8").write(t.replace(body, body.replace("9710", "9711")))
+d = json.loads(t)
+push = next(v for v in d["vectors"] if v["id"] == "directory-push-1")
+other = next(v for v in d["vectors"] if v["signed_by"] != push["signed_by"])
+push["signature"] = push["body"]["signature"] = other["signature"]
+open(sys.argv[1] + "/key.json", "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False))
+PY
+expect 1 "fixed-form control: a push body one byte changed fails" python3 checks/fixed-form.py --file "$tmp/byte.json"
+grep -q "^directory-push-1: the signature does not verify over the statement rebuilt from the body" "$tmp/out" || { echo "FAIL fixed-form control: the changed body was not what was reported"; fails=$((fails + 1)); }
+expect 1 "fixed-form control: a push signed by another key fails" python3 checks/fixed-form.py --file "$tmp/key.json"
+grep -q "^directory-push-1: OpenSSL does not verify the signature" "$tmp/out" || { echo "FAIL fixed-form control: the wrong key was not what was reported"; fails=$((fails + 1)); }
+
+# Requirement and check ids carried as comments: every id covered, and the
+# push's refusal of an unsigned body has its check. A copy with one check's
+# covers removed must fail, naming the id it left uncovered.
+expect 0 "wl-ids: every marked requirement is covered, and an unsigned push is refused" python3 checks/wl-ids.py --require protocol/spec.md:unsigned-push-refused
+sed 's/wl:check stale-push-refused covers directory-push-refuse-stale/wl:check stale-push-refused covers directory-push-refuse-unsigned/' protocol/spec.md >"$tmp/spec.md"
+expect 1 "wl-ids control: a requirement no check covers fails" python3 checks/wl-ids.py "$tmp/spec.md"
+if grep -q "wl:id directory-push-refuse-stale is covered by no wl:check" "$tmp/out" && [ "$(grep -c ': wl:' "$tmp/out")" -eq 1 ]; then
+	echo "ok   wl-ids control: exactly one finding, naming directory-push-refuse-stale"
+else
+	echo "FAIL wl-ids control: want exactly one finding naming directory-push-refuse-stale"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# No text says the directory push is unauthenticated, now that it is signed.
+# A copy of client.md that says so again, across a line break, must fail.
+expect 0 "push-claims: no text says the directory push is unauthenticated" python3 checks/push-claims.py
+sed 's/^`POST \/v1\/services` with a signature that verifies under the orchestrator.s key$/`POST \/v1\/services` is unauthenticated/' architecture/client.md >"$tmp/client.md"
+expect 1 "push-claims control: a copy of client.md calling the push unauthenticated fails" python3 checks/push-claims.py "$tmp/client.md"
 
 # Every grammar vector against its expected projection; a copy whose
 # projection leaves a one-byte gap, and a copy missing a projection, must each

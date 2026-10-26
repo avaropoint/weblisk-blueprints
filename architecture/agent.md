@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -442,10 +442,15 @@ for signature verification details.
 ```
 1. Require POST method
 2. Parse ServiceDirectory from body
-3. Update internal service list (thread-safe)
-4. Update local routing table cache (thread-safe)
-5. Update local namespace map cache (thread-safe)
-6. Return 200 OK
+3. Verify the push as protocol/spec POST /v1/services states:
+   unsigned or not verifying → 401 INVALID_SIGNATURE;
+   older than the directory held → 409 DIRECTORY_STALE;
+   either way change nothing. Holding no directory yet → take
+   nothing from the body; read GET /v1/services at the anchor
+4. Update internal service list (thread-safe)
+5. Update local routing table cache (thread-safe)
+6. Update local namespace map cache (thread-safe)
+7. Return 200 OK
 ```
 
 ### POST /v1/event
