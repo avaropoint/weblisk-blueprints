@@ -42,6 +42,13 @@ for, and [`checks/run.sh`](../../checks/run.sh) refuses a copy that differs, so
 a change to the declaration or the template is a change to its expected
 projection in the same commit.
 
+Their projections were computed by a reference walker that is not part of this
+repository, the one that reproduces every other projection here exactly.
+Nothing committed yet confirms which slot each of their parts is assigned to:
+`checks/spans.py` confirms the partition and `checks/findings.py` the findings,
+and the rest is unconfirmed until the CLI's walker (`v2-cli-walk`) walks them.
+Until then, read them as expected values, not as walker-verified ones.
+
 A file here is data. Its bytes are its point, so the repository keeps them as
 written (`.gitattributes`); an edit to one is an edit to its projection too,
 which `checks/spans.py` refuses until both agree.

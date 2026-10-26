@@ -1,8 +1,8 @@
 {
   "file": "vectors/grammar/architecture.md",
   "family": "schemas/family@1",
-  "length": 21626,
-  "version_hash": "sha256:46fc51949f8fdb249db8bb3d69216a8473be2cb0a95d501dbb668fbae1ddccc9",
+  "length": 22927,
+  "version_hash": "sha256:60c4914f45aa6aa3fd227f95272e8f1dc1557676223c11ba355cfca41ae0c200",
   "parts": [
     {
       "span": [0, 277],
@@ -111,17 +111,17 @@
       "digest": "sha256:6ed5d2c09db626d22406f8c86c54ae5e44c9e22f8a21b00f0f3a8df1f1a1289d"
     },
     {
-      "span": [2439, 5100],
+      "span": [2439, 5114],
       "part": "block",
       "slot": "sections",
       "block": "sections",
       "use": "shapes",
       "send": "referenced",
-      "digest": "sha256:b78a5efda9e92614489e90024c594dfa31f008747b0e42b47f6112abf0e204c1",
+      "digest": "sha256:b70bdc5f437be7f1b28995bdd98fc4230970878a04c50a00316b28e43eef48d6",
       "entries": []
     },
     {
-      "span": [5100, 5101],
+      "span": [5114, 5115],
       "part": "text",
       "slot": "sections",
       "use": "shapes",
@@ -129,15 +129,15 @@
       "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
     },
     {
-      "span": [5101, 7037],
+      "span": [5115, 8338],
       "part": "text",
       "slot": null,
       "use": "explains",
       "send": "on-request",
-      "digest": "sha256:ccf0c1b27a217435f27eae0d63297a69479255b2dd4ba1f17426cb5855737fa6"
+      "digest": "sha256:290031f87a9bf15bfe35621411b5d4affba639e72785b117d9547f0bf1c7da02"
     },
     {
-      "span": [7037, 7303],
+      "span": [8338, 8604],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -145,7 +145,7 @@
       "digest": "sha256:544d02afa67b63fb17a6fb5aa70891e7cc29cea918d55fc56f23537db9c49755"
     },
     {
-      "span": [7303, 8118],
+      "span": [8604, 9419],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -153,7 +153,7 @@
       "digest": "sha256:eb4bb0bb6cf10c6213c2d36e16fd07ca055dcea3acec4abe6bcb312edd4ec738"
     },
     {
-      "span": [8118, 10525],
+      "span": [9419, 11826],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -161,7 +161,7 @@
       "digest": "sha256:dc000ff04c44898c1594b63edd09c5c3fda019ab4fb75112f61a9c746a673cb6"
     },
     {
-      "span": [10525, 20260],
+      "span": [11826, 21561],
       "part": "text",
       "slot": null,
       "use": "explains",
@@ -169,7 +169,7 @@
       "digest": "sha256:3b895e3eb74164c77edbc5f5a6bf441c4c15c57f29073cea91d3ad4e3d9ec5d9"
     },
     {
-      "span": [20260, 21626],
+      "span": [21561, 22927],
       "part": "text",
       "slot": null,
       "use": "explains",

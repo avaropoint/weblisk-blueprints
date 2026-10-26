@@ -75,7 +75,7 @@ sections:
     - {slot: interface, heading: Interface, aliases: [Interfaces],
        required: {when: {block_present: serves}},
        blocks: [{type: serves, count: {max: 1}}, {type: events, count: {max: 1}}],
-       use: exposes, produces: [code.route, api.openapi]}
+       use: exposes, produces: [code.route, api.openapi, api.asyncapi]}
     - {slot: errors, heading: Error Handling, aliases: [Errors], required: false,
        blocks: [{type: errors, count: {max: 1}}], use: shapes}
     - {slot: data-flow, heading: Data Flow, required: false, use: explains}
@@ -126,7 +126,27 @@ being migrated therefore walks with its narrative counted as what it is, and
 what no slot declares is reported, never refused, so the share of bytes
 outside every slot is measured rather than hidden. `Dependencies` is carried
 only until the migration folds it into the header's `requires`, which is its
-home in this family.
+home in this family. `Declaration` is its alias for the same reason and for
+migration only: the older schema let a `## Declaration` supersede
+`## Dependencies`, so its `requires` is what the alias is for. The rest a
+declaration block holds (the one in `architecture/orchestrator.md` also carries
+checks and other machine-read content) is counted as `depends` while the file
+is in the older form, and the migration moves each part to the slot whose block
+it is.
+
+**The header is grammar 1's, widened on purpose.** Beyond identity and
+dependencies it keeps `tier`, `author`, `status`, `superseded_by` and
+`end_of_life`, which the older form's files carry today and which
+[`schemas/common`](common.md#the-header-in-grammar-1) says keep their meanings:
+without them the migration would have nowhere to put a value it must keep.
+
+**A blueprint, not a specification.** The declaration's `kind:` is the kind of
+the files it declares, as [`schemas/family`](family.md) says, not the kind of
+this file. Those files are `blueprint`, the sub-kind of `specification` that
+[`schemas/kinds`](kinds.md#declared-kinds) declares, which adds generation to
+it; `specification` would have named their parent and lost what a build reads
+them for. The declaration itself is a `specification`, as every file of
+`schemas/family` is.
 
 **The order above is canonical.** In grammar 1 a slot written out of order is
 reported (`slot-order`), and the grammar that follows the migration refuses it
