@@ -42,6 +42,8 @@ def read(rel): return open(os.path.join(CORPUS, rel), encoding="utf-8").read()
 names = yaml.safe_load(re.search(r"## Declaration\n+```yaml\n(.*?)```", read("schemas/names.md"), re.S).group(1))
 skeleton = lambda n: n.lower().replace("0", "o").replace("1", "l")
 RESERVED = {r.lower() for r in names["reserved"]}
+# The replay window has one home, protocol/identity's Security block.
+WINDOW = int(re.search(r"^  replay_protection:\n    window: (\d+) seconds$", read("protocol/identity.md"), re.M).group(1))
 
 
 def well_formed(prefix, f):
@@ -88,7 +90,7 @@ class Registry:
             if not k or not self.ver.verify(k["pk"], msg, statements.b64(s["signature"])): return "NAMESPACE_SIGNATURE_INVALID"
             signers.add(k["fp"])
         if not release:
-            if abs(at - int(f["issued_at"])) > 300: return "NAMESPACE_STATEMENT_STALE"
+            if abs(at - int(f["issued_at"])) > WINDOW: return "NAMESPACE_STATEMENT_STALE"
             if msg in self.log: return "NAMESPACE_STATEMENT_REPLAYED"
         name = f["namespace"]
         if not NAME.fullmatch(name): return "NAMESPACE_INVALID"

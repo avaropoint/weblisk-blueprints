@@ -321,8 +321,10 @@ fails gives the refusal. The registry's clock is `now`.
    [Verify Signature](../protocol/identity.md#verify-signature), under a public
    key whose fingerprint is the one the signature names — else
    `NAMESPACE_SIGNATURE_INVALID`.
-4. `issued_at` is within 300 seconds of `now`, either side — else
-   `NAMESPACE_STATEMENT_STALE`. The log does not already hold these bytes —
+4. `issued_at` is within the replay window of `now`, either side — else
+   `NAMESPACE_STATEMENT_STALE`. The window is
+   [`protocol/identity`](../protocol/identity.md#security)'s
+   `replay_protection` window, and is not restated here. The log does not already hold these bytes —
    else `NAMESPACE_STATEMENT_REPLAYED`.
 5. `<namespace>` is in the grammar of [`schemas/names`](../schemas/names.md#the-grammar)
    — else `NAMESPACE_INVALID`.
@@ -393,7 +395,7 @@ proves itself.
 | `NAMESPACE_MALFORMED` | 400 | Unknown prefix, wrong field count, or a field not in its form |
 | `NAMESPACE_WRONG_REGISTRY` | 400 | `<registry>` names another registry's log |
 | `NAMESPACE_SIGNATURE_INVALID` | 401 | A signature does not verify under the key it names |
-| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is more than 300 seconds from the registry's clock |
+| `NAMESPACE_STATEMENT_STALE` | 400 | `issued_at` is outside the replay window of the registry's clock |
 | `NAMESPACE_STATEMENT_REPLAYED` | 409 | The log already holds these bytes |
 | `NAMESPACE_INVALID` | 400 | The name is not in the namespace grammar |
 | `NAMESPACE_RESERVED` | 403 | A reserved name, place code or issuer code |
