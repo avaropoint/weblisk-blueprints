@@ -346,8 +346,8 @@ fails gives the refusal. The registry's clock is `now`.
 4. `issued_at` is within the replay window of `now`, either side — else
    `NAMESPACE_STATEMENT_STALE`. The window is
    [`protocol/identity`](../protocol/identity.md#security)'s
-   `replay_protection` window, and is not restated here. The log does not already hold these bytes —
-   else `NAMESPACE_STATEMENT_REPLAYED`.
+   `replay_protection` window, and is not restated here. The log does not
+   already hold these bytes — else `NAMESPACE_STATEMENT_REPLAYED`.
 5. `<namespace>` is in the grammar of [`schemas/names`](../schemas/names.md#the-grammar)
    — else `NAMESPACE_INVALID`.
 6. For a **claim**: the name is not retired (`NAMESPACE_RETIRED`), not one
@@ -397,8 +397,8 @@ steps, in order:
    (`NAMESPACE_NOT_PUBLISHER`).
 5. Against the releases the verifier already holds for the namespace
    (`release-continues`): if it holds this release number, the index is the
-   same; otherwise release 1 names no previous, and release N holds release N-1
-   (a verifier fetches it from where it found release N), names its index as
+   same; otherwise release 1 names no previous, and for release N the verifier
+   holds release N-1 (fetched from where it found release N), and N names its index as
    `previous`, is dated no earlier, and keeps every ref of its index, a retired
    ref still `retired` — else `NAMESPACE_RELEASE_BROKEN`. A release that passes
    is one the verifier now holds.
@@ -406,7 +406,7 @@ steps, in order:
 ### Private and public
 
 A hub's own registry answers for the hub's own tenant: its tenant's namespace
-is the first name claimed in it, at the tenant's creation
+is the first name claimed in it, by the tenant's owner
 ([`architecture/tenancy`](../architecture/tenancy.md#interfaces)). Holding a
 name there gives nothing outside that hub. Publishing under a namespace to
 anyone else — a listing, a catalog release offered on the network — needs the
