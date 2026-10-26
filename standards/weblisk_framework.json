@@ -2028,7 +2028,7 @@
         {
           "id": "WLF-PLATFORM-11",
           "name": "Type Mapping",
-          "description": "How schema types map to language types",
+          "description": "Transitional: kept required so today's validation still reads it; the spelling is a language mapping's (see [Type Mapping](#type-mapping-type-mapping))",
           "family": "WLF-PLATFORM",
           "framework": "weblisk_framework",
           "domains": [
