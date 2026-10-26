@@ -31,6 +31,11 @@ Every blueprint MUST begin with an HTML comment block containing YAML
 metadata. This is the machine-readable header that tools, validators,
 and the orchestrator parse before reading the document body.
 
+That is the older form, which every blueprint in this corpus is written in
+until the migration (`v2-migrate`) rewrites it. A file written to a family
+declaration opens with a YAML header instead, as
+[The header in grammar 1](#the-header-in-grammar-1) says.
+
 ### Format
 
 ```markdown
@@ -52,14 +57,14 @@ may add additional required fields.
 | Field | Type | Required | Default | Description |
 |-------|------|----------|---------|-------------|
 | `type` | enum | **yes** | — | One of: `agent`, `domain`, `protocol`, `pattern`, `architecture`, `language`, `platform`, `standard` |
-| `name` | string | **yes** | — | Unique identifier. Lowercase, hyphen-separated. Must match filename (without `.md`). |
+| `name` | string | **yes** | — | Unique identifier. Lowercase, hyphen-separated. Must match filename (without `.md`). Not carried in grammar 1, where a file's path is its id |
 | `version` | semver | **yes** | — | Blueprint version in `MAJOR.MINOR.PATCH` format |
 | `requires` | list | **yes** | `[]` | Blueprints this one depends on. Format: `[type/name, type/name]` |
 | `extends` | list | conditional | `[]` | Patterns this blueprint inherits. Format: `[patterns/name]`. Required for `agent` and `domain` types. |
 | `platform` | enum | conditional | `any` | Target platform: `any`, `cloudflare`, `node`. Not used by `type: language` — see [language.md](language.md#why-no-platform) |
 | `tier` | enum | **yes** | `free` | Availability tier: `free` or `pro` |
 | `author` | string | no | — | Original author or authoring organization of the blueprint |
-| `publisher` | string | no | — | Entity publishing the blueprint to a marketplace. Must conform to marketplace validation and verification requirements. |
+| `publisher` | string | no | — | Entity publishing the blueprint to a marketplace. Must conform to marketplace validation and verification requirements. Not carried in grammar 1, where the namespace's claim says who publishes |
 | `status` | enum | no | `active` | Lifecycle status: `active`, `deprecated`, `end-of-life` |
 | `superseded_by` | string | no | — | Blueprint reference (`type/name`) that replaces this one. Required when `status` is `deprecated`. |
 | `end_of_life` | date | no | — | ISO 8601 date after which the blueprint is unsupported. Required when `status` is `end-of-life`. |
@@ -158,6 +163,48 @@ that drifts, because every document written from it inherits the fault.
 12. If `status` is `deprecated`, `superseded_by` is required
 13. If `status` is `end-of-life`, `end_of_life` date is required
 14. `superseded_by` must reference an `active` blueprint of the same `type`
+
+### The header in grammar 1
+
+A file written to a family declaration ([`schemas/family`](family.md)) opens
+with a YAML header between two `---` lines, and the schema of that header is
+its family's declaration's Header block, never a copy here.
+[`schemas/architecture`](architecture.md#header) is the first. This section
+says what the common fields mean there, once for every family that carries
+them:
+
+- **`family`** replaces `type`: `<declaration>@<major>`, the family the file is
+  written to and the major it is written to.
+- **No `name`.** A file's id is its path under its namespace
+  ([`schemas/names`](names.md#namespaces)). A name that must match the
+  filename is a second statement of the path, and the two can disagree.
+- **No `publisher`.** Who publishes is the claim on the namespace
+  ([`schemas/names`](names.md#namespaces)), not a field each file restates.
+- **`requires`** is a list of entries, each a `ref`, a `version` range and the
+  `bindings` used from it ([`schemas/blocks`](blocks.md#definitions),
+  `requires-entry`). It is what a generation of the file reads: the context
+  set. The older form's `## Dependencies` section moves into it.
+- **`depends_on`** names the components this one calls while it runs, and
+  **`runs_with`** the components every deployment of its kind is built with;
+  every component runs with the orchestrator. The two are the build set,
+  what must exist beside this component. The build set and the context set
+  are never merged: a component is built with another without being shown
+  its blueprint, and is shown a blueprint without building its component.
+- **`cardinality`** is `singleton`, one instance in a tenant, or `named`, any
+  number, each under its own name. Two singletons of one kind in one build are
+  a conflict.
+- **`provides`** names the roles the component fills. Two components that
+  provide one exclusive role in one build are a conflict.
+- **`retired`** lists each part id the file no longer declares: the id, the
+  version that retired it, and what replaces it. A retired id is never issued
+  again ([`schemas/names`](names.md#namespaces)), and a citation of it resolves
+  to "retired in that version", never to nothing.
+- **`formerly`** lists the refs the file was known by before it was renamed,
+  so a citation of an older ref still finds it.
+
+`version`, `tier`, `author`, `status`, `superseded_by`, `end_of_life` and
+`adoption` keep the meanings above. `platform` is carried only by a family
+whose declaration lists it; an architecture blueprint names none.
 
 ---
 

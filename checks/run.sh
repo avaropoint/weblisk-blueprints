@@ -203,6 +203,39 @@ else
 	fails=$((fails + 1))
 fi
 
+# The architecture family's declaration and template are grammar vectors, each
+# an exact copy of the file it pins, so changing either changes the projection
+# a walker is held to; a copy one byte off must be reported.
+for pair in "schemas/architecture.md architecture" "templates/architecture.md architecture-template"; do
+	set -- $pair
+	expect 0 "vectors: vectors/grammar/$2.md is the copy of $1" cmp "$1" "vectors/grammar/$2.md"
+done
+cp templates/architecture.md "$tmp/template.md" && printf '\n' >>"$tmp/template.md"
+expect 1 "vectors control: a copy one byte longer than its template fails" cmp templates/architecture.md "$tmp/template.md"
+
+# The share of architecture's bytes no slot declares, against the 53% its older
+# schema left undeclared, measured at corpus 3fc8d6a before any family existed:
+# a family or a walker that reads the files differently lands far from it. A
+# copy of the declaration without its Dependencies slot must, and a
+# declaration with no sections cannot be measured at all.
+expect 0 "coverage: architecture's bytes in no slot are within 2 points of 53%" python3 checks/coverage.py schemas/architecture --expect 53 --within 2
+awk '/slot: dependencies,/ { skip = 2 } skip-- > 0 { next } 1' schemas/architecture.md >"$tmp/architecture.md"
+expect 1 "coverage control: a declaration without its Dependencies slot fails" python3 checks/coverage.py schemas/architecture --decl "$tmp/architecture.md" --expect 53 --within 2
+grep -q '% in no slot' "$tmp/out" && grep -q '^dependencies ' "$tmp/out" && { echo "FAIL coverage control: the Dependencies slot was not what was removed"; fails=$((fails + 1)); }
+expect 1 "coverage control: a declaration with no sections fails" python3 checks/coverage.py schemas/architecture --decl schemas/names.md
+grep -q 'declares no sections' "$tmp/out" || { echo "FAIL coverage control: the missing sections were not what was reported"; fails=$((fails + 1)); }
+
+# A slot that holds an interface block produces that interface's file: serves
+# an OpenAPI document, events an AsyncAPI one (plan section 1.2). A value the
+# declaration drops leaves the build's unproduced report nothing to report, so
+# the pairs are held here until a mapping binds them. A copy of the declaration
+# without api.asyncapi must fail, naming the interface slot.
+expect 0 "produces: architecture's serves slot produces api.openapi" python3 checks/produces.py schemas/architecture serves api.openapi
+expect 0 "produces: architecture's events slot produces api.asyncapi" python3 checks/produces.py schemas/architecture events api.asyncapi
+sed 's/produces: \[code.route, api.openapi, api.asyncapi\]/produces: [code.route, api.openapi]/' schemas/architecture.md >"$tmp/noasync.md"
+expect 1 "produces control: a declaration without api.asyncapi fails" python3 checks/produces.py schemas/architecture events api.asyncapi --decl "$tmp/noasync.md"
+grep -q '^schemas/architecture: slot interface holds events and does not produce api.asyncapi$' "$tmp/out" || { echo "FAIL produces control: the interface slot was not what was reported"; fails=$((fails + 1)); }
+
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.
 expect 0 "reach-depth: one home, every citation resolves" python3 checks/reach-depth.py

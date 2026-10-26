@@ -87,6 +87,7 @@ and six folders were absent altogether.
 | [`platforms/`](platforms/README.md) | One blueprint per runtime |
 | [`frameworks/`](frameworks/README.md) | What building *with* a framework requires, including the Weblisk client framework's project guidance in `frameworks/weblisk/` |
 | [`schemas/`](schemas/README.md) | The schema each blueprint type conforms to, `kinds.md`, and `names.md`, how anything is named |
+| [`templates/`](templates/README.md) | The file each family declaration names as its `template:`, which a new file of that family starts from |
 | [`standards/`](standards/README.md) | Industry standards, as JSON catalogues. The Weblisk project standards it once held are now in [`frameworks/weblisk/`](frameworks/weblisk/README.md) |
 | [`programmes/`](programmes/README.md) | Programmes — what a body of work requires in order to exist and to keep running |
 | [`positions/`](positions/README.md) | The hand-written half of what can be said about a job somebody holds |

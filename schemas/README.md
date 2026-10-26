@@ -64,7 +64,7 @@ This applies to:
 | [domain.md](domain.md) | Domain **controller** blueprints — an agent process owning a business function. **Not** a policy domain; see [policy-domain.md](policy-domain.md) | Domain YAML specs in project `domains/` |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
-| [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
+| [architecture.md](architecture.md) | System architecture components. The declaration of the family `schemas/architecture` (grammar 1), whose starting file is [`templates/architecture.md`](../templates/architecture.md), and the older form today's files are written in until they are migrated | `architecture/` directory |
 | [language.md](language.md) | Programming language bindings — what is essential when building in one language | `languages/` directory |
 | [platform.md](platform.md) | Platform implementation bindings — what a runtime offers | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
