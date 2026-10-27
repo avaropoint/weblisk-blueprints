@@ -78,7 +78,7 @@ declaration:
     - blueprint: protocol/types
       # 4.0.0 is where token:exchange is admitted for the declared admin
       # gateway alone (Registration Flow, step 1)
-      version: ">=4.0.0 <6.0.0"
+      version: ">=4.0.0 <7.0.0"
       bindings:
         types:
           - name: RegisterRequest

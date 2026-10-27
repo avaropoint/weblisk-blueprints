@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.3.0
+version: 1.4.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -63,7 +63,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -564,6 +564,81 @@ The statement is the outbox for the relationship fabric: its
 ([`architecture/fabric`](fabric.md#declared-at-write-time)). Manifests of what
 was written, build status and adoption views are computed from statements, and
 nothing else records run facts.
+
+### Resolving a request of many roots
+
+A request names one or more refs, each an id, an id at a version, or (to the
+CLI outside a tenant only) a path. Resolution runs before any model call and
+makes none. Its result is phase R of a change ([`schemas/change`](../schemas/change.md));
+today's plan is phase F, labelled as the model's proposed files.
+
+**Two closures, never merged.**
+
+| | Built from | Depth | Sent to a model |
+|---|---|---|---|
+| **Build set**: which components must exist | `depends_on` and `runs_with` (every component kind runs with the orchestrator, declared once per kind) | transitive, in topological order; a runtime cycle is refused | no |
+| **Context set**: what one component's generation reads | `requires` | per component, never unioned across roots: one level today, transitive over parts once parts have ids, never over files | yes |
+
+A union of four roots' context is 1.56 MB, and a file-level transitive closure
+2.33 MB per component (45 of 86 blueprints); both are refused, and neither is
+what one component is answerable for.
+
+**Each thing is resolved once.** A blueprint is read once per run, a component
+planned once however often it is asked for, and an output two components need
+(the protocol types package) has one owner: the first in topological order.
+Its run statement records every root that needed it.
+
+**Versions by minimal version selection.** The resolver takes the highest of
+the stated minimums, checks every upper bound, and never takes a newer version
+than one asked for. The result is written to the tenant's lock
+([`schemas/build-lock`](../schemas/build-lock.md)) when the change is applied.
+An upgrade happens only through `change plan --upgrade` or an explicit
+`@version`; a downgrade only through an explicit `@version`.
+
+**`on_change` is evaluated.** A breaking change to a dependency whose
+dependant's range excludes the new major gives the dependant the verdict
+`blocked`, because `version-bump`, naming it. A `removed` change gives `halt`.
+
+**Conflicts are refused before any model call, and every pair is named.**
+
+| Code | Conflict |
+|---|---|
+| C1 | a range cannot be satisfied |
+| C2 | one id served by two sources with different digests. Always reported; refused with `--strict`, which Studio always sets |
+| C3 | a bare ref that resolves to more than one id |
+| C4 | an output collision: port, instance name, namespace, operation, divergent type or output path |
+| C5 | two singletons of one kind, or two `provides` of an exclusive role |
+| C6 | a runtime `depends_on` cycle |
+| C7 | a platform or language disagreement inside one shared module |
+| C8 | a downgrade not asked for as an explicit `@version` |
+
+The validator also runs conflict detection pairwise over every buildable root
+of a corpus revision, so "any two published roots can be built together" is a
+checked property of the revision, not a hope about it. The plan lists the
+conflicts it **introduces and clears** between the corpus revision the tenant
+is pinned to and the target.
+
+**What a plan includes.** A component pulled in as a dependency appears as
+added by a dependency of the one that needed it, and is built only on approval.
+A component marked `adoption: opt-in` is never pulled in: reaching one is a
+refusal naming the root that reached it.
+
+**Impact is the same walk in reverse, at binding level.** A new version reaches
+its dependants through the `fields_used` of their bindings, then the components
+built from them, then the files answerable for the changed parts, along the
+fabric's relations, bounded by its one reach depth
+(`requirement://weblisk/architecture/fabric:reach-max-depth`). An optional field
+nobody binds reaches nothing, and a prose edit outside every contract marks
+nothing for review. Each reached node gets one verdict from
+[`schemas/change`](../schemas/change.md#verdicts); a node reached only through
+`generated_from`, never through `implements`, touches nothing it is
+answerable for and is `assessed-unchanged` (row five of the rebuild decision
+above), and an output a person edited is `refused` (row two). The result is always a plan for a person
+to approve, never a regeneration.
+
+**A plan is bound to what it read.** It records the corpus revision, the lock's
+digest and the fabric's chain tip. `apply` refuses a plan any of them has moved
+past, and the client says it is stale.
 
 ### Generation order comes from the plan
 
@@ -1687,3 +1762,9 @@ and "nothing contradicted it".
 - [ ] A failure at Layer 1 or Layer 2 prevents later layers from reporting a result; inside the repair loop a tree that builds is started and conformance-tested before its assertions are read, and a failed assertion does not void those results
 - [ ] Generated file paths are validated for containment before any write
 - [ ] The model, blueprint versions and the plan used are recorded with the output
+- [ ] Resolution makes no model call; a request of several roots gives each component its own context set, never a union, and refuses a runtime `depends_on` cycle
+- [ ] Versions are chosen by minimal version selection; a newer version than asked for is never taken, and a downgrade only on an explicit `@version`
+- [ ] Each of C1 to C8 is refused before any model call, naming the pair; C2 is reported, and refused under `--strict`
+- [ ] A breaking change outside a dependant's range plans `blocked` naming it, and a removal plans `halt`
+- [ ] A component reached through `adoption: opt-in` is a refusal naming the root; one added by a dependency is planned as such and built only on approval
+- [ ] `apply` refuses a plan whose corpus revision, lock digest or fabric tip has moved

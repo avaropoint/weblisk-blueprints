@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <6.0.0"
+    version: ">=1.13.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse

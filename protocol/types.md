@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 5.0.0
+version: 6.0.0
 requires: []
 platform: any
 tier: free
@@ -1590,84 +1590,123 @@ types:
 
 ### ApprovalRequest
 
-Submitted by a user or external system to approve or reject one or
-more pending recommendations or workflow phases.
+A decision an owner holds open for a person: an operation that
+[`patterns/safety`](../patterns/safety.md)'s gate held for `require_approval`
+or `escalate`, or a change the tenant's change service planned
+([`schemas/change`](../schemas/change.md)). It is defined here alone, so the
+tenant has one queue of them: the decision inbox lists each owner's open
+requests ([`architecture/admin`](../architecture/admin.md#decision-inbox)), and
+a change awaiting approval is one of them. How a request is routed, escalated
+and decided is [`patterns/approval`](../patterns/approval.md)'s; who may approve
+a change is [`architecture/cli`](../architecture/cli.md#who-may-approve-a-change)'s.
+A request holds exactly one of `intent_id` and `change_id`.
 
 ```yaml
 types:
   ApprovalRequest:
     fields:
-      recommendation_ids:
-        name: RecommendationIDs
-        type: "[]string"
-        required: true
-        description: "IDs of recommendations to resolve"
-      decision:
-        name: Decision
+      id:
+        name: ID
         type: string
         required: true
-        description: "`\"accept\"` or `\"reject\"`"
-      reason:
-        name: Reason
+        description: "Minted by the owner that holds the request"
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The component that holds the request open and at which it is decided"
+      intent_id:
+        name: IntentID
         type: string
         required: false
-        description: "Human-provided justification (required for rejections)"
-      token:
-        name: Token
+        description: "The OperationIntent the safety gate held; absent for a change"
+      change_id:
+        name: ChangeID
+        type: string
+        required: false
+        description: "The change awaiting approval (`schemas/change`); absent for an operation"
+      requester:
+        name: Requester
         type: string
         required: true
-        description: "Auth token"
-      timestamp:
-        name: Timestamp
+        description: "Identity id of who asked: an agent, a service or an operator. Separation of duties is judged against it"
+      operation:
+        name: Operation
+        type: string
+        required: true
+        description: "What would be done, in words a person decides on"
+      operation_class:
+        name: OperationClass
+        type: string
+        required: false
+        description: "`patterns/safety`'s class of the held operation; required with `intent_id`"
+      resource_class:
+        name: ResourceClass
+        type: string
+        required: false
+        description: "`patterns/safety`'s criticality of its target; required with `intent_id`"
+      scope:
+        name: Scope
+        type: string
+        required: false
+        description: "`patterns/scope`'s `ScopeLevel` of the target; required with `intent_id`"
+      environment:
+        name: Environment
+        type: string
+        required: true
+        description: "`development`, `staging` or `production`"
+      authority_required:
+        name: AuthorityRequired
+        type: string
+        required: true
+        description: "`patterns/approval`'s minimum authority level, set by routing"
+      position:
+        name: Position
+        type: string
+        required: false
+        description: "For a knowledge change, the position its spec names as approver: the request is decided by a holder of it"
+      development:
+        name: Development
+        type: bool
+        required: false
+        description: "True on a tenant flagged as a development tenant, the only place a requester may approve their own request; shown wherever the request is"
+      justification:
+        name: Justification
+        type: string
+        required: true
+        description: "Why it is needed"
+      urgency:
+        name: Urgency
+        type: string
+        required: true
+        description: "`normal`, `urgent` or `emergency`"
+      requested_at:
+        name: RequestedAt
         type: timestamp
         required: true
-```
-
-### ApprovalResponse
-
-```yaml
-types:
-  ApprovalResponse:
-    fields:
-      updated:
-        name: Updated
-        type: int
+        description: "When the request was filed"
+      expires_at:
+        name: ExpiresAt
+        type: timestamp
         required: true
-        description: "Count of recommendations updated"
-      results:
-        name: Results
-        type: "[]ApprovalResult"
-        required: true
-        description: "Per-recommendation outcome"
-```
-
-### ApprovalResult
-
-```yaml
-types:
-  ApprovalResult:
-    fields:
-      recommendation_id:
-        name: RecommendationID
-        type: string
-        required: true
-        description: "Which recommendation"
-      previous_status:
-        name: PreviousStatus
-        type: string
-        required: true
-        description: "Status before this action"
-      new_status:
-        name: NewStatus
-        type: string
-        required: true
-        description: "Status after this action"
-      error:
-        name: Error
+        description: "When it expires undecided; an expired request is denied, never approved"
+      correlation_id:
+        name: CorrelationID
         type: string
         required: false
-        description: "Error if this one failed (e.g., already resolved)"
+        description: "Trace id of the workflow, task or change run it belongs to"
+      metadata:
+        name: Metadata
+        type: map
+        required: false
+        description: "Owner-specific context"
 ```
+
+A request is answered by the decision made at the route its owner names, not
+by a type of this file. The recommendation-decision body this type replaced
+in 5.0.0, and the two types that answered it, are retired
+([`RETIRED.md`](../RETIRED.md)); 5.0.0 is MAJOR because fields were removed
+([`schemas/common`](../schemas/common.md#blueprint-versions), Blueprint Versions).
 
 ---
 

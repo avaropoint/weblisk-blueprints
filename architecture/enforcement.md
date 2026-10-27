@@ -100,9 +100,11 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <6.0.0"
+    version: ">=5.0.0 <7.0.0"
     bindings:
       types:
+        - name: ApprovalRequest
+          fields_used: [operation, requester, authority_required, intent_id]
         - name: ServiceDirectory
           fields_used: [services, routing_table, namespaces]
         - name: AuditEntry
@@ -201,11 +203,10 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/approval
-    version: ">=1.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
-      types:
-        - name: ApprovalRequest
-          fields_used: [operation, agent, authority_required, context]
+      behaviors:
+        - name: approval-routing
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

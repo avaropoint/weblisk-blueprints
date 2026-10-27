@@ -1,0 +1,49 @@
+{
+  "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+  "kind": "adopt",
+  "request": [
+    "blueprint://weblisk/architecture/admin@4.1.1"
+  ],
+  "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
+  "requested_at": "2026-10-26T07:33:20.000Z",
+  "strict": true,
+  "state": "planned",
+  "base": {
+    "corpus": "f2b61ba",
+    "lock": "sha256:abababababababababababababababababababababababababababababababab",
+    "fabric_tip": "unreported"
+  },
+  "shown_roots": [
+    "blueprint://weblisk/architecture/admin"
+  ],
+  "resolution": {
+    "build_set": [
+      {
+        "component": "component://example/admin"
+      }
+    ],
+    "lock_diff": [
+      {
+        "ref": "blueprint://weblisk/architecture/admin",
+        "from": "absent",
+        "to": "4.1.1"
+      }
+    ],
+    "conflicts": {
+      "found": [],
+      "introduced": [],
+      "cleared": []
+    }
+  },
+  "plan": [
+    {
+      "output": "admin/main.go",
+      "phase": "F",
+      "verdict": "generate",
+      "because": "absent",
+      "implements": [
+        "requirement://weblisk/architecture/admin:listeners-disjoint"
+      ]
+    }
+  ]
+}

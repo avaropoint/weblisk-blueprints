@@ -72,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.0 <6.0.0"
+    version: ">=1.16.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse

@@ -1,0 +1,572 @@
+{
+  "format": "The commands the CLI builds at the commit named, one per noun and verb, each with the file and line of the switch that dispatches it. A command with no verb has verb \"\". Aliases (blueprints, secrets, federation, describe as show or info) and help are not commands. expected_drift is the drift checks/command-surface.py measured between this list and architecture/cli.md's Command Surface when this file was written; a change to either side changes it, on purpose.",
+  "cli_commit": "7a75d54",
+  "measured_against_corpus": "f2b61ba",
+  "commands": [
+    {
+      "noun": "new",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "dev",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "build",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "vendor",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "version",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "validate",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "providers",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "doctor",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "status",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "audit",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "update",
+      "verb": "",
+      "source": "main.go:47-597"
+    },
+    {
+      "noun": "build",
+      "verb": "status",
+      "source": "main.go:68-85"
+    },
+    {
+      "noun": "component",
+      "verb": "init",
+      "source": "internal/server/component.go:36-80"
+    },
+    {
+      "noun": "component",
+      "verb": "start",
+      "source": "internal/server/component.go:36-80"
+    },
+    {
+      "noun": "component",
+      "verb": "stop",
+      "source": "internal/server/component.go:36-80"
+    },
+    {
+      "noun": "component",
+      "verb": "status",
+      "source": "internal/server/component.go:36-80"
+    },
+    {
+      "noun": "component",
+      "verb": "logs",
+      "source": "internal/server/component.go:36-80"
+    },
+    {
+      "noun": "server",
+      "verb": "init",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "start",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "stop",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "verify",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "status",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "logs",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "server",
+      "verb": "provision",
+      "source": "internal/server/commands.go:22"
+    },
+    {
+      "noun": "agent",
+      "verb": "create",
+      "source": "internal/server/agent/commands.go:12"
+    },
+    {
+      "noun": "agent",
+      "verb": "start",
+      "source": "internal/server/agent/commands.go:12"
+    },
+    {
+      "noun": "agent",
+      "verb": "verify",
+      "source": "internal/server/agent/commands.go:12"
+    },
+    {
+      "noun": "agent",
+      "verb": "list",
+      "source": "internal/server/agent/commands.go:12"
+    },
+    {
+      "noun": "domain",
+      "verb": "create",
+      "source": "internal/domain/domain.go:11"
+    },
+    {
+      "noun": "domain",
+      "verb": "start",
+      "source": "internal/domain/domain.go:11"
+    },
+    {
+      "noun": "gateway",
+      "verb": "create",
+      "source": "internal/gateway/gateway.go:11"
+    },
+    {
+      "noun": "gateway",
+      "verb": "start",
+      "source": "internal/gateway/gateway.go:11"
+    },
+    {
+      "noun": "blueprint",
+      "verb": "update",
+      "source": "internal/dispatch/blueprint_sources.go:125"
+    },
+    {
+      "noun": "blueprint",
+      "verb": "sources",
+      "source": "internal/dispatch/blueprint_sources.go:125"
+    },
+    {
+      "noun": "tenant",
+      "verb": "create",
+      "source": "internal/tenantcmd/tenantcmd.go:26"
+    },
+    {
+      "noun": "tenant",
+      "verb": "accept",
+      "source": "internal/tenantcmd/tenantcmd.go:26"
+    },
+    {
+      "noun": "cache",
+      "verb": "status",
+      "source": "internal/tenantcmd/cache.go:23"
+    },
+    {
+      "noun": "cache",
+      "verb": "prune",
+      "source": "internal/tenantcmd/cache.go:23"
+    },
+    {
+      "noun": "secret",
+      "verb": "list",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "secret",
+      "verb": "set",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "secret",
+      "verb": "get",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "secret",
+      "verb": "exists",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "secret",
+      "verb": "delete",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "secret",
+      "verb": "rotate",
+      "source": "internal/secrets/secrets.go:17"
+    },
+    {
+      "noun": "pattern",
+      "verb": "apply",
+      "source": "main.go:226"
+    },
+    {
+      "noun": "operator",
+      "verb": "path",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "store",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "init",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "register",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "token",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "rotate",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "sign",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "pubkey",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "list",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "approve",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "operator",
+      "verb": "connect",
+      "source": "internal/operator/operator.go:31"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "search",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "describe",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "buy",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "install",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "publish",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "list",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "update",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "delist",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "dashboard",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "reviews",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "review",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "collaborations",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "usage",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "terminate",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "activate",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "marketplace",
+      "verb": "remove",
+      "source": "internal/marketplace/marketplace.go:45"
+    },
+    {
+      "noun": "agents",
+      "verb": "list",
+      "source": "main.go:270"
+    },
+    {
+      "noun": "agents",
+      "verb": "describe",
+      "source": "main.go:270"
+    },
+    {
+      "noun": "agents",
+      "verb": "deregister",
+      "source": "main.go:270"
+    },
+    {
+      "noun": "domains",
+      "verb": "list",
+      "source": "main.go:297"
+    },
+    {
+      "noun": "domains",
+      "verb": "describe",
+      "source": "main.go:297"
+    },
+    {
+      "noun": "workflows",
+      "verb": "list",
+      "source": "main.go:317"
+    },
+    {
+      "noun": "workflows",
+      "verb": "describe",
+      "source": "main.go:317"
+    },
+    {
+      "noun": "approvals",
+      "verb": "list",
+      "source": "main.go:337"
+    },
+    {
+      "noun": "approvals",
+      "verb": "describe",
+      "source": "main.go:337"
+    },
+    {
+      "noun": "approvals",
+      "verb": "accept",
+      "source": "main.go:337"
+    },
+    {
+      "noun": "approvals",
+      "verb": "reject",
+      "source": "main.go:337"
+    },
+    {
+      "noun": "strategies",
+      "verb": "list",
+      "source": "main.go:383"
+    },
+    {
+      "noun": "strategies",
+      "verb": "describe",
+      "source": "main.go:383"
+    },
+    {
+      "noun": "strategies",
+      "verb": "create",
+      "source": "main.go:383"
+    },
+    {
+      "noun": "strategies",
+      "verb": "update",
+      "source": "main.go:383"
+    },
+    {
+      "noun": "strategies",
+      "verb": "delete",
+      "source": "main.go:383"
+    },
+    {
+      "noun": "federations",
+      "verb": "peers",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "pending",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "accept",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "reject",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "revoke",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "describe",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "federations",
+      "verb": "contracts",
+      "source": "main.go:421"
+    },
+    {
+      "noun": "operators",
+      "verb": "list",
+      "source": "main.go:477"
+    },
+    {
+      "noun": "operators",
+      "verb": "describe",
+      "source": "main.go:477"
+    },
+    {
+      "noun": "operators",
+      "verb": "approve",
+      "source": "main.go:477"
+    },
+    {
+      "noun": "operators",
+      "verb": "revoke",
+      "source": "main.go:477"
+    },
+    {
+      "noun": "operators",
+      "verb": "role",
+      "source": "main.go:477"
+    },
+    {
+      "noun": "observations",
+      "verb": "list",
+      "source": "main.go:536"
+    },
+    {
+      "noun": "observations",
+      "verb": "trends",
+      "source": "main.go:536"
+    },
+    {
+      "noun": "test",
+      "verb": "conformance",
+      "source": "internal/test/test.go:20"
+    },
+    {
+      "noun": "test",
+      "verb": "mock-orchestrator",
+      "source": "internal/test/test.go:20"
+    },
+    {
+      "noun": "deploy",
+      "verb": "rollback",
+      "source": "internal/deploy/deploy.go:13"
+    },
+    {
+      "noun": "deps",
+      "verb": "audit",
+      "source": "internal/deps/deps.go:14"
+    },
+    {
+      "noun": "policy",
+      "verb": "validate",
+      "source": "internal/policy/policy.go:14"
+    },
+    {
+      "noun": "policy",
+      "verb": "test",
+      "source": "internal/policy/policy.go:14"
+    }
+  ],
+  "expected_drift": [
+    "specified, not built: objectives describe",
+    "specified, not built: objectives list",
+    "specified, not built: operator attest",
+    "built, not specified: build status",
+    "built, not specified: cache prune",
+    "built, not specified: cache status",
+    "built, not specified: marketplace activate",
+    "built, not specified: marketplace remove",
+    "built, not specified: observations list",
+    "built, not specified: observations trends",
+    "built, not specified: operator approve",
+    "built, not specified: operator list",
+    "built, not specified: operator pubkey",
+    "built, not specified: operator sign",
+    "built, not specified: secret exists",
+    "built, not specified: server logs",
+    "built, not specified: server status",
+    "built, not specified: strategies create",
+    "built, not specified: strategies delete",
+    "built, not specified: strategies describe",
+    "built, not specified: strategies list",
+    "built, not specified: strategies update",
+    "built, not specified: update"
+  ]
+}
