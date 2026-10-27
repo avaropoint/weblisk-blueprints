@@ -182,7 +182,7 @@ body of `POST /v1/event`:
   "source": "workflow",
   "scope": "seo",
   "correlation_id": "wf-exec-001",
-  "timestamp": 1712160001,
+  "timestamp": "2024-04-03T16:00:01.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
@@ -204,7 +204,7 @@ body of `POST /v1/event`:
 | source | string | yes | Name of the publishing agent |
 | scope | string | yes | Target agent name, or `"*"` for global |
 | correlation_id | string | no | Links all events in one execution chain |
-| timestamp | int64 | yes | Unix epoch seconds |
+| timestamp | timestamp | yes | When the event was published |
 | trace_id | string | yes | The trace this event belongs to ([TraceContext](../protocol/types.md#tracecontext)) |
 | span_id | string | yes | The publisher's span for this publish; what a subscriber does with it is [`protocol/spec`](../protocol/spec.md#trace-propagation)'s |
 | version | string | yes | Schema version of the payload |
@@ -332,7 +332,7 @@ publish(topic, payload, scope, options)
    correlation_id: provided or inherited from current context
    trace_id:       inherited from current trace context
    span_id:        the span this agent opened for the publish
-   timestamp:      now (Unix epoch seconds)
+   timestamp:      now
    version:        agent's event schema version
    payload:        provided payload
    token:          this agent's auth token

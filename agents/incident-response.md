@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 2.0.1
+version: 3.0.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -34,7 +34,7 @@ to operators when human judgment is required.
 ## Dependencies
 
   - blueprint: patterns/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AlertEvent
@@ -46,7 +46,7 @@ to operators when human judgment is required.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -78,7 +78,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -107,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       events:
         - topic: alert.fired
@@ -134,7 +134,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: flat-file-engine
@@ -263,15 +263,15 @@ types:
         items: TimelineEntry
         description: Chronological event log
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Incident creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last state change timestamp
       resolved_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Resolution timestamp
     constraints:
@@ -283,8 +283,7 @@ types:
     description: Single event in an incident timeline
     fields:
       time:
-        type: string
-        format: iso8601
+        type: timestamp
         description: Event timestamp
       event:
         type: string

@@ -43,7 +43,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       types:
         - name: OrchestratorConfig

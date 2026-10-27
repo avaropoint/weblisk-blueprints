@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 3.3.0
+version: 4.0.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -62,7 +62,7 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.4 <3.0.0"
+      version: ">=1.14.4 <4.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -126,7 +126,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/storage
-      version: ">=1.0.0 <2.0.0"
+      version: ">=1.0.0 <3.0.0"
       bindings:
         types:
           - name: AuditFilter
@@ -159,7 +159,7 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: patterns/scope
-      version: ">=2.6.0 <3.0.0"
+      version: ">=2.6.0 <4.0.0"
       bindings:
         types:
           # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -1477,7 +1477,7 @@ routing table and namespace map:
       "public_key": "<ML-DSA-65 public key (base64url)>",
       "capabilities": ["file:read", "agent:message"],
       "lease_state": "ready",
-      "lease_expires_at": 1712160030,
+      "lease_expires_at": "2024-04-03T16:00:30.000Z",
       "address_provenance": "self-asserted"
     }
   ],
@@ -1499,7 +1499,7 @@ routing table and namespace map:
     "content": "content",
     "health": "health"
   },
-  "updated_at": 1712160000
+  "updated_at": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -1660,7 +1660,7 @@ Authorization: Bearer <the admin gateway's own registration token>
   "audience": "<identity id of the component the request goes to>",
   "scope": ["content:read"] }
 
-200 { "issued": true, "pass": "<WLT, type pass>", "expires_at": 1712160030, "capabilities": ["content:read"] }
+200 { "issued": true, "pass": "<WLT, type pass>", "expires_at": "2024-04-03T16:00:30.000Z", "capabilities": ["content:read"] }
 200 { "issued": false, "code": "OPERATOR_REVOKED" }
 ```
 
@@ -1730,7 +1730,7 @@ Every operation creates an AuditEntry:
 ```json
 {
   "id": "<generated>",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "actor": "orchestrator",
   "action": "register",
   "target": "seo-analyzer",
@@ -1868,14 +1868,14 @@ types:
         description: "Current auth token"
       registered_at:
         name: RegisteredAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of registration"
+        description: "The instant of registration"
       last_seen:
         name: LastSeen
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of the last request received from the agent"
+        description: "The instant of the last request received from the agent"
       lease:
         name: Lease
         type: Lease

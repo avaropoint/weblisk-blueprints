@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: storage
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -148,7 +148,7 @@ types:
 | `int` | 64-bit signed integer | `42` |
 | `float` | 64-bit floating point | `3.14` |
 | `boolean` | True/false | `true` |
-| `timestamp` | Unix epoch seconds (int64) | `1713264000` |
+| `timestamp` | An instant, kept to the millisecond and served as `protocol/conventions:instant` | `"2026-04-16T10:40:00.000Z"` |
 | `json` | Arbitrary JSON object | `{"key": "value"}` |
 | `[]<type>` | Array of type | `[]string` |
 | `enum(<values>)` | Enumerated string values | `enum(active,suspended,deleted)` |
@@ -454,7 +454,7 @@ schema_version_interface:
         steps_applied: int
         rows_affected: int
         duration_ms: int
-        applied_at: int64        # Unix epoch seconds
+        applied_at: timestamp
     - name: ValidateSchema
       description: Verify that the current schema matches the declared types
       returns:
@@ -513,8 +513,8 @@ types:
 - **Type names are PascalCase**: `EmailQueueEntry`, not
   `email_queue_entry`. Table names in DDL use snake_case
   automatically.
-- **Timestamps are Unix epoch**: All timestamp fields store seconds
-  since epoch as int64. Display formatting is a presentation concern.
+- **Timestamps are instants**: every timestamp field is kept to the
+  millisecond and served as `protocol/conventions:instant`. Display formatting is a presentation concern.
 - **UUIDs for IDs**: Use a UUID (`protocol/conventions:uuid`) for every primary key
   unless there is a specific reason for sequential IDs.
 - **Soft deletes**: Prefer `status: deleted` over physical deletes

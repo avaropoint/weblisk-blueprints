@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 2.0.1
+version: 3.0.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -33,7 +33,7 @@ through which channel, and with what urgency.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -71,7 +71,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -125,7 +125,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
@@ -341,10 +341,10 @@ The alert event is delivered to the agent's `/task` endpoint.
     "context": {
       "url": "https://example.com",
       "status_code": 503,
-      "check_time": 1712160000,
+      "check_time": "2024-04-03T16:00:00.000Z",
       "consecutive_failures": 3
     },
-    "timestamp": 1712160000
+    "timestamp": "2024-04-03T16:00:00.000Z"
   }
 }
 ```
@@ -361,7 +361,7 @@ The alert event is delivered to the agent's `/task` endpoint.
 | title | string | yes | Short summary (≤ 120 chars) |
 | message | string | yes | Detailed description |
 | context | object | no | Structured data specific to the alert type |
-| timestamp | int64 | yes | Unix epoch seconds |
+| timestamp | timestamp | yes | When the alert was raised |
 
 ### Severity Levels
 
@@ -703,7 +703,7 @@ Process an incoming alert event.
    b. severity: one of [critical, high, medium, low]
    c. source.type: one of [agent, domain, orchestrator, system]
    d. title: non-empty, max 120 chars
-   e. timestamp: valid epoch seconds
+   e. timestamp: an instant as `protocol/conventions:instant` writes it
 2. Deduplicate:
    a. hash = sha256(source.name + title + severity)
    b. Check dedup cache for hash within throttle window
@@ -887,11 +887,11 @@ logged.
 ```json
 {
   "hash": "abc123...",
-  "first_seen": 1712160000,
-  "last_seen": 1712160300,
+  "first_seen": "2024-04-03T16:00:00.000Z",
+  "last_seen": "2024-04-03T16:05:00.000Z",
   "count": 15,
   "delivered": true,
-  "delivery_time": 1712160000
+  "delivery_time": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -948,7 +948,7 @@ X-Weblisk-Delivery: <uuid>
   "title": "Site unreachable",
   "message": "GET https://example.com returned 503 after 3 attempts",
   "context": {...},
-  "timestamp": 1712160000
+  "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -1037,10 +1037,10 @@ types:
         type: bool
         description: "Whether this was a throttled duplicate"
       timestamp:
-        type: int64
+        type: timestamp
         description: "Alert timestamp"
       processed_at:
-        type: int64
+        type: timestamp
         description: "When the alerting agent processed it"
 ```
 
@@ -1439,7 +1439,7 @@ tests:
       source: {type: agent, name: uptime-checker, domain: health}
       title: Site unreachable
       message: "GET https://example.com returned 503"
-      timestamp: 1712160000
+      timestamp: "2024-04-03T16:00:00.000Z"
     expected:
       delivered_to: [email, webhook, slack]
       throttled: false
@@ -1457,7 +1457,7 @@ tests:
       source: {type: system, name: orchestrator}
       title: Agent registered
       message: "Agent email-send registered successfully"
-      timestamp: 1712160100
+      timestamp: "2024-04-03T16:01:40.000Z"
     expected:
       delivered_to: []
       throttled: false
@@ -1491,7 +1491,7 @@ tests:
       source: {type: agent, name: test}
       title: "Test"
       message: "Bad severity"
-      timestamp: 1712160000
+      timestamp: "2024-04-03T16:00:00.000Z"
     expected_error: INVALID_ALERT
     validates: Severity enum validation
 
@@ -1513,7 +1513,7 @@ tests:
       source: {type: agent, name: uptime-checker}
       title: Site unreachable
       message: "Same alert fired again"
-      timestamp: 1712160060
+      timestamp: "2024-04-03T16:01:00.000Z"
     condition: Same source+title+severity fired 60s ago (within 0s throttle)
     expected: {throttled: false}
     validates: Critical alerts have throttle=0, always delivered
@@ -1526,7 +1526,7 @@ tests:
       source: {type: agent, name: perf-auditor}
       title: Performance regression
       message: "Page load > 5s"
-      timestamp: 1712160200
+      timestamp: "2024-04-03T16:03:20.000Z"
     condition: email-send agent's lease reads unknown
     expected:
       delivered_to: [webhook]

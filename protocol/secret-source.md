@@ -68,7 +68,7 @@ requires:
   # Fixed-form statements, which a caller builds before it asks a source to
   # sign, and the holder probe registered there
   - blueprint: protocol/identity
-    version: ">=1.7.0 <3.0.0"
+    version: ">=1.7.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair

@@ -34,7 +34,7 @@ background process alongside the main server.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -112,7 +112,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
@@ -390,8 +390,8 @@ storage:
         secret: {type: string, description: HMAC signing secret}
         active: {type: bool, default: true}
         consecutive_failures: {type: int, default: 0}
-        created_at: {type: int64, auto: true}
-        updated_at: {type: int64, auto: true}
+        created_at: {type: timestamp, auto: true}
+        updated_at: {type: timestamp, auto: true}
       indexes:
         - name: idx_subscriber_events
           fields: [active, events]
@@ -411,12 +411,12 @@ storage:
         status: {type: string, enum: [pending, delivered, failed]}
         attempts: {type: int, default: 0}
         max_attempts: {type: int}
-        next_retry: {type: int64, optional: true}
+        next_retry: {type: timestamp, optional: true}
         response_code: {type: int, optional: true}
         duration_ms: {type: int, optional: true}
         error: {type: string, optional: true}
-        created_at: {type: int64, auto: true}
-        delivered_at: {type: int64, optional: true}
+        created_at: {type: timestamp, auto: true}
+        delivered_at: {type: timestamp, optional: true}
       indexes:
         - name: idx_delivery_status
           fields: [status, next_retry]
@@ -433,7 +433,7 @@ storage:
         source: {type: string}
         event_type: {type: string}
         status: {type: string, enum: [success, rejected, filtered]}
-        timestamp: {type: int64, auto: true}
+        timestamp: {type: timestamp, auto: true}
       indexes:
         - name: idx_inbound_time
           fields: [timestamp]

@@ -31,7 +31,7 @@ deliveries are retried automatically.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -96,7 +96,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
@@ -439,7 +439,7 @@ types:
         required: true
         description: Total attempts, the first included (protocol/conventions:max-attempts)
       next_retry:
-        type: int64
+        type: timestamp
         required: false
         description: "Next retry timestamp"
       provider_id:
@@ -451,11 +451,11 @@ types:
         required: false
         description: "Last error message"
       created_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Queue entry creation time"
       sent_at:
-        type: int64
+        type: timestamp
         required: false
         description: "Successful delivery time"
 ```
@@ -487,7 +487,7 @@ types:
         required: true
         description: "Template version"
       updated_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Last update timestamp"
 ```

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 2.0.1
+version: 2.1.0
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -40,7 +40,7 @@ CLI interrogation, and federation advertisement.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -97,7 +97,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       actions:
         - name: alert
@@ -120,7 +120,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes]
     on_change:
@@ -255,7 +255,7 @@ types:
         optional: true
         description: Latest probe latency
       last_check:
-        type: int64
+        type: timestamp
         description: Timestamp of last probe
       consecutive_failures:
         type: int
@@ -274,7 +274,7 @@ types:
         format: uuid-v7
         description: Unique snapshot identifier
       timestamp:
-        type: int64
+        type: timestamp
         description: When snapshot was taken
       hub_score:
         type: int
@@ -311,7 +311,7 @@ types:
         type: string
         description: Human-readable state change description
       timestamp:
-        type: int64
+        type: timestamp
 ```
 
 ---
@@ -665,7 +665,7 @@ The health-monitor maintains a real-time map of all components:
 ```json
 {
   "hub_id": "my-hub",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "hub_score": 94,
   "hub_state": "online",
   "components": {
@@ -786,7 +786,7 @@ alerting agent:
     "current_state": "degraded",
     "latency_ms": 850,
     "consecutive_failures": 0,
-    "timestamp": 1712160000,
+    "timestamp": "2024-04-03T16:00:00.000Z",
     "severity": "warning",
     "message": "Agent 'sync' degraded — latency 850ms exceeds threshold 500ms"
   }
@@ -1288,7 +1288,7 @@ tests:
 
   - name: Health history query
     action: get-health-history
-    input: {since: 1712073600, limit: 10}
+    input: {since: "2024-04-02T16:00:00.000Z", limit: 10}
     expected: {snapshots: [...]}
     validates:
       - Snapshots ordered by timestamp DESC

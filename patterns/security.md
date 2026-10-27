@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ credential management, and `patterns/rate-limiting` for throughput.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -391,7 +391,7 @@ Security events are classified by threat level to drive response:
   "detail": "Message signature verification failed for action: scan_html",
   "remote_addr": "10.0.1.5",
   "trace_id": "abc123",
-  "timestamp": 1713264000
+  "timestamp": "2024-04-16T10:40:00.000Z"
 }
 ```
 

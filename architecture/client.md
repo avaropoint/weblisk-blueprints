@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 1.0.5
+version: 2.0.0
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -92,7 +92,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -657,16 +657,16 @@ types:
         type: string
         description: "Which MFA method was used"
       created_at:
-        type: int64
+        type: timestamp
         description: "Session creation time"
       last_active:
-        type: int64
+        type: timestamp
         description: "Last request timestamp"
       expires_at:
-        type: int64
+        type: timestamp
         description: "Absolute session expiry"
       idle_expires_at:
-        type: int64
+        type: timestamp
         description: "Idle timeout expiry"
       ip_address:
         type: string
@@ -1036,11 +1036,11 @@ types:
         required: true
         description: "Assigned trust classification"
       registered_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Registration timestamp"
       last_seen:
-        type: int64
+        type: timestamp
         required: true
         description: "Last successful authentication"
       revoked:

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-oauth
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/auth-token, patterns/principal-identity, patterns/scope]
 platform: any
 tier: free
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -63,7 +63,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -242,12 +242,12 @@ types:
         description: "Granted scopes"
       expires_at:
         name: ExpiresAt
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 timestamp after which credentials from this grant are refused"
+        description: "The instant after which credentials from this grant are refused"
       revoked_at:
         name: RevokedAt
-        type: string
+        type: timestamp
         required: false
         description: "When the grant was withdrawn, if it was"
 

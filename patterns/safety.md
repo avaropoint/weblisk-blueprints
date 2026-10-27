@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: safety
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -80,7 +80,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/policy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PolicyContext
@@ -486,9 +486,9 @@ types:
         required: true
         description: Human-readable reason for the operation — why is this necessary
       - name: timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the intent was filed
+        description: When the intent was filed
       - name: correlation_id
         type: string
         required: false
@@ -512,7 +512,7 @@ intent:
   environment: production
   agent: "lifecycle-agent"
   justification: "Cleanup orphaned user records — retention policy expired"
-  timestamp: 1777449600
+  timestamp: "2026-04-29T08:00:00.000Z"
   correlation_id: "workflow-exec-9f2a"
 ```
 
@@ -582,11 +582,11 @@ types:
         required: true
         description: The resolved protection gate configuration
       - name: decided_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the decision was made
+        description: When the decision was made
       - name: expires_at
-        type: int64
+        type: timestamp
         required: false
         description: Decision validity window — intent must be acted on before expiry (default 300s)
 ```
@@ -927,9 +927,9 @@ types:
         required: true
         description: Identity of the entity that triggered the kill switch (system, operator name)
       - name: triggered_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when kill switch activated
+        description: When kill switch activated
       - name: violations
         type: "[]SafetyViolation"
         required: false
@@ -1050,9 +1050,9 @@ types:
         required: true
         description: Current quarantine lifecycle state
       - name: entered_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when quarantine began
+        description: When quarantine began
       - name: reason
         type: string
         required: true
@@ -1078,9 +1078,9 @@ types:
         required: true
         description: List of conditions that must be met before exit (e.g., "operator_approval", "re-registration", "policy_update")
       - name: exited_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when quarantine ended (null while quarantined)
+        description: When quarantine ended (null while quarantined)
       - name: exit_approved_by
         type: string
         required: false
@@ -1119,9 +1119,9 @@ types:
         required: true
         description: What system issued the quarantine order
       - name: issued_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the order was issued
+        description: When the order was issued
       - name: exit_requires
         type: "[]string"
         required: true
@@ -1182,9 +1182,9 @@ types:
         required: false
         description: Related intent ID if applicable
       - name: timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the violation occurred
+        description: When the violation occurred
 ```
 
 ---

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 3.3.0
+version: 4.0.0
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -93,7 +93,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.8.0 <3.0.0"
+    version: ">=1.8.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -228,7 +228,7 @@ is returned.
   },
   "token": "<WLT auth token>",
   "signature": "<hex ML-DSA-65 signature>",
-  "timestamp": 1712160000
+  "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -245,7 +245,7 @@ is returned.
   "recommendations": [...],
   "metrics": {"files_scanned": 5, "suggestions": 3},
   "signature": "<hex ML-DSA-65 signature>",
-  "timestamp": 1712160001
+  "timestamp": "2024-04-03T16:00:01.000Z"
 }
 ```
 
@@ -298,7 +298,7 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
   "signature": "<hex ML-DSA-65 signature>",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7"
 }
@@ -324,27 +324,28 @@ registration answer gives as `orchestrator.public_key`
 signs is a [fixed-form statement](identity.md#fixed-form-statements):
 
 ```
-"weblisk/directory/v1" 0x00 <updated_at> 0x00 <digest>
+"weblisk/directory/v2" 0x00 <updated_at> 0x00 <digest>
 
-<updated_at>  the directory's updated_at, as decimal digits with no sign and
-              no leading zero
+<updated_at>  the directory's updated_at, as protocol/conventions:instant
+              writes it
 <digest>      "sha256:" and the lowercase hex SHA-256 of the directory's
               canonical form, canonicalize(directory) per RFC 8785
               (identity.md, Sign JSON), with its signature member left out
 ```
 
-The layout carries `updated_at` as `protocol/types` gives it today, a count of
-seconds. A change to how `updated_at` is carried changes this layout, and so
-takes a new prefix (a prefix names one layout for good,
-[`protocol/identity`](identity.md#fixed-form-statements)).
+The layout carries `updated_at` as an instant is written on the wire
+(`protocol/conventions:instant`). `weblisk/directory/v1` carried it as a count of seconds;
+that change of layout took this prefix, since a prefix names one layout for good
+([`protocol/identity`](identity.md#fixed-form-statements)), and v1 is retired
+([`RETIRED.md`](../RETIRED.md)).
 
 <!-- wl:id directory-push-signed -->
 - The orchestrator MUST sign every directory it pushes and every directory it
   answers [`GET /v1/services`](#get-v1services) with. It MUST give a directory
   that differs from the last it signed an `updated_at` greater than that of
   every directory it signed before, so no two different directories it signs
-  carry the same `updated_at`: the time of the change, or one more than the
-  last `updated_at` it signed, whichever is greater. It MUST keep that last
+  carry the same `updated_at`: the time of the change, or one millisecond after
+  the last `updated_at` it signed, whichever is later. It MUST keep that last
   value in its storage, so neither a restart nor a clock that steps back makes
   it sign a lower one; without it, every agent would refuse its pushes as
   stale until the clock caught up.
@@ -435,7 +436,7 @@ The agent MUST:
   "span_id": "00f067aa0ba902b7",
   "payload": {"workflow_id": "wf-123", "status": "success", "duration_ms": 4500},
   "token": "<WLT auth token>",
-  "timestamp": 1712160000
+  "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
 7. Return 200 OK immediately — event processing is asynchronous
@@ -453,7 +454,7 @@ agent's framework will retry delivery.
   "source": "workflow",
   "scope": "seo",
   "correlation_id": "wf-exec-001",
-  "timestamp": 1712160001,
+  "timestamp": "2024-04-03T16:00:01.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
@@ -600,8 +601,8 @@ The response includes:
 - `services` — all registered agents with URL, public key, capabilities, `lease_state` and `lease_expires_at`
 - `routing_table` — topic pattern → subscriber list (URL, group, scope)
 - `namespaces` — namespace → owning agent name
-- `updated_at` — the time of the last change, in seconds, or one more than
-  the previous directory's when that is greater, so it only ever rises
+- `updated_at` — the time of the last change, or one millisecond after the
+  previous directory's when that is later, so it only ever rises
   ([`POST /v1/services`](#post-v1services))
 - `signature` — the orchestrator's signature over the directory, the
   statement [`POST /v1/services`](#post-v1services) states
@@ -680,7 +681,7 @@ Audit log. Requires a registered component's registration token
 - `actor` — filter by actor name
 - `action` — filter by action type
 - `target` — filter by target
-- `since` — Unix epoch seconds, entries after this time
+- `since` — an instant (`protocol/conventions:instant`), entries after it
 - `cursor` — pagination cursor (opaque)
 - `limit` — max results (default: 100)
 
@@ -1015,7 +1016,7 @@ Published when an event exhausts all delivery retries. Payload:
 | target_agent | string | Intended recipient agent name |
 | failure_reason | string | Last delivery error |
 | attempts | int | Total delivery attempts |
-| dead_lettered_at | int64 | Unix timestamp of dead-lettering |
+| dead_lettered_at | timestamp | When it was dead-lettered |
 
 ---
 
@@ -1387,7 +1388,7 @@ security:
 - [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination
 - [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
-- [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with carries a `signature` that verifies, under `orchestrator.public_key`, over `weblisk/directory/v1`, its `updated_at` and its digest; each directory that differs from the last carries a greater `updated_at`, and so does the first it signs after a restart with its clock set back <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
+- [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with carries a `signature` that verifies, under `orchestrator.public_key`, over `weblisk/directory/v2`, its `updated_at` and its digest; each directory that differs from the last carries a greater `updated_at`, and so does the first it signs after a restart with its clock set back <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
 - [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
 - [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease`
 

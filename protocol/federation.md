@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free
@@ -42,7 +42,7 @@ cross a boundary.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -84,7 +84,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/hub
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: HubManifest
@@ -103,7 +103,7 @@ requires:
 - All cross-boundary messages are signed by both sending and receiving orchestrator
 - Trust relationships are explicit, non-transitive, and time-limited
 - Data contracts are fail-closed — unknown fields are rejected, not ignored
-- All timestamps are Unix epoch seconds (`int64`)
+- All timestamps are `protocol/conventions:instant`
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes decoded)
 - Federation topic qualification uses `::` separator (e.g., `acme-corp::workflow.completed`)
 - Hub-qualified topics do NOT match unqualified subscription patterns
@@ -221,7 +221,7 @@ Orchestrator A                        Orchestrator B
                                         granted_capabilities: ["seo:audit"],
                                         data_contracts: ["seo-audit-v1"],
                                         trust_tier: "partner",
-                                        expires_at: <Unix epoch>,
+                                        expires_at: <instant>,
                                         signature: signed(grant)
                                       }
 
@@ -413,7 +413,7 @@ fingerprint from its manifest:
   "input_schema_hash": "<SHA-256 of inputs JSON>",
   "output_schema_hash": "<SHA-256 of outputs JSON>",
   "version": "1.0.0",
-  "computed_at": 1712160000
+  "computed_at": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -551,9 +551,8 @@ types:
         description: "Requester's ML-DSA-65 signature"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### FederatedTaskResult
@@ -594,9 +593,8 @@ types:
         description: "Provider's ML-DSA-65 signature"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -756,7 +754,7 @@ types:
         type: string
         format: hex
       timestamp:
-        type: int64
+        type: timestamp
 
   FederatedTaskResult:
     description: Cross-boundary task execution result
@@ -781,7 +779,7 @@ types:
         type: string
         format: hex
       timestamp:
-        type: int64
+        type: timestamp
 
   BehavioralFingerprint:
     description: Computed behavioral snapshot of an agent
@@ -803,7 +801,7 @@ types:
         type: string
         format: semver
       computed_at:
-        type: int64
+        type: timestamp
 
   RetentionPolicy:
     description: How long cross-boundary data may persist
@@ -1024,7 +1022,7 @@ Fields in cross-boundary payloads SHOULD carry residency markers:
   "_meta": {
     "origin_jurisdiction": "US",
     "data_classification": "business_confidential",
-    "retention_expires": 1712246400,
+    "retention_expires": "2024-04-04T16:00:00.000Z",
     "contract": "seo-audit-v1"
   }
 }

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 1.6.0
+version: 2.0.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -67,7 +67,7 @@ requires:
   # fixed-form statement signed and verified as Sign and Verify Signature say,
   # and names each key by its Key Fingerprint
   - blueprint: protocol/identity
-    version: ">=2.1.0 <3.0.0"
+    version: ">=2.1.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         - name: AgentEntry
@@ -319,9 +319,9 @@ contracts:
         - Every entry MUST be stored as its RFC 8785 canonical bytes and one line feed, and MUST NOT be re-serialised
         - seq MUST start at 1 and rise by one. previous_digest MUST be the SHA-256 of the previous stored line without its line feed, and 64 zeros on the first entry
         - Checkpoints MUST be signed by a log key, an ML-DSA-65 key held in memory only, whose key entry, signed by the log's authority, is in the log before the log key signs
-        - Once weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, The log key)
+        - Once weblisk/log-key/v2, weblisk/log-checkpoint/v2 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, The log key)
         - While a log key is available, and whenever the tip has moved since the last checkpoint, a checkpoint MUST be issued at each checkpoint_interval, at clean shutdown, and on request. A checkpoint entry does not move the tip
-        - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry, and until weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 have test vectors no log has a key entry
+        - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry, and until weblisk/log-key/v2, weblisk/log-checkpoint/v2 and weblisk/log-succession/v1 have test vectors no log has a key entry
         - An unavailable log key MUST stop sealing and MUST NOT stop appending. Unsealed entries MUST be counted wherever the log is reported
         - A key entry MUST NOT be removed or replaced. A checkpoint is judged against the key and succession entries before it
         - The owner MUST verify its log from the latest checkpoint to the tip before its first append after it starts and before each checkpoint. It MUST NOT append to or seal a log that fails, and MUST go on serving reads of it
@@ -526,12 +526,12 @@ types:
         description: "Filter by strategy (empty = all)"
       since:
         name: Since
-        type: int64
-        description: "Unix epoch — observations after this time"
+        type: timestamp
+        description: "Observations after this time"
       until:
         name: Until
-        type: int64
-        description: "Unix epoch — observations before this time"
+        type: timestamp
+        description: "Observations before this time"
       cursor:
         name: Cursor
         type: string
@@ -696,7 +696,7 @@ types:
         description: "`critical`, `high`, `normal`, `low` (empty = all)"
       since:
         name: Since
-        type: int64
+        type: timestamp
         description: "Tasks created after this time"
       cursor:
         name: Cursor
@@ -757,7 +757,7 @@ types:
         description: "Filter by action type (empty = all)"
       since:
         name: Since
-        type: int64
+        type: timestamp
         description: "After this time"
       cursor:
         name: Cursor
@@ -881,12 +881,11 @@ types:
         description: "`active`, `inactive`, `locked`"
       created_at:
         name: CreatedAt
-        type: int64
-        description: "Unix epoch seconds"
+        type: timestamp
       last_login_at:
         name: LastLoginAt
-        type: int64
-        description: "Unix epoch seconds (0 if never)"
+        type: timestamp
+        description: "Absent if never"
 ```
 
 ### UserUpdate
@@ -994,16 +993,14 @@ types:
         description: "Cached roles at session creation"
       created_at:
         name: CreatedAt
-        type: int64
-        description: "Unix epoch seconds"
+        type: timestamp
       expires_at:
         name: ExpiresAt
-        type: int64
-        description: "Unix epoch seconds"
+        type: timestamp
       last_activity_at:
         name: LastActivityAt
-        type: int64
-        description: "Unix epoch seconds — updated on each request"
+        type: timestamp
+        description: "Updated on each request"
       ip_address:
         name: IPAddress
         type: string
@@ -1018,11 +1015,11 @@ types:
     fields:
       last_activity_at:
         name: LastActivityAt
-        type: "*int64"
+        type: timestamp
         description: "Update last activity timestamp"
       expires_at:
         name: ExpiresAt
-        type: "*int64"
+        type: timestamp
         description: "Extend or shorten session expiry"
 ```
 
@@ -1085,13 +1082,13 @@ key stays where rule 8 protects it, and signs one statement for each log key
 and each log that key will seal:
 
 ```
-"weblisk/log-key/v1" 0x00 <log id> 0x00 <key id> 0x00 <not_after> 0x00 <key_protection>
+"weblisk/log-key/v2" 0x00 <log id> 0x00 <key id> 0x00 <not_after> 0x00 <key_protection>
 
 <log id>          the log's id, as 64 lowercase hex characters
 <key id>          the fingerprint (protocol/identity, Key Fingerprint) of the
                   log key's public key
-<not_after>       the last second the log key may sign, in decimal Unix
-                  seconds, UTC
+<not_after>       the last instant the log key may sign, as
+                  protocol/conventions:instant writes it
 <key_protection>  how the long-lived key is protected, as the key_protection
                   value patterns/principal-identity gives it
 ```
@@ -1112,7 +1109,7 @@ with the first key entry it can sign.
 
 **The log's statements have test vectors.** The key entry, the checkpoint and
 the succession entry are fixed-form statements, and this corpus publishes
-vectors for all three, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and
+vectors for all three, `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and
 `weblisk/log-succession/v1`
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). In
 them `key id`, `outgoing` and `incoming` are fingerprints of published vector
@@ -1165,12 +1162,13 @@ from somewhere other than the log.
 ### The checkpoint
 
 ```
-"weblisk/log-checkpoint/v1" 0x00 <log id> 0x00 <seq> 0x00 <tip> 0x00 <issued_at>
+"weblisk/log-checkpoint/v2" 0x00 <log id> 0x00 <seq> 0x00 <tip> 0x00 <issued_at>
 
 <seq>        the seq of the last entry the checkpoint covers, in decimal
 <tip>        the SHA-256 of that entry's stored line, as 64 lowercase hex
              characters
-<issued_at>  when the checkpoint was signed, in decimal Unix seconds, UTC
+<issued_at>  when the checkpoint was signed, as protocol/conventions:instant
+             writes it
 ```
 
 A decimal field has no sign and no leading zeros. Every statement in this
@@ -1320,9 +1318,9 @@ types:
         required: true
         description: The log key's ML-DSA-65 public key, base64url
       not_after:
-        type: int64
+        type: timestamp
         required: true
-        description: The last second the log key may sign, in Unix seconds, UTC
+        description: The last second the log key may sign
       key_protection:
         type: string
         required: true
@@ -1343,7 +1341,7 @@ types:
         type: string
         required: true
         description: ML-DSA-65 signature by attesting_key over the
-          weblisk/log-key/v1 statement, base64url
+          weblisk/log-key/v2 statement, base64url
 
   LogSuccession:
     description: The payload of a sealed log's succession entry. Records that
@@ -1393,9 +1391,9 @@ types:
         required: true
         description: The SHA-256 of entry seq's stored line, lowercase hex
       issued_at:
-        type: int64
+        type: timestamp
         required: true
-        description: When the checkpoint was signed, in Unix seconds, UTC
+        description: When the checkpoint was signed
       key:
         type: string
         required: true
@@ -1405,7 +1403,7 @@ types:
         type: string
         required: true
         description: ML-DSA-65 signature by that log key over the
-          weblisk/log-checkpoint/v1 statement, base64url
+          weblisk/log-checkpoint/v2 statement, base64url
 ```
 
 ---
@@ -1514,13 +1512,13 @@ security:
 - [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere)
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain: `SHA-256(previous_entry_bytes)` — the first entry uses a zero hash
 - [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v1` statement rebuilt from `seq`, `tip` and `issued_at`
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log that has an authority before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, a key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v2` statement rebuilt from `seq`, `tip` and `issued_at`
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log that has an authority before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails
 - [ ] Every checkpoint is reported `uncountersigned`
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` or `weblisk/log-succession/v1`, the owner, which signs those statements, and a verifier of them each pass the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs and one that verifies
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` or `weblisk/log-succession/v1`, the owner, which signs those statements, and a verifier of them each pass the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs and one that verifies
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired

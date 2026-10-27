@@ -53,7 +53,7 @@ with every tenant ([The Admin Gateway as a Component](#the-admin-gateway-as-a-co
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         # The admin gateway registers like any component, and serves the
@@ -86,7 +86,7 @@ requires:
   - blueprint: protocol/identity
     # 2.2.0 is where step_up_at is set through a re-confirmation and
     # weblisk/step-up/v1 is registered
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.2.0 <4.0.0"
     bindings:
       types:
         - name: WLToken
@@ -257,7 +257,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/client
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: WLS
@@ -1449,7 +1449,7 @@ defined:
      "name": "alice",
      "public_key": "<ML-DSA-65 public key (base64url)>",
      "role": "admin",
-     "timestamp": 1712160000,
+     "timestamp": "2024-04-03T16:00:00.000Z",
      "signature": "<sign(canonicalize({name, public_key, role, timestamp}))>",
      "bootstrap_secret": "<only at a hub with no operator yet>"
    }
@@ -1538,7 +1538,7 @@ POST /v1/admin/operators/token
   "hub_id": "<the hub_id the client recorded for this hub>",
   "jti": "<at least 128 random bits, base64url, fresh for this request>",
   "name": "alice",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "signature": "<sign(canonicalize({hub_id, jti, name, timestamp}))>"
 }
 ```
@@ -1582,7 +1582,7 @@ signature did not verify (`attestation-token-issuance`).
 ```
 200 {
   "token": "<WLT, type attestation>",
-  "expires_at": 1712160300,
+  "expires_at": "2024-04-03T16:05:00.000Z",
   "hub_id": "<fingerprint of the orchestrator's first public key>",
   "identity_id": "<alice's identity id at this hub>"
 }
@@ -1793,7 +1793,7 @@ sign in is refused for signing records, and the reverse.
 POST /v1/admin/credentials/challenge
 { "cid": "<credential id>" }
 
-200 { "nonce": "<base64url>", "hub_id": "<this hub's hub_id>", "expires_at": 1712160300 }
+200 { "nonce": "<base64url>", "hub_id": "<this hub's hub_id>", "expires_at": "2024-04-03T16:05:00.000Z" }
 ```
 
 A challenge for a credential the hub does not hold is refused with
@@ -1816,7 +1816,7 @@ POST /v1/admin/credentials/token
 
 200 {
   "token": "<WLT, type operator, carries cid, identity_id and record_keys>",
-  "expires_at": 1712163600,
+  "expires_at": "2024-04-03T17:00:00.000Z",
   "role": "operator",
   "capabilities": ["admin:read", "admin:approve", "admin:strategy",
                    "content:read", "content:describe", "content:write",
@@ -2031,7 +2031,7 @@ POST /v1/admin/operators/alice/key
 {
   "new_public_key": "<ML-DSA-65 public key>",
   "hub_id": "<this hub's hub_id>",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "current_signature": "<the current identity key's signature over the input below>",
   "new_signature": "<the new identity key's signature over the same input>"
 }
@@ -2629,7 +2629,7 @@ never counts (the gap under
 `PassRoute` can yet name the group a route answers
 ([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
 asks no component and answers each of them unavailable. `timestamp` is the
-gateway's own: when it composed the answer, in Unix seconds. The
+gateway's own: when it composed the answer. The
 orchestrator's answer carries none:
 
 ```json
@@ -2651,7 +2651,7 @@ orchestrator's answer carries none:
   "approvals": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "federation": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "objectives": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
-  "timestamp": 1712160000
+  "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -2665,8 +2665,8 @@ orchestrator's answer carries none:
       "type": "agent",
       "version": "1.0.0",
       "lease_state": "ready",
-      "registered_at": 1712073600,
-      "last_seen": 1712159900
+      "registered_at": "2024-04-02T16:00:00.000Z",
+      "last_seen": "2024-04-03T15:58:20.000Z"
     }
   ],
   "pagination": {
@@ -2700,12 +2700,12 @@ never with its `token`:
   "lease": {
     "agent_id": "3f9a1c2e7b4d4e0f8a6b5c1d2e3f4a5b",
     "duration": 30,
-    "renewed_at": 1712159890,
-    "expires_at": 1712159920
+    "renewed_at": "2024-04-03T15:58:10.000Z",
+    "expires_at": "2024-04-03T15:58:40.000Z"
   },
-  "last_renewal": {"ready": true, "timestamp": 1712159890},
-  "registered_at": 1712073600,
-  "last_seen": 1712159900
+  "last_renewal": {"ready": true, "timestamp": "2024-04-03T15:58:10.000Z"},
+  "registered_at": "2024-04-02T16:00:00.000Z",
+  "last_seen": "2024-04-03T15:58:20.000Z"
 }
 ```
 
@@ -2726,8 +2726,8 @@ never with its `token`:
         {"phase_name": "accessibility", "agent_name": "a11y-checker", "status": "completed", "duration_ms": 1500},
         {"phase_name": "report", "agent_name": "seo-analyzer", "status": "completed", "duration_ms": 2000}
       ],
-      "started_at": 1712159400,
-      "completed_at": 1712159409,
+      "started_at": "2024-04-03T15:50:00.000Z",
+      "completed_at": "2024-04-03T15:50:09.000Z",
       "duration_ms": 8500
     }
   ],
@@ -2760,7 +2760,7 @@ A sign-records credential is listed beside the ones that sign in, with its
       "device_bound": false,
       "status": "active",
       "not_after": 1714752000,
-      "last_used_at": 1712160000
+      "last_used_at": "2024-04-03T16:00:00.000Z"
     }
   ]
 }
@@ -3150,7 +3150,7 @@ Every admin action is logged:
 ```json
 {
   "id": "audit-abc123",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "actor": "<the operator's identity_id>",
   "actor_type": "operator",
   "action": "deregister",

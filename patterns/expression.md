@@ -205,7 +205,7 @@ blueprint. Each consumer defines its own context roots:
 |------|-------------|
 | `entity` | Current entity state fields |
 | `transition` | Transition metadata: `from`, `to`, `trigger` |
-| `now` | Current Unix epoch seconds (int64) |
+| `now` | The current instant (`protocol/conventions:instant`) |
 
 Example: `entity.attempts < entity.max_attempts AND entity.status != "cancelled"`
 

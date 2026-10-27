@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: realtime-chat
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, architecture/gateway]
 platform: any
 tier: free
@@ -194,7 +194,7 @@ All frames are JSON objects with a `type` field:
   "channel": "general",
   "from": "user-id-or-name",
   "content": "Hello, world!",
-  "timestamp": 1713264000,
+  "timestamp": "2024-04-16T10:40:00.000Z",
   "metadata": {}
 }
 ```
@@ -326,9 +326,8 @@ types:
         required: true
         description: "Message body"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       metadata:
         type: object
         required: false

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.1.0
+version: 4.1.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -123,7 +123,7 @@ machine-readable output.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -191,7 +191,7 @@ requires:
   - blueprint: architecture/orchestrator
     # 3.0.0 is where the directory holds leases and the orchestrator
     # serves /livez and /readyz; a 2.x orchestrator answers neither
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/admin/*
@@ -630,7 +630,7 @@ carries; what acceptance asked (`checks`); and the hub's `address`, the admin
 gateway's origin, for a console to connect to, with the `tls_pin` its
 certificate is verified against
 ([`architecture/admin`](admin.md#certificate)), the first operator's `token`
-there and `token_expires_at` in Unix seconds. That object is the only
+there and `token_expires_at` (`protocol/conventions:instant`). That object is the only
 place a token may go: `create` writes no token file, and what it prints
 without `--json` names the address and the pin for a person to connect
 at with [`weblisk operator connect`](#weblisk-operator-connect), and never a

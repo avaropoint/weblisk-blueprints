@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -454,7 +454,7 @@ in reverse order.
 | version | string | Indexed |
 | previous_version | string | |
 | changed_by | string | |
-| changed_at | int64 | Unix timestamp |
+| changed_at | timestamp | |
 | change_type | string | major, minor, patch |
 | change_summary | string | |
 | changelog | json | Array of change descriptions |

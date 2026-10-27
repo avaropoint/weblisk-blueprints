@@ -64,7 +64,7 @@ requires:
   - blueprint: architecture/orchestrator
     # 3.0.0 is the first version whose AgentEntry holds a lease rather than an
     # online, offline or degraded status
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       types:
         # wl_agents_registered counts the registry's entries, and

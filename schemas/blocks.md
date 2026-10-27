@@ -137,9 +137,10 @@ table, which grammar 1 carries whole except for `optional`, which said the
 same as `required: false`, and `enum`, which `values` now names so that the
 word `enum` means one thing, the type.
 
-An `int64` that holds a time is read as `integer` here; whether it becomes a
-`timestamp` is a convention, decided once for every field by the lane that
-owns the wire conventions, never field by field in a walk.
+An `int64` that holds a time is read as `integer` here, as any `int64` is. A
+field that holds an instant is declared `timestamp`
+([`protocol/conventions`](../protocol/conventions.md#instant)); a walk never
+decides that field by field.
 
 ## Formats
 

@@ -41,7 +41,7 @@ domain change and never a change to this agent.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -164,11 +164,11 @@ types:
         items: PhaseResult
         description: Results from each phase
       started_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Execution start timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Execution completion timestamp
       error:
@@ -210,10 +210,10 @@ types:
         optional: true
         description: Recommendations extracted from phase
       started_at:
-        type: int64
+        type: timestamp
         description: Phase start timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Phase completion timestamp
       error:

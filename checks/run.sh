@@ -87,15 +87,18 @@ expect 0 "conventions control: a second-precision instant and a 2^n backoff are 
 expect 0 "conventions sites: no file restates a convention" python3 checks/conventions.py sites
 expect 0 "conventions sites control: one seeded restatement of each kind is reported" python3 checks/conventions.py sites --control
 
-# Every mapping's wire timestamp against one vector, and a mapping changed to
-# milliseconds that must be the one disagreement reported.
+# Every mapping's wire timestamp against the conventions vector, and a mapping
+# left in epoch seconds that must be the one disagreement reported; every
+# field that holds an instant typed timestamp, and a seeded int64 one reported.
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
-expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
+expect 0 "timestamp-wire control: a mapping left in epoch seconds is reported" python3 checks/timestamp-wire.py --control
+expect 0 "conventions time-fields: every instant field is a timestamp" python3 checks/conventions.py time-fields
+expect 0 "conventions time-fields control: a seeded int64 instant is reported" python3 checks/conventions.py time-fields --control
 
 # The fixed-form statement vectors against OpenSSL, which did not make them;
 # the signed directory push must have one. Copies whose push body differs by
 # one byte, and whose push is signed by another key, must each fail.
-expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v1
+expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v2
 python3 - "$tmp" <<'PY'
 import json, sys
 p = "vectors/fixed-form-statements.json"

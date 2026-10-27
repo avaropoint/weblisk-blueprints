@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: file-upload
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free
@@ -42,7 +42,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AuthToken
@@ -254,7 +254,7 @@ types:
     "thumb": "/files/file-a1b2c3d4/download?variant=thumb",
     "medium": "/files/file-a1b2c3d4/download?variant=medium"
   },
-  "created_at": 1712160000,
+  "created_at": "2024-04-03T16:00:00.000Z",
   "owner_id": "user-xyz"
 }
 ```
@@ -417,7 +417,7 @@ POST /files/{id}/signed-url
 Response:
 {
   "url": "https://storage.example.com/uploads/2026/04/file-abc/original.jpg?X-Amz-Signature=...",
-  "expires_at": 1712163600
+  "expires_at": "2024-04-03T17:00:00.000Z"
 }
 ```
 
@@ -509,10 +509,9 @@ types:
         type: json
         description: "Map of variant names to storage keys"
       created_at:
-        type: int64
-        description: "Unix epoch seconds"
+        type: timestamp
       deleted_at:
-        type: int64
+        type: timestamp
         description: "Soft delete timestamp"
 ```
 

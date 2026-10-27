@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 4.1.1
+version: 5.0.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -76,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.1.0 <3.0.0"
+    version: ">=2.1.0 <4.0.0"
     bindings:
       types:
         # identity_id is who a change names; type and aud say a person's
@@ -108,7 +108,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.3.0 <3.0.0"
+    version: ">=2.3.0 <4.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -123,7 +123,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/contract
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: contract-validation
@@ -151,7 +151,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/approval
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # Its self-approval rejection, and the one exception it names for a
@@ -163,7 +163,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.1.0 <3.0.0"
+    version: ">=1.1.0 <4.0.0"
     bindings:
       behaviors:
         # How a remote's credential is held (see Declaring a remote)
@@ -174,7 +174,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/enforcement
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ViolationRecord
@@ -185,7 +185,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.4.2 <2.0.0"
+    version: ">=1.4.2 <3.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -202,7 +202,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <4.0.0"
+    version: ">=2.15.0 <5.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See Who may move an entry
@@ -3132,7 +3132,7 @@ everything before it.
 ### The change statement
 
 ```
-"weblisk/content-change/v1" 0x00 <log id> 0x00 <role> 0x00 <path> 0x00 <operation> 0x00 <before> 0x00 <after> 0x00 <scope> 0x00 <proposal> 0x00 <signed_at>
+"weblisk/content-change/v2" 0x00 <log id> 0x00 <role> 0x00 <path> 0x00 <operation> 0x00 <before> 0x00 <after> 0x00 <scope> 0x00 <proposal> 0x00 <signed_at>
 
 <log id>     the repository's log id, as 64 lowercase hex characters
 <role>       write, for a person who wrote or removed the entry directly;
@@ -3146,7 +3146,7 @@ everything before it.
 <scope>      the scope the change declares; empty on delete, and on a
              change that declares none
 <proposal>   the id of the proposal applied; empty on write
-<signed_at>  when the person signed, in decimal Unix seconds, UTC
+<signed_at>  when the person signed, as protocol/conventions:instant writes it
 ```
 
 It is a fixed-form statement
@@ -3218,7 +3218,7 @@ as it always was, and that person's part is `witnessed`. So a client that
 relays a person's statement can drop it and still have the change recorded. A
 client that sent a statement MUST check that the `ContentChange` it gets back
 carries it, and report the change as unsigned where it does not.
-`weblisk/content-change/v1` has test vectors
+`weblisk/content-change/v2` has test vectors
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
 every empty field above appears in one; which cases they cover is the file's
 to say.
@@ -3342,7 +3342,7 @@ content service's registered key, from the tenant, as the fingerprint it brings
 After storage's three steps — chain, keys, checkpoint — it checks:
 
 4. **Statements.** For each `change` entry that carries a `statement`: rebuild
-   the `weblisk/content-change/v1` bytes from the entry, with `role` `apply`
+   the `weblisk/content-change/v2` bytes from the entry, with `role` `apply`
    where the entry records a `proposal` and `write` where it does not. Check
    the attestation as the service did in checks 2 and 3, with the entry's
    `recorded_at`, which the service witnessed and a checkpoint seals, in place
@@ -4637,9 +4637,9 @@ types:
           token's identity_id. Set by the service and never taken from a
           request. Always present on a recorded statement
       signed_at:
-        type: int64
+        type: timestamp
         required: true
-        description: When the person signed, in Unix seconds, UTC. Within 300
+        description: When the person signed. Within 300
           seconds of the service's clock when received
       attestation:
         type: Attestation
@@ -4650,7 +4650,7 @@ types:
         type: string
         required: true
         description: ML-DSA-65 signature by the attestation's
-          credential_public_key over the weblisk/content-change/v1 statement,
+          credential_public_key over the weblisk/content-change/v2 statement,
           base64url
 
   LogQuery:
@@ -4907,7 +4907,7 @@ security:
         The route never filters, because a filtered log cannot be verified
     - rule: A person's signature covers the change this service records, never
         what a request says
-      mechanism: The service rebuilds the weblisk/content-change/v1 statement
+      mechanism: The service rebuilds the weblisk/content-change/v2 statement
         from if_match and the digest of the decoded bytes, or from the proposal,
         and verifies it before anything is written, by a builder and verifier
         tested against that prefix's published vectors (protocol/identity,
@@ -5432,30 +5432,30 @@ security:
 - [ ] `GET /v1/content/repositories/{repository}/log` with no query returns at most 1000 lines from `seq` 1; a page that reaches the tip has no `next`; a `from` beyond the tip returns no lines; a `limit` above 10000, or a `from` or `limit` below 1 or not an integer, is refused with `INVALID_REQUEST`
 - [ ] Each log route answers an `establishing` repository with `CONTENT_LOG_NOT_BEGUN` and one outside the caller's scope with `CONTENT_REPOSITORY_UNKNOWN`
 - [ ] With the log key unavailable, `POST /v1/content/repositories/{repository}/log/checkpoint` appends nothing and is refused with `CONTENT_SEALING_PAUSED` carrying a `LogHead` whose `sealing` is `paused`
-- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and, once `weblisk/content-change/v1` has test vectors, a `statement` in it is verified and recorded as a write's is
+- [ ] `DELETE /v1/content/entry` reads an `EntryRemoval` from its JSON body, and, once `weblisk/content-change/v2` has test vectors, a `statement` in it is verified and recorded as a write's is
 - [ ] A write whose read-back digest differs from the digest of its decoded bytes is refused with `CONTENT_WRITE_UNCONFIRMED`, and no `change` entry records it
 - [ ] An `observe` entry becomes its path's recorded digest: a second read of the same changed bytes under shared custody appends nothing
 - [ ] A caller whom the storage proxy refuses `read` at the highest scope the log records is refused the whole log, and is never served part of it
 - [ ] `GET /v1/content/repositories/{repository}/log/head` names no path, and a caller holding `content:describe` and not `content:read` is served it
 - [ ] No log entry holds an entry's bytes or a proposal's bytes
-- [ ] Once `weblisk/content-change/v1` has test vectors, a write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v1` from the entry verifies it
-- [ ] Once `weblisk/content-change/v1` has test vectors, a write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a write carrying a `statement` that verifies records it on its `ContentChange` with `signer` set to the token's `identity_id`, and an offline verifier rebuilding `weblisk/content-change/v2` from the entry verifies it
+- [ ] Once `weblisk/content-change/v2` has test vectors, a write whose `statement` was signed over other bytes, another path or another `before` is refused with `CONTENT_STATEMENT_INVALID`, and nothing is written or recorded
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` whose attestation has no `purpose`, or `purpose` `authenticate`, is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` whose `signed_at` is more than 300 seconds from the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` whose attestation names an `identity_id` other than the pass's, or whose attestation's identity key is not the one whose fingerprint the pass's `identity_key` carries, is refused with `CONTENT_STATEMENT_INVALID`
 - [ ] Through the admin gateway, a write, removal or decision on an unexpired operator token whose operator was removed, or whose credential was revoked, after it was minted is refused by the exchange with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED`, and one whose operator's role no longer carries the capability with `FORBIDDEN`; in each, this service is sent nothing and nothing is written
 - [ ] A write, removal, decision or remote declaration on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED`, and nothing is written, decided or recorded; one on an unexpired pass naming the capability is performed with the orchestrator unreachable, because this service asks the orchestrator nothing about a pass
 - [ ] The audit entry for a request a pass carried names the pass's `identity_id` as `actor` and its `act.identity_id` as `via`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
-- [ ] Once `weblisk/content-change/v1` has test vectors, a decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
-- [ ] Once `weblisk/content-change/v1` has test vectors, an offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
-- [ ] Once `weblisk/content-change/v1` has test vectors, a decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` signed by the credential key the token's `cid` names is refused with `CONTENT_STATEMENT_INVALID`, even where that key was also attested with `purpose` `sign-records`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` whose credential key is not one of the token's `record_keys` — never recorded at the hub, or revoked before the token was minted — is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a `statement` whose attestation's `not_after` is more than 90 days ahead of the service's clock is refused with `CONTENT_STATEMENT_INVALID`
+- [ ] Once `weblisk/content-change/v2` has test vectors, a decision to apply that carries the decider's `statement` records it, and an offline verifier reports that approval `signed`; the same decision without one is reported `witnessed`
+- [ ] Once `weblisk/content-change/v2` has test vectors, an offline verifier does not report `signed` a statement whose attestation is by one of the signer's retired identity keys and whose entry was recorded at or after that key's `retired_at`, and does report `signed` one recorded before it
+- [ ] Once `weblisk/content-change/v2` has test vectors, a decision whose `statement` fails is refused with `CONTENT_STATEMENT_INVALID`, and the proposal stays `open`
 - [ ] An offline verifier reports inconsistent a `change` entry recording `separation` `independent` whose `approved_by` is its `actor`, one recording `separation` `self` whose `scope` is above the `self_decision_ceiling` in the `declare` entry, and one recording `separation` `self` on a change with no scope — none declared, and on a removal no recorded scope for the path, the floor included
 - [ ] Every signature in a change log is ML-DSA-65, and a signature on a commit in a version-controlled store appears nowhere in the log
 - [ ] With the log key unavailable, writes still succeed, their entries are appended, and `LogHead.unsealed` counts them; once a log key can sign, the next checkpoint covers them all
-- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/content-change/v1`, the service, which verifies that statement and does not sign it, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
+- [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/content-change/v2`, the service, which verifies that statement and does not sign it, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that verifies
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, names it `not_ready` in its lease's `checks`, and reports `chain` `broken` with that `broken_at` in its `LogHead`
-- [ ] Once `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation
+- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation

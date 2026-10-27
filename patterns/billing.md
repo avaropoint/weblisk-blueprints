@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: billing
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/governance]
 platform: any
 tier: free
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -163,7 +163,7 @@ contracts:
           required: true
           description: The provider's identifier for this notification
         - name: occurred_at
-          type: string
+          type: timestamp
           required: true
           description: When the change happened, as distinct from when it was received
       inherits: Idempotent processing keyed on the notification identifier, ordered by occurrence rather than arrival
@@ -174,7 +174,7 @@ contracts:
       description: Correct local state against the provider of record
       parameters:
         - name: since
-          type: string
+          type: timestamp
           required: false
           description: Reconcile subjects whose state may have changed after this point
       inherits: A scheduled correction that does not depend on any notification having arrived
@@ -326,12 +326,12 @@ types:
         description: "`trialing`, `active`, `past_due`, `suspended`, `cancelled`"
       period_end:
         name: PeriodEnd
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 timestamp when the current paid period ends"
+        description: "When the current paid period ends"
       observed_at:
         name: ObservedAt
-        type: string
+        type: timestamp
         required: true
         description: "When this cache entry was last confirmed against the provider"
 
@@ -428,9 +428,8 @@ types:
         description: "How much"
       occurred_at:
         name: OccurredAt
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 timestamp"
 ```
 
 ---

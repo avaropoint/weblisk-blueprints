@@ -41,7 +41,7 @@ countable, retryable and auditable in one place instead of in every caller.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -180,15 +180,15 @@ types:
         unit: seconds
         description: Execution timeout
       submitted_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When task was submitted
       dispatched_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When HTTP dispatch was sent
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When task finished
       result_summary:
@@ -229,7 +229,7 @@ types:
         default: 0
         description: Currently dispatched task count
       last_seen:
-        type: int64
+        type: timestamp
         description: Last registration or lease renewal the directory recorded for the agent
 ```
 

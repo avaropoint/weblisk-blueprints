@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -585,9 +585,8 @@ types:
         description: "Recommendation that triggered this change"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### AgentMetrics
@@ -641,9 +640,8 @@ types:
         description: "rejected_as_wrong / total_recommendations"
       last_updated:
         name: LastUpdated
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---

@@ -109,9 +109,9 @@ try:
         except ValueError as e:
             found.append(f"{vid}: cannot canonicalise the body: {e}"); continue
         fields = {f["name"]: f["value"] for f in v["fields"]}
-        if v["prefix"] != "weblisk/directory/v1":
-            found.append(f"{vid}: this check rebuilds a body's statement only for weblisk/directory/v1"); continue
-        rebuilt = b"\0".join([b"weblisk/directory/v1", str(body.get("updated_at")).encode(), b"sha256:" + hashlib.sha256(rest).hexdigest().encode()])
+        if v["prefix"] != "weblisk/directory/v2":
+            found.append(f"{vid}: this check rebuilds a body's statement only for weblisk/directory/v2"); continue
+        rebuilt = b"\0".join([b"weblisk/directory/v2", str(body.get("updated_at")).encode(), b"sha256:" + hashlib.sha256(rest).hexdigest().encode()])
         if rebuilt != msg:
             found.append(f"{vid}: the statement rebuilt from the body is not the message (digest {fields.get('digest')}, body gives sha256:{hashlib.sha256(rest).hexdigest()})")
         if not verifies(pub, rebuilt, sig):

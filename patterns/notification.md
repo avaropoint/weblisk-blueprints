@@ -61,7 +61,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SecretDeclaration
@@ -380,7 +380,7 @@ templates:
 | `upper` | Uppercase | `{{severity \| upper}}` → `CRITICAL` |
 | `lower` | Lowercase | `{{title \| lower}}` |
 | `truncate:N` | Truncate to N chars | `{{body \| truncate:120}}` |
-| `datetime` | Format Unix timestamp | `{{timestamp \| datetime}}` |
+| `datetime` | Format an instant for reading | `{{timestamp \| datetime}}` |
 | `json` | JSON encode | `{{context \| json}}` |
 
 ---

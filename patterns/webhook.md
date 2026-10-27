@@ -350,7 +350,7 @@ Response (201 Created):
 {
   "id": "delivery-id-hex",
   "event": "order.placed",
-  "timestamp": 1713264000,
+  "timestamp": "2024-04-16T10:40:00.000Z",
   "data": {
     "order_id": "...",
     "total": 99.99
@@ -382,7 +382,7 @@ format for observability and debugging.
   "direction": "inbound",
   "source": "stripe",
   "event": "payment_intent.succeeded",
-  "timestamp": 1713264000,
+  "timestamp": "2024-04-16T10:40:00.000Z",
   "status": "success",
   "response_code": 200,
   "duration_ms": 12,
@@ -467,7 +467,7 @@ types:
         required: true
         description: "SHA-256 hash of subscriber secret"
       created:
-        type: int64
+        type: timestamp
         required: true
         description: "Registration timestamp"
       active:
@@ -503,7 +503,7 @@ types:
         required: true
         description: "Attempt number (1-based)"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
         description: "Attempt timestamp"
       status:
@@ -535,7 +535,7 @@ types:
         required: true
         description: "Event type"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
         description: "Event timestamp"
       data:

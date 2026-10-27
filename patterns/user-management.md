@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: user-management
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ identifier and the address is a coordinate.
 ## Dependencies
 
   - blueprint: patterns/api-rest
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PaginatedResponse
@@ -65,7 +65,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-session
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Session
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RefreshToken
@@ -294,14 +294,12 @@ types:
         description: "Lockout expiry (internal)"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### OAuthLink
@@ -327,9 +325,8 @@ types:
         description: "Email from OAuth (may differ from primary)"
       linked_at:
         name: LinkedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -359,8 +356,8 @@ Admin only. Returns paginated user list.
       "role": "admin",
       "email_verified": true,
       "status": "active",
-      "created_at": 1712160000,
-      "updated_at": 1712160000
+      "created_at": "2024-04-03T16:00:00.000Z",
+      "updated_at": "2024-04-03T16:00:00.000Z"
     }
   ],
   "pagination": {

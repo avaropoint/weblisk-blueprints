@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 2.0.1
+version: 2.1.0
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -42,7 +42,7 @@ without being able to alter anything on its own.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -160,11 +160,11 @@ types:
         enum: [active, paused, completed, abandoned]
         description: Current strategy state
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
 
@@ -219,7 +219,7 @@ types:
         enum: [success, failed, partial]
         description: Observation outcome
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Observation timestamp
 
@@ -254,7 +254,7 @@ types:
         optional: true
         description: Rejection reason (if rejected)
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Creation timestamp
 
@@ -278,7 +278,7 @@ types:
         max: 512
         description: Additional context
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Feedback timestamp
 
@@ -305,7 +305,7 @@ types:
         optional: true
         description: Recommendation acceptance rate
       last_active:
-        type: int64
+        type: timestamp
         description: Last workflow participation timestamp
 
   EntityContext:
@@ -321,7 +321,7 @@ types:
         type: object
         description: Entity-specific metadata
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last update timestamp
 ```

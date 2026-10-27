@@ -57,7 +57,7 @@ the same way.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.8.0 <3.0.0"
+    version: ">=1.8.0 <4.0.0"
     bindings:
       types:
         # cid and record_keys are how a verifier holding a token tells a
@@ -83,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel

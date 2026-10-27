@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -104,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -128,7 +128,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: backup-restore
@@ -150,7 +150,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/change-management
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       events:
         - topic: system.change.assessment
@@ -210,7 +210,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/versioning
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: schema-migration
@@ -309,9 +309,9 @@ types:
         type: string
         description: Cron expression or "once"
       fire_at:
-        type: int64
+        type: timestamp
         required_when: schedule = "once"
-        description: One-time fire timestamp (epoch seconds)
+        description: One-time fire timestamp
       target_agent:
         type: string
         exclusive_with: target_url
@@ -346,7 +346,7 @@ types:
         enum: [active, paused, completed, failed, cancelled]
         description: Current task state
       next_fire:
-        type: int64
+        type: timestamp
         optional: true
         description: Next scheduled execution timestamp
       attempts:
@@ -354,11 +354,11 @@ types:
         default: 0
         description: Current retry count for latest execution
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Task creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
       created_by:
@@ -392,10 +392,10 @@ types:
         references: CronTask.task_id
         description: Parent task
       fired_at:
-        type: int64
+        type: timestamp
         description: When execution started
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When execution finished
       status:
@@ -441,10 +441,10 @@ types:
         type: string
         description: Instance ID holding the lock
       acquired_at:
-        type: int64
+        type: timestamp
         description: Lock acquisition timestamp
       expires_at:
-        type: int64
+        type: timestamp
         description: Lock expiration timestamp
 ```
 
@@ -1073,7 +1073,7 @@ Remove completed and failed tasks older than a threshold.
 
 **Input:** `{older_than: int64, include_failed?: bool}`
 
-- `older_than`: Unix timestamp — purge tasks with updated_at before this
+- `older_than`: an instant — purge tasks with updated_at before it
 - `include_failed`: also purge failed tasks (default: false)
 
 **Processing:**
@@ -1563,7 +1563,7 @@ tests:
     input:
       name: one-shot
       schedule: once
-      fire_at: 1745582400
+      fire_at: "2025-04-25T12:00:00.000Z"
       target_agent: email-send
       action: send_notification
       payload: {}
@@ -1635,7 +1635,7 @@ tests:
 
   - name: One-time task in the past
     action: register
-    input: {name: late, schedule: once, fire_at: 1000000000, target_agent: test, action: ping}
+    input: {name: late, schedule: once, fire_at: "2001-09-09T01:46:40.000Z", target_agent: test, action: ping}
     expected: Fires immediately on next tick
 
   - name: Resume after target deregistered

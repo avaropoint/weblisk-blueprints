@@ -34,7 +34,7 @@ only what makes this agent different.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -58,7 +58,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -913,14 +913,14 @@ types:
         description: "Active event subscriptions"
       lease_expires_at:
         name: LeaseExpiresAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch at which the agent's lease lapses unless renewed"
+        description: "The instant at which the agent's lease lapses unless renewed"
       registered_at:
         name: RegisteredAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of registration"
+        description: "The instant of registration"
 ```
 
 ---

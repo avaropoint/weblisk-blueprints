@@ -43,7 +43,7 @@ through the event and type contracts defined here.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/execute
@@ -528,10 +528,10 @@ types:
         type: int
         description: "Total dispatch attempts"
       first_attempt_at:
-        type: int64
+        type: timestamp
         description: "Timestamp of first dispatch attempt"
       dead_lettered_at:
-        type: int64
+        type: timestamp
         description: "Timestamp of dead-letter capture"
       trace_id:
         type: string
@@ -606,7 +606,7 @@ types:
         optional: true
         description: Queue position (if queued behind other tasks)
       accepted_at:
-        type: int64
+        type: timestamp
         description: Acceptance timestamp
 
   TaskResult:
@@ -634,7 +634,7 @@ types:
         optional: true
         description: Execution duration in milliseconds
       timestamp:
-        type: int64
+        type: timestamp
         description: Completion timestamp
 
   TaskPriority:
@@ -683,10 +683,10 @@ types:
         type: int
         description: Total dispatch attempts
       first_attempt_at:
-        type: int64
+        type: timestamp
         description: Timestamp of first dispatch attempt
       dead_lettered_at:
-        type: int64
+        type: timestamp
         description: Timestamp of dead-letter capture
       trace_id:
         type: string
@@ -706,7 +706,7 @@ types:
         default: 0
         description: Currently dispatched task count
       last_seen:
-        type: int64
+        type: timestamp
         description: When the agent last registered or renewed its lease
 ```
 

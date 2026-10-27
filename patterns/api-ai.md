@@ -42,7 +42,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.6.0 <3.0.0"
+    version: ">=2.6.0 <4.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <4.0.0"
+    version: ">=2.14.0 <5.0.0"
     bindings:
       endpoints:
         # Read before every send. See Destination Ceilings

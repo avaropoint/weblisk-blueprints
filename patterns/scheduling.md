@@ -78,7 +78,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -125,9 +125,9 @@ contracts:
       description: Evaluate all active schedules against the current tick and dispatch due work
       parameters:
         - name: tick_time
-          type: int64
+          type: timestamp
           required: true
-          description: Current evaluation timestamp (epoch seconds)
+          description: The instant of this evaluation
         - name: max_concurrent
           type: int
           required: false
@@ -274,9 +274,9 @@ types:
         type: string
         description: Cron expression, alias (@daily, etc.), or "once"
       fire_at:
-        type: int64
+        type: timestamp
         required_when: expression = "once"
-        description: One-time fire timestamp (epoch seconds)
+        description: One-time fire timestamp
       timezone:
         type: string
         default: "UTC"
@@ -326,19 +326,19 @@ types:
         default: active
         description: Current schedule lifecycle state
       expires_at:
-        type: int64
+        type: timestamp
         optional: true
-        description: Schedule end date (epoch seconds). Null means no expiry.
+        description: Schedule end. Null means no expiry.
       next_fire:
-        type: int64
+        type: timestamp
         optional: true
         description: Next scheduled execution timestamp
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Schedule creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
       created_by:
@@ -430,10 +430,10 @@ types:
         references: ScheduleDefinition.schedule_id
         description: Parent schedule
       fired_at:
-        type: int64
+        type: timestamp
         description: When execution was dispatched
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When execution finished (null if pending)
       status:
@@ -474,10 +474,10 @@ types:
         type: string
         description: Instance ID holding the lock
       acquired_at:
-        type: int64
+        type: timestamp
         description: Lock acquisition timestamp
       expires_at:
-        type: int64
+        type: timestamp
         description: Lock expiration timestamp (TTL-based)
     constraints:
       - name: ck_lock_ttl

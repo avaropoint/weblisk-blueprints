@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 3.0.1
+version: 4.0.0
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -49,7 +49,7 @@ The protocol is built on three principles:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -73,7 +73,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: semver-range
@@ -286,7 +286,7 @@ contract_schema:
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -314,7 +314,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -339,7 +339,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: durable-records
@@ -1213,7 +1213,7 @@ types:
       diff:
         type: DiffEntry[]
       timestamp:
-        type: int64
+        type: timestamp
 
   DiffEntry:
     fields:
@@ -1248,7 +1248,7 @@ types:
       recommended_action:
         type: string
       deadline:
-        type: int64
+        type: timestamp
 
   ReconciliationResult:
     description: Outcome of an agent's reconciliation
@@ -1275,7 +1275,7 @@ types:
         type: bool
         default: false
       timestamp:
-        type: int64
+        type: timestamp
 
   DeploymentRecord:
     description: Blue-green deployment tracking
@@ -1299,9 +1299,9 @@ types:
         type: string
         enum: [immediate, canary, parallel]
       started_at:
-        type: int64
+        type: timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
       shadow_pass_rate:
         type: float

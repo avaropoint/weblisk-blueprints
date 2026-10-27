@@ -33,7 +33,7 @@ Implementations in any language can run the same test suite.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair

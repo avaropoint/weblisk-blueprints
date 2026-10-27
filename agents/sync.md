@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 2.0.1
+version: 3.0.0
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
@@ -32,7 +32,7 @@ connected clients via real-time channels.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -95,7 +95,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
@@ -258,7 +258,7 @@ types:
         required: true
         description: "Version vector or timestamp"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
         description: "When the change was made"
       data:
@@ -331,7 +331,7 @@ storage:
       fields:
         client_id: {type: string, primary_key: true}
         last_sync_version: {type: string}
-        last_sync_at: {type: int64}
+        last_sync_at: {type: timestamp}
       indexes:
         - name: idx_sync_time
           fields: [last_sync_at]
@@ -346,8 +346,8 @@ storage:
         client_version: {type: object}
         server_version: {type: object}
         client_id: {type: string}
-        created_at: {type: int64}
-        resolved_at: {type: int64, optional: true}
+        created_at: {type: timestamp}
+        resolved_at: {type: timestamp, optional: true}
         resolution: {type: string, enum: [pending, client_wins, server_wins, merged], default: pending}
       indexes:
         - name: idx_conflict_status
@@ -925,8 +925,8 @@ tests:
     action: sync_push
     input:
       changes:
-        - {table: posts, id: post-1, version: "v2", timestamp: 1712160000, data: {title: "Updated"}}
-        - {table: posts, id: post-2, version: "v1", timestamp: 1712160001, data: {title: "New"}, deleted: false}
+        - {table: posts, id: post-1, version: "v2", timestamp: "2024-04-03T16:00:00.000Z", data: {title: "Updated"}}
+        - {table: posts, id: post-2, version: "v1", timestamp: "2024-04-03T16:00:01.000Z", data: {title: "New"}, deleted: false}
       last_sync_version: "v1"
     expected:
       applied: [post-1, post-2]

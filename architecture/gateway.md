@@ -44,7 +44,7 @@ separate listener with a separate threat profile — see
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -92,7 +92,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-session
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: session-lifecycle
@@ -102,7 +102,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: token-signing
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/user-management
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: user-lookup
@@ -720,7 +720,7 @@ workflow completes:
   "execution_id": "wf-exec-001",
   "status": "completed",
   "result": { ... },
-  "completed_at": 1712160300
+  "completed_at": "2024-04-03T16:05:00.000Z"
 }
 ```
 
@@ -785,9 +785,9 @@ types:
         description: "Ordered list of route rules"
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of last route table refresh"
+        description: "The instant of last route table refresh"
 ```
 
 ### Route
@@ -880,7 +880,7 @@ types:
         type: string
         description: Secret from which per-form CSRF tokens are derived. Never transmitted to the browser
       expiry:
-        type: string
+        type: timestamp
         format: rfc3339
         description: When the session ends, checked on use rather than by a sweep
 ```

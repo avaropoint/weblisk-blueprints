@@ -45,7 +45,7 @@ machine reads. Nothing else in the document is parsed.
 contract:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.0.0 <2.0.0"
+      version: ">=1.0.0 <4.0.0"
       bindings:
         types:
           - name: SigningKeyPair

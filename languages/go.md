@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -57,7 +57,7 @@ production deployments.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -680,7 +680,7 @@ The Primitive Mapping table above binds the protocol's primitives. Beyond it:
 
 | Declared | Go |
 |---|---|
-| an integer field with no stated width | `int64` — timestamps and counts cross the wire and must not narrow by platform |
+| an integer field with no stated width | `int64` — counts cross the wire and must not narrow by platform |
 | an optional scalar | a pointer, so absent and zero are distinguishable |
 | a map with declared value shape | `map[string]T`, never `map[string]any` |
 | a duration | `time.Duration`, parsed from the declared unit at the boundary |
@@ -694,13 +694,13 @@ The Primitive Mapping table above binds the protocol's primitives. Beyond it:
 |-------------|---------|-------|
 | `string` | `string` | |
 | `int` | `int32` | |
-| `int64` | `int64` | Used for timestamps |
+| `int64` | `int64` | |
 | `float` | `float64` | |
 | `bool` | `bool` | |
 | `object` | `map[string]any` | Or typed struct |
 | `list` | `[]T` | Typed slice |
 | `uuid` | `string` | Validated format |
-| `timestamp` | `int64` | Unix epoch seconds via `time.Now().Unix()` |
+| `timestamp` | `string` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `t.UTC().Format("2006-01-02T15:04:05.000Z")`; read back with `time.Parse` on the same layout |
 
 ---
 

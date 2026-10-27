@@ -68,7 +68,7 @@ document describes, owned by nobody but itself.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -116,7 +116,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -740,7 +740,7 @@ Returns recent workflow executions with results:
 ```json
 {
   "executions": [
-    {"id": "abc123", "workflow": "seo-audit", "status": "success", "started_at": 1713264000}
+    {"id": "abc123", "workflow": "seo-audit", "status": "success", "started_at": "2024-04-16T10:40:00.000Z"}
   ]
 }
 ```

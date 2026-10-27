@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 1.1.6
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -87,7 +87,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/policy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PolicyContext
@@ -99,7 +99,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: OperationClass
@@ -480,14 +480,14 @@ types:
           timeouts. Urgent requests have shortened timeouts and priority
           notification. Emergency requests trigger the break-glass flow.
       - name: requested_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the request was filed
+        description: When the request was filed
       - name: expires_at
-        type: int64
+        type: timestamp
         required: true
         description: >
-          Unix epoch seconds when the request expires if not decided.
+          When the request expires if not decided.
           Default is requested_at + escalation timeout. Expired requests
           are automatically denied and emit an approval.expired event.
       - name: correlation_id
@@ -518,8 +518,8 @@ request:
     90 days and consent has been withdrawn. GDPR compliance requires
     deletion within 30 days of consent withdrawal. 12 days remain.
   urgency: normal
-  requested_at: 1777449600
-  expires_at: 1777453200
+  requested_at: "2026-04-29T08:00:00.000Z"
+  expires_at: "2026-04-29T09:00:00.000Z"
   correlation_id: "workflow-exec-9f2a"
 ```
 
@@ -738,9 +738,9 @@ ApprovalDecision:
         receiving the delegation. The delegate MUST be at the same
         or higher authority level.
     - name: decided_at
-      type: int64
+      type: timestamp
       required: true
-      description: Unix epoch seconds when the decision was made
+      description: When the decision was made
     - name: multi_party_position
       type: int
       required: false
@@ -1143,14 +1143,14 @@ EmergencyOverride:
       required: true
       description: Whether multi-factor authentication was completed — MUST be true
     - name: override_at
-      type: int64
+      type: timestamp
       required: true
-      description: Unix epoch seconds when the override was invoked
+      description: When the override was invoked
     - name: review_required_by
       type: int64
       required: true
       description: >
-        Unix epoch seconds by which the post-incident review must be
+        The instant by which the post-incident review must be
         completed. Default is override_at + 86400 (24 hours).
     - name: review_completed
       type: boolean

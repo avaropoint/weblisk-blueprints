@@ -97,7 +97,7 @@ signature takes none: it is [`protocol/identity`](../protocol/identity.md)'s
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -117,7 +117,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -152,7 +152,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/federation
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       endpoints:
         - path: /contracts
@@ -181,7 +181,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/namespace
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       endpoints:
         # Index listing step 3 reads a namespace's state at the public registry
@@ -195,7 +195,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/hub
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ListingEntry
@@ -259,7 +259,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -341,7 +341,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: backup-restore
@@ -742,14 +742,14 @@ types:
         enum: [active, stale, archived, delisted]
         description: Current listing status
       indexed_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When listing was indexed
       last_verified:
-        type: int64
+        type: timestamp
         description: Last successful signature verification
       last_refreshed:
-        type: int64
+        type: timestamp
         description: Last time listing was seen in a crawl
     constraints:
       - name: uq_listing_id
@@ -770,7 +770,7 @@ types:
         type: string
         description: Provider's current ML-DSA-65 public key
       last_seen:
-        type: int64
+        type: timestamp
         description: Last successful contact timestamp
       miss_count:
         type: int
@@ -781,7 +781,7 @@ types:
         default: 0
         description: Number of active listings from this provider
       registered_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When provider was first discovered
     constraints:
@@ -802,10 +802,10 @@ types:
         references: ProviderRecord.hub_name
         description: Provider crawled
       started_at:
-        type: int64
+        type: timestamp
         description: Crawl start timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Crawl completion timestamp
       status:
@@ -935,7 +935,7 @@ types:
         type: float
         description: Relevance score (0.0-1.0)
       indexed_at:
-        type: int64
+        type: timestamp
         description: When listing was indexed
 
   SearchAnalyticsEntry:
@@ -962,7 +962,7 @@ types:
         type: int
         description: Query execution time
       timestamp:
-        type: int64
+        type: timestamp
         auto: true
         description: Query timestamp
 ```
@@ -982,7 +982,7 @@ types:
         type: string
         description: Listing that was invoked
       timestamp:
-        type: int64
+        type: timestamp
         description: Invocation timestamp
       latency_ms:
         type: int
@@ -1012,7 +1012,7 @@ types:
         type: string
         description: Probed listing
       timestamp:
-        type: int64
+        type: timestamp
         description: Probe timestamp
       available:
         type: bool
@@ -1048,7 +1048,7 @@ types:
         type: int
         description: Behavioral changes in window
       computed_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When aggregate was computed
     constraints:
@@ -1076,7 +1076,7 @@ types:
         type: int
         description: Average p95 latency across all listings
       computed_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When aggregate was computed
 ```
@@ -1112,7 +1112,7 @@ types:
         optional: true
         description: Supporting evidence (signature details, diff, etc.)
       verified_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When verification was performed
       verified_by:
@@ -1134,7 +1134,7 @@ types:
         min: 1
         description: Sequential fingerprint version
       captured_at:
-        type: int64
+        type: timestamp
         auto: true
         description: When fingerprint was captured
       schema_hash:
@@ -1187,7 +1187,7 @@ types:
         type: bool
         description: Whether both old and new key signed the announcement
       rotated_at:
-        type: int64
+        type: timestamp
         description: When rotation was performed
       cooldown_satisfied:
         type: bool
@@ -1242,11 +1242,11 @@ types:
         optional: true
         description: Why alert was suppressed (dedup, muted, maintenance)
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Alert creation timestamp
       delivered_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Delivery completion timestamp
       attempts:
@@ -1303,11 +1303,11 @@ types:
         type: string
         description: Operator identity
       muted_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Mute start timestamp
       expires_at:
-        type: int64
+        type: timestamp
         description: Mute expiration timestamp
     constraints:
       - name: ck_mute_duration

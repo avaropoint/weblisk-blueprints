@@ -98,7 +98,7 @@
       ]
     },
     "timestamp": {
-      "see": "vectors/timestamp-wire.json"
+      "see": "vectors/conventions.json"
     },
     "integer": {
       "see": "vectors/conventions.json"

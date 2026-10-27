@@ -107,6 +107,15 @@ rewrites that place.
 | `max_retries`; the type field name `MaxRetries` | `max_attempts`, which counts every attempt, the first included; `MaxAttempts` | [`protocol/conventions`](protocol/conventions.md#attempts) 1.0.0, Attempts |
 | `retry_count` | `attempts` | [`protocol/conventions`](protocol/conventions.md#attempts) 1.0.0, Attempts |
 | `UUID v4`, as the version a component mints | a UUID as [`protocol/conventions`](protocol/conventions.md#uuid) says, version 7 | [`protocol/conventions`](protocol/conventions.md#uuid) 1.0.0, UUID |
+| `vectors/timestamp-wire.json` | [`vectors/conventions.json`](vectors/conventions.json), its `instant` entry | [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0, Instant |
+| `weblisk/log-key/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/log-key/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/storage`](architecture/storage.md#sealing-a-chained-log), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/log-checkpoint/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/log-checkpoint/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/storage`](architecture/storage.md#sealing-a-chained-log), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/content-change/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/content-change/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/content`](architecture/content.md#the-change-statement), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/directory/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/directory/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`protocol/spec`](protocol/spec.md#post-v1services), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-claim/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-claim/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#claim), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-grant/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-grant/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#grant), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-transfer/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-transfer/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#transfer), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/catalog-release/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/catalog-release/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#catalog-release), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
 
 ## Entries
 
@@ -460,8 +469,34 @@ itself is always allowed.
 - retired:
   - {spelling: max_retries, match: exact}
   - {spelling: MaxRetries, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: 'the check that reports it, and its seeded control'}
 - retired:
   - {spelling: retry_count, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: the check that reports it}
 - retired:
   - {spelling: UUID v4, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: the seeded control of the check that reports it}
+- retired:
+  - {spelling: vectors/timestamp-wire.json, match: exact}
+- retired:
+  - {spelling: weblisk/log-key/v1, match: exact}
+- retired:
+  - {spelling: weblisk/log-checkpoint/v1, match: exact}
+- retired:
+  - {spelling: weblisk/content-change/v1, match: exact}
+- retired:
+  - {spelling: weblisk/directory/v1, match: exact}
+  allow:
+  - {path: protocol/spec.md, why: 'says which layout the v2 prefix replaced, and why it took a new prefix'}
+- retired:
+  - {spelling: weblisk/namespace-claim/v1, match: exact}
+- retired:
+  - {spelling: weblisk/namespace-grant/v1, match: exact}
+- retired:
+  - {spelling: weblisk/namespace-transfer/v1, match: exact}
+- retired:
+  - {spelling: weblisk/catalog-release/v1, match: exact}
 ```

@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -751,13 +751,11 @@ types:
         required: true
         description: "Results per phase"
       started_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       completed_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
 ```
 
 ### PhaseResult
@@ -783,13 +781,11 @@ types:
         required: false
         description: "Phase output data"
       started_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       completed_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       error:
         type: string
         required: false

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.6
+version: 3.0.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.6.0 <3.0.0"
+    version: ">=2.6.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -134,7 +134,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/policy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PolicyContext
@@ -146,7 +146,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: OperationIntent
@@ -160,7 +160,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/privacy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ConsentRecord
@@ -181,7 +181,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <4.0.0"
+    version: ">=2.14.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/model/ceiling
@@ -201,7 +201,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/approval
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ApprovalRequest
@@ -211,7 +211,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/contract
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ContractDefinition
@@ -1027,9 +1027,9 @@ types:
         required: true
         description: Links this violation to the inspection trace
       timestamp:
-        type: integer
+        type: timestamp
         required: true
-        description: Unix epoch seconds when violation was recorded
+        description: When violation was recorded
 
 ```
 
@@ -1074,9 +1074,9 @@ types:
         required: true
         description: Links approval back to the original operation
       timestamp:
-        type: integer
+        type: timestamp
         required: true
-        description: Unix epoch seconds when approval was requested
+        description: When approval was requested
 ```
 
 ---

@@ -52,7 +52,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it
@@ -64,7 +64,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -84,7 +84,7 @@ requires:
   - blueprint: patterns/scope
     # 2.1.0 is the first version that certainly holds DestinationRefusal and
     # DestinationItem: 2.0.0 named two states, the first without either
-    version: ">=2.1.0 <3.0.0"
+    version: ">=2.1.0 <4.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -98,7 +98,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         # The safety gate a tool call passes at step 5, on every invocation
@@ -110,7 +110,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-oauth
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         # What a tool call is admitted on, and what its audit entry names

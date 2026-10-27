@@ -53,7 +53,7 @@ everything and authorises nothing.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -77,7 +77,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -89,7 +89,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/federation
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DataContract
@@ -122,7 +122,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.0.0 <5.0.0"
+    version: ">=2.0.0 <6.0.0"
     bindings:
       types:
         - name: ContentRepository

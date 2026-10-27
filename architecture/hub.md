@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
@@ -65,7 +65,7 @@ registry servers (weblisk.dev's and, in the future, partners') and direct peer d
 ```yaml
 requires:
   - blueprint: protocol/federation
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: OrchestratorManifest
@@ -79,7 +79,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -121,7 +121,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/namespace
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         # The registry weblisk.dev runs, and who may publish under a namespace
@@ -229,7 +229,7 @@ facts:
     "certifications": [],
     "retention_hours": 24
   },
-  "published_at": 1712160000,
+  "published_at": "2024-04-03T16:00:00.000Z",
   "signature": "<provider's ML-DSA-65 signature over listing>"
 }
 ```
@@ -273,9 +273,8 @@ types:
         required: true
         description: "Regulatory and data handling metadata"
       published_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       signature:
         type: string
         required: true
@@ -761,7 +760,7 @@ and discoverability fields:
     "hub_name": "example-prod",
     "public_key": "<ML-DSA-65 public key (base64url)>",
     "verified_seller": true,
-    "seller_since": 1704067200
+    "seller_since": "2024-01-01T00:00:00.000Z"
   },
   "product": {
     "name": "SEO Domain Controller",
@@ -826,7 +825,7 @@ reviewer's hub key to prevent forgery:
   "body": "Generated into our Go hub in under 5 minutes. Scoring model is well-designed.",
   "verified_purchase": true,
   "usage_duration_days": 45,
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "signature": "<reviewer's ML-DSA-65 signature>"
 }
 ```
@@ -1320,7 +1319,7 @@ types:
         type: string
         description: Where to reach it
       last_seen:
-        type: string
+        type: timestamp
         format: rfc3339
         description: When the registry last confirmed it answered
 

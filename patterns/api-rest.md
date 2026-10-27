@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-rest
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -207,7 +207,7 @@ sort keys.
 | `boolean` | boolean | True/false |
 | `integer` | number | 64-bit signed integer |
 | `float` | number | 64-bit floating point |
-| `timestamp` | number | Unix epoch seconds, auto-set if `auto` |
+| `timestamp` | string | `protocol/conventions:instant`, set if `auto` |
 
 ### Field Modifiers
 
@@ -359,7 +359,7 @@ types:
 
 - **ID generation**: Mint a UUID (`protocol/conventions:uuid`). Never expose internal
   database IDs.
-- **Timestamps**: Always store and return as Unix epoch seconds. Set
+- **Timestamps**: Always return as `protocol/conventions:instant`. Set
   `created` on insert, update `updated` on every write.
 - **Cursor encoding**: Cursors SHOULD be opaque base64-encoded strings
   containing the sort key value and ID. Clients MUST NOT parse them.

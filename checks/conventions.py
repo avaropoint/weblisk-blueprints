@@ -4,10 +4,17 @@
 Usage: conventions.py vectors|sites [--control] [--root DIR]
   vectors    each value in vectors/conventions.json is what the rule it names
              gives, computed here from the rule's text alone.
+  time-fields  every field a specification declares that holds an instant is
+             typed timestamp. An instant is a field named as one (*_at,
+             timestamp, since, until, last_seen ...) or described by an epoch,
+             Unix time, RFC 3339 or ISO 8601; a field whose description cites
+             an RFC 7519 NumericDate keeps the form that RFC fixes.
   sites      no specification file restates a rule protocol/conventions holds:
              a UUID version other than 7, a backoff formula, schedule or
              second algorithm, a retry limit counted in retries, a task
-             timeout other than the rule's, a :name path parameter.
+             timeout other than the rule's, a :name path parameter, an instant
+             described in epoch or Unix units (a NumericDate or OpenMetrics
+             timestamp, whose form an external authority fixes, excepted).
 --control runs the mode with a seeded fault and passes only if exactly the
 seeded fault is reported. --root reads another corpus checkout.
 """
@@ -99,9 +106,61 @@ SITES = {
     "retries": [re.compile(r"\bmax_retries\b|\bretry_count\b|\bMaxRetries\b|(?i:\bretr(?:y|ies) (?:up to )?\d+ ?x\b|\b\d+ retries\b|\bretr(?:y|ies) \d+ times\b)")],
     "task-timeout": [re.compile(r"(?i)\|\s*(?:agent → agent \(task\)|task timeout)\s*\|\s*(?!300\s*s)\d+\s*s\s*\|")],
     "path-param": [re.compile(r"/:[a-z_][a-z0-9_]*")],
+    "instant": [re.compile(r"^(?!.*(?:NumericDate|OpenMetrics))(?i:.*(?:unix epoch|epoch seconds|unix seconds|unix timestamp|unix ms\b|epoch milli|decimal unix|unix time\b))")],
 }
 SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retries": "  max_retries: 3",
-          "task-timeout": "| Task timeout | 30s | per task |", "path-param": "GET /v1/things/:id"}
+          "task-timeout": "| Task timeout | 30s | per task |", "path-param": "GET /v1/things/:id",
+          "instant": "| created_at | int64 | Unix epoch seconds |"}
+
+
+INSTANT_NAME = re.compile(r"(?:^|_)(?:at|timestamp)$|^(?:ts|time|since|until|deadline|expiry|expires|not_after|not_before|iat|exp|created|updated|start|end|last_updated)$|^(?:last|next|first)_(?:seen|check|active|verified|refreshed|retry|fire|attempt|updated|rotated|renewal)$")
+INSTANT_DESC = re.compile(r"(?i)\bepoch\b|\bunix\b|RFC ?3339|ISO ?8601|\btimestamp\b")
+NOT_INSTANT = re.compile(r"(?i)\bseq\b|\bcount\b|ISO 8601 date\b|\bcursor\b|version vector|\bnumber of\b|NumericDate")
+SCALARS = {"int64", "integer", "int", "int32", "number", "datetime", "string", "*int64", "timestamp"}
+NOT_INSTANT_NAMES = {"last_error", "next_cursor", "depends_on", "updated", "broken_at", "terminates_at"}
+
+
+def declared_fields(text):
+    """(line, name, type, description) for each field a YAML block declares."""
+    lines, inside = text.split("\n"), False
+    for i, l in enumerate(lines):
+        if re.match(r"^\s*```", l): inside = not inside; continue
+        if not inside: continue
+        m = re.match(r"^\s*([A-Za-z_]\w*):\s*\{type:\s*([^,}\s]+)(.*)\}\s*$", l)
+        if m:
+            d = re.search(r"description:\s*(.*)$", m.group(3))
+            yield i + 1, m.group(1), m.group(2), d.group(1) if d else ""
+            continue
+        m = re.match(r"^(\s*)type:\s*([^\s#]+)", l)
+        if not m: continue
+        ind, name, start = len(m.group(1)), None, i
+        for j in range(i - 1, max(i - 8, -1), -1):
+            k = re.match(r"^(\s*)(?:- name:\s*([A-Za-z_]\w*)|([A-Za-z_]\w*):)\s*$", lines[j])
+            if k and len(k.group(1)) < ind or k and k.group(2) and len(k.group(1)) + 2 == ind:
+                name, start = k.group(2) or k.group(3), j; break
+        if not name: continue
+        desc = ""
+        for j in list(range(start + 1, i)) + list(range(i + 1, min(i + 8, len(lines)))):
+            if j > i and (not lines[j].strip() or len(lines[j]) - len(lines[j].lstrip()) < ind): break
+            d = re.match(r"^\s*description:\s*(.*)$", lines[j])
+            if d: desc = d.group(1)
+        yield i + 1, name, m.group(2).strip("'\""), desc
+
+
+def time_fields():
+    found = []
+    files = sorted(p for d in SPEC_DIRS for p in glob.glob(os.path.join(root, d, "**", "*.md"), recursive=True))
+    texts = [(os.path.relpath(p, root), open(p, encoding="utf-8").read()) for p in files]
+    if control: texts.append(("seeded.md", "```yaml\nSeeded:\n  fields:\n    created_at:\n      type: int64\n      description: Unix epoch seconds\n```\n"))
+    for rel, text in texts:
+        for n, name, typ, desc in declared_fields(text):
+            if typ == "timestamp" or typ not in SCALARS or name in NOT_INSTANT_NAMES or NOT_INSTANT.search(desc): continue
+            if INSTANT_NAME.search(name) or INSTANT_DESC.search(desc):
+                found.append(f"time-fields: {rel}:{n}: {name} is {typ}, not timestamp")
+    if control:
+        seeded = [f for f in found if " seeded.md:" in f]
+        return (seeded if len(seeded) == 1 and found == seeded else found + ["control: the corpus is not clean, or the seeded field was missed"]), {"time-fields"}
+    return found, set()
 
 
 def site_lines(text):
@@ -136,6 +195,7 @@ def sites():
 
 if mode == "vectors": found, seeded = vectors()
 elif mode == "sites": found, seeded = sites()
+elif mode == "time-fields": found, seeded = time_fields()
 else: sys.exit(__doc__)
 if found: print("\n".join(found))
 print(f"{mode}: {len(found)} reported")

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: content-identity
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, patterns/versioning]
 platform: any
 tier: free
@@ -58,7 +58,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       behaviors:
         - name: semantic-versioning
@@ -127,7 +127,7 @@ contracts:
       rules:
         - A digest written as one string, without an algorithm field beside it, MUST be written as the algorithm, a colon and the lowercase hex digest — `sha256:<hex>`
         - A bare 64-character lowercase hex string MUST be read as SHA-256 and MUST NOT be written by any new field or format
-        - "Bare hex is still written in these places, each a gap until its blueprint adopts this spelling in a version of its own, and none a second spelling rule: architecture/storage's chained and sealed logs (each entry's `previous_digest`, the log id, the checkpoint entry's `tip`, and the `<log id>` and `<tip>` of the weblisk/log-key/v1, weblisk/log-checkpoint/v1 and weblisk/log-succession/v1 fixed forms); architecture/content's change log, which seals as storage does (each entry's `previous_digest`, the log id, and weblisk/content-change/v1's `<log id>`); and protocol/types AuditEntry's `previous_hash`. checks/digest-spelling.py holds this list to the corpus"
+        - "Bare hex is still written in these places, each a gap until its blueprint adopts this spelling in a version of its own, and none a second spelling rule: architecture/storage's chained and sealed logs (each entry's `previous_digest`, the log id, the checkpoint entry's `tip`, and the `<log id>` and `<tip>` of the weblisk/log-key/v2, weblisk/log-checkpoint/v2 and weblisk/log-succession/v1 fixed forms); architecture/content's change log, which seals as storage does (each entry's `previous_digest`, the log id, and weblisk/content-change/v2's `<log id>`); and protocol/types AuditEntry's `previous_hash`. checks/digest-spelling.py holds this list to the corpus"
         - A structured ContentIdentity, which declares its algorithm in its own field, is unchanged
         - A key fingerprint is protocol/identity's identity id, not a content digest, and keeps the form protocol/identity gives it
 

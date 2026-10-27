@@ -21,7 +21,7 @@ known attack vector at every boundary, the mitigation in place, and
 the residual risk.
 
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: QuarantineOrder
@@ -63,7 +63,7 @@ the residual risk.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -93,7 +93,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/federation
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: DataContract
@@ -119,7 +119,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/client
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ClientRecord
@@ -159,7 +159,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/enforcement
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # Boundary six is enforcement's four boundaries, which a ViolationRecord names
@@ -170,7 +170,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/contract
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         # The input contract validation Chain 7 counts as one of its three
@@ -183,7 +183,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.0.0 <5.0.0"
+    version: ">=2.0.0 <6.0.0"
     bindings:
       types:
         - name: ContentRepository
