@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 4.1.1
+version: 4.2.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2417,6 +2417,7 @@ presents a token it received
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
 | Runbooks | Execution, into which incident runbooks merge ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies the routes and a pass for them is deployed. None does yet; [`agents/incident-response`](../agents/incident-response.md) specifies them today and accepts no pass for them (the gap below) |
 | Rate limits | The component applying [`patterns/rate-limiting`](../patterns/rate-limiting.md) | that component is deployed |
+| Changes and builds: `/v1/admin/changes…` and `/v1/admin/build` | The tenant's change service ([Changes and builds](#changes-and-builds)) | a change service whose blueprint specifies the routes and a pass for them is deployed. None does yet |
 
 **An endpoint whose provider is not deployed MUST report itself unavailable, and
 MUST NOT return an empty result.** An empty decision inbox and an owner that
@@ -2570,6 +2571,36 @@ decision needs more than one person, by `patterns/approval`'s multi-party or
 content's `self_decision_ceiling`, the owner holds it open until that rule is
 met, and the inbox lists it to each person who may still decide it. The
 platform asks no second person of its own.
+
+### Changes and builds
+
+| Path | Method | Role | Purpose |
+|------|--------|------|---------|
+| `/v1/admin/changes` | GET | viewer+ | List changes; `?awaiting=me` lists those this person may decide |
+| `/v1/admin/changes` | POST | operator+ | Plan a change: `kind`, `request`, `strict`. Answers the change with its plan |
+| `/v1/admin/changes/:id` | GET | viewer+ | One change: plan, verdicts, conflicts introduced and cleared, approval, run |
+| `/v1/admin/changes/:id/approve` | POST | as [`architecture/cli`](cli.md#who-may-approve-a-change) says | Approve, signed by the person over the plan digest |
+| `/v1/admin/changes/:id/reject` | POST | as for approve | Reject, with a reason |
+| `/v1/admin/changes/:id/apply` | POST | operator+ | Apply an approved change |
+| `/v1/admin/changes/:id/verify` | POST | operator+ | Verify an applied change |
+| `/v1/admin/build` | GET | viewer+ | The tenant's build lock and its runs, each with its run statement's id and digest |
+
+A change is [`schemas/change`](../schemas/change.md)'s, the lock
+[`schemas/build-lock`](../schemas/build-lock.md)'s. Their provider is the
+tenant's **change service**, which holds `.weblisk/changes/` and the lock and
+runs the CLI on the tenant's own host (`cli-in-tenant`) to plan, apply and
+verify, under the tenant's `generation` service credential and with the
+tenant's model (D26). A client — Studio, or the CLI on a person's machine —
+reaches it only through these routes (`tenant-api`), and never needs, opens or
+writes the tenant's tree. A change awaiting approval is an `ApprovalRequest`
+([`protocol/types`](../protocol/types.md#approvalrequest)) the change service
+holds, so the decision inbox lists it beside every other decision and it is
+decided at its owner. The gateway applies nothing: it MUST NOT run the CLI or
+write a change, a lock or a statement. <!-- wl:id gateway-applies-no-change -->
+
+No blueprint specifies the change service yet, and the `generation` credential
+waits on the credential layer, so the gateway answers these routes
+`ADMIN_GROUP_UNAVAILABLE`, as for any provider not deployed.
 
 ### Federation Management
 
@@ -3375,6 +3406,7 @@ The rest SHOULD be:
 
 ### Admin gateway
 
+- [ ] The admin gateway carries `/v1/admin/changes`, its sub-routes and `/v1/admin/build` to the change service on a pass and answers them `ADMIN_GROUP_UNAVAILABLE` while none is deployed; no request to them makes the gateway run the CLI or write a change, a lock or a statement <!-- wl:check gateway-carries-changes covers gateway-applies-no-change -->
 - [ ] Started with its registration key or its TLS key readable or writable by its group or by other accounts, the admin gateway refuses to run and names the file, for a key the operator supplied as for one the CLI made <!-- wl:check gateway-open-key-refused covers gateway-refuses-open-key -->
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
