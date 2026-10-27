@@ -422,6 +422,8 @@ relation.
 | `consumes` | `component`, `agent` | `integration` | integration |
 | `executes` | `agent` | `skill`, `workflow` | declared |
 | `copied_from` | policy, procedure, sop, standard, guideline, reference, document | the same kind | adoption |
+| `satisfies` | `specification` | `control` | declared |
+| `conforms_to` | `programme` | `standard` | declared |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
 
 `implements` accepting `control` as a target is what allows an author to state
@@ -435,14 +437,14 @@ controls it was `generated_from`, and that it was `produced_by` that run; the fa
 ([`architecture/fabric`](../architecture/fabric.md#declared-at-write-time)).
 `verifies` from `code` names a generated test by the check id it is named for.
 
-**`satisfies` and `conforms_to` are not declared here yet.** The corpus cites
-both, and decision D18 makes each its own relation, separate from `implements`:
-`satisfies` from a programme's artifact specification to a control it must
-answer (a claim about what an artifact must be, where `implements` is a claim
-about what one is), and `conforms_to` from a programme to a standard. They arrive in the corpus-v2 conventions change
-(`v2-conventions`), which declares both rows and withdraws the spelling below
-that reads `satisfies` as `implements`; until it lands, a claim under either
-name is an undeclared relation, and the fabric records none.
+**`satisfies` and `conforms_to` are their own relations** (decision D18),
+separate from `implements`. `satisfies` runs from a programme's artifact
+specification to a control it must answer: a claim about what an artifact must
+be, where `implements` is a claim about what one is. `conforms_to` runs from a
+programme to a standard it is built to answer
+([`programme.md`](programme.md), `conforms_to`). Until both rows were declared,
+`satisfies` was accepted as a spelling of `implements`; it no longer is, so a
+claim under it is recorded as `satisfies` and never as an `implements` claim.
 
 `generated_from` onto a `control` records what an output was made from, citing the control's text digest ([`standard.md`](standard.md#outputs-cite-the-control-text-they-were-made-from)).
 
@@ -490,10 +492,8 @@ which can then be confirmed on its own and disagree with the first.
 
 These are the names the platform has accepted for a relation already declared
 above. They are normalised on the way in, so nothing downstream has to know them.
-
-| spelling | means | why it exists |
-|---|---|---|
-| `satisfies` | `implements` | The verb this platform's own design documents use for "this document answers that control" — `Attest`, `AnchorBlock` and the agent's `record_relationship` tool all say *satisfies*, while this table says *implements*. Two authorities, one relation: a policy reached the ledger as both, each confirmed separately. |
+None is accepted today: `satisfies`, the one there was, is a relation of its
+own (above).
 
 A spelling must name a relation this table already declares, and must not be
 declared as a relation itself. Adding one is a statement that the two names have

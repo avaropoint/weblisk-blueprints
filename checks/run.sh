@@ -77,6 +77,12 @@ grep -q "table rows and" "$tmp/out" || { echo "FAIL retired control: the missing
 expect 1 "retired control: an allowance its file has passed fails" python3 checks/retired.py --file "$tmp/ended.md"
 grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended allowance was not what was reported"; fails=$((fails + 1)); }
 
+# protocol/conventions' worked values, each computed here from the rule; an
+# implementation that writes instants without milliseconds and backs off from
+# 2^n must be reported in exactly those two rules.
+expect 0 "conventions: every vector is what its rule gives" python3 checks/conventions.py vectors
+expect 0 "conventions control: a second-precision instant and a 2^n backoff are reported" python3 checks/conventions.py vectors --control
+
 # Every mapping's wire timestamp against one vector, and a mapping changed to
 # milliseconds that must be the one disagreement reported.
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py

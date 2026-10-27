@@ -1,8 +1,8 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 3.2.0
-requires: [protocol/types, protocol/identity]
+version: 3.3.0
+requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
 -->
@@ -105,6 +105,22 @@ requires:
           methods: [POST]
           request_type: RegisterRequest
           response_fields: [agent_id, token, services, orchestrator, protocol_version]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: protocol/conventions
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      behaviors:
+        - name: instant
+        - name: uuid
+        - name: duration
+        - name: integer
+        - name: max-attempts
+        - name: backoff
+        - name: path-param
+        - name: task-timeout
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

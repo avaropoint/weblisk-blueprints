@@ -73,11 +73,14 @@ weights in the schema, scoring in the tool.
 A relation is meaningful only between the kinds the schema pairs. One asserted
 outside that table is a fault in the producer, not a new relation.
 
-A declared target may name its kind — `implements: [control:A.5.15]` — because an
+A declared target may name its kind — `implements: [control:iso_27001:A.5.15]`,
+the control and the framework that declares it — because an
 identifier alone cannot say what it is, and **guessing from its shape is how a
 platform asserts something an author never said**. Unqualified means a blueprint,
 as before; a prefix is a qualifier only when it names a declared kind, so a URL
-is left whole.
+is left whole. A bare `control:A.5.15` joins onto whichever framework answers first,
+since a control id is unique only within its standard
+([`schemas/kinds`](../../schemas/kinds.md#naming-a-targets-kind)).
 
 ## platform, provider, integration — three things, three words
 

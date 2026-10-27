@@ -13,6 +13,7 @@ gateway implements these specs regardless of platform or language.
 | [identity.md](identity.md) | ML-DSA-65 cryptography, tokens, signing, key rotation |
 | [secret-source.md](secret-source.md) | Where secrets are held — an identity's, an installation's master key, a service's passphrase — in any vault or none, and the helper protocol that reaches them |
 | [types.md](types.md) | Canonical type definitions — all JSON shapes |
+| [conventions.md](conventions.md) | Wire conventions, each stated once: instants, UUIDs, durations, integers, attempts, backoff, path parameters, task timeout |
 | [federation.md](federation.md) | Multi-orchestrator federation and data boundaries |
 
 ## Key Design Decisions
