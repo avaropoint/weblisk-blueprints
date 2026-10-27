@@ -1,9 +1,89 @@
+---
+family: schemas/family@1
+version: 2.0.0
+kind: blueprint
+noun: pattern
+match: [patterns/*.md]
+capabilities: [author, versioned, depends, generates, publishable, adoptable]
+template: templates/pattern.md
+generates: code
+---
 # Pattern Schema
 
 Defines the complete structure for pattern blueprints (`type: pattern`).
 Pattern blueprints specify cross-cutting concerns — reusable contracts,
 types, and behaviors that agents and domains inherit via the `extends`
 field. Patterns are the framework's composition mechanism.
+
+## Header
+
+The family `schemas/pattern` in grammar 1 ([`schemas/family`](family.md)): what a
+file in `patterns/` is written as once the migration (`v2-migrate`) has
+rewritten it, as [`schemas/architecture`](architecture.md#header) is for an
+architecture blueprint. What each common field means is
+[`schemas/common`](common.md#the-header-in-grammar-1)'s. The files are written
+in the older form until then, which the sections from
+[Frontmatter](#frontmatter) on describe and today's tooling reads; each of
+its sections is a slot below under the heading files use today, so a file
+being migrated walks with its narrative counted as what it is.
+
+```yaml
+header:
+  schema:
+    type: object
+    required: [family, version]
+    unevaluatedProperties: false
+    properties:
+      family:        {const: schemas/pattern@2}
+      version:       {$ref: "schemas/blocks#/$defs/version"}
+      requires:      {type: array, items: {$ref: "schemas/blocks#/$defs/requires-entry"}}
+      tier:          {enum: [free, pro]}
+      author:        {type: string}
+      status:        {enum: [active, deprecated, end-of-life]}
+      superseded_by: {$ref: "schemas/blocks#/$defs/ref"}
+      end_of_life:   {$ref: "schemas/blocks#/$defs/date"}
+      retired:       {$ref: "schemas/blocks#/$defs/retired"}
+      formerly:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+  uses:
+    requires:   {use: depends, resolves: blueprint, send: always}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1},
+       prose: required, content: {max_paragraphs: 2}, use: navigates}
+    - {slot: overview, heading: Overview, required: false, prose: required, use: navigates}
+    - {slot: requirements, heading: Requirements, required: true, count: {min: 1, max: 1},
+       blocks: [{type: requirements, count: {min: 1, max: 1}}], prose: forbidden,
+       use: binds, produces: [code.behaviour]}
+    - {slot: dependencies, heading: Dependencies, aliases: [Declaration], required: false, use: depends}
+    - {slot: design-principles, heading: Design Principles, required: false, use: explains}
+    - {slot: contracts, heading: Contracts, required: false, use: binds}
+    - {slot: overrides, heading: Overrides, required: false, use: binds}
+    - {slot: types, heading: Types, aliases: [Data Types], required: false,
+       blocks: [{type: types, count: {max: 1}}], use: shapes, produces: [code.type, schema.json]}
+    - {slot: config, heading: Configuration, required: false,
+       blocks: [{type: config, count: {max: 1}}], use: configures}
+    - {slot: errors, heading: Error Handling, aliases: [Errors], required: false,
+       blocks: [{type: errors, count: {max: 1}}], use: shapes}
+    - {slot: verifies, heading: Verification, aliases: [Verification Checklist], required: true,
+       blocks: [{type: verifies, count: {min: 1, max: 1}}], prose: forbidden,
+       use: verifies, produces: [code.test, check]}
+    - {slot: operation, heading: {starts_with: "Operation:"}, count: {min: 0},
+       key: marker, prose: required, content: {no_rfc2119: true}, use: explains}
+    - {slot: implementation-notes, heading: Implementation Notes, required: false, use: instructs}
+    - {slot: examples, heading: Examples, required: false, use: illustrates}
+    - {slot: notes, heading: Notes, required: false, use: explains}
+```
+
+The slots follow [`schemas/architecture`](architecture.md#why-these-slots)'s
+reasons: the contract is typed blocks in the slot each belongs to, every
+requirement is covered by a check, an `Operation:` section explains one
+requirement and states no rule, and a slot out of order is reported.
 
 ---
 

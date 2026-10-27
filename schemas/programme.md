@@ -97,6 +97,19 @@ rather than wished away. `CORPUS_SHAPE.md` names the reconciliation of the two
 forms as open work: one wins and the loser is converted, not left as a second
 dialect. Until that is decided, this schema describes the form that loads.
 
+**The three kinds are file families.** Each is declared for a walk
+([`schemas/family`](family.md)) in its own file:
+[`schemas/programme-map`](programme-map.md),
+[`schemas/programme-spec`](programme-spec.md) and
+[`schemas/programme-template`](programme-template.md). A declaration holds the
+shape a walk checks, the keys a file may carry and their types, and this file
+keeps what each means. All three are in migration mode: a file's own `id:`,
+an obligation's `id:` and a missing `version:` are each reported, and any key
+the family does not declare is refused, so every programme file walks today
+without an edit. Their strict variants, under
+[`schemas/strict/`](strict/), are what the files are held to once the
+migration has rewritten them.
+
 ### One bad file is one bad file
 
 A file that will not parse or will not validate is **skipped and reported**,
@@ -434,7 +447,7 @@ programmes at once.
 | `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Withdrawing a `satisfies` entry and changing anything under `declares.obligation` are both MAJOR — see [Versioning](#versioning) |
 | `kind` | string | no | the artifact's own noun — what the created document declares about itself. The vocabulary is [`kinds.md`](kinds.md) |
 | `title` | string | no | display name. Defaults to `id` |
-| `structure` | string | no | the document structure it is **checked** against — the `id` of a [structure](#the-structures-a-document-is-checked-against). `policy`, `procedure`, `standard` and `guideline` are seeded, one file each in [`structures/`](structures/), and a tenant may add or remove them |
+| `structure` | string | no | the document structure it is **checked** against — the last segment of a [document family](#the-structures-a-document-is-checked-against). `policy`, `procedure`, `standard` and `guideline` are seeded, one declaration each in [`documents/families/`](../documents/families/README.md), and a tenant may add or remove them |
 | `path` | string | no | a **suggestion** for where the document goes. Required only for a standing register |
 | `satisfies` | string[] | no | the controls this artifact answers, as `framework:control` |
 | `requires` | string[] | no | artifact `id`s this one depends on — the DAG that orders generation |
@@ -457,91 +470,13 @@ sections — **which reads as "this document is fine"**.
 
 ### The structures a document is checked against
 
-A structure is the set of headings a kind of document is expected to have, and
-what belongs under each. It drives the structure checklist and the brief a
-model is handed when somebody asks it to fill a missing section. The seeded
-ones are corpus content, **one file per structure** in
-[`structures/`](structures/), named `<id>.md`:
-
-    schemas/structures/policy.md
-    schemas/structures/procedure.md
-    schemas/structures/standard.md
-    schemas/structures/guideline.md
-
-Markdown with YAML frontmatter, as every programme file is. The frontmatter is
-the structure; the body says, for a person, what the structure is for, and no
-tool reads it.
-
-| field | type | required | means |
-|---|---|---|---|
-| `id` | string | **yes** | what a spec's `structure` names. Lowercase, singular, and the file's own name |
-| `version` | string | no | `MAJOR.MINOR.PATCH`, as on a map. Adding a required section, making one required, or removing one is MAJOR: each changes which documents the checklist reports complete |
-| `label` | string | no | display name. Defaults to `id` |
-| `order` | integer | no | where the structure sits in a list of them. Lowest first |
-| `sections` | list | **yes** | the expected headings, in the order a document should carry them. At least one |
-| `sections[].title` | string | **yes** | the heading. Unique within the structure, ignoring case |
-| `sections[].required` | boolean | no | `true` when a document without this section is incomplete. Default `false`: most documents of the kind have one, and missing it is not a gap |
-| `sections[].aliases` | string[] | no | other headings that satisfy this one, so an organisation that writes "Statements" is not told it lacks "Policy Statements" |
-| `sections[].guidance` | string | no | what belongs here, in a sentence. Shown beside a gap, and the brief a model is given to fill it |
-| `sections[].authority` | string | no | a control of a standard the **tenant has adopted** that requires this section, as `framework:control` — the form `satisfies` takes |
-
-A heading satisfies a section when it equals the title or an alias, ignoring
-case. A structure with no sections is refused, because it would report every
-document as complete. So is one in which a title or an alias equals another
-title or alias of the same structure, ignoring case — two sections' titles, a
-title and another section's alias, or two aliases — because one heading would
-then satisfy two sections and the checklist could not say which.
-
-**The seeded structures cite no standard.** They are conventions of document
-writing, not obligations, and a framework clause written into them would be
-standards content resident in a file no adoption chose — the same text held
-twice, cited by a tenant that never adopted it. `authority` is how a tenant
-says a section is required by something it *has* adopted, and it is empty in
-every seeded file.
-
-**Which structure a document is checked against**, first match wins:
-
-1. the `structure` in the document's own frontmatter, which a form's
-   `frontmatter:` block writes ([A form's `frontmatter:`](#a-forms-frontmatter));
-2. the `structure` of the spec that created it;
-3. for a document no form or spec created, its kind as [`kinds.md`](kinds.md)
-   classifies it, resolved through `specializes`: the structure whose `id` is
-   the kind, else the one whose `id` is the kind it specializes, and so on up
-   the chain. `document` is never reached this way — it means unclassified,
-   and an unclassified document is not checked as anything. So an `sop`,
-   runbook or playbook with no structure of its own is checked as a
-   `procedure`, while a `reference` has no check.
-
-A structure declares no path of its own: a second list of folder names beside
-the classification stems in `kinds.md` would drift from them. A document whose
-resolution ends without a structure has **no check**, and says so; it is never
-reported as complete.
-
-**Only an organisation's own documents fall back by kind.** Step 3 applies to
-what a tenant authors. Published content has no structure check: an industry
-standard delivered and adopted as [`standard.md`](standard.md) declares, and
-any file of this corpus read as a source. `kinds.md` classifies the `standards`
-and `schemas` segments as `standard`, so without this rule every adopted
-standard and every schema file — the files in [`structures/`](structures/)
-among them — would be reported as an organisation standard lacking Overview
-and Requirements: a gap in a document nobody in the organisation writes. A
-published file is reported as not checked, never as incomplete.
-
-**Whose copy is checked.** The seeded files are published content: delivered
-into a tenant, where an organisation may edit, add or remove structures, and
-the tenant's set is the one its documents are checked against. A client holds
-no copy of either. No route of [`architecture/content`](../architecture/content.md)
-yet names where a tenant's structures live, so a client that cannot read them
-reports that the check did not run rather than checking against a list of its
-own.
-
-**What tests this.** The corpus has no test harness of its own, and no test yet
-reads these files. The Verification Checklist row below is a person's check
-until Studio lane S19 (which reads these structures live and removes its own
-copies) adds a test against the pinned corpus that fails when a file in
-[`structures/`](structures/) does not parse, has no section, repeats a title or
-alias, or carries an `authority`; when a shipped spec's or form's `structure`
-names no file there; or when this section stops linking the directory.
+A structure is a **document family**: the headings a kind of document is
+expected to have, and what belongs under each. The seeded ones are
+`policy`, `procedure`, `standard` and `guideline`, one declaration each in
+[`documents/families/`](../documents/families/README.md), and a spec's
+`structure` names one of them by its last segment. Which family a document is
+walked against, whose copy is walked and what is never checked are that
+directory's to say, and nothing here restates them.
 
 ### `path` is a suggestion
 
@@ -2255,7 +2190,7 @@ than naming a statute that does not exist.
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
 - [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
-- [ ] Every `structure` a shipped spec or form names is the `id` of a file in [`structures/`](structures/), and every file there parses, has at least one section, repeats no title or alias and carries no `authority`
+- [ ] Every `structure` a shipped spec or form names is a family in [`documents/families/`](../documents/families/README.md), and every family there walks its template with no refused finding, lets no heading open two slots and carries no `authority` (`checks/families.py`)
 
 ---
 
