@@ -2,7 +2,7 @@
 family: schemas/architecture@2
 version: 1.0.0
 requires:
-  - {ref: protocol/types, version: ">=4.0.0 <5.0.0"}
+  - {ref: protocol/types, version: ">=4.0.0 <6.0.0"}
 runs_with: [architecture/orchestrator]
 cardinality: singleton
 tier: free

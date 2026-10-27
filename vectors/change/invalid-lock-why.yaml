@@ -7,7 +7,7 @@ blueprints:
     source: weblisk
     why: required by the admin gateway
   - ref: blueprint://weblisk/protocol/types
-    version: 4.2.0
+    version: 5.0.0
     digest: sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
     source: weblisk
 mappings:

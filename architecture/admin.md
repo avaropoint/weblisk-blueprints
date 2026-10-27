@@ -123,7 +123,7 @@ requires:
     # registration declares, is admitted for the tenant's declared admin
     # gateway alone; STEP_UP_REQUIRED, which Error Handling refuses a
     # destructive act with, exists from 3.1.0
-    version: ">=4.0.0 <5.0.0"
+    version: ">=4.0.0 <6.0.0"
     bindings:
       types:
         # The admin gateway serves the two probes and renews its lease

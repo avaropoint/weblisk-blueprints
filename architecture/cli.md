@@ -177,7 +177,7 @@ requires:
     # with, exists there too. No command reads a directory
     # entry's lease state: server verify and status read lease states from
     # the admin API (architecture/admin below)
-    version: ">=3.1.0 <4.0.0"
+    version: ">=3.1.0 <6.0.0"
     bindings:
       types:
         - name: Operator

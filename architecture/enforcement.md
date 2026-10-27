@@ -100,7 +100,7 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=4.2.0 <5.0.0"
+    version: ">=5.0.0 <6.0.0"
     bindings:
       types:
         - name: ApprovalRequest

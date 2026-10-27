@@ -2,7 +2,7 @@
   "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
   "kind": "upgrade",
   "request": [
-    "blueprint://weblisk/protocol/types@4.2.0"
+    "blueprint://weblisk/protocol/types@5.0.0"
   ],
   "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
   "requested_at": 1793000000,
@@ -26,7 +26,7 @@
       {
         "ref": "blueprint://weblisk/protocol/types",
         "from": "4.1.0",
-        "to": "4.2.0"
+        "to": "5.0.0"
       }
     ],
     "conflicts": {

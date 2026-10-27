@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 4.2.0
+version: 5.0.0
 requires: []
 platform: any
 tier: free
@@ -1713,51 +1713,11 @@ types:
         description: "Owner-specific context"
 ```
 
-### ApprovalResponse
-
-```yaml
-types:
-  ApprovalResponse:
-    fields:
-      updated:
-        name: Updated
-        type: int
-        required: true
-        description: "Count of recommendations updated"
-      results:
-        name: Results
-        type: "[]ApprovalResult"
-        required: true
-        description: "Per-recommendation outcome"
-```
-
-### ApprovalResult
-
-```yaml
-types:
-  ApprovalResult:
-    fields:
-      recommendation_id:
-        name: RecommendationID
-        type: string
-        required: true
-        description: "Which recommendation"
-      previous_status:
-        name: PreviousStatus
-        type: string
-        required: true
-        description: "Status before this action"
-      new_status:
-        name: NewStatus
-        type: string
-        required: true
-        description: "Status after this action"
-      error:
-        name: Error
-        type: string
-        required: false
-        description: "Error if this one failed (e.g., already resolved)"
-```
+A request is answered by the decision made at the route its owner names, not
+by a type of this file. The recommendation-decision body this type replaced
+in 5.0.0, and the two types that answered it, are retired
+([`RETIRED.md`](../RETIRED.md)); 5.0.0 is MAJOR because fields were removed
+([`schemas/common`](../schemas/common.md#blueprint-versions), Blueprint Versions).
 
 ---
 

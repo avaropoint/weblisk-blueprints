@@ -10,7 +10,7 @@ blueprints:
     digest: sha256:abababababababababababababababababababababababababababababababab
     source: weblisk
   - ref: blueprint://weblisk/protocol/types
-    version: 4.2.0
+    version: 5.0.0
     digest: sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
     source: weblisk
 mappings:
