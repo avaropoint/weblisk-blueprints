@@ -96,16 +96,11 @@ This is the language's own question, and it is not the platform's. A standard li
 either ships a memory-hard key-derivation function or it does not, whatever the code
 later runs on.
 
-```markdown
-| Primitive required by | Provided in <Language> by | Status |
-|---|---|---|
-| `protocol/identity` — signature algorithm | <module, or a named dependency> | stdlib \| dependency |
-| `protocol/types` — canonical JSON | <module> | stdlib |
-```
-
-A primitive the language cannot provide MUST be marked **UNFILLED** rather than
-omitted or approximated, per [`common.md`](common.md#platform-neutrality). The rule
-lives there and is not restated here.
+Which primitives there are is [`schemas/concepts`](concepts.md#concepts)' list
+under `identity-primitive/`, and how one is answered, with its package, its source
+and the verdict UNFILLED where nothing answers it, is a rule of that class in
+[`schemas/mapping`](mapping.md#classes). Neither is restated here; the table a
+language file carries today is the form those rules replace.
 
 ### Language Conventions (`## Language Conventions`)
 

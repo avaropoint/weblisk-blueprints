@@ -1,0 +1,19 @@
+{
+  "file": "vectors/mapping/fake-language.md",
+  "axis": "language",
+  "provides": "fake",
+  "classes": [
+    {"class": "type", "owners": ["language"], "status": "filled", "rules": ["type-integer", "type-timestamp"]},
+    {"class": "identifier", "owners": ["language"], "status": "filled", "rules": ["ident-field"]},
+    {"class": "identity-primitive", "owners": ["language"], "status": "filled", "rules": ["primitive-canonical-json", "primitive-backup-signature"]},
+    {"class": "check", "owners": ["language"], "status": "filled", "rules": ["check-endpoint-routed"]},
+    {"class": "symbol", "owners": ["language"], "status": "filled", "rules": ["extract-symbols"]},
+    {"class": "test", "owners": ["language"], "status": "filled", "rules": ["test-unit"]},
+    {"class": "lifecycle", "owners": ["language", "platform"], "status": "filled", "rules": ["lifecycle-build"]},
+    {"class": "component", "owners": ["language", "platform"], "status": "filled", "rules": ["component-module"]},
+    {"class": "service", "owners": ["platform"], "status": "UNFILLED", "rules": []},
+    {"class": "storage", "owners": ["platform"], "status": "filled", "rules": ["storage-default-backend"]},
+    {"class": "ui-unit", "owners": ["framework"], "status": "UNFILLED", "rules": []},
+    {"class": "interface", "owners": ["interface"], "status": "UNFILLED", "rules": []}
+  ]
+}

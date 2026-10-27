@@ -1,9 +1,9 @@
 #!/bin/sh
 # Runs the corpus's checks, each with the control that proves it reaches what
 # it claims to. Exits 0 only when every check passes and every control fails.
-# Needs python3 with PyYAML, and OpenSSL 3.5 or later (OPENSSL names it); the
-# circl and noble legs of the statement vectors also need Go and node with the
-# pinned noble (checks/ml-dsa).
+# Needs python3 with PyYAML, and OpenSSL 3.5 or later (as $OPENSSL or on PATH);
+# the circl and noble legs of the statement vectors also need Go and node with
+# the pinned noble (checks/ml-dsa).
 cd "$(dirname "$0")/.." || exit 2
 # retired.py imports ids.py; leave no bytecode in the corpus.
 export PYTHONDONTWRITEBYTECODE=1
@@ -81,6 +81,48 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 # milliseconds that must be the one disagreement reported.
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
 expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
+
+# The fixed-form statement vectors against OpenSSL, which did not make them;
+# the signed directory push must have one. Copies whose push body differs by
+# one byte, and whose push is signed by another key, must each fail.
+expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v1
+python3 - "$tmp" <<'PY'
+import json, sys
+p = "vectors/fixed-form-statements.json"
+t = open(p, encoding="utf-8").read()
+body = '"http://content-analyzer.example:9710"'
+assert t.count(body) == 1
+open(sys.argv[1] + "/byte.json", "w", encoding="utf-8").write(t.replace(body, body.replace("9710", "9711")))
+d = json.loads(t)
+push = next(v for v in d["vectors"] if v["id"] == "directory-push-1")
+other = next(v for v in d["vectors"] if v["signed_by"] != push["signed_by"])
+push["signature"] = push["body"]["signature"] = other["signature"]
+open(sys.argv[1] + "/key.json", "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False))
+PY
+expect 1 "fixed-form control: a push body one byte changed fails" python3 checks/fixed-form.py --file "$tmp/byte.json"
+grep -q "^directory-push-1: the signature does not verify over the statement rebuilt from the body" "$tmp/out" || { echo "FAIL fixed-form control: the changed body was not what was reported"; fails=$((fails + 1)); }
+expect 1 "fixed-form control: a push signed by another key fails" python3 checks/fixed-form.py --file "$tmp/key.json"
+grep -q "^directory-push-1: OpenSSL does not verify the signature" "$tmp/out" || { echo "FAIL fixed-form control: the wrong key was not what was reported"; fails=$((fails + 1)); }
+
+# Requirement and check ids carried as comments: every id covered, and the
+# push's refusal of an unsigned body has its check. A copy with one check's
+# covers removed must fail, naming the id it left uncovered.
+expect 0 "wl-ids: every marked requirement is covered, and an unsigned push is refused" python3 checks/wl-ids.py --require protocol/spec.md:unsigned-push-refused
+sed 's/wl:check stale-push-refused covers directory-push-refuse-stale/wl:check stale-push-refused covers directory-push-refuse-unsigned/' protocol/spec.md >"$tmp/spec.md"
+expect 1 "wl-ids control: a requirement no check covers fails" python3 checks/wl-ids.py "$tmp/spec.md"
+if grep -q "wl:id directory-push-refuse-stale is covered by no wl:check" "$tmp/out" && [ "$(grep -c ': wl:' "$tmp/out")" -eq 1 ]; then
+	echo "ok   wl-ids control: exactly one finding, naming directory-push-refuse-stale"
+else
+	echo "FAIL wl-ids control: want exactly one finding naming directory-push-refuse-stale"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# No text says the directory push is unauthenticated, now that it is signed.
+# A copy of client.md that says so again, across a line break, must fail.
+expect 0 "push-claims: no text says the directory push is unauthenticated" python3 checks/push-claims.py
+sed 's/^`POST \/v1\/services` with a signature that verifies under the orchestrator.s key$/`POST \/v1\/services` is unauthenticated/' architecture/client.md >"$tmp/client.md"
+expect 1 "push-claims control: a copy of client.md calling the push unauthenticated fails" python3 checks/push-claims.py "$tmp/client.md"
 
 # Every grammar vector against its expected projection; a copy whose
 # projection leaves a one-byte gap, and a copy missing a projection, must each
@@ -162,6 +204,39 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+
+# The architecture family's declaration and template are grammar vectors, each
+# an exact copy of the file it pins, so changing either changes the projection
+# a walker is held to; a copy one byte off must be reported.
+for pair in "schemas/architecture.md architecture" "templates/architecture.md architecture-template"; do
+	set -- $pair
+	expect 0 "vectors: vectors/grammar/$2.md is the copy of $1" cmp "$1" "vectors/grammar/$2.md"
+done
+cp templates/architecture.md "$tmp/template.md" && printf '\n' >>"$tmp/template.md"
+expect 1 "vectors control: a copy one byte longer than its template fails" cmp templates/architecture.md "$tmp/template.md"
+
+# The share of architecture's bytes no slot declares, against the 53% its older
+# schema left undeclared, measured at corpus 3fc8d6a before any family existed:
+# a family or a walker that reads the files differently lands far from it. A
+# copy of the declaration without its Dependencies slot must, and a
+# declaration with no sections cannot be measured at all.
+expect 0 "coverage: architecture's bytes in no slot are within 2 points of 53%" python3 checks/coverage.py schemas/architecture --expect 53 --within 2
+awk '/slot: dependencies,/ { skip = 2 } skip-- > 0 { next } 1' schemas/architecture.md >"$tmp/architecture.md"
+expect 1 "coverage control: a declaration without its Dependencies slot fails" python3 checks/coverage.py schemas/architecture --decl "$tmp/architecture.md" --expect 53 --within 2
+grep -q '% in no slot' "$tmp/out" && grep -q '^dependencies ' "$tmp/out" && { echo "FAIL coverage control: the Dependencies slot was not what was removed"; fails=$((fails + 1)); }
+expect 1 "coverage control: a declaration with no sections fails" python3 checks/coverage.py schemas/architecture --decl schemas/names.md
+grep -q 'declares no sections' "$tmp/out" || { echo "FAIL coverage control: the missing sections were not what was reported"; fails=$((fails + 1)); }
+
+# A slot that holds an interface block produces that interface's file: serves
+# an OpenAPI document, events an AsyncAPI one (plan section 1.2). A value the
+# declaration drops leaves the build's unproduced report nothing to report, so
+# the pairs are held here until a mapping binds them. A copy of the declaration
+# without api.asyncapi must fail, naming the interface slot.
+expect 0 "produces: architecture's serves slot produces api.openapi" python3 checks/produces.py schemas/architecture serves api.openapi
+expect 0 "produces: architecture's events slot produces api.asyncapi" python3 checks/produces.py schemas/architecture events api.asyncapi
+sed 's/produces: \[code.route, api.openapi, api.asyncapi\]/produces: [code.route, api.openapi]/' schemas/architecture.md >"$tmp/noasync.md"
+expect 1 "produces control: a declaration without api.asyncapi fails" python3 checks/produces.py schemas/architecture events api.asyncapi --decl "$tmp/noasync.md"
+grep -q '^schemas/architecture: slot interface holds events and does not produce api.asyncapi$' "$tmp/out" || { echo "FAIL produces control: the interface slot was not what was reported"; fails=$((fails + 1)); }
 
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.
@@ -299,6 +374,113 @@ for id in $lost; do
 	grep -q "wl:id '$id' is covered by no wl:check" "$tmp/out" || { echo "FAIL requirement-ids control: $id was not reported"; fails=$((fails + 1)); }
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
+
+# The type vectors: every canonical-json case canonicalises, by RFC 8785, to
+# what the vector records; a copy whose key-order case is sorted by code point
+# instead of UTF-16 code unit, and a copy whose timestamp entry sees a file
+# that does not exist, must each be reported, once.
+expect 0 "types-vectors: every entry is well formed and every case agrees" python3 checks/types-vectors.py
+python3 - "$tmp" <<'PY'
+import json, sys
+v = json.load(open("vectors/types.json", encoding="utf-8"))
+case = next(c for c in v["entries"]["canonical-json"]["cases"] if c["id"] == "rfc8785-3-2-3")
+case["canonical"] = "{" + ",".join(json.dumps(k, ensure_ascii=False) + ":" + json.dumps(x, ensure_ascii=False)
+                                   for k, x in sorted(json.loads(case["input"]).items())) + "}"
+json.dump(v, open(sys.argv[1] + "/codepoint.json", "w", encoding="utf-8"), ensure_ascii=False)
+v = json.load(open("vectors/types.json", encoding="utf-8"))
+v["entries"]["timestamp"]["see"] = "vectors/timestamp-missing.json"
+json.dump(v, open(sys.argv[1] + "/unseen.json", "w", encoding="utf-8"), ensure_ascii=False)
+PY
+expect 1 "types-vectors control: keys sorted by code point fail" python3 checks/types-vectors.py --file "$tmp/codepoint.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^canonical-json: rfc8785-3-2-3: ' "$tmp/out"; then
+	echo "ok   types-vectors control: exactly one fault, the key-order case"
+else
+	echo "FAIL types-vectors control: want exactly one fault, the key-order case"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "types-vectors control: a see naming no file fails" python3 checks/types-vectors.py --file "$tmp/unseen.json"
+[ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^timestamp: sees vectors/timestamp-missing.json' "$tmp/out" || { echo "FAIL types-vectors control: the missing file was not the one fault"; fails=$((fails + 1)); }
+
+# The mapping fixture's coverage report names all twelve classes and exactly
+# three UNFILLED. Each copy below breaks one thing and must be reported for
+# exactly that: one more class emptied, one more class filled, a refinement
+# dropped, a rule in the wrong form, an UNFILLED rule with no reason, a
+# verify naming no entry, and a language claiming a platform's header key.
+expect 0 "mapping-coverage: the fixture's report agrees with its expected report" python3 checks/mapping-coverage.py
+# The expected report is a file the fixture's author also edits, so agreeing
+# with it proves nothing about the count. The three UNFILLED classes are the
+# plan's, asserted here on the produced report whatever the expected file says.
+mapthree() { # mapthree <what> ; reads $tmp/out, a passing run's summary line
+	grep -qx 'mapping-coverage: .* classes filled; UNFILLED: service, ui-unit, interface' "$tmp/out"
+}
+if mapthree; then
+	echo "ok   mapping-coverage: the fixture names exactly service, ui-unit and interface UNFILLED"
+else
+	echo "FAIL mapping-coverage: the fixture does not name exactly service, ui-unit and interface UNFILLED"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir "$tmp/map"
+fx=vectors/mapping/fake-language.md
+mapctl() { # mapctl <name> <python edit of t> ; writes $tmp/map/<name>.md
+	python3 - "$fx" "$tmp/map/$1.md" "$2" <<'PY'
+import sys
+t = open(sys.argv[1], encoding="utf-8").read()
+exec(sys.argv[3])
+open(sys.argv[2], "w", encoding="utf-8").write(t)
+PY
+}
+mapctl emptied 'i = t.index("  - id: component-module"); j = t.index("  - id: storage-default-backend"); t = t[:i] + t[j:]'
+mapctl filled 't = t.replace("```yaml\nrules:\n  - id: lifecycle-build", "```yaml\nrules:\n  - id: page\n    concept: ui-unit/page\n    refines: //test/frameworks/fake:page\n    produce: {via: model, template: \"{name}.page\"}\n  - id: lifecycle-build", 1)'
+mapctl unrefined 't = t.replace("    refines: //test/platforms/fake:storage-default-backend\n", "", 1)'
+mapctl wrongform 't = t.replace("    evaluate: {argv: [fakec, check, --routes], parse: sarif}", "    produce: {via: model, text: routed}", 1)'
+mapctl noreason 't = t.replace("    reason: No reviewed implementation has been named for this fixture.\n", "", 1)'
+mapctl nokey 't = t.replace("vectors/types.json#canonical-json", "vectors/types.json#canonical-jsn", 1)'
+mapctl platformkey 't = t.replace("provides: fake\n", "provides: fake\naccepts_languages: [fake]\n", 1)'
+# identity-primitive is the language's own class, so a language rule on one
+# that names a rule it refines claims to narrow an answer its own axis gives.
+mapctl selfrefine 't = t.replace("    concept: identity-primitive/canonical-json\n", "    concept: identity-primitive/canonical-json\n    refines: //test/platforms/fake:primitive-canonical-json\n", 1)'
+# A class whose only rule is UNAVAILABLE is filled: UNAVAILABLE is a stated
+# answer, so the report is unchanged and the expected report still agrees.
+mapctl unavailable 't = t.replace("    evaluate: {argv: [fakec, check, --routes], parse: sarif}\n", "    verdict: UNAVAILABLE\n    reason: The fake runtime serves no routes.\n", 1)'
+mapexp=vectors/mapping/fake-language.coverage.json
+# mapone <name> <description> <pattern the one finding must match>
+mapone() {
+	expect 1 "mapping-coverage control: $2" python3 checks/mapping-coverage.py --file "$tmp/map/$1.md" --expect "$mapexp"
+	if [ "$(grep -cv '^file: ' "$tmp/out")" -eq 1 ] && grep -v '^file: ' "$tmp/out" | grep -q -- "$3"; then
+		echo "ok   mapping-coverage control: exactly one finding, $1"
+	else
+		echo "FAIL mapping-coverage control: want exactly one finding matching $3"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+}
+mapone emptied "a fourth class emptied fails" "^component: status 'UNFILLED' (expected 'filled')"
+mapone filled "a ninth class filled fails" "^ui-unit: status 'filled' (expected 'UNFILLED')"
+mapone unrefined "a storage rule without refines fails" "rule storage-default-backend: storage/default-backend is owned by the platform axis"
+mapone wrongform "a check rule that produces fails" "rule check-endpoint-routed: a check rule carries evaluate"
+mapone noreason "an UNFILLED rule with no reason fails" "rule primitive-backup-signature: UNFILLED with no reason"
+mapone nokey "a verify naming no entry fails" "rule primitive-canonical-json: verify vectors/types.json#canonical-jsn names no entry"
+mapone platformkey "a language with accepts_languages fails" "accepts_languages is a platform's"
+mapone selfrefine "a language identity-primitive rule with refines fails" "rule primitive-canonical-json: refines //test/platforms/fake:primitive-canonical-json, but its axis owns identity-primitive/canonical-json"
+expect 0 "mapping-coverage control: a class whose only rule is UNAVAILABLE reports" python3 checks/mapping-coverage.py --file "$tmp/map/unavailable.md" --report
+if python3 -c 'import json,sys; c={x["class"]:x for x in json.load(open(sys.argv[1]))["classes"]}["check"]; sys.exit(0 if c["status"]=="filled" and c["rules"]==["check-endpoint-routed"] else 1)' "$tmp/out"; then
+	echo "ok   mapping-coverage control: a class whose only rule is UNAVAILABLE is filled"
+else
+	echo "FAIL mapping-coverage control: a class whose only rule is UNAVAILABLE is not filled"
+	fails=$((fails + 1))
+fi
+# A fixture and expected report edited together to a fourth UNFILLED class
+# agree with each other; the count assertion must still refuse them.
+python3 checks/mapping-coverage.py --file "$tmp/map/emptied.md" --report >"$tmp/map/emptied.coverage.json" 2>/dev/null
+expect 0 "mapping-coverage control: a fourth UNFILLED class agrees with an expected report edited to match" python3 checks/mapping-coverage.py --file "$tmp/map/emptied.md" --expect "$tmp/map/emptied.coverage.json"
+if mapthree; then
+	echo "FAIL mapping-coverage control: four UNFILLED classes passed the count assertion"
+	fails=$((fails + 1))
+else
+	echo "ok   mapping-coverage control: four UNFILLED classes fail the count assertion"
+fi
 
 # Every fixed-form statement vector verifies with three ML-DSA
 # implementations outside every Weblisk tool: OpenSSL (statements.py), circl

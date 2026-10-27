@@ -64,7 +64,7 @@ This applies to:
 | [domain.md](domain.md) | Domain **controller** blueprints — an agent process owning a business function. **Not** a policy domain; see [policy-domain.md](policy-domain.md) | Domain YAML specs in project `domains/` |
 | [protocol.md](protocol.md) | Wire protocol specifications | `protocol/` directory |
 | [pattern.md](pattern.md) | Cross-cutting patterns | `patterns/` directory |
-| [architecture.md](architecture.md) | System architecture components | `architecture/` directory |
+| [architecture.md](architecture.md) | System architecture components. The declaration of the family `schemas/architecture` (grammar 1), whose starting file is [`templates/architecture.md`](../templates/architecture.md), and the older form today's files are written in until they are migrated | `architecture/` directory |
 | [language.md](language.md) | Programming language bindings — what is essential when building in one language | `languages/` directory |
 | [platform.md](platform.md) | Platform implementation bindings — what a runtime offers | `platforms/` directory |
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
@@ -77,6 +77,8 @@ This applies to:
 | [names.md](names.md) | How anything is named: the id grammar, families, namespaces and how a short ref resolves. Its vectors are [`vectors/ids.json`](../vectors/ids.json) | Every ref, in every file and every tool |
 | [family.md](family.md) | Grammar 1: how a family declaration says a file is written — header, slots, blocks, what each part is for — and the projection a walk of a file produces. It is itself a declaration, and validates against itself. Its vectors are [`vectors/grammar/`](../vectors/grammar/README.md) | Every family declaration, and every file walked against one |
 | [blocks.md](blocks.md) | The block catalogue: every typed block a slot may hold, by root key, and the closed vocabulary a declared type's fields are written in | Every typed block in a file walked by grammar 1 |
+| [mapping.md](mapping.md) | Mappings: how a neutral blueprint becomes something on one target, as rules on four axes (language, platform, framework, interface), the closed concept classes each axis owns, the one verdict vocabulary, a coverage report, and `subject_facility`. Its vectors are [`vectors/mapping/`](../vectors/mapping/README.md) and [`vectors/types.json`](../vectors/types.json) | Every language, platform, framework and interface binding, once it is written as rules |
+| [concepts.md](concepts.md) | The concepts a mapping rule answers, by class: open data beside the closed classes | Every mapping rule, and every blueprint a mapping translates |
 | [run-statement.md](run-statement.md) | What one generation run read and wrote, the model the backend reported, and what each output traces to: an in-toto statement with a SLSA Provenance predicate | The CLI writing a run's record; the fabric's `generation-statements` producer reading it |
 
 ### kinds.md is different from the others

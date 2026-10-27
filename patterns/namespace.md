@@ -59,7 +59,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.3.0 <3.0.0"
+    version: ">=2.4.0 <3.0.0"
     bindings:
       types:
         - name: SigningKeyPair

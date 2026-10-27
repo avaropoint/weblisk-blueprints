@@ -81,6 +81,9 @@ type vector struct {
 	Message   string  `json:"message"`
 	SignedBy  string  `json:"signed_by"`
 	Signature string  `json:"signature"`
+	// Body is the JSON body a statement signs a digest of, as sent, with its
+	// signature member; only a vector whose statement signs one carries it.
+	Body map[string]any `json:"body,omitempty"`
 }
 
 type file struct {
@@ -89,6 +92,7 @@ type file struct {
 	Signing      string   `json:"signing"`
 	Encodings    string   `json:"encodings"`
 	Seeds        string   `json:"seeds"`
+	Bodies       string   `json:"bodies"`
 	NoOnesKey    string   `json:"no_ones_key"`
 	MadeWith     string   `json:"made_with"`
 	VerifiedWith []string `json:"verified_with"`
@@ -135,6 +139,20 @@ func sign(k *key, msg []byte) []byte {
 	return sig
 }
 
+// canonicalDigest is the lowercase hex SHA-256 of body's RFC 8785 form. The
+// bodies here hold only ASCII keys and strings and integers well inside 2^53,
+// for which encoding/json's sorted, compact, unescaped output is that form.
+func canonicalDigest(body map[string]any) string {
+	var b bytes.Buffer
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(body); err != nil {
+		panic(err)
+	}
+	h := sha256.Sum256(bytes.TrimSuffix(b.Bytes(), []byte("\n")))
+	return hex.EncodeToString(h[:])
+}
+
 func flipped(msg []byte) []byte {
 	bad := append([]byte(nil), msg...)
 	bad[len(bad)-1] ^= 1
@@ -152,11 +170,13 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 	owner2 := newKey("log-owner-2", "the same owner's next long-lived key, the authority after the succession")
 	logKey := newKey("log-key-1", "a log key the first authority introduces, which signs checkpoints")
 	records := newKey("sign-records", "a person's sign-records credential (weblisk/content-change/v1)")
+	orchestrator := newKey("orchestrator", "an orchestrator's current signing key, which signs the service directory it pushes (weblisk/directory/v1)")
+	component := newKey("component", "a registered component's key, as the pushed directory names it; it signs nothing here")
 	holder1 := newKey("holder-1", "a person's identity that claims a namespace and signs as its holder (patterns/namespace)")
 	holder1Next := newKey("holder-1-next", "the same person's next key, the incoming key of a rotation")
 	holder2 := newKey("holder-2", "another person's identity, the incoming holder of a transfer")
 	service := newKey("service", "a service identity, which a holder may grant publish and which never holds a namespace")
-	keys := []*key{identity, hub, credential, owner1, owner2, logKey, records, holder1, holder1Next, holder2, service}
+	keys := []*key{identity, hub, credential, owner1, owner2, logKey, records, orchestrator, component, holder1, holder1Next, holder2, service}
 
 	// Every other value is a stated constant or the SHA-256 of a stated text,
 	// so a reader can rebuild it. A fingerprint field is always a real
@@ -210,55 +230,71 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 		id, prefix, cse string
 		fields          []field
 		by              *key
+		body            map[string]any
+	}
+	// The service directory an orchestrator pushes to a component
+	// (protocol/spec, POST /v1/services), naming the component's key. Its
+	// statement's fields are filled from it below, as a receiver rebuilds them.
+	directory := map[string]any{
+		"namespaces": map[string]any{"content": "content-analyzer"},
+		"routing_table": map[string]any{"content.*": []any{map[string]any{
+			"agent": "content-analyzer", "scope": "self", "url": "http://content-analyzer.example:9710/v1/event"}}},
+		"services": []any{map[string]any{
+			"address_provenance": "self-asserted", "capabilities": []any{"agent:message"},
+			"lease_expires_at": 1767225660, "lease_state": "ready", "name": "content-analyzer",
+			"public_key": component.PublicKey, "url": "http://content-analyzer.example:9710"}},
+		"updated_at": 1767225600,
 	}
 	const claimP, grantP, transferP, releaseP = "weblisk/namespace-claim/v1", "weblisk/namespace-grant/v1", "weblisk/namespace-transfer/v1", "weblisk/catalog-release/v1"
 	specs := []spec{
 		{"auth-1", "weblisk/auth/v1", "an identity answers a service's challenge",
-			[]field{{"audience", "console.example/link-identity"}, {"nonce", authNonce}}, identity},
+			[]field{{"audience", "console.example/link-identity"}, {"nonce", authNonce}}, identity, nil},
 		{"credential-auth-1", "weblisk/credential-auth/v1", "a credential answers a hub's challenge; hub_id is the hub key's fingerprint",
-			[]field{{"hub_id", hub.Fingerprint}, {"nonce", credNonce}}, credential},
+			[]field{{"hub_id", hub.Fingerprint}, {"nonce", credNonce}}, credential, nil},
 		{"step-up-1", "weblisk/step-up/v1", "an identity re-confirms for a destructive act, over the nonce the same token request's credential answers; hub_id is the hub key's fingerprint",
-			[]field{{"hub_id", hub.Fingerprint}, {"nonce", credNonce}, {"control", "DELETE /v1/admin/operators/{name}"}}, identity},
+			[]field{{"hub_id", hub.Fingerprint}, {"nonce", credNonce}, {"control", "DELETE /v1/admin/operators/{name}"}}, identity, nil},
 		{"log-key-1", "weblisk/log-key/v1", "the authority introduces a log key; key id is that key's fingerprint",
-			[]field{{"log id", logID}, {"key id", logKey.Fingerprint}, {"not_after", "1767311999"}, {"key_protection", "secrets-manager"}}, owner1},
+			[]field{{"log id", logID}, {"key id", logKey.Fingerprint}, {"not_after", "1767311999"}, {"key_protection", "secrets-manager"}}, owner1, nil},
 		{"log-checkpoint-1", "weblisk/log-checkpoint/v1", "the log key seals the log at entry 42",
-			[]field{{"log id", logID}, {"seq", "42"}, {"tip", tip}, {"issued_at", "1767225600"}}, logKey},
+			[]field{{"log id", logID}, {"seq", "42"}, {"tip", tip}, {"issued_at", "1767225600"}}, logKey, nil},
 		{"log-succession-outgoing", "weblisk/log-succession/v1", "the outgoing authority hands the log over",
-			[]field{{"log id", logID}, {"outgoing", owner1.Fingerprint}, {"incoming", owner2.Fingerprint}}, owner1},
+			[]field{{"log id", logID}, {"outgoing", owner1.Fingerprint}, {"incoming", owner2.Fingerprint}}, owner1, nil},
 		{"log-succession-incoming", "weblisk/log-succession/v1", "the incoming authority takes the log on: the same bytes, its own signature",
-			[]field{{"log id", logID}, {"outgoing", owner1.Fingerprint}, {"incoming", owner2.Fingerprint}}, owner2},
+			[]field{{"log id", logID}, {"outgoing", owner1.Fingerprint}, {"incoming", owner2.Fingerprint}}, owner2, nil},
 		{"content-change-write-create", "weblisk/content-change/v1", "a person writes a new entry: before and proposal are empty",
-			cc("write", "policies/acceptable-use.md", "create", "", created, "internal", ""), records},
+			cc("write", "policies/acceptable-use.md", "create", "", created, "internal", ""), records, nil},
 		{"content-change-write-modify", "weblisk/content-change/v1", "a person rewrites an entry and the change declares no scope: scope and proposal are empty",
-			cc("write", "policies/acceptable-use.md", "modify", before, after, "", ""), records},
+			cc("write", "policies/acceptable-use.md", "modify", before, after, "", ""), records, nil},
 		{"content-change-write-delete", "weblisk/content-change/v1", "a person removes an entry: after, scope and proposal are empty",
-			cc("write", "policies/acceptable-use.md", "delete", after, "", "", ""), records},
+			cc("write", "policies/acceptable-use.md", "delete", after, "", "", ""), records, nil},
 		{"content-change-apply-modify", "weblisk/content-change/v1", "a person decides to apply a proposal that rewrites an entry",
-			cc("apply", "procedures/access-review.md", "modify", before, after, "confidential", proposalModify), records},
+			cc("apply", "procedures/access-review.md", "modify", before, after, "confidential", proposalModify), records, nil},
 		{"content-change-apply-create", "weblisk/content-change/v1", "a person decides to apply a proposal that creates an entry: before is empty and proposal is not",
-			cc("apply", "procedures/incident-response.md", "create", "", created, "confidential", proposalCreate), records},
+			cc("apply", "procedures/incident-response.md", "create", "", created, "confidential", proposalCreate), records, nil},
 		{"content-change-apply-delete", "weblisk/content-change/v1", "a person decides to apply a proposal that removes an entry: after and scope are empty",
-			cc("apply", "procedures/access-review.md", "delete", before, "", "", proposalDelete), records},
+			cc("apply", "procedures/access-review.md", "delete", before, "", "", proposalDelete), records, nil},
+		{"directory-push-1", "weblisk/directory/v1", "the orchestrator pushes a component its service directory; digest is sha256: and the SHA-256 of the RFC 8785 form of body without its signature member, and body's signature is this signature",
+			nil, orchestrator, directory},
 		{"namespace-claim-1", claimP, "a person claims an unheld namespace at one registry; holder is the claimant's fingerprint and the claim is signed by that key",
-			claim(holder1, "1767225600"), holder1},
+			claim(holder1, "1767225600"), holder1, nil},
 		{"namespace-grant-publish", grantP, "the holder grants a service identity publish",
-			grant(service, "publish", "1767225660"), holder1},
+			grant(service, "publish", "1767225660"), holder1, nil},
 		{"namespace-grant-withdraw", grantP, "the holder withdraws that grant: role none",
-			grant(service, "none", "1767225720"), holder1},
+			grant(service, "none", "1767225720"), holder1, nil},
 		{"namespace-transfer-outgoing", transferP, "the outgoing holder hands the namespace to another person",
-			transfer(holder1, holder2.Fingerprint, "transfer", "1767225780"), holder1},
+			transfer(holder1, holder2.Fingerprint, "transfer", "1767225780"), holder1, nil},
 		{"namespace-transfer-incoming", transferP, "the incoming holder takes it on: the same bytes, its own signature",
-			transfer(holder1, holder2.Fingerprint, "transfer", "1767225780"), holder2},
+			transfer(holder1, holder2.Fingerprint, "transfer", "1767225780"), holder2, nil},
 		{"namespace-rotation-outgoing", transferP, "the holder's outgoing key signs a rotation to its incoming key",
-			transfer(holder1, holder1Next.Fingerprint, "rotation", "1767225840"), holder1},
+			transfer(holder1, holder1Next.Fingerprint, "rotation", "1767225840"), holder1, nil},
 		{"namespace-rotation-incoming", transferP, "the holder's incoming key signs the same rotation",
-			transfer(holder1, holder1Next.Fingerprint, "rotation", "1767225840"), holder1Next},
+			transfer(holder1, holder1Next.Fingerprint, "rotation", "1767225840"), holder1Next, nil},
 		{"namespace-retirement", transferP, "the holder retires the namespace: to is empty and only the outgoing holder signs",
-			transfer(holder1, "", "retirement", "1767225900"), holder1},
+			transfer(holder1, "", "retirement", "1767225900"), holder1, nil},
 		{"catalog-release-1", releaseP, "the holder publishes release 1 at one registry: previous is empty",
-			release("1", index1, "", "1767225960"), holder1},
+			release("1", index1, "", "1767225960"), holder1, nil},
 		{"catalog-release-2", releaseP, "a publish grantee publishes release 2, naming release 1's index as previous",
-			release("2", index2, index1, "1767226020"), service},
+			release("2", index2, index1, "1767226020"), service, nil},
 	}
 
 	out := file{
@@ -267,15 +303,27 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 		Signing:      "FIPS 204's deterministic variant: rnd is 32 zero bytes. What a signer that cannot sign deterministically tests instead is stated in protocol/identity, Fixed-Form Statements",
 		Encodings:    "seed and message lowercase hex; public_key and signature base64url without padding (1,952 and 3,309 bytes decoded); fingerprint the lowercase hex SHA-256 of the decoded public key",
 		Seeds:        "each key is FIPS 204 ML-DSA.KeyGen_internal from a 32-byte seed, the SHA-256 of the ASCII text 'weblisk test vector key ' followed by the key's name",
+		Bodies:       "A vector whose statement signs a digest of a JSON body carries that body, as sent, in body. Its digest field is 'sha256:' and the lowercase hex SHA-256 of the RFC 8785 canonical form of body without its signature member, and body's signature is the vector's signature",
 		NoOnesKey:    "Every key here is a vector key. What that means, and what no implementation may do with one, is stated once, in protocol/identity, Fixed-Form Statements",
 		MadeWith:     "github.com/cloudflare/circl v1.6.5",
 		VerifiedWith: verifiedWith,
 		Keys:         keys,
 	}
 	for _, s := range specs {
+		if s.body != nil {
+			s.fields = []field{{"updated_at", fmt.Sprint(s.body["updated_at"])}, {"digest", "sha256:" + canonicalDigest(s.body)}}
+		}
 		msg := statement(s.prefix, s.fields)
-		out.Vectors = append(out.Vectors, vector{ID: s.id, Prefix: s.prefix, Case: s.cse, Fields: s.fields,
-			Message: hex.EncodeToString(msg), SignedBy: s.by.Name, Signature: b64.EncodeToString(sign(s.by, msg))})
+		sig := b64.EncodeToString(sign(s.by, msg))
+		v := vector{ID: s.id, Prefix: s.prefix, Case: s.cse, Fields: s.fields,
+			Message: hex.EncodeToString(msg), SignedBy: s.by.Name, Signature: sig}
+		if s.body != nil {
+			v.Body = map[string]any{"signature": sig}
+			for k, x := range s.body {
+				v.Body[k] = x
+			}
+		}
+		out.Vectors = append(out.Vectors, v)
 	}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
