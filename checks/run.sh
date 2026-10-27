@@ -717,6 +717,25 @@ else
 	fails=$((fails + 1))
 fi
 
+# cli.md's Command Surface against the commands CLI 7a75d54 builds
+# (checks/cli-verbs.json): the drift is exactly the measured list. A copy of
+# cli.md without one row must report exactly one more, and a row with an
+# executor schemas/change.md does not declare must be reported.
+expect 0 "command-surface: the drift against the CLI is the measured list" python3 checks/command-surface.py
+mkdir -p "$tmp/cs/architecture" && cp -R schemas "$tmp/cs/"
+grep -v '^  - {noun: secret, verb: list, executor: local}$' architecture/cli.md >"$tmp/cs/architecture/cli.md"
+expect 1 "command-surface control: a row deleted fails" python3 checks/command-surface.py --root "$tmp/cs"
+if [ "$(grep -c '^unexpected drift\|^expected drift' "$tmp/out")" -eq 1 ] && grep -q '^unexpected drift: built, not specified: secret list$' "$tmp/out"; then
+	echo "ok   command-surface control: exactly one more, the deleted row"
+else
+	echo "FAIL command-surface control: want exactly one more drift, secret list"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+sed 's/^  - {noun: doctor, verb: "", executor: local}$/  - {noun: doctor, verb: "", executor: studio}/' architecture/cli.md >"$tmp/cs/architecture/cli.md"
+expect 1 "command-surface control: an undeclared executor fails" python3 checks/command-surface.py --root "$tmp/cs"
+grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL command-surface control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

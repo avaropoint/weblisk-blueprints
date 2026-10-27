@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.1.0
+version: 4.2.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -407,6 +407,210 @@ report the inbox unavailable and exit 1 too.
    with `--json` for scripts and piping.
 4. **Offline-aware** — If the orchestrator is unreachable, commands
    fail fast with a clear message and non-zero exit code.
+
+---
+
+## Command Grammar
+
+What follows is the shape every command takes. The sections after it specify
+today's commands one by one; [The Command Surface](#the-command-surface) lists
+them, and [Renamed commands](#renamed-commands) says what each becomes.
+
+### The grammar
+
+`weblisk <noun> <verb> [ref…]`.
+
+- **Family nouns are data.** Each family declaration ([`schemas/family`](../schemas/family.md))
+  is a noun: `blueprint`, `standard`, `programme`, `spec`, `template`, `skill`,
+  `position`, `policy-domain`, `language`, `platform`, `framework`,
+  `interface`. Adding a family adds its noun, with no change to the CLI.
+- **Verbs are a closed set in code**, each gated by a capability the family
+  declares. A family that lacks the capability has no such verb.
+- **Operational nouns are code**: `knowledge`, `component`, `agent`,
+  `workflow`, `tenant`, `change`, `run`, `fabric`, `namespace`, `catalog`, `id`,
+  `identity`, `operator`, `approval`, `secret`, `provider`, `cache`,
+  `marketplace`, `gateway`, `app`.
+- **One manifest.** `weblisk commands --json` lists every command with its
+  parameters, capability and executor. Help is rendered from it, Studio is
+  driven by it, and the per-family command list is generated from it and never
+  written by hand.
+- **Every command declares its executor** — `local`, `tenant-api` or
+  `cli-in-tenant` — whose meaning is [`schemas/change`](../schemas/change.md#executors)'s
+  (D24). Studio runs only `local` commands on its own host; for a tenant it
+  calls `tenant-api` routes, and never runs a command on its host that acts on
+  a tenant.
+
+### Verbs
+
+| Verb | Capability | Executor | What it does |
+|---|---|---|---|
+| `new <id>` | `author` | `local` | template, fill, write, validate: a new file starts valid |
+| `validate [<ref>\|<dir>]` | always | `local` | the corpus rules over a file or a repository |
+| `walk <file>` | always | `local` | the projection a walk of the file produces |
+| `show <ref>` · `list` | always | `local` | one item, or the family's items |
+| `deps <ref>…` | `depends` | `local` | both closures for one or more refs |
+| `diff <ref>@a <ref>@b` | `versioned` | `local` | by part id; a prose-only change is marked as such |
+| `release <ref>` | `versioned` | `local` | proposes a major, minor or patch version from the diff; the author confirms |
+| `rename <ref> <new>` · `retire <ref>` | `author` | `local` | writes `formerly` or `retired` |
+| `impact <ref>[@a..@b]` | `versioned` | `tenant-api` | a fabric read; with no tenant reachable, says it cannot know |
+| `build <ref>… --out <dir>` | `generates` | `local` | a scratch build outside any tenant, which records a run |
+| `adopt` · `upgrade` · `remove` | `adoptable` | `tenant-api` | each creates a change and prints its plan |
+| `status [<ref>]` | `adoptable` | `tenant-api` | what the tenant has adopted, at which version |
+
+`build` outside a tenant and `change apply` inside one are never synonyms.
+
+### Changes
+
+`weblisk change plan --adopt|--upgrade|--remove <ref>… [--strict] [--resolve-only] [--json]`,
+then `change list`, `show`, `approve`, `reject`, `apply`, `verify` and
+`revert`, each `tenant-api` against [`/v1/admin/changes`](admin.md#changes-and-builds).
+What a change holds is [`schemas/change`](../schemas/change.md)'s; how it is
+resolved is [`architecture/generation`](generation.md#resolving-a-request-of-many-roots)'s.
+`change apply` runs in the tenant, never on the client (D26). A plan with no
+entries is rendered as a fault, never as clean.
+
+### Who may approve a change
+
+The rules of D25, which the change service enforces and a client only renders:
+
+1. **A change is approved by a signed operator identity**, over the plan's
+   digest, on a pass to the change service. An unsigned approval is no approval.
+2. **A knowledge change is approved by a holder of the position its spec
+   names**, recorded as the approval's `position`.
+3. **Self-approval** — the requester approving their own change — **is allowed
+   only on a tenant flagged as a development tenant**, and is recorded with
+   `development: true` and shown as such wherever the change is shown.
+4. **The approval queue is the change queue.** A change awaiting approval is an
+   [`ApprovalRequest`](../protocol/types.md#approvalrequest) held by the change
+   service, listed in the decision inbox with every other decision, so
+   `change approve` is a form of `approval accept`.
+5. **A change with a refusing conflict is never approved** ([`schemas/change`](../schemas/change.md#rules), `approval-conflicts`).
+
+### The Command Surface
+
+Every command this file specifies today, each with its executor. `checks/command-surface.py`
+in the corpus holds this block against the commands the CLI builds, and reports
+each one specified and not built, and each built and not specified, so the
+drift between the two is a measured list rather than a surprise. Lane
+`v2-cli-cmdtree` replaces the list with `weblisk commands --json`.
+
+```yaml
+command_surface:
+  - {noun: new, verb: "", executor: local}
+  - {noun: dev, verb: "", executor: local}
+  - {noun: build, verb: "", executor: local}
+  - {noun: vendor, verb: "", executor: local}
+  - {noun: version, verb: "", executor: local}
+  - {noun: doctor, verb: "", executor: local}
+  - {noun: secret, verb: list, executor: local}
+  - {noun: secret, verb: set, executor: local}
+  - {noun: secret, verb: get, executor: local}
+  - {noun: secret, verb: delete, executor: local}
+  - {noun: secret, verb: rotate, executor: local}
+  - {noun: tenant, verb: create, executor: cli-in-tenant}
+  - {noun: tenant, verb: accept, executor: cli-in-tenant}
+  - {noun: providers, verb: "", executor: local}
+  - {noun: component, verb: init, executor: cli-in-tenant}
+  - {noun: component, verb: start, executor: cli-in-tenant}
+  - {noun: component, verb: stop, executor: cli-in-tenant}
+  - {noun: component, verb: status, executor: cli-in-tenant}
+  - {noun: component, verb: logs, executor: cli-in-tenant}
+  - {noun: server, verb: init, executor: cli-in-tenant}
+  - {noun: server, verb: start, executor: cli-in-tenant}
+  - {noun: server, verb: stop, executor: cli-in-tenant}
+  - {noun: server, verb: verify, executor: cli-in-tenant}
+  - {noun: server, verb: provision, executor: cli-in-tenant}
+  - {noun: agent, verb: create, executor: cli-in-tenant}
+  - {noun: agent, verb: start, executor: cli-in-tenant}
+  - {noun: agent, verb: verify, executor: cli-in-tenant}
+  - {noun: agent, verb: list, executor: cli-in-tenant}
+  - {noun: domain, verb: create, executor: cli-in-tenant}
+  - {noun: domain, verb: start, executor: cli-in-tenant}
+  - {noun: gateway, verb: create, executor: cli-in-tenant}
+  - {noun: gateway, verb: start, executor: cli-in-tenant}
+  - {noun: blueprint, verb: sources, executor: local}
+  - {noun: blueprint, verb: update, executor: local}
+  - {noun: validate, verb: "", executor: local}
+  - {noun: pattern, verb: apply, executor: cli-in-tenant}
+  - {noun: operator, verb: init, executor: local}
+  - {noun: operator, verb: store, executor: local}
+  - {noun: operator, verb: path, executor: local}
+  - {noun: operator, verb: register, executor: tenant-api}
+  - {noun: operator, verb: connect, executor: tenant-api}
+  - {noun: operator, verb: token, executor: tenant-api}
+  - {noun: operator, verb: attest, executor: tenant-api}
+  - {noun: operator, verb: rotate, executor: tenant-api}
+  - {noun: status, verb: "", executor: tenant-api}
+  - {noun: agents, verb: list, executor: tenant-api}
+  - {noun: agents, verb: describe, executor: tenant-api}
+  - {noun: agents, verb: deregister, executor: tenant-api}
+  - {noun: domains, verb: list, executor: tenant-api}
+  - {noun: domains, verb: describe, executor: tenant-api}
+  - {noun: workflows, verb: list, executor: tenant-api}
+  - {noun: workflows, verb: describe, executor: tenant-api}
+  - {noun: approvals, verb: list, executor: tenant-api}
+  - {noun: approvals, verb: describe, executor: tenant-api}
+  - {noun: approvals, verb: accept, executor: tenant-api}
+  - {noun: approvals, verb: reject, executor: tenant-api}
+  - {noun: objectives, verb: list, executor: tenant-api}
+  - {noun: objectives, verb: describe, executor: tenant-api}
+  - {noun: federations, verb: peers, executor: tenant-api}
+  - {noun: federations, verb: pending, executor: tenant-api}
+  - {noun: federations, verb: accept, executor: tenant-api}
+  - {noun: federations, verb: reject, executor: tenant-api}
+  - {noun: federations, verb: revoke, executor: tenant-api}
+  - {noun: federations, verb: describe, executor: tenant-api}
+  - {noun: federations, verb: contracts, executor: tenant-api}
+  - {noun: operators, verb: revoke, executor: tenant-api}
+  - {noun: operators, verb: approve, executor: tenant-api}
+  - {noun: operators, verb: list, executor: tenant-api}
+  - {noun: operators, verb: describe, executor: tenant-api}
+  - {noun: operators, verb: role, executor: tenant-api}
+  - {noun: audit, verb: "", executor: tenant-api}
+  - {noun: test, verb: conformance, executor: tenant-api}
+  - {noun: test, verb: mock-orchestrator, executor: local}
+  - {noun: deploy, verb: rollback, executor: cli-in-tenant}
+  - {noun: deps, verb: audit, executor: local}
+  - {noun: policy, verb: validate, executor: local}
+  - {noun: policy, verb: test, executor: local}
+  - {noun: marketplace, verb: search, executor: local}
+  - {noun: marketplace, verb: describe, executor: local}
+  - {noun: marketplace, verb: buy, executor: local}
+  - {noun: marketplace, verb: install, executor: local}
+  - {noun: marketplace, verb: list, executor: local}
+  - {noun: marketplace, verb: publish, executor: local}
+  - {noun: marketplace, verb: update, executor: local}
+  - {noun: marketplace, verb: delist, executor: local}
+  - {noun: marketplace, verb: dashboard, executor: local}
+  - {noun: marketplace, verb: reviews, executor: local}
+  - {noun: marketplace, verb: review, executor: local}
+  - {noun: marketplace, verb: collaborations, executor: local}
+  - {noun: marketplace, verb: usage, executor: local}
+  - {noun: marketplace, verb: terminate, executor: local}
+```
+
+### Renamed commands
+
+Each old spelling lives for one release as an alias that prints the new form,
+and an alias that stands for a one-ref `change plan` produces a plan byte for
+byte identical to it.
+
+| Today | Becomes |
+|---|---|
+| `new`, `dev`, `build`, `vendor` (an application) | `app new`, `app dev`, `app build`, `app vendor` |
+| `build status` | `run status` |
+| `server init`, `component <kind> init`, `agent create`, `domain create`, `gateway create` | one path: `tenant new`, or `component new --from <ref>…`, which is a change |
+| `tenant create`, `tenant accept` | `tenant new`, `tenant verify` |
+| `pattern apply` | `blueprint adopt patterns/<name> --into component:<name>` |
+| `deploy rollback` | `change revert` |
+| `operator` (the identity on this machine: `init`, `store`, `path`, `connect`, `token`, `rotate`, `sign`, `pubkey`, `attest`) | `identity`; so `operator attest` is `identity attest` |
+| `operators` (a hub's operators) | `operator` |
+| `approvals` | `approval`; `change approve` is a form of `approval accept` |
+| `policy validate`, `policy test` (the gateway's policy file) | `gateway policy validate`, `gateway policy test` |
+| `programme <id> init` | `programme adopt <id>` |
+
+The CLI's hard-coded platform lists and its `go` defaults are removed: a target
+is declared, never assumed.
 
 ---
 
@@ -2253,6 +2457,9 @@ role carries. A narrowed token is never stored, so `--cap` is refused with
 
 Have an identity attest credentials that another program holds, at one hub,
 or at several in one approval.
+
+Not built yet. It is specified here under today's noun and is built as
+`weblisk identity attest` ([Renamed commands](#renamed-commands)).
 
 ```bash
 $ weblisk operator attest --orch https://hub.example.com --identity alice \
