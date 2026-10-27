@@ -1,13 +1,164 @@
+---
+family: schemas/family@1
+version: 2.0.0
+kind: blueprint
+noun: blueprint
+match: [architecture/*.md]
+capabilities: [author, versioned, depends, generates, publishable, adoptable]
+template: templates/architecture.md
+adopt: {mode: link, record: build-lock}
+generates: code
+---
 # Architecture Schema
 
-Defines the complete structure for architecture blueprints
-(`type: architecture`). Architecture blueprints specify system-level
-components — the orchestrator, agent framework, storage engine, domain
-model, lifecycle management, and other structural concerns. They define
-responsibilities, data flow, and interfaces that agents and domains
-build on.
+The declaration of the family `schemas/architecture`: architecture blueprints,
+each specifying one system-level component — the orchestrator, the admin
+gateway, the agent framework, storage, lifecycle and the other structural
+concerns agents and domains build on. A file written to it names `family:
+schemas/architecture@2`, and starts from
+[`templates/architecture.md`](../templates/architecture.md).
 
----
+The blueprints in `architecture/` are still written in the older form: the
+`<!-- blueprint -->` comment and the sections [The older form](#the-older-form)
+describes, which today's tooling reads. The migration (`v2-migrate`) rewrites
+each file to this family. Until it has, both forms are described here, each
+once: the Header and Sections blocks are the family, and everything from The
+older form on is what a file in the older form follows.
+
+## Header
+
+```yaml
+header:
+  schema:
+    type: object
+    required: [family, version]
+    unevaluatedProperties: false
+    properties:
+      family:        {const: schemas/architecture@2}
+      version:       {$ref: "schemas/blocks#/$defs/version"}
+      requires:      {type: array, items: {$ref: "schemas/blocks#/$defs/requires-entry"}}
+      depends_on:    {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      runs_with:     {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      cardinality:   {enum: [singleton, named]}
+      provides:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      adoption:      {enum: [required, opt-in]}
+      tier:          {enum: [free, pro]}
+      author:        {type: string}
+      status:        {enum: [active, deprecated, end-of-life]}
+      superseded_by: {$ref: "schemas/blocks#/$defs/ref"}
+      end_of_life:   {$ref: "schemas/blocks#/$defs/date"}
+      retired:       {$ref: "schemas/blocks#/$defs/retired"}
+      formerly:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+  uses:
+    requires:   {use: depends, resolves: blueprint, send: always}
+    depends_on: {use: depends, resolves: blueprint, send: always}
+    runs_with:  {use: depends, resolves: blueprint, send: always}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1},
+       prose: required, content: {max_paragraphs: 2}, use: navigates}
+    - {slot: overview, heading: Overview, required: false, prose: required, use: navigates}
+    - {slot: requirements, heading: Requirements, required: true, count: {min: 1, max: 1},
+       blocks: [{type: requirements, count: {min: 1, max: 1}}], prose: forbidden,
+       use: binds, produces: [code.behaviour]}
+    - {slot: dependencies, heading: Dependencies, aliases: [Declaration], required: false,
+       use: depends}
+    - {slot: architecture, heading: Architecture, required: false, use: explains}
+    - {slot: responsibilities, heading: Responsibilities, required: false, use: explains}
+    - {slot: endpoints, heading: Endpoints, required: false, use: exposes}
+    - {slot: interface, heading: Interface, aliases: [Interfaces],
+       required: {when: {block_present: serves}},
+       blocks: [{type: serves, count: {max: 1}}, {type: events, count: {max: 1}}],
+       use: exposes, produces: [code.route, api.openapi, api.asyncapi]}
+    - {slot: errors, heading: Error Handling, aliases: [Errors], required: false,
+       blocks: [{type: errors, count: {max: 1}}], use: shapes}
+    - {slot: data-flow, heading: Data Flow, required: false, use: explains}
+    - {slot: design-principles, heading: Design Principles, required: false, use: explains}
+    - {slot: collaboration, heading: Collaboration, required: false, use: explains}
+    - {slot: types, heading: Types, aliases: [Data Types], required: false,
+       blocks: [{type: types, count: {max: 1}}], use: shapes, produces: [code.type, schema.json]}
+    - {slot: config, heading: Configuration, required: false,
+       blocks: [{type: config, count: {max: 1}}], use: configures}
+    - {slot: security, heading: Security, required: false, use: instructs}
+    - {slot: verifies, heading: Verification, aliases: [Verification Checklist], required: true,
+       blocks: [{type: verifies, count: {min: 1, max: 1}}], prose: forbidden,
+       use: verifies, produces: [code.test, check]}
+    - {slot: operation, heading: {starts_with: "Operation:"}, count: {min: 0},
+       key: marker, prose: required, content: {no_rfc2119: true}, use: explains}
+    - {slot: implementation-notes, heading: Implementation Notes, required: false,
+       use: instructs}
+    - {slot: scaling, heading: Scaling, required: false, use: explains}
+    - {slot: examples, heading: Examples, required: false, use: illustrates}
+    - {slot: notes, heading: Notes, required: false, use: explains}
+```
+
+## Why these slots
+
+**The contract sits where it is explained.** Requirements, types, the
+operations a component serves, its configuration, its errors and the checks
+that prove it are typed blocks
+([`schemas/blocks`](blocks.md#blocks)), each in the slot it belongs to and
+beside the prose that gives its reasons. The header holds only identity and
+dependencies, whose fields [`schemas/common`](common.md#the-header-in-grammar-1)
+defines. A file names no `platform`: a blueprint is written for every platform
+([Platform Neutrality](common.md#platform-neutrality)), and which one a build
+targets is the build's choice.
+
+**Every requirement is covered and every reason is addressable.** `Requirements`
+and `Verification` are required, and each check's `covers` names the
+requirements it proves. An `Operation:` section explains one requirement and
+is keyed by its `wl:explains` marker, so a prompt that cites the requirement
+can be sent its reason and nothing else; because it explains, it states no
+new rule, which is why it may not say MUST.
+
+**The older form's sections are slots too.** Overview, Architecture,
+Responsibilities, Endpoints, Data Flow, Design Principles, Collaboration,
+Security, Implementation Notes, Scaling and Examples are declared under the
+headings files use today, and the older headings of a renamed slot
+(`Interfaces`, `Verification Checklist`, `Declaration`) are its aliases. A file
+being migrated therefore walks with its narrative counted as what it is, and
+what no slot declares is reported, never refused, so the share of bytes
+outside every slot is measured rather than hidden. `Dependencies` is carried
+only until the migration folds it into the header's `requires`, which is its
+home in this family. `Declaration` is its alias for the same reason and for
+migration only: the older schema let a `## Declaration` supersede
+`## Dependencies`, so its `requires` is what the alias is for. The rest a
+declaration block holds (the one in `architecture/orchestrator.md` also carries
+checks and other machine-read content) is counted as `depends` while the file
+is in the older form, and the migration moves each part to the slot whose block
+it is.
+
+**The header is grammar 1's, widened on purpose.** Beyond identity and
+dependencies it keeps `tier`, `author`, `status`, `superseded_by` and
+`end_of_life`, which the older form's files carry today and which
+[`schemas/common`](common.md#the-header-in-grammar-1) says keep their meanings:
+without them the migration would have nowhere to put a value it must keep.
+
+**A blueprint, not a specification.** The declaration's `kind:` is the kind of
+the files it declares, as [`schemas/family`](family.md) says, not the kind of
+this file. Those files are `blueprint`, the sub-kind of `specification` that
+[`schemas/kinds`](kinds.md#declared-kinds) declares, which adds generation to
+it; `specification` would have named their parent and lost what a build reads
+them for. The declaration itself is a `specification`, as every file of
+`schemas/family` is.
+
+**The order above is canonical.** In grammar 1 a slot written out of order is
+reported (`slot-order`), and the grammar that follows the migration refuses it
+([`schemas/family`](family.md#definitions)).
+
+## The older form
+
+The four sections that follow describe an architecture blueprint as it is
+written before the migration: what `weblisk validate` and the generation
+pipeline read today. They are retired, with this paragraph, when the last
+file has been migrated.
+
 
 ## Frontmatter
 

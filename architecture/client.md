@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 1.0.4
+version: 1.0.5
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -247,10 +247,11 @@ caller do not, and neither is in the taxonomy:
 An operator console resolves no address out of the service directory: it
 presents a person's token at the admin gateway it was given and nowhere else
 ([`protocol/identity`](../protocol/identity.md#the-pass)). A sibling component
-resolves one out of the service directory, which is the orchestrator's only as
-read from the component's anchor by `GET /v1/services`; a body pushed to its
-`POST /v1/services` is unauthenticated
-([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). That
+resolves one out of the service directory, which is the orchestrator's as
+read from the component's anchor by `GET /v1/services`, or as pushed to its
+`POST /v1/services` with a signature that verifies under the orchestrator's key
+([`protocol/spec`](../protocol/spec.md#post-v1services), the signed push), and
+which says only that a registrant claimed the address. That
 address may be on a different host from the one the component was configured
 with, because a tenant's components may legitimately be distributed. Which
 addresses either caller may present a credential to is **not decided here and

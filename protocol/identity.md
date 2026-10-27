@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -480,10 +480,11 @@ process: data = canonicalize(value) → Sign(data)
 [RFC 8785 JSON Canonicalization Scheme (JCS)](https://www.rfc-editor.org/rfc/rfc8785).
 This guarantees identical byte output across all languages and platforms:
 
-1. Object keys sorted lexicographically by Unicode code point
+1. Object keys sorted by their UTF-16 code units, which is not code-point
+   order for a character outside the Basic Multilingual Plane
 2. No insignificant whitespace
-3. Numbers serialized per ES2015 `JSON.stringify` rules (no trailing zeros,
-   no positive sign on exponent)
+3. Numbers serialized as ES2015 serializes a double (no trailing zeros; an
+   exponent keeps its sign, as in `1e+30`)
 4. Strings use minimal \uXXXX escaping (only required characters)
 
 Native `JSON.stringify` is NOT sufficient — key ordering varies across
@@ -549,6 +550,7 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 | `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
+| `weblisk/directory/v1` | An orchestrator, by its signing key, over the service directory it pushes and serves | [`protocol/spec`](spec.md#post-v1services) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
@@ -566,7 +568,8 @@ every build receives it as test data
 ([`architecture/generation`](../architecture/generation.md#published-test-vectors)).
 It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
 `weblisk/step-up/v1`, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
-`weblisk/log-succession/v1` and `weblisk/content-change/v1`. None is published
+`weblisk/log-succession/v1`, `weblisk/content-change/v1` and
+`weblisk/directory/v1`. None is published
 yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
 implementation may yet sign under either.
 

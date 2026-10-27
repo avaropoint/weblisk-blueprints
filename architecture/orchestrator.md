@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 3.2.0
+version: 3.3.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -532,14 +532,12 @@ The directory therefore says *this orchestrator accepted these registrations* â€
 the names, the keys, the capabilities, and the addresses as claimed. It says
 so only to a reader that has it from this orchestrator: one that read it by
 [`GET /v1/services`](../protocol/spec.md#get-v1services) over a connection it
-opened to its anchor, the orchestrator address it registered at (below).
-Nothing else makes it this orchestrator's. `ServiceDirectory.signature` has no
-signing input yet and nothing verifies one, so a body pushed to an agent's
-`POST /v1/services` is whatever the party that reached that listener sent, and
-says nothing about this orchestrator
-([`protocol/spec`](../protocol/spec.md#post-v1services), the gap there). Read
-from the anchor, the directory is an authenticity statement about the
-registry. It is not an authorisation statement about the addresses inside it,
+opened to its anchor, the orchestrator address it registered at (below), or
+one that verified its `signature` under this orchestrator's key
+([`protocol/spec`](../protocol/spec.md#post-v1services), the signed push). A
+pushed body that does not verify says nothing about this orchestrator. Read
+from the anchor or verified, the directory is an authenticity statement about
+the registry. It is not an authorisation statement about the addresses inside it,
 and the two are easy to conflate precisely because both halves are true.
 
 Publishing a self-asserted address without saying that it is self-asserted is
@@ -1520,7 +1518,11 @@ matches locally using the pattern matching rules from
 
 After any registration or deregistration, the orchestrator
 asynchronously pushes the current `ServiceDirectory` to every other
-registered agent via `POST /v1/services`. Failures are logged but
+registered agent via `POST /v1/services`, signed as
+[`protocol/spec`](../protocol/spec.md#post-v1services) states, each with an
+`updated_at` greater than the last it signed. It keeps that last `updated_at`
+in its storage, so a restart, or a clock that steps back, never makes it sign
+a lower one, which every agent would refuse as stale. Failures are logged but
 never block.
 
 ---

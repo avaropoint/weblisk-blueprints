@@ -1,0 +1,331 @@
+{
+  "file": "vectors/grammar/architecture-template.md",
+  "family": "schemas/architecture@2",
+  "length": 3039,
+  "version_hash": "sha256:5110b005c9342ef49af7d1352b24251aecb06ec131eb9168efa706ca74ec925d",
+  "parts": [
+    {
+      "span": [0, 202],
+      "part": "header",
+      "slot": null,
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:01ec827b752f81e6881e2df66d9471df099792159ae1dd24a1d7215e3c463b3c",
+      "entries": [
+        {
+          "id": "family",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:4cb74439d44949a990e14d1077d79f120137f001f1aecd7d56bf40420e032b7c"
+        },
+        {
+          "id": "version",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+        },
+        {
+          "id": "requires",
+          "use": "depends",
+          "send": "always",
+          "digest": "sha256:bc4f9906625b06f268ed20eb5f86df9c374cc620bb2e0427070826a0118a6188"
+        },
+        {
+          "id": "runs_with",
+          "use": "depends",
+          "send": "always",
+          "digest": "sha256:0c91a30abdbdaebe7b7111fe454e937b36ec559dd2e5be22b65bf6d5b18a3cb1"
+        },
+        {
+          "id": "cardinality",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:a2c21a825cb2afcfff9815b7a12b3bd172525f22c5f79ce2602e34aa01e49283"
+        },
+        {
+          "id": "tier",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:3e07f22f81c02a1dc7a1eb3e427e68335ff0ee3534a04bc2feaafcf0523fe778"
+        },
+        {
+          "id": "retired",
+          "use": "navigates",
+          "send": "always",
+          "digest": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+        }
+      ]
+    },
+    {
+      "span": [202, 288],
+      "part": "text",
+      "slot": "title",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:da7bb567dae6174a7164309ff9a2a15e2bfa5609fa11f9cadd918a268dcbc760"
+    },
+    {
+      "span": [288, 551],
+      "part": "text",
+      "slot": "overview",
+      "use": "navigates",
+      "send": "always",
+      "digest": "sha256:7d3d23251b0ffbf75116920c94784ca35eee962b424f32b7cb12440c84f4a52e"
+    },
+    {
+      "span": [551, 568],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:9847786846315cd9627e8e8f8a391f46a055780253236daa667d267bb82b4365"
+    },
+    {
+      "span": [568, 938],
+      "part": "block",
+      "slot": "requirements",
+      "block": "requirements",
+      "family": "requirement",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:e9ec530491c19849939966ba33dec5a966c2decee19960587d9732c15f7a38bf",
+      "entries": [
+        {
+          "id": "example-request-answered",
+          "digest": "sha256:d4de702b9f1a8a2a4ab8321553e99fe9c21b8f83594cc87a2232f7090c36c944"
+        },
+        {
+          "id": "example-refusal-coded",
+          "digest": "sha256:80f5811aeaa1c2da492011e7ca341db3d9098b286206bb6953da01ba4cfb3959"
+        }
+      ]
+    },
+    {
+      "span": [938, 939],
+      "part": "text",
+      "slot": "requirements",
+      "use": "binds",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [939, 1073],
+      "part": "text",
+      "slot": "architecture",
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:60fa002bdb6a878bbf9f572f039e4560e5ddabff0576c6cc6c8dc0ed218cb1ee"
+    },
+    {
+      "span": [1073, 1219],
+      "part": "text",
+      "slot": "responsibilities",
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:09065a22c90138524eced9e57d53a8f6b41b0fb00a28800f102e2643c4752503"
+    },
+    {
+      "span": [1219, 1233],
+      "part": "text",
+      "slot": "interface",
+      "use": "exposes",
+      "send": "cited",
+      "digest": "sha256:667eacf80a39066f1dfeaa28b7fdcc83670ccc15b171f34899ec11f87a322a9f"
+    },
+    {
+      "span": [1233, 1371],
+      "part": "block",
+      "slot": "interface",
+      "block": "serves",
+      "family": "operation",
+      "use": "exposes",
+      "send": "cited",
+      "digest": "sha256:c35795f5fff441eb41c2ccaa5253871799af32d3467f257ce70db421d417fc81",
+      "entries": [
+        {
+          "id": "example",
+          "digest": "sha256:8ba41a47bbd92ec9a75b75bcae6c990d4e181410361f2d6bae6410a0ac1d458c"
+        }
+      ]
+    },
+    {
+      "span": [1371, 1372],
+      "part": "text",
+      "slot": "interface",
+      "use": "exposes",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [1372, 1391],
+      "part": "text",
+      "slot": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:64cd68144bc2c5224e11c573146477a99dd4c2e7ce3492cefbcb55305e133b9a"
+    },
+    {
+      "span": [1391, 1515],
+      "part": "block",
+      "slot": "errors",
+      "block": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:f9d4fc96432b473dff2b94b7263e5345127871da4ff000266baf21056d2e7f77",
+      "entries": [
+        {
+          "id": "EXAMPLE_REFUSED",
+          "digest": "sha256:bb5db935bc62fb7014fc6589c1f8c4af627ecac627d88df10e4ffda64adcf2d5"
+        }
+      ]
+    },
+    {
+      "span": [1515, 1516],
+      "part": "text",
+      "slot": "errors",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [1516, 1616],
+      "part": "text",
+      "slot": "data-flow",
+      "use": "explains",
+      "send": "on-request",
+      "digest": "sha256:c1e97541b789f6e286eecf06d54034e31efcf114bfd9f0236cd9cbaebd7658ab"
+    },
+    {
+      "span": [1616, 1626],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:8e72c0925c40071cbfe4605a5a88c484fadb5f92e428584eebdfb4a1d9b5108b"
+    },
+    {
+      "span": [1626, 2032],
+      "part": "block",
+      "slot": "types",
+      "block": "types",
+      "family": "type",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:b32253c79a234ca0d49d339c7a1cb3b803d19af9dae631ce99247c42f9c6755b",
+      "entries": [
+        {
+          "id": "ExampleRequest",
+          "digest": "sha256:07a90d803340c497e6057a938b603428ebe20ae2bb9709a4796dd595c77c5e46"
+        },
+        {
+          "id": "ExampleResponse",
+          "digest": "sha256:89eada99fc2c6ad07b5b55f98361fdae23202919a0269c3baa83c1279f3169bf"
+        }
+      ]
+    },
+    {
+      "span": [2032, 2033],
+      "part": "text",
+      "slot": "types",
+      "use": "shapes",
+      "send": "referenced",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [2033, 2051],
+      "part": "text",
+      "slot": "config",
+      "use": "configures",
+      "send": "cited",
+      "digest": "sha256:ad1aa47543b3e866364c2d32e2491b8c6eb436ad31842708840885c26f503503"
+    },
+    {
+      "span": [2051, 2215],
+      "part": "block",
+      "slot": "config",
+      "block": "config",
+      "use": "configures",
+      "send": "cited",
+      "digest": "sha256:859ac5caa063afe414ce0e8601436ce167f66c8abc87433db2f22204d6ece76b",
+      "entries": [
+        {
+          "id": "example_timeout",
+          "digest": "sha256:665fa0262be35663feab98412e85329c8b179e4fee26036d9cbeda95987a4886"
+        }
+      ]
+    },
+    {
+      "span": [2215, 2216],
+      "part": "text",
+      "slot": "config",
+      "use": "configures",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [2216, 2326],
+      "part": "text",
+      "slot": "security",
+      "use": "instructs",
+      "send": "always",
+      "digest": "sha256:44f38a9c3f984f3185a5274cd656cb38702853061f593c9e4523552a9f910de8"
+    },
+    {
+      "span": [2326, 2343],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:817b1fa3eae2537bd10a8a271ca4c40b799f05f71d6b855f9e40446f21ab62fa"
+    },
+    {
+      "span": [2343, 2745],
+      "part": "block",
+      "slot": "verifies",
+      "block": "verifies",
+      "family": "check",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:bb16d241c0953aeb4f23ed3432dcedd4b37aa6ea7c78ad959c63c7fcc7c17f45",
+      "entries": [
+        {
+          "id": "example-request-is-answered",
+          "digest": "sha256:e23ccaa37896819ef1b32dcca4c31d19530b48388b9b6b9723412ae99ec2c4ad"
+        },
+        {
+          "id": "example-without-subject-refused",
+          "digest": "sha256:3fd8c8fa2b1d4e8a8661d654ed362d20f3545c9abe177bb4d3a3d9b9716f1c0b"
+        }
+      ]
+    },
+    {
+      "span": [2745, 2746],
+      "part": "text",
+      "slot": "verifies",
+      "use": "verifies",
+      "send": "cited",
+      "digest": "sha256:01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "span": [2746, 2959],
+      "part": "text",
+      "slot": "operation",
+      "use": "explains",
+      "send": "cited",
+      "digest": "sha256:04b8e94b8e8f48817ef192e876fb42cc8fe2f01fb8d1cb617fd0eaf4262531d2",
+      "explains": [
+        "example-request-answered"
+      ],
+      "key": "example-request-answered"
+    },
+    {
+      "span": [2959, 3039],
+      "part": "text",
+      "slot": "implementation-notes",
+      "use": "instructs",
+      "send": "always",
+      "digest": "sha256:c0411f6ca63d6d14079b0fffb6e7d2fb41ee5edfa6d088ea2aa4182f4f76faf0"
+    }
+  ],
+  "findings": []
+}
