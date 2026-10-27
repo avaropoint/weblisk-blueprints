@@ -104,6 +104,7 @@ rewrites that place.
 | `/v1/admin/approvals/batch` and `/v1/admin/approvals/{id}`, the Approval Queue of recommendations, and `weblisk approvals accept --all` and `--priority` | The decision inbox, `GET /v1/admin/approvals`, each decision made at the route its item's `decide` names | [`architecture/admin`](architecture/admin.md#decision-inbox) 4.0.0, Decision Inbox; [`architecture/cli`](architecture/cli.md#approval-commands) 4.0.0, Approval Commands |
 | `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 | `{hub}:{capability}`, as the form of a listing id | `listing://<namespace>/<name>` | [`architecture/hub`](architecture/hub.md#the-public-namespace-registry) 2.0.0, Listing Fields and The public namespace registry |
+| `ApprovalResponse` and `ApprovalResult`, the response to a decision on recommendations, and `ApprovalRequest` in its sense of that decision's body (`recommendation_ids`, `decision`, `token`) | None. `ApprovalRequest` is the request an owner holds open; it is answered at the route its owner names | [`protocol/types`](protocol/types.md#approvals) 5.0.0, Approvals |
 
 ## Entries
 
@@ -454,4 +455,9 @@ itself is always allowed.
   - {spelling: fabric.traversal.max_depth, match: exact}
 - retired:
   - {spelling: '{hub}:{capability}', match: exact}
+- retired:
+  - {spelling: ApprovalResponse, match: exact}
+  - {spelling: ApprovalResult, match: exact}
+  - {spelling: ApprovalRequest, match: sense}
+  - {spelling: recommendation_ids, match: exact}
 ```

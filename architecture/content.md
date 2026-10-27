@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 4.1.1
+version: 4.1.2
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         # The service serves the two probes and renews its lease
@@ -151,7 +151,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/approval
-    version: ">=1.1.0 <2.0.0"
+    version: ">=1.1.0 <3.0.0"
     bindings:
       behaviors:
         # Its self-approval rejection, and the one exception it names for a
