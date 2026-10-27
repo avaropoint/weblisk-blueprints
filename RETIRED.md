@@ -104,6 +104,7 @@ rewrites that place.
 | `/v1/admin/approvals/batch` and `/v1/admin/approvals/{id}`, the Approval Queue of recommendations, and `weblisk approvals accept --all` and `--priority` | The decision inbox, `GET /v1/admin/approvals`, each decision made at the route its item's `decide` names | [`architecture/admin`](architecture/admin.md#decision-inbox) 4.0.0, Decision Inbox; [`architecture/cli`](architecture/cli.md#approval-commands) 4.0.0, Approval Commands |
 | `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 | `{hub}:{capability}`, as the form of a listing id | `listing://<namespace>/<name>` | [`architecture/hub`](architecture/hub.md#the-public-namespace-registry) 2.0.0, Listing Fields and The public namespace registry |
+| `schemas/structures/`, the directory of the section structures a document is checked against, and its files | The document families in `documents/families/`, one declaration each | [`documents/families`](documents/families/README.md) 1.0.0, and [`schemas/programme`](schemas/programme.md#the-structures-a-document-is-checked-against), The structures a document is checked against |
 
 ## Entries
 
@@ -454,4 +455,6 @@ itself is always allowed.
   - {spelling: fabric.traversal.max_depth, match: exact}
 - retired:
   - {spelling: '{hub}:{capability}', match: exact}
+- retired:
+  - {spelling: schemas/structures/, match: exact}
 ```

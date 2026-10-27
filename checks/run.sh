@@ -238,6 +238,65 @@ sed 's/produces: \[code.route, api.openapi, api.asyncapi\]/produces: [code.route
 expect 1 "produces control: a declaration without api.asyncapi fails" python3 checks/produces.py schemas/architecture events api.asyncapi --decl "$tmp/noasync.md"
 grep -q '^schemas/architecture: slot interface holds events and does not produce api.asyncapi$' "$tmp/out" || { echo "FAIL produces control: the interface slot was not what was reported"; fails=$((fails + 1)); }
 
+# A walk's findings, from a family declaration and schemas/blocks.md alone
+# (checks/families.py). Before it says anything of the corpus it must give
+# every grammar vector exactly the findings that vector's projection holds.
+expect 0 "families: every grammar vector's findings agree" python3 checks/families.py --vectors
+
+# The programme families in migration mode (schemas/programme-*): every
+# programme file walks with nothing refused, and the findings are exactly one
+# legacy-key per id: and per declares.obligation.id and one missing-key per
+# file with no version:, as counted here from the files themselves.
+progs="schemas/programme-map schemas/programme-spec schemas/programme-template"
+expect 0 "families: every programme file walks in migration mode" python3 checks/families.py $progs
+python3 checks/families.py $progs --counts >"$tmp/walked" 2>&1
+python3 - >"$tmp/counted" <<'PY'
+import glob, re, yaml
+ids = obl = nover = 0
+for f in glob.glob("programmes/*/map.md") + glob.glob("programmes/*/specs/*.md") + glob.glob("programmes/*/templates/*.md"):
+    h = yaml.safe_load(re.match(r"---\n(.*?)\n---\n", open(f, encoding="utf-8").read(), re.S).group(1))
+    ob = (h.get("declares") or {}).get("obligation")
+    ids, obl, nover = ids + ("id" in h), obl + (isinstance(ob, dict) and "id" in ob), nover + ("version" not in h)
+print(f"{obl} legacy-key report declares.obligation.id\n{ids} legacy-key report id\n{nover} missing-key report version")
+PY
+if cmp -s "$tmp/walked" "$tmp/counted" && [ "$(wc -l <"$tmp/counted")" -eq 3 ]; then
+	echo "ok   families: exactly the counted legacy keys and missing versions ($(paste -sd, - <"$tmp/counted"))"
+else
+	echo "FAIL families: the findings are not exactly the counted legacy keys and missing versions"
+	diff "$tmp/counted" "$tmp/walked" | sed 's/^/     /'
+	fails=$((fails + 1))
+fi
+# Not loose: a spec with a key the family does not declare is refused, once.
+sed 's/^structure:/structre:/' programmes/ohs/specs/ohs.certificate-renewal.md >"$tmp/structre.md"
+expect 1 "families control: a spec with an undeclared key fails" python3 checks/families.py schemas/programme-spec --file "$tmp/structre.md"
+[ "$(grep -c ' refuse ' "$tmp/out")" -eq 1 ] && grep -q ': header-schema refuse /structre$' "$tmp/out" || { echo "FAIL families control: want exactly one refusal, of /structre"; fails=$((fails + 1)); }
+# The strict variants are the migration declarations made strict and nothing
+# else, and refuse every programme file today; a strict copy that still only
+# reports a legacy key fails the comparison.
+for f in map spec template; do
+	expect 0 "families: schemas/strict/programme-$f is programme-$f made strict" python3 checks/families.py --strict schemas/programme-$f.md schemas/strict/programme-$f.md
+	expect 1 "families control: the strict programme-$f refuses programme files" python3 checks/families.py schemas/programme-$f --against schemas/strict/programme-$f.md
+	all=$(python3 checks/families.py schemas/programme-$f --counts | sed -n 's/^\([0-9]*\) legacy-key report id$/\1/p')
+	refused=$(grep ' refuse' "$tmp/out" | cut -d: -f1 | sort -u | wc -l | tr -d ' ')
+	[ -n "$all" ] && [ "$refused" -eq "$all" ] && echo "ok   families control: all $all programme-$f files refused" || { echo "FAIL families control: $refused of ${all:-?} programme-$f files refused"; fails=$((fails + 1)); }
+done
+sed 's/^    id: refuse$/    id: report/' schemas/strict/programme-spec.md >"$tmp/loose.md"
+expect 1 "families control: a strict variant that reports id fails" python3 checks/families.py --strict schemas/programme-spec.md "$tmp/loose.md"
+# Every structure a spec or a form names is a document family, every family's
+# template walks against it with nothing refused, and no heading opens two of
+# a family's slots. A spec naming a structure nobody declares, and a family
+# whose Purpose slot takes Scope as an alias, are each reported.
+docs="documents/families/policy documents/families/procedure documents/families/standard documents/families/guideline"
+expect 0 "families: every spec's structure is a document family" python3 checks/families.py schemas/programme-spec --resolve structure documents/families
+expect 0 "families: every form's structure is a document family" python3 checks/families.py schemas/programme-template --resolve frontmatter.structure documents/families
+expect 0 "families: every family's template walks against it" python3 checks/families.py --distinct --templates $progs $docs
+sed 's/^structure: procedure$/structure: nonesuch/' programmes/ohs/specs/ohs.certificate-renewal.md >"$tmp/nonesuch.md"
+expect 1 "families control: a structure no family declares fails" python3 checks/families.py schemas/programme-spec --resolve structure documents/families --file "$tmp/nonesuch.md"
+grep -q 'structure: nonesuch names no declaration' "$tmp/out" || { echo "FAIL families control: the unknown structure was not what was reported"; fails=$((fails + 1)); }
+sed 's/^    - {slot: purpose, heading: Purpose,/    - {slot: purpose, heading: Purpose, aliases: [scope],/' documents/families/policy.md >"$tmp/policy.md"
+expect 1 "families control: a heading opening two slots fails" python3 checks/families.py --distinct --templates documents/families/policy --against "$tmp/policy.md"
+grep -q "the heading 'Scope' opens both purpose and scope" "$tmp/out" || { echo "FAIL families control: the shared heading was not what was reported"; fails=$((fails + 1)); }
+
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.
 expect 0 "reach-depth: one home, every citation resolves" python3 checks/reach-depth.py

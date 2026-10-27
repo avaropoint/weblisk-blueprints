@@ -90,6 +90,7 @@ and six folders were absent altogether.
 | [`templates/`](templates/README.md) | The file each family declaration names as its `template:`, which a new file of that family starts from |
 | [`standards/`](standards/README.md) | Industry standards, as JSON catalogues. The Weblisk project standards it once held are now in [`frameworks/weblisk/`](frameworks/weblisk/README.md) |
 | [`programmes/`](programmes/README.md) | Programmes — what a body of work requires in order to exist and to keep running |
+| [`documents/`](documents/families/README.md) | The families an organisation's own documents are written to — policy, procedure, standard, guideline — published here and delivered into a tenant |
 | [`positions/`](positions/README.md) | The hand-written half of what can be said about a job somebody holds |
 | [`policy-domains/`](policy-domains/README.md) | What a subject area of governance covers, and what a programme claiming it must provide |
 | [`intl/`](intl/README.md) | Reserved for locale and spoken-language constructs |
