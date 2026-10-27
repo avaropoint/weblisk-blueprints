@@ -117,6 +117,7 @@ rewrites that place.
 | `weblisk/namespace-transfer/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-transfer/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#transfer), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
 | `weblisk/catalog-release/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/catalog-release/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#catalog-release), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
 | `_ms`, `_seconds`, `_secs`, `_minutes`, `_hours`, `_days`, `unit: seconds`, `unit: milliseconds`, `unit: minutes`, `unit: hours`, `unit: days`, as the form of a length of time: a key or field holding a bare number of the unit its name or `unit:` gives | a `duration`, a string such as `30s`, as [`protocol/conventions`](protocol/conventions.md#duration) says | [`protocol/conventions`](protocol/conventions.md#duration) 1.0.0, Duration |
+| `schemas/structures/`, the directory of the section structures a document is checked against, and its files | The document families in `documents/families/`, one declaration each | [`documents/families/policy`](documents/families/policy.md), [`procedure`](documents/families/procedure.md), [`standard`](documents/families/standard.md) and [`guideline`](documents/families/guideline.md), each 1.0.0, and [`schemas/programme`](schemas/programme.md#the-structures-a-document-is-checked-against), The structures a document is checked against |
 | `ApprovalResponse` and `ApprovalResult`, the response to a decision on recommendations, and `ApprovalRequest` in its sense of that decision's body (`recommendation_ids`, `decision`, `token`) | None. `ApprovalRequest` is the request an owner holds open; it is answered at the route its owner names | [`protocol/types`](protocol/types.md#approvals) 5.0.0, Approvals |
 
 ## Entries
@@ -545,6 +546,8 @@ itself is always allowed.
   - {path: protocol/types.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: schemas/agent.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: checks/conventions.py, why: 'the check that reports a bare-number duration outside this list, and its seeded control'}
+- retired:
+  - {spelling: schemas/structures/, match: exact}
 - retired:
   - {spelling: ApprovalResponse, match: exact}
   - {spelling: ApprovalResult, match: exact}

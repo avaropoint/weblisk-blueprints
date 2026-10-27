@@ -54,6 +54,16 @@ This applies to:
 
 ## Schema Files
 
+Each schema below that opens with `family: schemas/family@1` is a family
+declaration ([family.md](family.md)): its Header and Sections blocks are the
+shape a walk holds a file to, and its prose stays as the reason. The
+protocol, pattern, agent and domain declarations, like architecture's, state
+the form a file takes once it is migrated; the position, policy-domain and
+programme ones walk today's files in migration mode; the language, platform
+and framework ones declare the older form their files keep until each is
+rewritten into [mapping](mapping.md) rules; kinds and standard are
+declarations with no `kind`, which no file is walked against.
+
 | Schema | Governs | Applies To |
 |--------|---------|------------|
 | [authoring.md](authoring.md) | The order of work when writing a blueprint, and which document owns each rule | Every author |
@@ -70,7 +80,7 @@ This applies to:
 | [framework.md](framework.md) | Framework blueprints — what building *with* a framework requires | `frameworks/<name>/` directories |
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON, and how a tenant adopts one: generated as a link and its own adjustments, never copied | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, the recurring work it commits an organisation to, what else adopting it brings, and what an adoption records | `programmes/` directory |
-| [structures/](structures/) | The section structures a document is checked against — one file per structure, seeded and published, citing no standard. The form is declared in [programme.md](programme.md#the-structures-a-document-is-checked-against) | A spec's `structure`, and an organisation's own documents by kind |
+| [programme-map.md](programme-map.md), [programme-spec.md](programme-spec.md), [programme-template.md](programme-template.md) | The declarations of the three programme file families (grammar 1), in migration mode; their strict variants are in [strict/](strict/), applied once the files are migrated. What each field means stays in [programme.md](programme.md) | `programmes/*/map.md`, `programmes/*/specs/`, `programmes/*/templates/` |
 | [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
@@ -112,7 +122,8 @@ common.md (inherited by all)
 ├── framework.md (frameworks/<name>/ — building WITH a framework)
 ├── standard.md (standards/ — industry standards, as JSON)
 ├── programme.md (programmes/ — programme maps and artifact specifications)
-│   └── structures/ (the section structures a document is checked against)
+│   ├── programme-map.md, programme-spec.md, programme-template.md (their file families)
+│   └── strict/ (the strict variants, applied after the migration)
 ├── position.md (positions/ — the hand-written half of a role brief)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 ├── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)

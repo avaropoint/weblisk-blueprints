@@ -12,6 +12,7 @@ every pattern compiling; every `until` a citation (schemas/names.md) of a file
 that has not yet reached it. --scan reports leftovers; it is not a gate.
 """
 import os, re, subprocess, sys
+sys.dont_write_bytecode = True  # importing ids.py leaves no bytecode in the corpus
 import yaml
 
 CORPUS = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))

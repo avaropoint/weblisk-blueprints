@@ -11,3 +11,6 @@ Thumbs.db
 
 # Local overrides
 .env
+
+# Python bytecode from running a check directly
+__pycache__/

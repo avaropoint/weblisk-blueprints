@@ -1,9 +1,118 @@
+---
+family: schemas/family@1
+version: 2.0.1
+kind: blueprint
+noun: agent
+match: [agents/*.md]
+capabilities: [author, versioned, depends, generates, publishable, adoptable]
+template: templates/agent.md
+generates: code
+---
 # Agent Schema
 
 Defines the complete structure for agent blueprints (`type: agent`).
 Agent blueprints specify infrastructure services that run as autonomous
 processes within the Weblisk framework. Every agent blueprint MUST
 conform to this schema in addition to the rules in [common.md](common.md).
+
+## Header
+
+The family `schemas/agent` in grammar 1 ([`schemas/family`](family.md)): what a
+file in `agents/` is written as once the migration (`v2-migrate`) has
+rewritten it, as [`schemas/architecture`](architecture.md#header) is for an
+architecture blueprint. What each common field means is
+[`schemas/common`](common.md#the-header-in-grammar-1)'s. The files are written
+in the older form until then, which the sections from
+[Frontmatter](#frontmatter) on describe and today's tooling reads; each of
+its sections is a slot below under the heading files use today, so a file
+being migrated walks with its narrative counted as what it is.
+
+```yaml
+header:
+  schema:
+    type: object
+    required: [family, version]
+    unevaluatedProperties: false
+    properties:
+      family:        {const: schemas/agent@2}
+      version:       {$ref: "schemas/blocks#/$defs/version"}
+      requires:      {type: array, items: {$ref: "schemas/blocks#/$defs/requires-entry"}}
+      depends_on:    {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      runs_with:     {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      extends:       {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      kind:          {enum: [infrastructure, work, domain]}
+      port:          {type: integer, minimum: 9700, maximum: 9999}
+      domain:        {$ref: "schemas/blocks#/$defs/ref"}
+      cardinality:   {enum: [singleton, named]}
+      provides:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      adoption:      {enum: [required, opt-in]}
+      tier:          {enum: [free, pro]}
+      author:        {type: string}
+      status:        {enum: [active, deprecated, end-of-life]}
+      superseded_by: {$ref: "schemas/blocks#/$defs/ref"}
+      end_of_life:   {$ref: "schemas/blocks#/$defs/date"}
+      retired:       {$ref: "schemas/blocks#/$defs/retired"}
+      formerly:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+  uses:
+    requires:   {use: depends, resolves: blueprint, send: always}
+    depends_on: {use: depends, resolves: blueprint, send: always}
+    runs_with:  {use: depends, resolves: blueprint, send: always}
+    extends:    {use: depends, resolves: blueprint, send: always}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1},
+       prose: required, content: {max_paragraphs: 2}, use: navigates}
+    - {slot: overview, heading: Overview, required: false, prose: required, use: navigates}
+    - {slot: requirements, heading: Requirements, required: true, count: {min: 1, max: 1},
+       blocks: [{type: requirements, count: {min: 1, max: 1}}], prose: forbidden,
+       use: binds, produces: [code.behaviour]}
+    - {slot: dependencies, heading: Dependencies, aliases: [Declaration], required: false, use: depends}
+    - {slot: config, heading: Configuration, required: false,
+       blocks: [{type: config, count: {max: 1}}], use: configures}
+    - {slot: types, heading: Types, aliases: [Data Types], required: false,
+       blocks: [{type: types, count: {max: 1}}], use: shapes, produces: [code.type, schema.json]}
+    - {slot: storage, heading: Storage, required: false, use: shapes}
+    - {slot: restore, heading: Restore Procedure, required: false, use: instructs}
+    - {slot: endpoints, heading: Endpoints, required: false, use: exposes}
+    - {slot: interface, heading: Interface, aliases: [Interfaces],
+       required: {when: {block_present: serves}},
+       blocks: [{type: serves, count: {max: 1}}, {type: events, count: {max: 1}}],
+       use: exposes, produces: [code.route, api.openapi, api.asyncapi]}
+    - {slot: state-machine, heading: State Machine, required: false, use: binds}
+    - {slot: lifecycle, heading: Lifecycle, required: false, use: binds}
+    - {slot: triggers, heading: Triggers, required: false, use: binds}
+    - {slot: actions, heading: Actions, required: false, use: exposes}
+    - {slot: execute, heading: Execute Workflow, required: false, use: binds}
+    - {slot: cron, heading: Cron Expression Format, required: false, use: explains}
+    - {slot: collaboration, heading: Collaboration, required: false, use: emits}
+    - {slot: overrides, heading: Manual Overrides, required: false, use: binds}
+    - {slot: constraints, heading: Constraints, required: false, use: binds}
+    - {slot: errors, heading: Error Handling, aliases: [Errors], required: false,
+       blocks: [{type: errors, count: {max: 1}}], use: shapes}
+    - {slot: observability, heading: Observability, required: false, use: binds}
+    - {slot: security, heading: Security, required: false, use: instructs}
+    - {slot: test-fixtures, heading: Test Fixtures, required: false, use: illustrates}
+    - {slot: scaling, heading: Scaling, required: false, use: explains}
+    - {slot: verifies, heading: Verification, aliases: [Verification Checklist], required: true,
+       blocks: [{type: verifies, count: {min: 1, max: 1}}], prose: forbidden,
+       use: verifies, produces: [code.test, check]}
+    - {slot: operation, heading: {starts_with: "Operation:"}, count: {min: 0},
+       key: marker, prose: required, content: {no_rfc2119: true}, use: explains}
+    - {slot: implementation-notes, heading: Implementation Notes, required: false, use: instructs}
+    - {slot: examples, heading: Examples, required: false, use: illustrates}
+    - {slot: notes, heading: Notes, required: false, use: explains}
+```
+
+The slots follow [`schemas/architecture`](architecture.md#why-these-slots)'s
+reasons: the contract is typed blocks in the slot each belongs to, every
+requirement is covered by a check, an `Operation:` section explains one
+requirement and states no rule, and a slot out of order is reported.
 
 ---
 

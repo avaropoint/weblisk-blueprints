@@ -1,3 +1,9 @@
+---
+family: schemas/family@1
+version: 1.1.0
+noun: kinds
+capabilities: [author, versioned]
+---
 # Schema: Kinds
 
 What sorts of thing the platform can talk about, what each one drives, and which
@@ -9,6 +15,14 @@ moved the specification out of the blueprints — see
 [`schemas/common`](common.md#adoption) for the same argument about adoption.
 
 ---
+
+## As a declaration
+
+This file is a declaration of the family
+[`schemas/family`](family.md) with no `kind`: it declares no file family,
+because kinds are data a tool reads and no file is written to them. Its header
+gives it a version, so a tool that reads it can say which revision of the
+kinds it ran on. The tables below stay where Studio and the CLI read them.
 
 ## Why this exists
 
