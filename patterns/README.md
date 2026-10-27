@@ -44,6 +44,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [privacy.md](privacy.md) | Consent, masking, anonymization, minimization, erasure cascade |
 | [governance.md](governance.md) | Compliance profiles, evidence collection, governance directives |
 | [content-identity.md](content-identity.md) | Content-addressed versions — digest as join key, derived staleness |
+| [namespace.md](namespace.md) | Namespace registry — first-come signed claims, two-sided transfers, tombstones, catalog releases |
 | [migration.md](migration.md) | Migration governance — plans, dry runs, blast radius, integrity verification |
 
 ## Infrastructure

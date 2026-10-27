@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -551,6 +551,10 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 | `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
 | `weblisk/directory/v1` | An orchestrator, by its signing key, over the service directory it pushes and serves | [`protocol/spec`](spec.md#post-v1services) |
+| `weblisk/namespace-claim/v1` | A person's identity, claiming a namespace at one registry | [`patterns/namespace`](../patterns/namespace.md#claim) |
+| `weblisk/namespace-grant/v1` | A namespace's holder, letting another identity publish under it or withdrawing that | [`patterns/namespace`](../patterns/namespace.md#grant) |
+| `weblisk/namespace-transfer/v1` | A namespace's outgoing and incoming holders, each over a transfer or rotation; the outgoing holder alone over a retirement | [`patterns/namespace`](../patterns/namespace.md#transfer) |
+| `weblisk/catalog-release/v1` | A namespace's holder or `publish` grantee, over the index of one release | [`patterns/namespace`](../patterns/namespace.md#catalog-release) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
@@ -568,8 +572,10 @@ every build receives it as test data
 ([`architecture/generation`](../architecture/generation.md#published-test-vectors)).
 It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
 `weblisk/step-up/v1`, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
-`weblisk/log-succession/v1`, `weblisk/content-change/v1` and
-`weblisk/directory/v1`. None is published
+`weblisk/log-succession/v1`, `weblisk/content-change/v1`,
+`weblisk/directory/v1`, `weblisk/namespace-claim/v1`,
+`weblisk/namespace-grant/v1`, `weblisk/namespace-transfer/v1` and
+`weblisk/catalog-release/v1`. None is published
 yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
 implementation may yet sign under either.
 

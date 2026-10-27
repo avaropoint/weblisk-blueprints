@@ -1,7 +1,9 @@
 #!/bin/sh
 # Runs the corpus's checks, each with the control that proves it reaches what
 # it claims to. Exits 0 only when every check passes and every control fails.
-# Needs python3 with PyYAML, and OpenSSL 3.5 or later (as $OPENSSL or on PATH).
+# Needs python3 with PyYAML, and OpenSSL 3.5 or later (as $OPENSSL or on PATH);
+# the circl and noble legs of the statement vectors also need Go and node with
+# the pinned noble (checks/ml-dsa).
 cd "$(dirname "$0")/.." || exit 2
 # retired.py imports ids.py; leave no bytecode in the corpus.
 export PYTHONDONTWRITEBYTECODE=1
@@ -480,5 +482,188 @@ else
 	echo "ok   mapping-coverage control: four UNFILLED classes fail the count assertion"
 fi
 
+# Every fixed-form statement vector verifies with three ML-DSA
+# implementations outside every Weblisk tool: OpenSSL (statements.py), circl
+# (ml-dsa/main.go, which also makes both vector files again and must write
+# them byte for byte) and @noble/post-quantum (ml-dsa/noble.mjs). In each, one
+# byte changed in one vector's message must fail exactly that vector, and one
+# byte changed in every vector's message must fail every one. statements.py
+# also holds every registered prefix to having vectors or being named as
+# having none yet. OpenSSL is not optional: a leg that cannot run fails, as
+# every check here does. circl and noble are the exception, and only for want
+# of the tool: with no go on PATH, or no pinned noble installed, the leg says
+# NOT RUN, never ok, and REQUIRE_ALL_VERIFIERS=1 makes that a failure. A go
+# that is there and cannot build the generator, from a compile error or a
+# module cache without circl, is a failure, never NOT RUN.
+nvec=$(python3 -c 'import json; print(len(json.load(open("vectors/fixed-form-statements.json"))["vectors"]))')
+notrun=0
+built=0
+if command -v go >/dev/null 2>&1; then
+	if (cd checks/ml-dsa && GOPROXY=off GOFLAGS=-mod=readonly go build -o "$tmp/ml-dsa" .) >"$tmp/circl-build" 2>&1; then
+		built=1
+	else
+		echo "FAIL statements (circl): go is on PATH and the generator does not build"
+		sed 's/^/     /' "$tmp/circl-build"
+		fails=$((fails + 1))
+	fi
+fi
+for leg in openssl circl noble; do
+	case $leg in
+	openssl) set -- python3 checks/statements.py ;;
+	circl) set -- "$tmp/ml-dsa" --root . check ;;
+	noble) set -- node checks/ml-dsa/noble.mjs ;;
+	esac
+	why=
+	if [ "$leg" = circl ]; then
+		if ! command -v go >/dev/null 2>&1; then why="no go on PATH"; elif [ "$built" = 0 ]; then continue; fi
+	elif [ "$leg" = noble ]; then
+		if ! command -v node >/dev/null 2>&1; then
+			why="no node on PATH"
+		elif ! "$@" >"$tmp/out" 2>&1 && grep -q '^noble: not run: ' "$tmp/out"; then
+			why=$(head -1 "$tmp/out")
+		fi
+	fi
+	if [ -n "$why" ]; then
+		echo "NOT RUN statements ($leg): $why"
+		notrun=$((notrun + 1))
+		[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
+		continue
+	fi
+	expect 0 "statements ($leg): every vector verifies" "$@"
+	expect 1 "statements control ($leg): one byte changed in namespace-claim-1 fails" "$@" --flip namespace-claim-1
+	if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^namespace-claim-1: .* does not verify' "$tmp/out"; then
+		echo "ok   statements control ($leg): exactly one finding, namespace-claim-1"
+	else
+		echo "FAIL statements control ($leg): want exactly one finding, namespace-claim-1"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+	expect 1 "statements control ($leg): one byte changed in every vector fails" "$@" --flip all
+	got=$(grep ': .* does not verify' "$tmp/out" | cut -d: -f1 | sort -u | wc -l | tr -d ' ')
+	if [ "$got" -eq "$nvec" ] && [ "$(wc -l <"$tmp/out")" -eq "$nvec" ]; then
+		echo "ok   statements control ($leg): all $nvec vectors reported"
+	else
+		echo "FAIL statements control ($leg): $got of $nvec vectors reported"
+		fails=$((fails + 1))
+	fi
+done
+
+# circl's leg also makes the files again: a copy of the vectors as a generator
+# without the namespace statements would write them must be reported as not
+# what a rerun writes.
+if [ -x "$tmp/ml-dsa" ]; then
+	mkdir -p "$tmp/old/vectors" && cp vectors/namespace-registry.json "$tmp/old/vectors/"
+	python3 - "$tmp/old/vectors/fixed-form-statements.json" <<'PY'
+import json, sys
+d = json.load(open("vectors/fixed-form-statements.json", encoding="utf-8"))
+d["vectors"] = [v for v in d["vectors"] if not v["prefix"].startswith(("weblisk/namespace-", "weblisk/catalog-release/"))]
+d["keys"] = [k for k in d["keys"] if not k["name"].startswith(("holder-", "service"))]
+open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+PY
+	expect 1 "statements control (circl): vectors without the namespace statements are not what gen writes" "$tmp/ml-dsa" --root "$tmp/old" check
+	grep -qx 'vectors/fixed-form-statements.json: a rerun of gen writes other bytes' "$tmp/out" || { echo "FAIL statements control (circl): the shortened file was not what was reported"; fails=$((fails + 1)); }
+fi
+
+# The namespace registry's rules over its vectors; a registry that accepts
+# confusable names, one that accepts a one-sided transfer, one that accepts a
+# rotation to another identity's key, one that holds no release to the one
+# before it, and a verifier that accepts a release its registry's log does not
+# hold, must each be reported at exactly the steps the vectors refuse for that
+# reason.
+expect 0 "namespace-registry: every step gets its stated verdict" python3 checks/namespace-registry.py
+for v in accept-confusables:NAMESPACE_CONFUSABLE accept-one-sided:NAMESPACE_TRANSFER_ONE_SIDED rotation-any-identity:NAMESPACE_ROTATION_OTHER_IDENTITY release-unchained:NAMESPACE_RELEASE_BROKEN release-unanchored:NAMESPACE_RELEASE_UNRECORDED; do
+	variant=${v%%:*} code=${v#*:}
+	# expect() sets $want, so the count has a name of its own.
+	steps=$(python3 -c 'import json, sys; print(sum(s["expect"] == sys.argv[1] for q in json.load(open("vectors/namespace-registry.json"))["sequences"] for s in q["steps"]))' "$code")
+	expect 1 "namespace-registry control: a registry that does $variant fails" python3 checks/namespace-registry.py --variant "$variant"
+	got=$(grep -c " step [0-9]*: got .*, want $code\$" "$tmp/out")
+	if [ "$steps" -gt 0 ] && [ "$got" -eq "$steps" ]; then
+		echo "ok   namespace-registry control: all $steps $code steps reported"
+	else
+		echo "FAIL namespace-registry control: $got of $steps $code steps reported"
+		fails=$((fails + 1))
+	fi
+done
+
+# A fixed route segment where {namespace} sits collides with a claimable name:
+# a copy of the pattern serving its log at /v1/namespaces/log must report
+# exactly that route.
+sed 's|/v1/namespace-log |/v1/namespaces/log |' patterns/namespace.md >"$tmp/namespace.md"
+expect 1 "namespace-registry control: a route that is also a claimable name fails" python3 checks/namespace-registry.py --pattern "$tmp/namespace.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/namespace.md: /v1/namespaces/log is also /v1/namespaces/{namespace} for the claimable name 'log'$" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the log route"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the log route"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# A pattern requires nothing above its layer (D11): a copy of the pattern
+# that requires architecture/storage again must report exactly that edge.
+sed 's|^requires: \[protocol/types, |requires: [protocol/types, architecture/storage, |' patterns/namespace.md >"$tmp/namespace.md"
+expect 1 "namespace-registry control: a pattern that requires an architecture blueprint fails" python3 checks/namespace-registry.py --pattern "$tmp/namespace.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/namespace.md: requires architecture/storage, a blueprint above the pattern layer" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the architecture/storage edge"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the architecture/storage edge"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Four more of the rules broken, each reported only in the sequence that
+# exercises it, at its first bite: a registry that lets a retired name be
+# claimed again, at the first re-claim; one whose rotation drops the grants, at
+# the first act a kept grant allows; one that judges a release at the time its
+# signer wrote rather than at its own clock, at the release the holder's
+# rotated-out key dates back into its own time; and one that lets a revoked
+# grantee release, at that release.
+for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMESPACE_RETIRED" \
+	"rotation-drops-grants:rotation-keeps-the-binding:step 6: got NAMESPACE_NOT_PUBLISHER, want accepted" \
+	"release-signer-time:release-is-recorded:step 5: got accepted, want NAMESPACE_NOT_PUBLISHER" \
+	"release-ignores-revocation:release-authority:step 12: got accepted, want NAMESPACE_IDENTITY_UNKNOWN"; do
+	# variant:sequence[+other sequences it may also reach]:first bite
+	variant=${v%%:*} rest=${v#*:}
+	seqs=${rest%%:*} seq=${seqs%%+*} line="$seq ${rest#*:}"
+	expect 1 "namespace-registry control: a registry that does $variant fails" python3 checks/namespace-registry.py --variant "$variant"
+	if grep -qxF "$line" "$tmp/out" && [ "$(grep -Evc "^($(echo "$seqs" | tr + '|')) " "$tmp/out")" -eq 0 ]; then
+		echo "ok   namespace-registry control: $variant is reported in $seqs alone, $seq ${rest#*:} among it"
+	else
+		echo "FAIL namespace-registry control: want '$line', and nothing outside $seqs"
+		sed 's/^/     /' "$tmp/out"
+		fails=$((fails + 1))
+	fi
+done
+
+# A holder whose identity the hub revoked signs nothing more: a registry that
+# lets the revoked holder grant, transfer, rotate or retire must be reported
+# at exactly those four steps of holder-revoked, and nowhere else.
+expect 1 "namespace-registry control: a registry that does holder-ignores-revocation fails" python3 checks/namespace-registry.py --variant holder-ignores-revocation
+if [ "$(grep -c '^holder-revoked step [3456]: got ' "$tmp/out")" -eq 4 ] && [ "$(wc -l <"$tmp/out")" -eq 4 ]; then
+	echo "ok   namespace-registry control: holder-ignores-revocation is reported at the revoked holder's grant, transfer, rotation and retirement alone"
+else
+	echo "FAIL namespace-registry control: want holder-revoked steps 3 to 6, and nothing else"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# The place and issuer codes the vectors use are the corpus's own: a copy of
+# the vectors adding a place code no standard's applies_in names must report
+# exactly that code.
+python3 - "$tmp/registry.json" <<'PY'
+import json, sys
+d = json.load(open("vectors/namespace-registry.json", encoding="utf-8"))
+d["never_claimable"]["place_codes"].append("zz")
+open(sys.argv[1], "w", encoding="utf-8").write(json.dumps(d, indent=2, ensure_ascii=False) + "\n")
+PY
+expect 1 "namespace-registry control: a place code no standard names fails" python3 checks/namespace-registry.py --vectors "$tmp/registry.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^never_claimable: place code 'zz' is in no standard's applies_in$" "$tmp/out"; then
+	echo "ok   namespace-registry control: exactly one finding, the place code"
+else
+	echo "FAIL namespace-registry control: want exactly one finding, the place code"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+[ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

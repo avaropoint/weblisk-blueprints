@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 2.0.0
+version: 3.0.0
 port: 9770
-requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, architecture/hub, architecture/agent, architecture/orchestrator]
+requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, patterns/namespace, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
 depends_on: []
 platform: any
@@ -180,8 +180,22 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/hub
+  - blueprint: patterns/namespace
     version: ">=1.0.0 <2.0.0"
+    bindings:
+      endpoints:
+        # Index listing step 3 reads a namespace's state at the public registry
+        - path: /v1/namespaces/{namespace}
+          methods: [GET]
+          response_fields: [state, holder, grants]
+      behaviors:
+        - name: namespace-registry
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/hub
+    version: ">=2.0.0 <3.0.0"
     bindings:
       types:
         - name: ListingEntry
@@ -702,7 +716,7 @@ types:
     fields:
       listing_id:
         type: string
-        description: Unique listing identifier (provider:capability format)
+        description: Unique listing identifier, `listing://<namespace>/<name>` (architecture/hub, Listing Fields)
       provider:
         type: string
         description: Provider hub name
@@ -1949,20 +1963,27 @@ Index a published listing after signature verification.
 ```
 1. Verify ML-DSA-65 signature over listing content
    If verification fails → reject, log, emit hub.verification.failure
-2. Validate listing schema — required fields present, version is valid semver
-3. Check for duplicates:
+2. Validate listing schema — required fields present, version is valid semver,
+   listing_id is listing://<namespace>/<name>
+   If not → reject SCHEMA_INVALID
+3. Read <namespace>'s state from the public namespace registry
+   (GET /v1/namespaces/{namespace}, patterns/namespace): the signing key holds
+   it, or was granted publish under it, there
+   (architecture/hub, The public namespace registry)
+   If not → reject NAMESPACE_NOT_PUBLISHER, log
+4. Check for duplicates:
    If listing_id exists with same version → update timestamps
    If listing_id exists with different version → version update flow
    If new → insert
-4. Write to listing_index store
-5. Update provider_registry with last_seen timestamp
-6. Invalidate search cache for affected facets
-7. Start tracking metrics for new listings
+5. Write to listing_index store
+6. Update provider_registry with last_seen timestamp
+7. Invalidate search cache for affected facets
+8. Start tracking metrics for new listings
 ```
 
 **Output:** `{listing_id: string, status: "indexed" | "updated" | "rejected", reason?: string}`
 
-**Errors:** `INVALID_SIGNATURE` (permanent), `SCHEMA_INVALID` (permanent), `STORAGE_ERROR` (transient)
+**Errors:** `INVALID_SIGNATURE` (permanent), `SCHEMA_INVALID` (permanent), `NAMESPACE_NOT_PUBLISHER` (permanent), `STORAGE_ERROR` (transient)
 
 ---
 
@@ -3076,6 +3097,9 @@ errors:
     - code: SCHEMA_INVALID
       description: Listing schema validation failed
       subsystem: indexing
+    - code: NAMESPACE_NOT_PUBLISHER
+      description: The listing's signer neither holds its namespace nor was granted publish under it at the public namespace registry (patterns/namespace)
+      subsystem: indexing
     - code: KEY_REVOKED
       description: Provider key is on revocation list
       subsystem: verification
@@ -3467,21 +3491,58 @@ tests:
   - name: Index a valid listing
     action: index-listing
     input:
-      listing_id: "avaropoint:seo-audit"
-      provider: "avaropoint-prod"
+      listing_id: "listing://example/seo-audit"
+      provider: "example-prod"
       capability: {domain: "seo", action: "audit", version: "1.2.0"}
       tier: pro
       version: "1.2.0"
       signature: "<valid-ml-dsa-65-signature>"
       public_key: "<provider-public-key>"
     expected:
-      listing_id: "avaropoint:seo-audit"
+      listing_id: "listing://example/seo-audit"
       status: indexed
     validates:
+      - The signing key holds example at the public namespace registry
       - IndexedListing created in listing_index
       - hub.index.updated event emitted
       - Search cache invalidated
       - Metrics tracking started
+
+  - name: Refuse a listing under a namespace its signer does not hold
+    action: index-listing
+    condition: At the public namespace registry, example is held by another identity, which granted this provider's key nothing
+    input:
+      listing_id: "listing://example/seo-audit"
+      provider: "test-prod"
+      capability: {domain: "seo", action: "audit", version: "1.2.0"}
+      tier: pro
+      version: "1.2.0"
+      signature: "<valid-ml-dsa-65-signature>"
+      public_key: "<provider-public-key>"
+    expected:
+      listing_id: "listing://example/seo-audit"
+      status: rejected
+      reason: NAMESPACE_NOT_PUBLISHER
+    validates:
+      - Nothing written to listing_index
+      - The refusal is logged
+
+  - name: Refuse a listing id in a retired form
+    action: index-listing
+    input:
+      listing_id: "example:seo-audit"
+      provider: "example-prod"
+      capability: {domain: "seo", action: "audit", version: "1.2.0"}
+      tier: pro
+      version: "1.2.0"
+      signature: "<valid-ml-dsa-65-signature>"
+      public_key: "<provider-public-key>"
+    expected:
+      listing_id: "example:seo-audit"
+      status: rejected
+      reason: SCHEMA_INVALID
+    validates:
+      - Nothing written to listing_index
 ```
 
 ### Search — Query with Facets
@@ -3662,6 +3723,7 @@ scaling:
 
 - [ ] Agent responds to POST /v1/describe with valid AgentManifest
 - [ ] Listings are signature-verified before indexing (no exceptions)
+- [ ] A listing is indexed only under a namespace its signer holds, or was granted publish under, at the public namespace registry; otherwise NAMESPACE_NOT_PUBLISHER
 - [ ] Invalid signatures are rejected and logged
 - [ ] Crawl discovers and indexes all provider listings
 - [ ] Stale listings are pruned after grace period
