@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 4.1.1
+version: 4.2.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -369,6 +369,7 @@ signed egress record it owes, and holds every remote until then. See
 | PUT | /v1/content/entry | Write | yes | Write one entry; `if_match` required |
 | DELETE | /v1/content/entry | Remove | yes | Remove one entry and retire its identity |
 | GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
+| GET | /v1/content/walk | Walk | yes | One entry's walk: every part of its bytes and the findings, against the document family it is written to. See [Walking an Entry](#walking-an-entry) |
 | GET | /v1/content/repositories | Repositories | yes | Repositories in scope, with custody and ceiling |
 | POST | /v1/content/repositories | DeclareRepository | yes | Bring a store under governance — establish, which creates an empty one, or adopt one that already holds bytes |
 | POST | /v1/content/repositories/{repository}/remotes | DeclareRemote | yes | Declare a remote of a repository. Without `if_match`, returns the census of what would leave and declares nothing |
@@ -422,6 +423,12 @@ interfaces:
     - path: /v1/content/stat
       methods: [GET]
       description: Identity and metadata for one entry without transferring bytes
+      served_by: content-service
+
+    - path: /v1/content/walk
+      methods: [GET]
+      description: One entry's walk projection, against the document family
+        the tenant holds for it, under the entry's own read check
       served_by: content-service
 
     - path: /v1/content/repositories
@@ -695,6 +702,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PATH_REFUSED` | validation | Traversal segment or escaping symlink — including a placement locator that is absolute, carries a scheme or an authority, or climbs out of its backend's root | Refuse the request as written. Do not normalise and proceed |
 | `CONTENT_RESERVED_PATH` | policy | A segment of the path, or of a placement's locator, is a reserved name — `.weblisk` or `.git` — as any filesystem could resolve it, or the backend's blueprint reserves the path — including a path in anything a remote would receive. See [Reserved Paths](#reserved-paths) | Refuse, for every operation including list, stat, propose, declare and declaring a remote. Installation state and control state are never content, and never leave: a version holding one is never sent to a remote already declared, and holds it ([Remote Send Flow](#remote-send-flow)) |
 | `CONTENT_UNREADABLE` | io | Bytes cannot be read | Identity is `unknown`, never `current` and never `stale` |
+| `CONTENT_FAMILY_UNRESOLVED` | validation | A walk of an entry no document family resolves for: none the tenant holds is named by the entry's `family:` or `structure:`, or reached from its kind ([Walking an Entry](#walking-an-entry)) | Refuse the walk, naming what was tried. The entry is not checked, and a client says so; it is never reported as complete |
 | `CONTENT_REPOSITORY_UNKNOWN` | validation | No repository of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_DISPOSITION_REQUIRED` | validation | A declaration arrived without a disposition | Refuse. A declaration that does not say whether it expects bytes is a blind adoption |
 | `CONTENT_REPOSITORY_EXISTS` | conflict | The id is already declared at that `scope_path`, or is reserved there by an unfinished establish whose arguments differ from this request's; or the declaration names itself a records repository and the `scope_path` has one | Refuse, naming the declared repository's placement. Never re-declare in place. An identical retry against an unfinished establish is a resumption, not this |
@@ -807,6 +815,20 @@ code here is enough, because a client does the same thing for both.
    appended to the change log as an `observe` entry, and does **not** fail
    the read
 6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged
+
+### Walk Flow
+1. Caller requests a walk, naming a repository and a path (`WalkQuery`)
+2. Steps 2 to 5 of the [Read Flow](#read-flow) run unchanged: the walk reads
+   what a read would, under the same `read` check, or is refused as the read
+   would be
+3. The document family is resolved as
+   [Walking an Entry](#walking-an-entry) says, from the families the tenant
+   holds; none resolving is `CONTENT_FAMILY_UNRESOLVED`
+4. The bytes are walked against that family as
+   [`schemas/family`](../schemas/family.md) says. Nothing is written: not the
+   entry, not a uid, not a log line
+5. An `EntryWalk` is returned: the entry's `ContentIdentity`, the family's
+   ref and digest, and the projection
 
 ### Write Flow
 1. Caller submits an `EntryWrite`: bytes, a declared scope where one applies
@@ -1072,7 +1094,7 @@ Its routes are guarded by the `content:` family that document declares:
 
 | Capability | Guards |
 |---|---|
-| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log` |
+| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/walk`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log` |
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
 | `content:decide` | `POST /v1/content/proposals/{id}/decision`; `POST /v1/content/repositories` carrying `scope_floor` or `self_decision_ceiling` — required **in addition to** `content:declare` ([Declaration Flow](#declaration-flow) step 4). Person only |
@@ -2086,6 +2108,48 @@ control", and naming the system would be naming a product.
 > and every configured repository, cannot be given one. Naming an amending verb needs the
 > same care as retiring, because an amendment that lowered separation would
 > weaken a control over bytes already written under the stronger one.
+
+---
+
+## Walking an Entry
+
+A client never parses a tenant's document to learn its structure, and never
+walks a tenant's files on its own host. It asks this service: `GET
+/v1/content/walk` returns the entry's **walk projection**, the shape
+[`schemas/family`](../schemas/family.md#the-projection) defines, in which
+every byte of the entry belongs to exactly one part and each part carries its
+slot, use, send and digest, with the findings a walk gives. A client shows a
+missing section, sends a model only the parts a task selects, or reports that
+the check did not run, from the projection alone.
+
+**Against the tenant's own family.** The document families a tenant's
+documents are written to are published in
+[`documents/families/`](../documents/families/README.md) and delivered into
+the tenant, where it holds its own copy, edits it as its own act, and may add
+or remove one. A walk is against the tenant's copy, never the published one
+and never a client's: which family an entry resolves to is
+[`documents/families`](../documents/families/README.md#which-family-a-document-is-walked-against)'
+rule, read against the families this tenant holds. `EntryWalk.family` names
+the family walked and the digest of the declaration as held, so a client can
+tell two walks against different versions of a family apart. An entry no
+family resolves for is refused with `CONTENT_FAMILY_UNRESOLVED`, and is
+reported as not checked, never as complete.
+
+**A walk is a read.** It is guarded by `content:read`, takes the entry's own
+read check, and is refused wherever a read would be. It writes nothing:
+grammar 1's walker never rewrites a byte
+([`spans-partition`](../schemas/family.md#requirements)), so the projection's
+`version_hash` is the entry's own digest, and walking an entry changes no
+digest and no recorded scope. A walk of the same bytes against the same
+declaration gives the same projection, byte for byte, so a client may keep
+one by `version_hash` and the family's digest and ask again only when either
+moves.
+
+**Its parts are not separately readable.** The projection carries each
+part's span and digest, not its bytes; a client that needs a part's text
+reads the entry and takes the span. A part therefore has exactly the
+protection of the entry it is in, and no route exposes less of an entry than
+a read does.
 
 ---
 
@@ -4060,6 +4124,41 @@ types:
         description: authored when this service wrote it; external when another
           authority did; unknown when it cannot be established
 
+  WalkQuery:
+    description: The query of GET /v1/content/walk
+    fields:
+      repository:
+        type: string
+        required: true
+      path:
+        type: string
+        required: true
+        description: The entry to walk, as a read names it
+
+  EntryWalk:
+    description: The response of GET /v1/content/walk. See Walking an Entry
+    fields:
+      identity:
+        type: ContentIdentity
+        required: true
+        description: The entry walked. Its digest is the projection's
+          version_hash
+      family:
+        type: string
+        required: true
+        description: The family walked against, as <ref>@<major>, the family
+          ref schemas/family's projection carries
+      family_digest:
+        type: string
+        required: true
+        description: sha256:<hex> of the family's declaration as the tenant
+          holds it
+      projection:
+        type: object
+        required: true
+        description: The walk projection, schemas/family's projection. Its
+          parts carry spans and digests, never bytes
+
   ContentChange:
     description: A change this service made, recorded at the time it was made
     fields:
@@ -5279,6 +5378,8 @@ security:
 - [ ] A write whose `if_match` differs from the stored digest is refused with both digests returned, and the stored bytes are unchanged
 - [ ] The digest recorded after a write equals the digest of the bytes read back from the backend
 - [ ] A full read pass over a corpus leaves every entry's digest unchanged
+- [ ] `GET /v1/content/walk` of a policy the tenant's `policy` family covers returns a projection whose spans partition the entry, whose `version_hash` is the entry's digest, and whose findings report each missing required section; walking it again returns the same projection, and the entry's digest and the change log are unchanged
+- [ ] A walk of an entry the caller may not read is refused as the read is; a walk of an entry whose `structure:` names no family the tenant holds, and which no kind resolves, is refused with `CONTENT_FAMILY_UNRESOLVED`
 - [ ] A repository with no declared custody reports `custody: opaque` and a ceiling of `internal`
 - [ ] An attestation declared in configuration but not demonstrated at verification resolves to `false`, and the ceiling reflects the demonstrated set
 - [ ] A write declaring a scope above the repository ceiling is refused with `CONTENT_CUSTODY_CEILING_EXCEEDED` naming both levels, and the scope is not downgraded
