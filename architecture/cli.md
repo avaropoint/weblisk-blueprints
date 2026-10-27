@@ -463,8 +463,9 @@ them, and [Renamed commands](#renamed-commands) says what each becomes.
 
 `weblisk change plan --adopt|--upgrade|--remove <ref>… [--strict] [--resolve-only] [--json]`,
 then `change list`, `show`, `approve`, `reject`, `apply`, `verify` and
-`revert`, each `tenant-api` against [`/v1/admin/changes`](admin.md#changes-and-builds).
-What a change holds is [`schemas/change`](../schemas/change.md)'s; how it is
+`revert`, against [`/v1/admin/changes`](admin.md#changes-and-builds). Where
+each runs, and so where its act happens, is [`schemas/change`](../schemas/change.md#executors)'s
+table, as is what a change holds; how it is
 resolved is [`architecture/generation`](generation.md#resolving-a-request-of-many-roots)'s.
 `change apply` runs in the tenant, never on the client (D26). A plan with no
 entries is rendered as a fault, never as clean.
@@ -488,11 +489,18 @@ The rules of D25, which the change service enforces and a client only renders:
 
 ### The Command Surface
 
-Every command this file specifies today, each with its executor. `checks/command-surface.py`
+Every command the sections after this one specify, each with its executor:
+today's commands, from before the grammar. The grammar's own commands (the
+[Verbs](#verbs) table and the [change verbs](#changes)) are not rows here, so
+the check below does not count them as specified and not built;
+`v2-cli-cmdtree` builds them, and its `weblisk commands --json` is where they
+are first listed. A renamed command is a row under the name it has today
+([Renamed commands](#renamed-commands)): `identity attest` is the row
+`operator attest`. `checks/command-surface.py`
 in the corpus holds this block against the commands the CLI builds, and reports
 each one specified and not built, and each built and not specified, so the
-drift between the two is a measured list rather than a surprise. Lane
-`v2-cli-cmdtree` replaces the list with `weblisk commands --json`.
+drift between the two is a measured list rather than a surprise. The list is
+replaced by `weblisk commands --json` when that command is built.
 
 ```yaml
 command_surface:

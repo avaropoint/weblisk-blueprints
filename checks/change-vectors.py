@@ -14,9 +14,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ids import parse  # the id grammar of schemas/names.md
 
 HEX32, DIGEST = re.compile(r"^[0-9a-f]{32}$"), re.compile(r"^sha256:[0-9a-f]{64}$")
-VERDICTS = {"generate": {"absent", "non-compliant"}, "regenerate": {"reached-by-change"}, "review": {"reached-by-change"},
-            "redeploy": {"reached-by-change"}, "keep": {"unchanged"}, "assessed-unchanged": {"reached-by-change"},
-            "refused": {"edited", "unowned", "opt-in", "downgrade"}, "blocked": {"version-bump"}, "halt": {"removed"}}
+# An ML-DSA-65 signature is 3309 bytes: 4412 characters of unpadded base64url.
+SIGNATURE = re.compile(r"^[A-Za-z0-9_-]{4412}$")
+
+
+def verdicts():
+    """The Verdicts table of schemas/change.md, read, never copied: each
+    verdict and the reasons its row allows, up to the row's first '('."""
+    text = open(os.path.join(root, "schemas", "change.md"), encoding="utf-8").read()
+    table = re.search(r"^\| `verdict` \| `because` may be \|\n\|[-|]+\|\n((?:\|.*\n)+)", text, re.M).group(1)
+    out = {}
+    for row in table.splitlines():
+        verdict, because = [c.strip() for c in row.strip("|").split("|")]
+        out[verdict.strip("`")] = set(re.findall(r"`([^`]+)`", because.split("(")[0]))
+    return out
 
 
 def declared(schema):
@@ -33,6 +44,10 @@ def ref_ok(s, versioned):
     return r is not None and (versioned or r["version"] is None)
 
 
+def signed(d, keys):
+    return all(d.get(k) for k in keys) and SIGNATURE.match(str(d.get("signature", ""))) and DIGEST.match(str(d.get("plan_digest", "")))
+
+
 def change_broken(c):
     b, st, a = set(), c.get("state"), c.get("approval")
     if not HEX32.match(str(c.get("id", ""))): b.add("change-id")
@@ -46,11 +61,15 @@ def change_broken(c):
     if not plan: b.add("plan-not-empty")
     for e in plan:
         if ("unit" in e) == ("output" in e): b.add("plan-target")
-        if e.get("because") not in VERDICTS.get(e.get("verdict"), set()) and e.get("because") != "added-by-dependency": b.add("plan-verdict")
+        if e.get("because") not in VERDICTS.get(e.get("verdict"), set()): b.add("plan-verdict")
         if e.get("phase") == "F" and "output" not in e: b.add("plan-phase-f")
-    if (a is not None) != (st in ("approved", "applied", "verified", "failed")) and st != "rejected": b.add("approval-present")
+    if (a is not None) != (st in ("approved", "applied", "verified", "failed")) and st != "superseded": b.add("approval-present")
+    pos = c.get("approver_position")
+    if a is not None and (a.get("position") != pos if pos is not None else "position" in a): b.add("approval-position")
+    r = c.get("rejection")
+    if (r is not None) != (st == "rejected") or r is not None and not signed(r, ("by", "reason", "at")): b.add("rejection-present")
     if a is not None:
-        if not all(a.get(k) for k in ("by", "signature", "at")) or not DIGEST.match(str(a.get("plan_digest", ""))): b.add("approval-signed")
+        if not signed(a, ("by", "at")): b.add("approval-signed")
         if a.get("by") == c.get("requested_by") and a.get("development") is not True: b.add("approval-self")
         found = c.get("resolution", {}).get("conflicts", {}).get("found", [])
         if any(f["code"] != "C2" or c.get("strict", True) for f in found): b.add("approval-conflicts")
@@ -77,6 +96,7 @@ def lock_broken(l):
 d = os.path.join(root, "vectors", "change")
 exp = json.load(open(os.path.join(d, "expected.json"), encoding="utf-8"))["fixtures"]
 rules = {"change": declared("change"), "build-lock": declared("build-lock")}
+VERDICTS = verdicts()
 faults, listed = [], [e["file"] for e in exp]
 for f in sorted(set(os.listdir(d)) - {"expected.json", "README.md"}):
     if listed.count(f) != 1:

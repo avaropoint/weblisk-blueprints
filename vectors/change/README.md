@@ -7,7 +7,8 @@ against, whether it is valid, and for an invalid one the one rule it breaks;
 every other rule holds in every file. `invalid-lock-roots.yaml` is the lock that
 records roots, which only a run statement may.
 
-Identity ids, run ids and digests here are shapes, not real keys or files, and
+Identity ids, run ids, digests and signatures here are shapes, not real keys or
+files (a signature has an ML-DSA-65 signature's length and verifies nothing), and
 `example` is the namespace of the tenant they belong to.
 [`checks/change-vectors.py`](../../checks/change-vectors.py) is one
 implementation bound by these files; `weblisk validate` is to be the other

@@ -39,7 +39,7 @@ Each change verb's executor, and so where the act happens:
 |---|---|---|
 | `change plan` | `tenant-api` | the change service runs the CLI (`cli-in-tenant`) to resolve and plan, and writes the change |
 | `change list`, `change show` | `tenant-api` | reads changes |
-| `change approve`, `change reject` | `tenant-api` | records the person's signed decision at the change service, the owner of the request |
+| `change approve`, `change reject` | `tenant-api` | records the person's signed decision at the change service, the owner of the request, as the change's `approval` or `rejection` |
 | `change apply` | `tenant-api` | the change service runs the CLI on the tenant host, under the tenant's `generation` credential, with the tenant's model (D26) |
 | `change verify` | `tenant-api` | the change service runs the CLI's verification and records the result |
 | `change revert` | `tenant-api` | plans a new change of kind `revert` |
@@ -79,13 +79,20 @@ change:
       because: <reason>
       implements: [<requirement ref>]
       detail: <text>
+  approver_position: <position id> # a knowledge change: the position its spec names (schemas/position), set by the plan
   approval:                        # present from state approved on
     by: <identity id>
-    position: <position ref>       # a knowledge change: the position its spec names
+    position: <position id>        # equals approver_position, which the approver holds
     signature: <base64url ML-DSA-65 over the plan digest>
     plan_digest: sha256:<hex>
     at: <unix seconds>
     development: <bool>            # the tenant is flagged development
+  rejection:                       # state rejected only: the person's signed refusal
+    by: <identity id>
+    reason: <text>
+    signature: <base64url ML-DSA-65 over the plan digest>
+    plan_digest: sha256:<hex>
+    at: <unix seconds>
   applied_run: <run id>            # the run statement apply wrote
   verify: {result: pass | fail | repair, run: <run id>}
 ```
@@ -96,10 +103,26 @@ names.
 
 ### Verdicts
 
-One vocabulary, the rebuild decision's
+One vocabulary for every node a plan reaches. `verdict` is what will be done;
+`because` is why. For a generated file the verdict is the rebuild decision's
 ([`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt))
-with the dispositions resolution adds. `verdict` is what will be done;
-`because` is why.
+under these names, one per row of its table, so neither restates the other:
+
+| Rebuild decision row | Its action | `verdict` | `because` |
+|---|---|---|---|
+| 1, the file is absent | Generate | `generate` | `absent` |
+| 2, its digest differs | Refuse | `refused` | `edited` |
+| 3, it no longer declares or serves what its entry assigns | Generate | `generate` | `non-compliant` |
+| 4, a change touches what it is answerable for | Generate | `regenerate` | `reached-by-change` |
+| 5, a change reached it and touches nothing it is answerable for | Keep, reported as assessed | `assessed-unchanged` | `reached-by-change` |
+| 6, nothing changed | Keep | `keep` | `unchanged` |
+
+A node reached only through `generated_from`, never through `implements`, is
+one that row five covers. Resolution adds the rest: `review` and `redeploy`
+for reached nodes that are not generated files, the refusals `unowned`,
+`opt-in` and `downgrade`, and `blocked` and `halt` from `on_change`.
+[`checks/change-vectors.py`](../checks/change-vectors.py) reads the table
+below and nothing else.
 
 | `verdict` | `because` may be |
 |---|---|
@@ -108,13 +131,14 @@ with the dispositions resolution adds. `verdict` is what will be done;
 | `review` | `reached-by-change` (a node a person must look at, such as a document or a control) |
 | `redeploy` | `reached-by-change` |
 | `keep` | `unchanged` |
-| `assessed-unchanged` | `reached-by-change` (reached only through `generated_from`, never through `implements`) |
+| `assessed-unchanged` | `reached-by-change` (row five: the change touches nothing it is answerable for) |
 | `refused` | `edited`, `unowned`, `opt-in`, `downgrade` |
 | `blocked` | `version-bump` (a dependant's range excludes the new major; `detail` names it) |
 | `halt` | `removed` |
 
-A component a dependency pulled in carries `added-by-dependency` in `because`
-beside its verdict, and is built only on approval.
+A component a dependency pulled in is marked by its `build_set` entry's
+`added_by`, never in a plan entry's `because`, which keeps its verdict's own
+reason; it is built only on approval.
 
 ## Rules
 
@@ -141,15 +165,19 @@ rules:
   - id: plan-phase-f
     rule: an entry of phase F has an output, never a unit
   - id: approval-present
-    rule: approval is present in states approved, applied, verified and failed, and absent in planned
+    rule: approval is present in states approved, applied, verified and failed, absent in planned and rejected, and either in superseded, which a change reaches from planned or approved
   - id: approval-signed
-    rule: approval has by, signature, plan_digest and at
+    rule: approval has by, signature, plan_digest and at, and signature is the unpadded base64url of 3309 bytes, the length of an ML-DSA-65 signature (4412 characters). Whether it verifies is the change service's check, against the signer's key
   - id: approval-self
     rule: approval.by equals requested_by only when approval.development is true
+  - id: approval-position
+    rule: when approver_position is present, approval, if present, has position equal to it; position is never present without approver_position
+  - id: rejection-present
+    rule: rejection is present exactly in state rejected, and has by, reason, signature, plan_digest and at, with signature shaped as approval-signed says
   - id: approval-conflicts
     rule: a change is approved only when conflicts.found is empty, or holds only C2 conflicts and strict is false
   - id: applied-run
-    rule: applied_run is present in states applied, verified and failed
+    rule: applied_run is present exactly in states applied, verified and failed
 ```
 
 ## Reading one

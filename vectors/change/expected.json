@@ -33,6 +33,16 @@
       "valid": true
     },
     {
+      "file": "valid-knowledge-position.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-rejected.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
       "file": "invalid-empty-plan.json",
       "schema": "change",
       "valid": false,
@@ -73,6 +83,24 @@
       "schema": "change",
       "valid": false,
       "rule": "change-base"
+    },
+    {
+      "file": "invalid-knowledge-without-position.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "approval-position"
+    },
+    {
+      "file": "invalid-rejection-unrecorded.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "rejection-present"
+    },
+    {
+      "file": "invalid-signature-shape.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "approval-signed"
     },
     {
       "file": "valid-lock.yaml",

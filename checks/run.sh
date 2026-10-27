@@ -716,6 +716,19 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# The verdicts are read from change.md's Verdicts table, not copied into the
+# check: a copy of change.md without the regenerate row must report exactly
+# the fixture that uses it.
+mkdir -p "$tmp/cvd" && cp -R schemas vectors "$tmp/cvd/"
+grep -v '^| `regenerate` |' schemas/change.md >"$tmp/cvd/schemas/change.md"
+expect 1 "change-vectors control: a Verdicts table without regenerate fails" python3 checks/change-vectors.py --root "$tmp/cvd"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^valid-upgrade-mixed-verdicts.json: breaks \['plan-verdict'\]; expected nothing$" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the fixture that regenerates"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the fixture that regenerates"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 
 # cli.md's Command Surface against the commands CLI 7a75d54 builds
 # (checks/cli-verbs.json): the drift is exactly the measured list. A copy of

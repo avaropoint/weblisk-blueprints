@@ -631,8 +631,9 @@ fabric's relations, bounded by its one reach depth
 nobody binds reaches nothing, and a prose edit outside every contract marks
 nothing for review. Each reached node gets one verdict from
 [`schemas/change`](../schemas/change.md#verdicts); a node reached only through
-`generated_from`, never through `implements`, is `assessed-unchanged`, and an
-output a person edited is `refused`. The result is always a plan for a person
+`generated_from`, never through `implements`, touches nothing it is
+answerable for and is `assessed-unchanged` (row five of the rebuild decision
+above), and an output a person edited is `refused` (row two). The result is always a plan for a person
 to approve, never a regeneration.
 
 **A plan is bound to what it read.** It records the corpus revision, the lock's
