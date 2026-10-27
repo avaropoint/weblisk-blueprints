@@ -1,0 +1,17 @@
+lock: 1
+corpus: f2b61ba
+blueprints:
+  - ref: blueprint://weblisk/architecture/admin
+    version: 4.1.1
+    digest: sha256:abababababababababababababababababababababababababababababababab
+    source: weblisk
+    why: required by the admin gateway
+  - ref: blueprint://weblisk/protocol/types
+    version: 4.2.0
+    digest: sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd
+    source: weblisk
+mappings:
+  - ref: mapping://weblisk/languages/go:type-timestamp
+    version: 2.0.0
+    digest: sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef
+adopted: []

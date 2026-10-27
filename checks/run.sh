@@ -679,6 +679,44 @@ else
 	fails=$((fails + 1))
 fi
 
+# The change and lock fixtures get their expected results under the rules
+# schemas/change.md and schemas/build-lock.md declare, and a lock carrying
+# roots is among the invalid ones. A copy expecting that lock to be valid, and
+# a copy of change.md without the rule a fixture names, must each report
+# exactly that fixture.
+expect 0 "change-vectors: every fixture gets its expected result" python3 checks/change-vectors.py
+python3 -c 'import json,sys; e={f["file"]:f for f in json.load(open("vectors/change/expected.json"))["fixtures"]}["invalid-lock-roots.yaml"]; sys.exit(0 if (e["valid"],e["rule"])==(False,"lock-keys") else 1)' \
+	&& echo "ok   change-vectors: a lock carrying roots is invalid, by lock-keys" \
+	|| { echo "FAIL change-vectors: a lock carrying roots is not an invalid fixture"; fails=$((fails + 1)); }
+mkdir -p "$tmp/cv" && cp -R schemas vectors "$tmp/cv/"
+python3 - "$tmp/cv/vectors/change/expected.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for f in d["fixtures"]:
+    if f["file"] == "invalid-lock-roots.yaml":
+        f["valid"] = True
+        del f["rule"]
+json.dump(d, open(sys.argv[1], "w"), indent=2)
+PY2
+expect 1 "change-vectors control: a lock with roots expected valid fails" python3 checks/change-vectors.py --root "$tmp/cv"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^invalid-lock-roots.yaml: breaks \['lock-keys'\]; expected nothing$" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the lock with roots"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the lock with roots"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/cr" && cp -R schemas vectors "$tmp/cr/"
+grep -v -e '^  - id: approval-self$' -e '^    rule: approval.by equals requested_by' schemas/change.md >"$tmp/cr/schemas/change.md"
+expect 1 "change-vectors control: a fixture naming an undeclared rule fails" python3 checks/change-vectors.py --root "$tmp/cr"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^invalid-self-approval.json: names rule approval-self, which" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the self-approval fixture"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the self-approval fixture"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

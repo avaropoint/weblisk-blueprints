@@ -1,0 +1,61 @@
+{
+  "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+  "kind": "upgrade",
+  "request": [
+    "blueprint://weblisk/protocol/types@4.2.0"
+  ],
+  "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
+  "requested_at": 1793000000,
+  "strict": true,
+  "state": "planned",
+  "base": {
+    "corpus": "f2b61ba",
+    "lock": "sha256:abababababababababababababababababababababababababababababababab",
+    "fabric_tip": "unreported"
+  },
+  "shown_roots": [
+    "blueprint://weblisk/architecture/admin"
+  ],
+  "resolution": {
+    "build_set": [
+      {
+        "component": "component://example/admin"
+      }
+    ],
+    "lock_diff": [
+      {
+        "ref": "blueprint://weblisk/protocol/types",
+        "from": "4.1.0",
+        "to": "4.2.0"
+      }
+    ],
+    "conflicts": {
+      "found": [],
+      "introduced": [],
+      "cleared": []
+    }
+  },
+  "plan": [
+    {
+      "output": "types/approval.go",
+      "phase": "R",
+      "verdict": "regenerate",
+      "because": "reached-by-change",
+      "implements": []
+    },
+    {
+      "output": "admin/main.go",
+      "phase": "R",
+      "verdict": "assessed-unchanged",
+      "because": "reached-by-change",
+      "implements": []
+    },
+    {
+      "output": "admin/handlers.go",
+      "phase": "R",
+      "verdict": "refused",
+      "because": "edited",
+      "detail": "its digest differs from the one its run statement recorded"
+    }
+  ]
+}

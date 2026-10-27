@@ -1,0 +1,64 @@
+{
+  "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+  "kind": "adopt",
+  "request": [
+    "blueprint://weblisk/architecture/admin@4.1.1"
+  ],
+  "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
+  "requested_at": 1793000000,
+  "strict": false,
+  "state": "approved",
+  "base": {
+    "corpus": "f2b61ba",
+    "lock": "sha256:abababababababababababababababababababababababababababababababab",
+    "fabric_tip": "unreported"
+  },
+  "shown_roots": [
+    "blueprint://weblisk/architecture/admin"
+  ],
+  "resolution": {
+    "build_set": [
+      {
+        "component": "component://example/admin"
+      }
+    ],
+    "lock_diff": [
+      {
+        "ref": "blueprint://weblisk/architecture/admin",
+        "from": "absent",
+        "to": "4.1.1"
+      }
+    ],
+    "conflicts": {
+      "found": [
+        {
+          "code": "C2",
+          "refs": [
+            "blueprint://weblisk/architecture/admin"
+          ],
+          "detail": "served by two sources with different digests"
+        }
+      ],
+      "introduced": [],
+      "cleared": []
+    }
+  },
+  "plan": [
+    {
+      "output": "admin/main.go",
+      "phase": "F",
+      "verdict": "generate",
+      "because": "absent",
+      "implements": [
+        "requirement://weblisk/architecture/admin:listeners-disjoint"
+      ]
+    }
+  ],
+  "approval": {
+    "by": "1111aaaa2222bbbb3333cccc4444dddd",
+    "signature": "AAAAAAAAAAAAAAAA",
+    "plan_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+    "at": 1793000600,
+    "development": true
+  }
+}

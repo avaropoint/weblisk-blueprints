@@ -1,0 +1,116 @@
+{
+  "format": "Each entry names a fixture in this directory, the schema it is read against (schemas/change.md or schemas/build-lock.md), whether it is valid, and for an invalid one the one rule it breaks. Every other rule holds in every fixture.",
+  "proven_by": "v2-cli-validate",
+  "fixtures": [
+    {
+      "file": "valid-adopt-planned.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-approved.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-verified.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-upgrade-mixed-verdicts.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-revert.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "valid-development-self-approval.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "invalid-empty-plan.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "plan-not-empty"
+    },
+    {
+      "file": "invalid-kind.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "change-kind"
+    },
+    {
+      "file": "invalid-request-path.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "change-request"
+    },
+    {
+      "file": "invalid-self-approval.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "approval-self"
+    },
+    {
+      "file": "invalid-verdict-reason.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "plan-verdict"
+    },
+    {
+      "file": "invalid-approved-with-conflict.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "approval-conflicts"
+    },
+    {
+      "file": "invalid-bare-digest.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "change-base"
+    },
+    {
+      "file": "valid-lock.yaml",
+      "schema": "build-lock",
+      "valid": true
+    },
+    {
+      "file": "valid-lock-empty.yaml",
+      "schema": "build-lock",
+      "valid": true
+    },
+    {
+      "file": "valid-lock-adopted.yaml",
+      "schema": "build-lock",
+      "valid": true
+    },
+    {
+      "file": "valid-lock-two-sources.yaml",
+      "schema": "build-lock",
+      "valid": true
+    },
+    {
+      "file": "invalid-lock-roots.yaml",
+      "schema": "build-lock",
+      "valid": false,
+      "rule": "lock-keys"
+    },
+    {
+      "file": "invalid-lock-unsorted.yaml",
+      "schema": "build-lock",
+      "valid": false,
+      "rule": "lock-sorted"
+    },
+    {
+      "file": "invalid-lock-why.yaml",
+      "schema": "build-lock",
+      "valid": false,
+      "rule": "lock-keys"
+    }
+  ]
+}
