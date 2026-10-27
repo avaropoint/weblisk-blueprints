@@ -90,6 +90,8 @@ declarations with no `kind`, which no file is walked against.
 | [mapping.md](mapping.md) | Mappings: how a neutral blueprint becomes something on one target, as rules on four axes (language, platform, framework, interface), the closed concept classes each axis owns, the one verdict vocabulary, a coverage report, and `subject_facility`. Its vectors are [`vectors/mapping/`](../vectors/mapping/README.md) and [`vectors/types.json`](../vectors/types.json) | Every language, platform, framework and interface binding, once it is written as rules |
 | [concepts.md](concepts.md) | The concepts a mapping rule answers, by class: open data beside the closed classes | Every mapping rule, and every blueprint a mapping translates |
 | [run-statement.md](run-statement.md) | What one generation run read and wrote, the model the backend reported, and what each output traces to: an in-toto statement with a SLSA Provenance predicate | The CLI writing a run's record; the fabric's `generation-statements` producer reading it |
+| [change.md](change.md) | One change to what a tenant is built from: its plan and verdicts, the conflicts it introduces and clears, its approval, the executor of each change verb, and when one is well formed. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The CLI and the tenant's change service writing a change; every client rendering one |
+| [build-lock.md](build-lock.md) | The tenant's one lock: resolved versions only, never roots or reasons. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The change service writing `.weblisk/build.lock`; every plan reading it |
 
 ### kinds.md is different from the others
 
@@ -128,7 +130,9 @@ common.md (inherited by all)
 ├── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
 ├── family.md (grammar 1 — how a family declaration says a file is written, bound by vectors/grammar/)
 ├── blocks.md (the typed blocks a slot may hold, and the field type vocabulary)
-└── run-statement.md (what one generation run read, wrote and traced — the fabric's declared source)
+├── run-statement.md (what one generation run read, wrote and traced — the fabric's declared source)
+├── change.md (one change to what a tenant is built from — plan, approval, executors, bound by vectors/change/)
+└── build-lock.md (the tenant's resolved versions, and nothing else)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific

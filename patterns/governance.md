@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -82,19 +82,20 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/approval
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
-      types:
-        - name: ApprovalRequest
-          fields_used: [severity, authority_level]
+      behaviors:
+        - name: approval-routing
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=5.0.0 <6.0.0"
     bindings:
       types:
+        - name: ApprovalRequest
+          fields_used: [urgency, authority_required]
         - name: ServiceEntry
           fields_used: [name, lease_state]
         - name: AgentManifest

@@ -747,6 +747,91 @@ else
 	fails=$((fails + 1))
 fi
 
+# ApprovalRequest has one home, protocol/types (D27); the bindings to it in
+# other files are not definitions. A copy of patterns/ that defines it again
+# must report exactly the two files.
+expect 0 "type-home: every settled type is defined in its home alone" python3 checks/type-home.py
+mkdir -p "$tmp/th" && cp -R protocol patterns "$tmp/th/"
+printf '\n```yaml\ntypes:\n  - name: ApprovalRequest\n    fields:\n      - name: id\n```\n' >>"$tmp/th/patterns/approval.md"
+expect 1 "type-home control: a second definition fails" python3 checks/type-home.py --root "$tmp/th"
+if [ "$(grep -c ': defines ApprovalRequest$' "$tmp/out")" -eq 2 ] && grep -q '^patterns/approval.md: defines ApprovalRequest$' "$tmp/out"; then
+	echo "ok   type-home control: exactly two files, the second home among them"
+else
+	echo "FAIL type-home control: want exactly two files, patterns/approval.md among them"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# The change and lock fixtures get their expected results under the rules
+# schemas/change.md and schemas/build-lock.md declare, and a lock carrying
+# roots is among the invalid ones. A copy expecting that lock to be valid, and
+# a copy of change.md without the rule a fixture names, must each report
+# exactly that fixture.
+expect 0 "change-vectors: every fixture gets its expected result" python3 checks/change-vectors.py
+python3 -c 'import json,sys; e={f["file"]:f for f in json.load(open("vectors/change/expected.json"))["fixtures"]}["invalid-lock-roots.yaml"]; sys.exit(0 if (e["valid"],e["rule"])==(False,"lock-keys") else 1)' \
+	&& echo "ok   change-vectors: a lock carrying roots is invalid, by lock-keys" \
+	|| { echo "FAIL change-vectors: a lock carrying roots is not an invalid fixture"; fails=$((fails + 1)); }
+mkdir -p "$tmp/cv" && cp -R schemas vectors "$tmp/cv/"
+python3 - "$tmp/cv/vectors/change/expected.json" <<'PY2'
+import json, sys
+d = json.load(open(sys.argv[1]))
+for f in d["fixtures"]:
+    if f["file"] == "invalid-lock-roots.yaml":
+        f["valid"] = True
+        del f["rule"]
+json.dump(d, open(sys.argv[1], "w"), indent=2)
+PY2
+expect 1 "change-vectors control: a lock with roots expected valid fails" python3 checks/change-vectors.py --root "$tmp/cv"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^invalid-lock-roots.yaml: breaks \['lock-keys'\]; expected nothing$" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the lock with roots"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the lock with roots"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/cr" && cp -R schemas vectors "$tmp/cr/"
+grep -v -e '^  - id: approval-self$' -e '^    rule: approval.by equals requested_by' schemas/change.md >"$tmp/cr/schemas/change.md"
+expect 1 "change-vectors control: a fixture naming an undeclared rule fails" python3 checks/change-vectors.py --root "$tmp/cr"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^invalid-self-approval.json: names rule approval-self, which" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the self-approval fixture"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the self-approval fixture"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+# The verdicts are read from change.md's Verdicts table, not copied into the
+# check: a copy of change.md without the regenerate row must report exactly
+# the fixture that uses it.
+mkdir -p "$tmp/cvd" && cp -R schemas vectors "$tmp/cvd/"
+grep -v '^| `regenerate` |' schemas/change.md >"$tmp/cvd/schemas/change.md"
+expect 1 "change-vectors control: a Verdicts table without regenerate fails" python3 checks/change-vectors.py --root "$tmp/cvd"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^valid-upgrade-mixed-verdicts.json: breaks \['plan-verdict'\]; expected nothing$" "$tmp/out"; then
+	echo "ok   change-vectors control: exactly one finding, the fixture that regenerates"
+else
+	echo "FAIL change-vectors control: want exactly one finding, the fixture that regenerates"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# cli.md's Command Surface against the commands CLI 7a75d54 builds
+# (checks/cli-verbs.json): the drift is exactly the measured list. A copy of
+# cli.md without one row must report exactly one more, and a row with an
+# executor schemas/change.md does not declare must be reported.
+expect 0 "command-surface: the drift against the CLI is the measured list" python3 checks/command-surface.py
+mkdir -p "$tmp/cs/architecture" && cp -R schemas "$tmp/cs/"
+grep -v '^  - {noun: secret, verb: list, executor: local}$' architecture/cli.md >"$tmp/cs/architecture/cli.md"
+expect 1 "command-surface control: a row deleted fails" python3 checks/command-surface.py --root "$tmp/cs"
+if [ "$(grep -c '^unexpected drift\|^expected drift' "$tmp/out")" -eq 1 ] && grep -q '^unexpected drift: built, not specified: secret list$' "$tmp/out"; then
+	echo "ok   command-surface control: exactly one more, the deleted row"
+else
+	echo "FAIL command-surface control: want exactly one more drift, secret list"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+sed 's/^  - {noun: doctor, verb: "", executor: local}$/  - {noun: doctor, verb: "", executor: studio}/' architecture/cli.md >"$tmp/cs/architecture/cli.md"
+expect 1 "command-surface control: an undeclared executor fails" python3 checks/command-surface.py --root "$tmp/cs"
+grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL command-surface control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
