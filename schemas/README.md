@@ -54,6 +54,16 @@ This applies to:
 
 ## Schema Files
 
+Each schema below that opens with `family: schemas/family@1` is a family
+declaration ([family.md](family.md)): its Header and Sections blocks are the
+shape a walk holds a file to, and its prose stays as the reason. The
+protocol, pattern, agent and domain declarations, like architecture's, state
+the form a file takes once it is migrated; the position, policy-domain and
+programme ones walk today's files in migration mode; the language, platform
+and framework ones declare the older form their files keep until each is
+rewritten into [mapping](mapping.md) rules; kinds and standard are
+declarations with no `kind`, which no file is walked against.
+
 | Schema | Governs | Applies To |
 |--------|---------|------------|
 | [authoring.md](authoring.md) | The order of work when writing a blueprint, and which document owns each rule | Every author |

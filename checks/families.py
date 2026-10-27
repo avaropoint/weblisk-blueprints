@@ -10,6 +10,7 @@ reported as not judged, with exit 2, and never passes.
     checks/families.py FAMILY --file PATH... walk PATH against FAMILY
     checks/families.py --templates FAMILY... walk each family's template against it
     checks/families.py --vectors             every grammar vector against its projection's findings
+    checks/families.py --declarations        every declaration outside vectors/ against schemas/family
     checks/families.py --strict MIGRATION STRICT
         STRICT is MIGRATION with every header.legacy key refused and every
         header.required key required, one major on, and nothing else changed
@@ -537,6 +538,14 @@ def main(argv):
             faults = strict_of(os.path.join(ROOT, argv[i + 1]), os.path.join(ROOT, argv[i + 2]))
             for f in faults: print(f)
             return 1 if faults else 0
+        if "--declarations" in argv:
+            decl, results = Decl(os.path.join(ROOT, "schemas/family.md")), []
+            for d, subdirs, names in os.walk(ROOT):
+                subdirs[:] = sorted(x for x in subdirs if not x.startswith(".") and x != "vectors")
+                for n in sorted(names):
+                    if is_declaration(os.path.join(d, n)): results.append((os.path.join(d, n), walk(os.path.join(d, n), decl)))
+            print(f"{len(results)} declarations walked against schemas/family")
+            return report(results, counts)
         if "--vectors" in argv:
             bad = 0
             for md in sorted(glob.glob(os.path.join(ROOT, "vectors/grammar/*.md"))):

@@ -18,3 +18,14 @@ that copy holds the projection a walk of it gives.
 | [`procedure.md`](procedure.md) | [`documents/families/procedure`](../documents/families/procedure.md), an organisation's procedures |
 | [`standard.md`](standard.md) | [`documents/families/standard`](../documents/families/standard.md), an organisation's own standards |
 | [`guideline.md`](guideline.md) | [`documents/families/guideline`](../documents/families/guideline.md), an organisation's guidelines |
+| [`protocol.md`](protocol.md) | [`schemas/protocol`](../schemas/protocol.md), protocol blueprints |
+| [`pattern.md`](pattern.md) | [`schemas/pattern`](../schemas/pattern.md), pattern blueprints |
+| [`agent.md`](agent.md) | [`schemas/agent`](../schemas/agent.md), agent blueprints |
+| [`domain.md`](domain.md) | [`schemas/domain`](../schemas/domain.md), domain controller blueprints |
+| [`position.md`](position.md) | [`schemas/position`](../schemas/position.md), position guides |
+| [`policy-domain.md`](policy-domain.md) | [`schemas/policy-domain`](../schemas/policy-domain.md), policy domain commentary |
+
+The language, platform and framework families have no template: they declare
+the older form their files are read as until each is rewritten into rules, and
+a new file of any of the three is written to
+[`schemas/mapping`](../schemas/mapping.md).

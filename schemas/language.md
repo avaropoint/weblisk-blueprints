@@ -1,3 +1,12 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: specification
+noun: language
+match: [languages/*.md]
+capabilities: [author, versioned, depends, publishable]
+generates: none
+---
 # Language Schema
 
 Defines the complete structure for language blueprints (`type: language`).
@@ -7,6 +16,52 @@ the primitives its standard library does and does not supply.
 
 It says nothing about *what* is being built, and nothing about where it runs.
 Those are [`architecture.md`](architecture.md) and [`platform.md`](platform.md).
+
+## Header
+
+The family `schemas/language`, declared for the files `languages/` are written in
+today, the older form, which is read as its own family until each file is
+rewritten into rules of [`schemas/mapping`](mapping.md) (`file-names-family`).
+A file in the older form has no header: its identity is the `<!-- blueprint -->`
+comment, which a walk reads as text. A file with a header has been rewritten,
+names `schemas/mapping@1`, and is never walked against this family, so a
+header here is refused. New files are written to `schemas/mapping`, and this
+family has no template.
+
+```yaml
+header:
+  schema: {type: object, maxProperties: 0}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1}, use: navigates}
+    - {slot: overview, heading: Overview, required: true, use: navigates}
+    - {slot: dependencies, heading: Dependencies, required: true, use: depends}
+    - {slot: primitives, heading: Primitive Mapping, required: true, use: binds}
+    - {slot: project-structure, heading: Project Structure, required: true, use: instructs}
+    - {slot: domain-structure, heading: "Project Structure: Domain Controller", required: false, use: instructs}
+    - {slot: runtime, heading: Runtime Requirements, required: true, use: binds}
+    - {slot: build, heading: Build and Run, required: true, use: instructs}
+    - {slot: conventions, heading: Language Conventions, required: true, use: instructs}
+    - {slot: concurrency, heading: {starts_with: "Concurrency ("}, required: false, use: instructs}
+    - {slot: type-mapping, heading: Type Mapping, required: true, use: binds}
+    - {slot: storage-mapping, heading: {starts_with: "Storage Mapping ("}, required: false, use: binds}
+    - {slot: security, heading: Security, required: true, use: binds}
+    - {slot: testing, heading: Testing, required: true, use: instructs}
+    - {slot: examples, heading: Examples, required: false, use: illustrates}
+    - {slot: implementation-notes, heading: Implementation Notes, required: true, use: instructs}
+    - {slot: verification, heading: Verification Checklist, required: true, use: verifies}
+```
+
+The slots are the [Required Section Order](#required-section-order) below and
+its optional sections, in that order: a required section missing is refused,
+a section out of order is reported, and a heading outside the set is reported
+as undeclared, so each is a counted finding and none is lost.
 
 ---
 

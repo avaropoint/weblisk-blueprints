@@ -1,3 +1,14 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: reference
+noun: policy-domain
+match: [policy-domains/*.md]
+capabilities: [author, versioned, publishable]
+template: templates/policy-domain.md
+location: policy-domains/*.md
+generates: none
+---
 # Policy Domain Schema
 
 Schema governing [`../policy-domains/`](../policy-domains/) — everything the
@@ -7,6 +18,8 @@ incident response, occupational health and safety.
 A programme declares `domains:`. This family says what each of those words
 *means*, where it stops, and — the substance — **what a programme claiming it
 must provide**.
+
+## Three bodies of fact
 
 It has two written halves and a third body of fact that is never written at
 all:
@@ -29,6 +42,49 @@ which is the one field where a mistake reclassifies documents in silence.
 > commentary and requirement on domains the catalogue has already declared, and
 > a file here for a domain the catalogue does not declare is **reported, never
 > honoured**.
+
+---
+
+## Header
+
+The family `schemas/policy-domain`: the commentary half, declared in
+**migration mode** ([`schemas/family`](family.md#definitions)): a file's own
+`id:` is reported, because its path is its id, and a missing `version:` is
+reported; any other key the header does not declare is refused.
+[Frontmatter](#frontmatter) says what each key means and holds `requires`'
+closed vocabulary, and [Body](#body--a-closed-set-of-headings) why a heading
+outside the set is refused. The catalogue half is JSON, and no walk reads it.
+The strict variant, which refuses `id:` and requires `version:`, waits for the
+migration (`v2-migrate`).
+
+```yaml
+header:
+  schema:
+    type: object
+    unevaluatedProperties: false
+    properties:
+      family:     {const: schemas/policy-domain@1}
+      version:    {$ref: "schemas/blocks#/$defs/version"}
+      requires:   {type: array, items: {type: string}}
+      boundaries: {type: object, additionalProperties: {type: string}}
+  uses:
+    boundaries: {use: binds, send: always}
+  required:
+    version: report
+  legacy:
+    id: report
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: refuse}
+  slots:
+    - {slot: covers, heading: What this covers, required: false, use: navigates}
+    - {slot: why, heading: Why these requirements, required: false, use: explains}
+    - {slot: failure, heading: How it goes wrong, required: false, use: explains}
+```
 
 ---
 

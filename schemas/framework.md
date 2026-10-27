@@ -1,3 +1,12 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: specification
+noun: framework
+match: [frameworks/*/*.md]
+capabilities: [author, versioned, publishable]
+generates: none
+---
 # Framework Schema
 
 Schema governing **framework blueprints** — the documents in `frameworks/<name>/`
@@ -18,6 +27,41 @@ patterns); a framework blueprint provides guidance and structure for the
 project blueprints a developer authors when building with that framework.
 
 ---
+
+## Header
+
+The family `schemas/framework`, declared for the files in `frameworks/<name>/`
+are written in today, the older form, which is read as its own family until each file is
+rewritten into rules of [`schemas/mapping`](mapping.md) (`file-names-family`).
+A file in the older form has no header: its identity is the `<!-- blueprint -->`
+comment, which a walk reads as text. A file with a header has been rewritten,
+names `schemas/mapping@1`, and is never walked against this family, so a
+header here is refused. New files are written to `schemas/mapping`, and this
+family has no template.
+
+```yaml
+header:
+  schema: {type: object, maxProperties: 0}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1}, use: navigates}
+    - {slot: purpose, heading: Purpose, required: report, use: navigates}
+    - {slot: structure, heading: Structure, required: report, use: illustrates}
+    - {slot: fields, heading: Fields, required: report, use: binds}
+    - {slot: conventions, heading: Conventions, required: false, use: instructs}
+```
+
+The slots are the [Required Structure](#required-structure) below. A
+framework's type-specific sections differ from one file to the next, so a
+heading outside the set is reported and never refused, and a required section
+a file lacks is reported too: `frameworks/weblisk/project-structure.md` is
+guidance with none of them, and a walk counts that rather than refusing it.
 
 ## Scope
 

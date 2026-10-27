@@ -289,13 +289,26 @@ expect 1 "families control: a strict variant that reports id fails" python3 chec
 docs="documents/families/policy documents/families/procedure documents/families/standard documents/families/guideline"
 expect 0 "families: every spec's structure is a document family" python3 checks/families.py schemas/programme-spec --resolve structure documents/families
 expect 0 "families: every form's structure is a document family" python3 checks/families.py schemas/programme-template --resolve frontmatter.structure documents/families
-expect 0 "families: every family's template walks against it" python3 checks/families.py --distinct --templates $progs $docs
+expect 0 "families: every family's template walks against it" python3 checks/families.py --distinct --templates $progs $docs \
+	schemas/protocol schemas/pattern schemas/agent schemas/domain schemas/position schemas/policy-domain
 sed 's/^structure: procedure$/structure: nonesuch/' programmes/ohs/specs/ohs.certificate-renewal.md >"$tmp/nonesuch.md"
 expect 1 "families control: a structure no family declares fails" python3 checks/families.py schemas/programme-spec --resolve structure documents/families --file "$tmp/nonesuch.md"
 grep -q 'structure: nonesuch names no declaration' "$tmp/out" || { echo "FAIL families control: the unknown structure was not what was reported"; fails=$((fails + 1)); }
 sed 's/^    - {slot: purpose, heading: Purpose,/    - {slot: purpose, heading: Purpose, aliases: [scope],/' documents/families/policy.md >"$tmp/policy.md"
 expect 1 "families control: a heading opening two slots fails" python3 checks/families.py --distinct --templates documents/families/policy --against "$tmp/policy.md"
 grep -q "the heading 'Scope' opens both purpose and scope" "$tmp/out" || { echo "FAIL families control: the shared heading was not what was reported"; fails=$((fails + 1)); }
+# Every declaration walks against schemas/family. The families whose files
+# are written today in the form they declare walk those files with nothing
+# refused: positions and policy domains in migration mode, and the older
+# language, platform and framework files their families read until they are
+# rewritten into mapping rules. A directory's README.md is not a file of its
+# family, and a match cannot exclude it, so the walk names the files.
+expect 0 "families: every declaration walks against schemas/family" python3 checks/families.py --declarations
+for pair in position:positions policy-domain:policy-domains language:languages platform:platforms framework:frameworks/*; do
+	fam=${pair%%:*} dir=${pair#*:}
+	files=$(ls $dir/*.md | grep -v '/README\.md$')
+	expect 0 "families: today's $dir files walk against schemas/$fam" python3 checks/families.py schemas/$fam --file $files
+done
 
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.

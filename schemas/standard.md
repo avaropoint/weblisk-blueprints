@@ -1,3 +1,9 @@
+---
+family: schemas/family@1
+version: 1.0.0
+noun: standard
+capabilities: [author, versioned]
+---
 # Standard Schema
 
 Schema governing **industry standards** — the documents in `standards/` that
@@ -12,6 +18,18 @@ files carry.
 > the Weblisk client framework's project guidance. That is now
 > [`framework.md`](framework.md), and the word `standards` means what it means to
 > a customer. See [`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md).
+
+---
+
+## As a declaration
+
+This file is a declaration of the family
+[`schemas/family`](family.md) with no `kind`, and no file is walked against
+it. A standard is JSON, because its content is JSON
+([`../CORPUS_SHAPE.md`](../CORPUS_SHAPE.md)), and grammar 1 walks markdown: a
+standard has no header, slots or parts for a walk to find. Its shape is the
+fields below, which the CLI's standards check reads from this file; its
+header gives the file a version a reader can name.
 
 ---
 

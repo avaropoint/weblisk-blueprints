@@ -1,3 +1,14 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: reference
+noun: position
+match: [positions/*.md]
+capabilities: [author, versioned, publishable]
+template: templates/position.md
+location: positions/*.md
+generates: none
+---
 # Position Schema
 
 Schema governing the files in [`positions/`](../positions/) — the **hand-written
@@ -12,6 +23,47 @@ because the projection over `programmes/` could not reach it.
 > an `escalate.to`, a register's `approvers`, an artifact's `approved_by`. This
 > family is commentary on positions the programmes have already declared, and
 > a file here for a position nothing names is **reported, never honoured**.
+
+---
+
+## Header
+
+The family `schemas/position`, declared in **migration mode**
+([`schemas/family`](family.md#definitions)): a guide's own `id:` is reported,
+because its path is its id, and a missing `version:` is reported; any other
+key the header does not declare is refused. [Frontmatter](#frontmatter) says
+what each key means, and [Body](#body--a-closed-set-of-headings) why a heading
+outside the set is refused. The strict variant, which refuses `id:` and
+requires `version:`, waits for the migration (`v2-migrate`).
+
+```yaml
+header:
+  schema:
+    type: object
+    unevaluatedProperties: false
+    properties:
+      family:        {const: schemas/position@1}
+      version:       {$ref: "schemas/blocks#/$defs/version"}
+      title:         {type: string}
+      also_known_as: {type: array, items: {type: string}}
+  required:
+    version: report
+  legacy:
+    id: report
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: refuse}
+  slots:
+    - {slot: purpose, heading: What this job is for, required: false, use: instructs}
+    - {slot: first-week, heading: Your first week, required: false, use: instructs}
+    - {slot: good, heading: What good looks like, required: false, use: instructs}
+    - {slot: failure, heading: How it goes wrong, required: false, use: instructs}
+    - {slot: personal, heading: What you cannot hand to anybody else, required: false, use: instructs}
+```
 
 ---
 

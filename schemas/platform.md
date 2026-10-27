@@ -1,9 +1,68 @@
+---
+family: schemas/family@1
+version: 1.0.0
+kind: specification
+noun: platform
+match: [platforms/*.md]
+capabilities: [author, versioned, depends, publishable]
+generates: none
+---
 # Platform Schema
 
 Defines the complete structure for platform blueprints (`type: platform`).
 Platform blueprints provide implementation guidance for a specific runtime
 environment — language-specific conventions, project structure, build
 commands, dependency management, and platform-specific constraints.
+
+## Header
+
+The family `schemas/platform`, declared for the files `platforms/` are written in
+today, the older form, which is read as its own family until each file is
+rewritten into rules of [`schemas/mapping`](mapping.md) (`file-names-family`).
+A file in the older form has no header: its identity is the `<!-- blueprint -->`
+comment, which a walk reads as text. A file with a header has been rewritten,
+names `schemas/mapping@1`, and is never walked against this family, so a
+header here is refused. New files are written to `schemas/mapping`, and this
+family has no template.
+
+```yaml
+header:
+  schema: {type: object, maxProperties: 0}
+```
+
+## Sections
+
+```yaml
+sections:
+  undeclared: {policy: report, use: explains, send: on-request}
+  slots:
+    - {slot: title, heading: {level: 1}, required: true, count: {min: 1, max: 1}, use: navigates}
+    - {slot: overview, heading: Overview, required: true, use: navigates}
+    - {slot: dependencies, heading: Dependencies, required: true, use: depends}
+    - {slot: primitives, heading: Primitive Mapping, required: true, use: binds}
+    - {slot: services, heading: Service Mapping, required: true, use: binds}
+    - {slot: project-structure, heading: Project Structure, required: true, use: instructs}
+    - {slot: domain-structure, heading: "Project Structure: Domain Controller", required: false, use: instructs}
+    - {slot: runtime, heading: Runtime Requirements, required: true, use: binds}
+    - {slot: build, heading: Build and Run, required: true, use: instructs}
+    - {slot: deployment, heading: Deployment, required: false, use: instructs}
+    - {slot: conventions, heading: Platform-Specific Conventions, required: true, use: instructs}
+    - {slot: performance, heading: Performance, required: false, use: instructs}
+    - {slot: concurrency, heading: {starts_with: "Concurrency ("}, required: false, use: instructs}
+    - {slot: type-mapping, heading: Type Mapping, required: true, use: binds}
+    - {slot: storage-mapping, heading: {starts_with: "Storage Mapping ("}, required: false, use: binds}
+    - {slot: security, heading: Security, required: true, use: binds}
+    - {slot: testing, heading: Testing, required: true, use: instructs}
+    - {slot: examples, heading: Examples, required: false, use: illustrates}
+    - {slot: implementation-notes, heading: Implementation Notes, required: true, use: instructs}
+    - {slot: verification, heading: Verification Checklist, required: true, use: verifies}
+```
+
+The slots are the [Required Section Order](#required-section-order) below and
+its optional sections, in that order, with a language's optional sections
+that platforms carry too: a required section missing is refused, a section
+out of order is reported, and a heading outside the set is reported as
+undeclared, so each is a counted finding and none is lost.
 
 ---
 
