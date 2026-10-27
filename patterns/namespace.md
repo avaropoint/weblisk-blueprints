@@ -167,6 +167,11 @@ requirements:
     text: A transfer or a rotation is accepted only with valid signatures by
       both the outgoing and the incoming holder. Either signature alone is
       refused.
+  - id: revoked-holder-cannot-act
+    level: must
+    text: A grant, transfer, rotation or retirement is accepted only while the
+      holder who signs it is an identity the hub has enrolled and not revoked.
+      A revoked holder's namespace is handed on only by a ruling.
   - id: retired-never-returns
     level: must
     text: A retired namespace is never claimed, granted, transferred or
@@ -376,7 +381,10 @@ fails gives the refusal. The registry's clock is `now`.
 7. For a **grant** or a **transfer**: the namespace has been claimed
    (`NAMESPACE_UNKNOWN`), is not retired (`NAMESPACE_RETIRED`) and not frozen
    (`NAMESPACE_FROZEN`). A grant is signed by the holder, and a transfer's
-   `<from>` is the holder and has signed (`NAMESPACE_NOT_HOLDER`). A transfer
+   `<from>` is the holder and has signed (`NAMESPACE_NOT_HOLDER`). The holder
+   who signs it is enrolled and not revoked (`NAMESPACE_IDENTITY_UNKNOWN`), for
+   a grant, a transfer, a rotation and a retirement alike: a revoked holder's
+   namespace moves only by a ruling. A transfer
    or a rotation is signed by `<to>` as well (`NAMESPACE_TRANSFER_ONE_SIDED`).
    `<grantee>` or `<to>` is enrolled and not revoked
    (`NAMESPACE_IDENTITY_UNKNOWN`), and `<to>` is a user
@@ -524,6 +532,7 @@ registry, and every verifier of a release, is bound by both.
 - [ ] Every step of every registry vector gets its stated verdict, and every sequence leaves its stated state ([`checks/namespace-registry.py`](../checks/namespace-registry.py))
 - [ ] A second claim of a held name, a reserved or confusable name, a one-sided transfer and a claim of a retired name are each refused with their code
 - [ ] A rotation keeps the claim and its grants; a transfer ends the grants; a rotation to another identity's key is refused with `NAMESPACE_ROTATION_OTHER_IDENTITY`
+- [ ] A grant, transfer, rotation and retirement signed by a holder whose identity the hub revoked are each refused with `NAMESPACE_IDENTITY_UNKNOWN`, and a reassignment then hands the namespace on
 - [ ] A reassignment of a frozen namespace changes its holder and leaves it frozen
 - [ ] A statement made at one registry is refused at every other
 - [ ] Nothing is appended for a refused statement, and an accepted one is in the log before the answer

@@ -25,7 +25,9 @@ key.
         signer wrote, not the registry's clock), release-unchained (no release
         held to the one before it), release-unanchored (a verifier that accepts
         a release its registry's log does not hold), release-ignores-revocation
-        (a release by a grantee whose identity the hub revoked)
+        (a release by a grantee whose identity the hub revoked),
+        holder-ignores-revocation (a grant, transfer, rotation or retirement
+        signed by a holder whose identity the hub revoked)
     checks/namespace-registry.py --pattern FILE      read the pattern's
         statements, routes and requires from FILE instead of
         patterns/namespace.md
@@ -175,12 +177,14 @@ class Registry:
         if s["status"] == "frozen": return "NAMESPACE_FROZEN"
         if prefix == GRANT:
             if s["holder"] not in signers: return "NAMESPACE_NOT_HOLDER"
-            v = self.who(f["grantee"], person=False)
+            v = self.holder_acts(s["holder"]) or self.who(f["grantee"], person=False)
             if v: return v
             if f["role"] == "publish": s["grants"][f["grantee"]] = "publish"
             else: s["grants"].pop(f["grantee"], None)
         else:
             if f["from"] != s["holder"] or f["from"] not in signers: return "NAMESPACE_NOT_HOLDER"
+            v = self.holder_acts(s["holder"])
+            if v: return v
             if f["kind"] == "retirement":
                 s.update(status="retired", holder=None, grants={})
             else:
@@ -232,6 +236,11 @@ class Registry:
         if not any((msg, x) in self.recorded for x in signers) and variant != "release-unanchored":
             return "NAMESPACE_RELEASE_UNRECORDED"
         return "accepted"
+
+    def holder_acts(self, fp):
+        """Step 7: the holder signing a grant, transfer, rotation or retirement
+        is still enrolled and not revoked."""
+        return None if variant == "holder-ignores-revocation" else self.who(fp, person=False)
 
     def who(self, fp, person=True):
         if fp not in self.enrolled or fp in self.revoked: return "NAMESPACE_IDENTITY_UNKNOWN"

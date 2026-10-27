@@ -452,6 +452,18 @@ for v in "reclaim-retired:retired-never-returns:step 4: got accepted, want NAMES
 	fi
 done
 
+# A holder whose identity the hub revoked signs nothing more: a registry that
+# lets the revoked holder grant, transfer, rotate or retire must be reported
+# at exactly those four steps of holder-revoked, and nowhere else.
+expect 1 "namespace-registry control: a registry that does holder-ignores-revocation fails" python3 checks/namespace-registry.py --variant holder-ignores-revocation
+if [ "$(grep -c '^holder-revoked step [3456]: got ' "$tmp/out")" -eq 4 ] && [ "$(wc -l <"$tmp/out")" -eq 4 ]; then
+	echo "ok   namespace-registry control: holder-ignores-revocation is reported at the revoked holder's grant, transfer, rotation and retirement alone"
+else
+	echo "FAIL namespace-registry control: want holder-revoked steps 3 to 6, and nothing else"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The place and issuer codes the vectors use are the corpus's own: a copy of
 # the vectors adding a place code no standard's applies_in names must report
 # exactly that code.
