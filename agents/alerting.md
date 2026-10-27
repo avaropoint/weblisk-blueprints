@@ -1147,7 +1147,7 @@ If the alert was throttled:
     "alert_id": "alert-d4e5f6",
     "throttled": true,
     "suppressed_count": 15,
-    "next_delivery_eligible": 1712160600
+    "next_delivery_eligible": "2024-04-03T16:10:00.000Z"
   }
 }
 ```

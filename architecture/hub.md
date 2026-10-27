@@ -220,7 +220,7 @@ facts:
     "total_invocations_30d": 142000,
     "error_rate_30d": 0.002,
     "behavioral_changes_90d": 1,
-    "last_behavioral_change": 1710000000,
+    "last_behavioral_change": "2024-03-09T16:00:00.000Z",
     "last_behavioral_change_level": "BENIGN"
   },
   "compliance": {
@@ -783,7 +783,7 @@ and discoverability fields:
     "active_installations": 890,
     "avg_rating": 4.7,
     "review_count": 156,
-    "last_updated": 1712160000
+    "last_updated": "2024-04-03T16:00:00.000Z"
   },
   "support": {
     "documentation_url": "https://docs.example.com/seo-domain",

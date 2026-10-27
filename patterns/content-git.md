@@ -129,7 +129,7 @@ requires:
   # Design Principle 6, which forbids git signing and allows a classical
   # transport credential
   - blueprint: patterns/principal-identity
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.5.0 <3.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

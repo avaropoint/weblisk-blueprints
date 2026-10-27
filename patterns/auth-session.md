@@ -26,7 +26,7 @@ state-changing operations.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -180,7 +180,7 @@ Response (201 Created):
   "id": "a1b2c3d4...",
   "email": "user@example.com",
   "name": "Alice",
-  "created": 1713264000
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 
@@ -242,7 +242,7 @@ Response (200 OK):
   "id": "a1b2c3d4...",
   "email": "user@example.com",
   "name": "Alice",
-  "created": 1713264000
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 

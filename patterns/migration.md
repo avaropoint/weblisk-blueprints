@@ -860,7 +860,7 @@ types:
         required: false
         description: >
           Row-level filter for backfill/transform operations
-          (e.g., "status = 'inactive' AND created_at < 1713264000").
+          (e.g., "status = 'inactive' AND created_at < '2024-04-16T10:40:00.000Z'").
           If specified, the operation MUST only affect rows matching
           this constraint. Violation triggers automatic rollback.
       - name: max_rows
@@ -1089,7 +1089,7 @@ types:
         required: false
         description: >
           If only a subset of rows were checksummed (for large tables),
-          the filter expression used (e.g., "created_at > 1713264000").
+          the filter expression used (e.g., "created_at > '2024-04-16T10:40:00.000Z'").
           If null, the entire table was checksummed.
       - name: captured_at
         type: timestamp

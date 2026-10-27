@@ -237,8 +237,8 @@ Response (201 Created):
   "id": "a1b2c3d4-...",
   "title": "Ship v1",
   "done": false,
-  "created": 1713264000,
-  "updated": 1713264000
+  "created": "2024-04-16T10:40:00.000Z",
+  "updated": "2024-04-16T10:40:00.000Z"
 }
 ```
 

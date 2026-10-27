@@ -79,7 +79,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/principal-identity
-    version: ">=1.5.0 <2.0.0"
+    version: ">=1.5.0 <3.0.0"
     bindings:
       types:
         # A key entry names the protection of the key that signed it

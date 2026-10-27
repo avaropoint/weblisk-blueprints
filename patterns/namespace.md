@@ -71,7 +71,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.9.0 <3.0.0"
     bindings:
       types:
         # Who may hold a namespace: an enrolled identity whose kind is user

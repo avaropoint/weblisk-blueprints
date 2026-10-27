@@ -672,7 +672,7 @@ The health-monitor maintains a real-time map of all components:
     "orchestrator": {
       "state": "online",
       "latency_ms": 2,
-      "last_check": 1712160000,
+      "last_check": "2024-04-03T16:00:00.000Z",
       "consecutive_failures": 0,
       "uptime_24h": 100.0
     },
@@ -680,7 +680,7 @@ The health-monitor maintains a real-time map of all components:
       "alerting": {
         "state": "online",
         "latency_ms": 5,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9752,
         "uptime_24h": 99.98
@@ -688,7 +688,7 @@ The health-monitor maintains a real-time map of all components:
       "sync": {
         "state": "degraded",
         "latency_ms": 850,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9751,
         "uptime_24h": 97.2
@@ -698,7 +698,7 @@ The health-monitor maintains a real-time map of all components:
       "seo": {
         "state": "online",
         "latency_ms": 12,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9700,
         "uptime_24h": 100.0
@@ -708,20 +708,20 @@ The health-monitor maintains a real-time map of all components:
       "state": "online",
       "read_latency_ms": 1,
       "write_latency_ms": 3,
-      "last_check": 1712160000
+      "last_check": "2024-04-03T16:00:00.000Z"
     },
     "federation_peers": {
       "partner-hub": {
         "state": "online",
         "latency_ms": 45,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "peer_url": "https://partner.example.com/v1/federation"
       }
     },
     "gateway": {
       "state": "online",
       "latency_ms": 3,
-      "last_check": 1712160000
+      "last_check": "2024-04-03T16:00:00.000Z"
     }
   }
 }
@@ -812,7 +812,7 @@ informed decisions about collaboration:
     "components_online": 8,
     "components_degraded": 1,
     "components_offline": 0,
-    "last_check": 1712160000
+    "last_check": "2024-04-03T16:00:00.000Z"
   }
 }
 ```

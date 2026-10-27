@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 4.1.2
+version: 5.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -100,7 +100,7 @@ requires:
   - blueprint: patterns/principal-identity
     # 1.9.0 is where an attestation's purpose may be step-up, naming rp_id
     # and origin
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.9.0 <3.0.0"
     bindings:
       types:
         - name: Attestation
@@ -1746,7 +1746,7 @@ Authorization: Bearer <attestation token, or alice's operator token>
   "credential_public_key": "<ML-DSA-65 public key>",
   "hub_id": "<this hub's hub_id>",
   "device_label": "<for people reading a list of credentials>",
-  "not_after": 1714752000,
+  "not_after": "2024-05-03T16:00:00.000Z",
   "signature": "<identity signature over the canonical form of every other field>"
 }
 
@@ -1824,7 +1824,7 @@ POST /v1/admin/credentials/token
                    "programme:read", "programme:install",
                    "programme:operate", "programme:switch",
                    "integration:read", "fabric:read", "fabric:attest"],
-  "not_after": 1714752000
+  "not_after": "2024-05-03T16:00:00.000Z"
 }
 ```
 
@@ -2759,7 +2759,7 @@ A sign-records credential is listed beside the ones that sign in, with its
       "form": "key-file",
       "device_bound": false,
       "status": "active",
-      "not_after": 1714752000,
+      "not_after": "2024-05-03T16:00:00.000Z",
       "last_used_at": "2024-04-03T16:00:00.000Z"
     }
   ]

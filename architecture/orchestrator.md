@@ -137,7 +137,7 @@ declaration:
         removed: halt-immediately
     - blueprint: architecture/admin
       # 4.0.0 is where a destructive act needs a step-up, never a second person
-      version: ">=4.0.0 <5.0.0"
+      version: ">=4.0.0 <6.0.0"
       bindings:
         behaviors:
           - name: operator-registration

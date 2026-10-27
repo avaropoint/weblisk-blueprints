@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.1.1
+version: 2.0.0
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -399,7 +399,7 @@ payload:
   evidence:
     input_hash: <sha256 of input>    # what was evaluated
     policy_version: <policy-version> # which policy version
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -409,7 +409,8 @@ The `evidence` block provides tamper-evident context:
   evaluated, proving what data the decision was based on
 - **policy_version** — which version of the policy was active,
   proving which rules applied
-- **timestamp** and **trace_id** — when and in what context
+- **timestamp** and **trace_id** — when (an instant, as
+  `protocol/conventions:instant` writes one) and in what context
 
 These events flow to the audit log (see
 [architecture/storage](../architecture/storage.md)) and the
@@ -430,7 +431,7 @@ payload:
   evidence:
     input_hash: <sha256 of input>
     boundary_version: <boundary-version>
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -447,7 +448,7 @@ payload:
   approver: <approver-identity>
   evidence:
     request_hash: <sha256 of request>
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -520,7 +521,7 @@ payload:
   directive: <directive-type>
   target_agent: <agent-name>
   data_hash: <sha256 of directive data>
-  timestamp: <unix-epoch>
+  timestamp: <instant>
   result: accepted | rejected
   trace_id: <correlation-id>
 ```
@@ -607,8 +608,8 @@ GET /admin/governance/evidence
   Query:
     profile=<profile-name>
     control=<control-id>
-    since=<unix-epoch>
-    until=<unix-epoch>
+    since=<instant>
+    until=<instant>
     format=json|csv
   Response: stream of governance events
 ```

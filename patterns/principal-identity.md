@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.9.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -619,6 +619,8 @@ types:
       not_after:
         type: timestamp
         required: true
+        description: An instant, written inside the signed body as
+          protocol/conventions:instant writes one (a string since 2.0.0)
       signature:
         type: string
         required: true

@@ -133,7 +133,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.8.0 <2.0.0"
+    version: ">=1.8.0 <3.0.0"
     bindings:
       types:
         # What a change statement carries, so a verifier needs no hub

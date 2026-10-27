@@ -584,8 +584,8 @@ by the publishing agent's framework in a dead-letter log.
   "failure_reason": "UNREACHABLE",
   "last_error": "connection refused",
   "attempts": 3,
-  "first_attempt": 1712160001,
-  "last_attempt": 1712160035,
+  "first_attempt": "2024-04-03T16:00:01.000Z",
+  "last_attempt": "2024-04-03T16:00:35.000Z",
   "subscriber": "alerting"
 }
 ```

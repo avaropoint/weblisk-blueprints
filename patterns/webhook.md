@@ -316,7 +316,7 @@ Response (201 Created):
   "id": "a1b2c3d4...",
   "url": "https://example.com/hooks/orders",
   "events": ["order.placed", "order.shipped"],
-  "created": 1713264000,
+  "created": "2024-04-16T10:40:00.000Z",
   "active": true
 }
 ```
@@ -338,7 +338,7 @@ Response (201 Created):
       - Content-Type: application/json
       - X-Webhook-Signature: sha256=<hex-hmac>
       - X-Webhook-ID: <delivery-id>
-      - X-Webhook-Timestamp: <unix-timestamp>
+      - X-Webhook-Timestamp: <instant, protocol/conventions:instant>
    e. If 2xx → mark delivered
    f. If non-2xx or timeout → schedule retry
 4. Log delivery attempt (subscriber, event, status, response code)

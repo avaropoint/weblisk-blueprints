@@ -26,7 +26,7 @@ what it can access.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -268,7 +268,7 @@ Response (201 Created):
   "name": "CI Pipeline",
   "scopes": ["read"],
   "expires_at": "2024-05-16T10:40:00.000Z",
-  "created": 1713264000
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 

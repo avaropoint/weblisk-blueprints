@@ -1569,7 +1569,7 @@ tests:
       payload: {}
     expected:
       task_id: "<uuid-v7>"
-      next_fire: 1745582400
+      next_fire: "2025-04-25T12:00:00.000Z"
     validates:
       - ck_once_needs_fire_at constraint passes
       - CronTask.status = active

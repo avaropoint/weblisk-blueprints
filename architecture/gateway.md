@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <5.0.0"
+    version: ">=2.0.0 <6.0.0"
     bindings:
       patterns:
         - behavior: admin-separation

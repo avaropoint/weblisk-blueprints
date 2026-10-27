@@ -17,8 +17,10 @@ Usage: conventions.py vectors|time-fields|sites [--control] [--root DIR]
              a UUID version other than 7, a backoff formula, schedule or
              second algorithm, a retry limit counted in retries, a task
              timeout other than the rule's, a :name path parameter, an instant
-             described in epoch or Unix units (a NumericDate or OpenMetrics
-             timestamp, whose form an external authority fixes, excepted).
+             described in epoch or Unix units in any spelling (unix-epoch,
+             <unix-timestamp> ...), or an example that writes an instant as
+             an epoch integer (a NumericDate or OpenMetrics timestamp, whose
+             form an external authority fixes, excepted).
 --control runs the mode with a seeded fault and passes only if exactly the
 seeded fault is reported. --root reads another corpus checkout.
 """
@@ -110,11 +112,12 @@ SITES = {
     "retries": [re.compile(r"\bmax_retries\b|\bretry_count\b|\bMaxRetries\b|(?i:\bretr(?:y|ies) (?:up to )?\d+ ?x\b|\b\d+ retries\b|\bretr(?:y|ies) \d+ times\b)")],
     "task-timeout": [re.compile(r"(?i)\|\s*(?:agent → agent \(task\)|task timeout)\s*\|\s*(?!300\s*s)\d+\s*s\s*\|")],
     "path-param": [re.compile(r"/:[a-z_][a-z0-9_]*")],
-    "instant": [re.compile(r"^(?!.*(?:NumericDate|OpenMetrics))(?i:.*(?:unix epoch|epoch seconds|unix seconds|unix timestamp|unix ms\b|epoch milli|decimal unix|unix time\b))")],
+    "instant": [re.compile(r"^(?!.*(?:NumericDate|OpenMetrics))(?i:.*(?:unix[-_ ]epoch|epoch[-_ ]seconds|unix[-_ ]seconds|unix[-_ ]timestamp|unix[-_ ]ms\b|epoch[-_ ]milli|decimal unix|unix[-_ ]time\b|<epoch\b|seconds since (?:the )?epoch))")],
+    "epoch-literal": [re.compile(r"^(?!.*NumericDate)(?!.*[\"'\s{,](?:iat|exp|nbf|ren)[\"']?\s*:).*[\"']?\b[A-Za-z_]\w*[\"']?\s*(?::|=|<=?|>=?)\s*1[5-9]\d{8}(?:\d{3})?\b(?![.\d])")],
 }
 SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retries": "  max_retries: 3",
           "task-timeout": "| Task timeout | 30s | per task |", "path-param": "GET /v1/things/:id",
-          "instant": "| created_at | int64 | Unix epoch seconds |"}
+          "instant": "| created_at | int64 | Unix epoch seconds |", "epoch-literal": '  "last_check": 1712160000,'}
 
 
 INSTANT_NAME = re.compile(r"(?:^|_)(?:at|timestamp)$|^(?:ts|time|since|until|deadline|expiry|expires|not_after|not_before|iat|exp|created|updated|start|end|last_updated)$|^(?:last|next|first)_(?:seen|check|active|verified|refreshed|retry|fire|attempt|updated|rotated|renewal)$")
