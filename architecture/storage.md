@@ -42,7 +42,7 @@ generated once and run against any of them.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -100,7 +100,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: DomainWorkflow
@@ -110,7 +110,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/workflow
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: WorkflowExecution
@@ -120,7 +120,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/task
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: TaskRecord

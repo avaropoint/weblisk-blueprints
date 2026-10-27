@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 1.1.0
+version: 2.0.0
 requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ periodically allows a probe request to check if the target recovered.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -48,7 +48,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentConfig
@@ -93,21 +93,21 @@ contracts:
           required: true
           description: Total number of attempts including the original request
         - name: backoff
-          type: enum(exponential, linear, fixed)
+          type: enum(exponential)
           required: true
-          description: Backoff algorithm for delay calculation
+          description: The one backoff, protocol/conventions:backoff. No other formula is offered
         - name: base_delay
-          type: int
+          type: duration
           required: true
-          description: Base delay in milliseconds between retry attempts
+          description: The backoff's base (protocol/conventions:backoff), default 1s
         - name: jitter
           type: boolean
           required: false
-          description: Apply randomized jitter to prevent thundering herd
+          description: Full jitter, which protocol/conventions:backoff always applies; false is refused
         - name: max_delay
-          type: int
+          type: duration
           required: false
-          description: Maximum delay cap in milliseconds (prevents unbounded exponential growth)
+          description: The backoff's cap (protocol/conventions:backoff), default 30s
         - name: retryable_errors
           type: '[]string'
           required: false
@@ -158,11 +158,11 @@ contracts:
 
 ```yaml
 retry:
-  max_attempts: 3            # Total attempts (1 original + 2 retries)
-  backoff: exponential       # exponential | linear | fixed
-  base_delay: 1000           # milliseconds
-  max_delay: 30000           # milliseconds
-  jitter: true               # Add randomized jitter to prevent thundering herd
+  max_attempts: 3            # protocol/conventions:max-attempts
+  backoff: exponential       # protocol/conventions:backoff
+  base_delay: 1s
+  max_delay: 30s
+  jitter: true               # full jitter, always
   retryable_errors:
     - TIMEOUT
     - CONNECTION_REFUSED
@@ -179,53 +179,13 @@ retry:
     - PERMANENT_FAILURE
 ```
 
-### Backoff Algorithms
+### Backoff
 
-#### Exponential (Default)
-
-```
-delay = min(base_delay × 2^(attempt - 1), max_delay)
-```
-
-| Attempt | Base Delay | Calculated | With Jitter (±25%) |
-|---------|-----------|------------|-------------------|
-| 1 | 1000ms | 1000ms | 750–1250ms |
-| 2 | 1000ms | 2000ms | 1500–2500ms |
-| 3 | 1000ms | 4000ms | 3000–5000ms |
-| 4 | 1000ms | 8000ms | 6000–10000ms |
-
-#### Linear
-
-```
-delay = min(base_delay × attempt, max_delay)
-```
-
-#### Fixed
-
-```
-delay = base_delay  (constant, no escalation)
-```
-
-### Jitter
-
-Always enabled by default. Prevents thundering herd when multiple
-agents retry simultaneously after a shared dependency recovers.
-
-```
-jittered_delay = delay × (0.75 + random() × 0.5)
-```
-
-### Retry-After Respect
-
-When a 429 response includes a `Retry-After` header, the retry delay
-MUST use the server-specified value instead of the calculated backoff:
-
-```
-if response.status == 429 && response.headers["Retry-After"]:
-    delay = parse_retry_after(response.headers["Retry-After"])
-else:
-    delay = calculate_backoff(attempt)
-```
+The delay before each retry is [`protocol/conventions`](../protocol/conventions.md#backoff)'s, with
+`base_delay` and `max_delay` as its base and max, and full jitter. This
+pattern adds no formula, schedule or jitter of its own, and a component
+that needs another pace sets `base_delay` and `max_delay`. A `Retry-After`
+the server sends on a 429 or 503 is a floor on the delay, as that rule says.
 
 ---
 
@@ -302,7 +262,7 @@ on agent-to-agent communication generate `high` severity alerts.
 
 | Communication | Default | Configurable |
 |--------------|---------|-------------|
-| Agent → Agent (task) | 30s | Per-workflow phase |
+| Agent → Agent (task) | `protocol/conventions:task-timeout` | Per-workflow phase |
 | Agent → Agent (direct message) | 10s | Per-agent config |
 | Agent → Orchestrator | 5s | Agent config |
 | Agent → Storage | 5s | Agent config |
@@ -339,9 +299,9 @@ Agents can override defaults in their configuration:
 agent:
   name: email-send
   retry:
-    max_attempts: 5          # More retries for email delivery
-    base_delay: 5000         # Longer delays for SMTP
-    max_delay: 60000
+    max_attempts: 5          # More attempts for email delivery
+    base_delay: 5s           # Longer delays for SMTP
+    max_delay: 60s
   circuit_breaker:
     failure_threshold: 3     # Trip faster for email
     recovery_timeout: 60000  # Wait longer before retry
@@ -361,8 +321,7 @@ phases:
     timeout: 60              # Phase timeout
     retry:
       max_attempts: 2        # Override for this phase
-      backoff: fixed
-      base_delay: 5000
+      base_delay: 5s
 ```
 
 ---
@@ -412,8 +371,8 @@ it overrides the category-based default.
   renews its lease not ready, its `checks` naming that agent
   ([`protocol/types`](../protocol/types.md#leasestate) §LeaseState).
 - The retry pattern works with the rate-limiting pattern: when a 429
-  is received, the Retry-After header takes precedence over
-  calculated backoff.
+  is received, its Retry-After is a floor on the backoff
+  (`protocol/conventions:backoff`).
 - Idempotent operations (GET, HEAD, DELETE by ID) are always safe to
   retry. Non-idempotent operations (POST) SHOULD include an
   idempotency key to prevent duplicate side effects.
@@ -422,9 +381,9 @@ it overrides the category-based default.
 
 - [ ] Transient errors trigger retry with exponential backoff
 - [ ] Permanent errors fail immediately without retry
-- [ ] Jitter is applied to all retry delays
+- [ ] Every retry delay is full jitter under `protocol/conventions:backoff`
 - [ ] Max delay caps exponential growth
-- [ ] Retry-After header overrides calculated backoff on 429
+- [ ] No retry on a 429 comes before its Retry-After
 - [ ] Circuit breaker trips after consecutive failure threshold
 - [ ] Circuit breaker enters HALF_OPEN after recovery timeout
 - [ ] Successful probe in HALF_OPEN closes circuit

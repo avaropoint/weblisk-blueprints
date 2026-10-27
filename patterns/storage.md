@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: storage
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ the format so that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -152,7 +152,7 @@ types:
 | `json` | Arbitrary JSON object | `{"key": "value"}` |
 | `[]<type>` | Array of type | `[]string` |
 | `enum(<values>)` | Enumerated string values | `enum(active,suspended,deleted)` |
-| `uuid` | UUID v4 string | `"a1b2c3d4-..."` |
+| `uuid` | UUID, as `protocol/conventions:uuid` says | `"017f22e2-79b0-7cc3-98c4-dc0c0c07398f"` |
 
 ### Example
 
@@ -377,21 +377,21 @@ migrations:
       - action: add_field
         type: EmailQueueEntry
         field:
-          name: retry_count
+          name: attempts
           type: int
           required: true
           default: 0
       - action: add_index
         index:
           name: idx_retry_pending
-          fields: [status, retry_count]
+          fields: [status, attempts]
           condition: "status = 'failed'"
     down:
       - action: drop_index
         name: idx_retry_pending
       - action: drop_field
         type: EmailQueueEntry
-        field: retry_count
+        field: attempts
 
   - version: "1.2.0"
     description: Rename status values
@@ -515,8 +515,8 @@ types:
   automatically.
 - **Timestamps are Unix epoch**: All timestamp fields store seconds
   since epoch as int64. Display formatting is a presentation concern.
-- **UUIDs for IDs**: Use UUID v4 for all primary keys unless there
-  is a specific reason for sequential IDs.
+- **UUIDs for IDs**: Use a UUID (`protocol/conventions:uuid`) for every primary key
+  unless there is a specific reason for sequential IDs.
 - **Soft deletes**: Prefer `status: deleted` over physical deletes
   for auditable records. Physical deletes are acceptable for
   retention-purged data.

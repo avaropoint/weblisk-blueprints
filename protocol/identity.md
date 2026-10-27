@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.4.0
+version: 2.4.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <5.0.0"
+    version: ">=1.15.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -1212,7 +1212,7 @@ When an agent moves to a new host:
 
 1. Generate new key pair on a clean system
 2. Operator uses admin gateway to force-revoke the compromised key:
-   `POST /v1/admin/agents/:name/revoke-key`
+   `POST /v1/admin/agents/{name}/revoke-key`
 3. Agent re-registers with the new key
 4. All tokens issued to the old key are invalidated
 5. Admin reviews audit trail for unauthorized activity

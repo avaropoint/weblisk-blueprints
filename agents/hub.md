@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: hub
-version: 3.0.0
+version: 4.0.0
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, patterns/namespace, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
@@ -134,7 +134,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -245,7 +245,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -285,7 +285,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -293,7 +293,7 @@ extends:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -352,7 +352,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/notification
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: channel-routing
@@ -1249,7 +1249,7 @@ types:
         type: int64
         optional: true
         description: Delivery completion timestamp
-      retry_count:
+      attempts:
         type: int
         default: 0
         description: Current retry attempt count
@@ -1709,7 +1709,7 @@ Step 4 — Load Revocation List
 Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 6 — Subscribe to Events
   Action:      Subscribe to all hub and federation topics:
@@ -3151,7 +3151,7 @@ error_handling_rules:
   - error: Invocation event malformed
     handling: Log and discard. Do not corrupt aggregates.
   - error: Collaborator unreachable
-    handling: Queue notification. Retry 3 times with backoff. Log failure.
+    handling: Queue notification. Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`. Log failure.
   - error: Alerting agent unavailable
     handling: Log alert locally. Retry when alerting recovers.
   - error: Rate limit on collaborator endpoint

@@ -649,7 +649,7 @@ types:
 
 Configuration parameter names SHOULD follow a consistent naming scheme
 within each implementation. The specification defines semantic parameter
-names (e.g., `tick_interval`, `max_retries`). Platform implementations
+names (e.g., `tick_interval`, `max_attempts`). Platform implementations
 MAY map these to environment variables, config files, or other mechanisms
 using their own conventions.
 

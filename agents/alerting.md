@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 2.0.0
+version: 2.0.1
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -53,7 +53,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -84,7 +84,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -98,7 +98,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/email-send
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       actions:
         - name: send
@@ -134,7 +134,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -142,14 +142,14 @@ extends:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - pattern: patterns/notification
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: channel-dispatch
@@ -337,7 +337,7 @@ The alert event is delivered to the agent's `/task` endpoint.
       "domain": "health"
     },
     "title": "Site unreachable",
-    "message": "GET https://example.com returned 503 after 3 retries",
+    "message": "GET https://example.com returned 503 after 3 attempts",
     "context": {
       "url": "https://example.com",
       "status_code": 503,
@@ -507,7 +507,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine, verify alert_history table
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
   Backout:     Close any partial connection
 
 Step 4 — Validate Schema
@@ -521,7 +521,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 6 — Subscribe to Events
@@ -839,7 +839,7 @@ Phase 3 — Route
 Phase 4 — Deliver (async, parallel per channel)
   For each channel:
     Email:   Send message to email-send agent (see Delivery Channels below)
-    Webhook: POST with HMAC-SHA256 signature, retry up to 3x
+    Webhook: POST with HMAC-SHA256 signature, up to 3 attempts
     Slack:   POST Block Kit payload to webhook URL
   Metric:    alerting_delivered_total per channel
 
@@ -918,7 +918,7 @@ Delegates to the `email-send` infrastructure agent via the
   "payload": {
     "to": ["alice@example.com"],
     "subject": "[CRITICAL] Site unreachable",
-    "body": "GET https://example.com returned 503 after 3 retries.\n\nSource: uptime-checker (health)\nTime: 2026-04-25 10:00:00 UTC\nConsecutive failures: 3",
+    "body": "GET https://example.com returned 503 after 3 attempts.\n\nSource: uptime-checker (health)\nTime: 2026-04-25 10:00:00 UTC\nConsecutive failures: 3",
     "priority": "high"
   }
 }
@@ -946,7 +946,7 @@ X-Weblisk-Delivery: <uuid>
   "severity": "critical",
   "source": "uptime-checker",
   "title": "Site unreachable",
-  "message": "GET https://example.com returned 503 after 3 retries",
+  "message": "GET https://example.com returned 503 after 3 attempts",
   "context": {...},
   "timestamp": 1712160000
 }
@@ -960,8 +960,8 @@ header = "sha256=" + hex(signature)
 
 **Delivery rules:**
 - Timeout: 10 seconds
-- Retry: 3 attempts with exponential backoff (1s, 4s, 16s)
-- If all retries fail → log delivery failure, do not re-queue
+- Retry: up to 3 attempts, waiting as `protocol/conventions:backoff` says
+- If every attempt fails → log delivery failure, do not re-queue
 
 ### Slack Channel
 
@@ -980,7 +980,7 @@ HTTP POST to a Slack incoming webhook URL.
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Site unreachable*\nGET https://example.com returned 503 after 3 retries\n\n*Source:* uptime-checker (health)\n*Time:* 2026-04-25 10:00:00 UTC"
+        "text": "*Site unreachable*\nGET https://example.com returned 503 after 3 attempts\n\n*Source:* uptime-checker (health)\n*Time:* 2026-04-25 10:00:00 UTC"
       }
     }
   ]
@@ -1058,7 +1058,7 @@ The admin API provides alert querying, which no person reaches yet
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/v1/admin/alerts` | List alerts with filtering |
-| GET | `/v1/admin/alerts/:id` | Get alert detail |
+| GET | `/v1/admin/alerts/{id}` | Get alert detail |
 | GET | `/v1/admin/alerts/stats` | Alert statistics |
 
 **Stats response:**
@@ -1318,10 +1318,10 @@ errors:
       fallback: Skip email, attempt other channels
     - code: WEBHOOK_DELIVERY_ERROR
       description: Webhook POST failed or timed out
-      fallback: Retry up to 3x with exponential backoff
+      fallback: Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`
     - code: SLACK_DELIVERY_ERROR
       description: Slack webhook POST failed
-      fallback: Retry up to 3x with exponential backoff
+      fallback: Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`
     - code: ALL_CHANNELS_FAILED
       description: Every configured channel failed for this alert
       fallback: Log error, alert stored in history as delivery_failed
@@ -1610,7 +1610,7 @@ scaling:
 - [ ] Throttled alerts include suppressed count on next delivery
 - [ ] Email channel delegates to email-send agent correctly
 - [ ] Webhook channel includes HMAC-SHA256 signature
-- [ ] Webhook retries 3 times with exponential backoff on failure
+- [ ] Webhook makes up to 3 attempts, backoff per `protocol/conventions:backoff` on failure
 - [ ] Slack channel sends Block Kit formatted messages
 - [ ] Alert history is stored, and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading nothing, while the manifest declares none of them among its `pass_routes`
 - [ ] Stats endpoint returns correct counts by severity and source

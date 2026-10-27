@@ -42,7 +42,7 @@ no latency threshold and no probe of one component by another.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -59,7 +59,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentState

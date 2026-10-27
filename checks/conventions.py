@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 """protocol/conventions, checked from outside every Weblisk tool.
 
-Usage: conventions.py vectors [--control]
+Usage: conventions.py vectors|sites [--control] [--root DIR]
   vectors    each value in vectors/conventions.json is what the rule it names
              gives, computed here from the rule's text alone.
+  sites      no specification file restates a rule protocol/conventions holds:
+             a UUID version other than 7, a backoff formula, schedule or
+             second algorithm, a retry limit counted in retries, a task
+             timeout other than the rule's, a :name path parameter.
 --control runs the mode with a seeded fault and passes only if exactly the
-seeded fault is reported.
+seeded fault is reported. --root reads another corpus checkout.
 """
-import datetime, json, os, re, sys
+import datetime, glob, json, os, re, sys
 
-root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-mode = sys.argv[1] if len(sys.argv) > 1 else ""
-control = "--control" in sys.argv[2:]
+argv = sys.argv[1:]
+root = argv[argv.index("--root") + 1] if "--root" in argv else os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+mode = argv[0] if argv else ""
+control = "--control" in argv
 
 INSTANT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
 UUID7 = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}")
@@ -84,7 +89,53 @@ def vectors():
     return found, {"instant", "backoff"}
 
 
+SPEC_DIRS = ["protocol", "patterns", "architecture", "agents", "languages", "platforms", "frameworks", "schemas", "skills", "templates"]
+HOME = "protocol/conventions.md"
+SITES = {
+    "uuid": [re.compile(r"(?i)uuid[ -]?v4|uuid4|v4 uuid")],
+    "backoff": [re.compile(r"2\s*\^\s*\(?\s*(?:attempt|retry|n)\b|\bbase\w*\s*[×x*]\s*2\b"),
+                re.compile(r"(?i)(?=.*(?:backoff|retr|exponential)).*\b\d+[ -]?(?:ms|s|m|h|sec(?:ond)?s?|min(?:ute)?s?)\b\s*,\s*\d+[ -]?(?:ms|s|m|h|sec(?:ond)?s?|min(?:ute)?s?)\b"),
+                re.compile(r"(?i)backoff\w*\b.*\b(?:linear|fixed)\b")],
+    "retries": [re.compile(r"\bmax_retries\b|\bretry_count\b|\bMaxRetries\b|(?i:\bretr(?:y|ies) (?:up to )?\d+ ?x\b|\b\d+ retries\b|\bretr(?:y|ies) \d+ times\b)")],
+    "task-timeout": [re.compile(r"(?i)\|\s*(?:agent → agent \(task\)|task timeout)\s*\|\s*(?!300\s*s)\d+\s*s\s*\|")],
+    "path-param": [re.compile(r"/:[a-z_][a-z0-9_]*")],
+}
+SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retries": "  max_retries: 3",
+          "task-timeout": "| Task timeout | 30s | per task |", "path-param": "GET /v1/things/:id"}
+
+
+def site_lines(text):
+    """Each line, and the YAML key a list of backoff values sits under."""
+    lines = text.split("\n")
+    for i, l in enumerate(lines):
+        yield i + 1, l
+        if re.match(r"^\s*(?:values|enum):\s*\[.*\b(?:linear|fixed)\b", l) and any(re.match(r"^\s*\w*backoff\w*:\s*$", p) for p in lines[max(0, i - 4):i]):
+            yield i + 1, "backoff: " + l.strip()
+        m = re.match(r"^\s*task_timeout:\s*$", l)
+        if m:
+            for p in lines[i + 1:i + 7]:
+                d = re.match(r"^\s*default:\s*(\d+)\s*$", p)
+                if d and d.group(1) != "300": yield i + 1, f"| Task timeout | {d.group(1)}s |"
+
+
+def sites():
+    found = []
+    files = sorted(p for d in SPEC_DIRS for p in glob.glob(os.path.join(root, d, "**", "*.md"), recursive=True))
+    texts = [(os.path.relpath(p, root), open(p, encoding="utf-8").read()) for p in files]
+    if control: texts.append(("seeded.md", "\n".join(SEEDED.values())))
+    for rel, text in texts:
+        if rel == HOME: continue
+        for n, l in site_lines(text):
+            for rule, pats in SITES.items():
+                if any(p.search(l) for p in pats): found.append(f"{rule}: {rel}:{n}: {l.strip()[:120]}")
+    if control:
+        seeded = [f for f in found if " seeded.md:" in f]
+        return (seeded if len(seeded) == len(SEEDED) and found == seeded else found + ["control: the corpus is not clean, or a seeded line was missed"]), set(SEEDED)
+    return found, set()
+
+
 if mode == "vectors": found, seeded = vectors()
+elif mode == "sites": found, seeded = sites()
 else: sys.exit(__doc__)
 if found: print("\n".join(found))
 print(f"{mode}: {len(found)} reported")

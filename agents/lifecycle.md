@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 2.0.0
+version: 2.0.1
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -63,7 +63,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -76,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -104,7 +104,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -624,12 +624,12 @@ Step 2 — Load Identity
 Step 3 — Initialize Storage
   Action:      Open flat-file JSONL storage directory
   Validates:   Directory writable, existing files parseable
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
 
 Step 4 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 5 — Subscribe to Events
   Action:      Subscribe to: workflow.completed (scope: "*"),
@@ -1108,7 +1108,7 @@ errors:
       fallback: Enter degraded state, buffer in memory, retry on next event
     - code: WORKFLOW_TRIGGER_FAILED
       description: Failed to publish workflow.trigger event
-      fallback: Retry 3x with exponential backoff, log warning
+      fallback: Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`, log warning
     - code: EVENT_DELIVERY_FAILED
       description: Published event not acknowledged by bus
       fallback: Retry with backoff, log warning, continue processing

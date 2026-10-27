@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: domain
-version: 2.1.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
@@ -79,7 +79,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -105,7 +105,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -132,7 +132,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -145,7 +145,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: workflow-declaration
@@ -558,7 +558,7 @@ JSON keys.
 | timeout | no | Phase timeout in seconds (default: 300) |
 | approval | no | `"required"` or `"auto"` (default: `"auto"`) |
 | on_error | no | `"fail"` (default), `"skip"`, or `"retry"` |
-| max_retries | no | Retry count when on_error = `"retry"` (default: 0; see types.md) |
+| max_attempts | no | Total attempts when on_error = `"retry"`, the first included (default: 3; `protocol/conventions:max-attempts`) |
 | condition | no | Expression that must be truthy to execute phase |
 
 ### Execution Order
@@ -570,8 +570,8 @@ Phases execute in dependency order:
 3. If a phase fails and `on_error` = `"fail"`, the entire workflow fails
 4. If `on_error` = `"skip"`, the phase is marked skipped and dependents
    proceed without its output
-5. If `on_error` = `"retry"`, the phase retries up to `max_retries`
-   with 1-second, 2-second, 4-second backoff
+5. If `on_error` = `"retry"`, the phase is tried up to `max_attempts`
+   times, waiting as `protocol/conventions:backoff` says
 6. Phases with `agent: "self"` execute within the domain controller
    itself (for aggregation, validation, and decision logic)
 7. If `approval: "required"`, execution pauses until approval is

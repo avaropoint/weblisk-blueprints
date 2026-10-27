@@ -82,6 +82,10 @@ grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended a
 # 2^n must be reported in exactly those two rules.
 expect 0 "conventions: every vector is what its rule gives" python3 checks/conventions.py vectors
 expect 0 "conventions control: a second-precision instant and a 2^n backoff are reported" python3 checks/conventions.py vectors --control
+# No specification restates a rule protocol/conventions holds; a seeded file
+# with one restatement of each kind must be reported, and nothing else.
+expect 0 "conventions sites: no file restates a convention" python3 checks/conventions.py sites
+expect 0 "conventions sites control: one seeded restatement of each kind is reported" python3 checks/conventions.py sites --control
 
 # Every mapping's wire timestamp against one vector, and a mapping changed to
 # milliseconds that must be the one disagreement reported.

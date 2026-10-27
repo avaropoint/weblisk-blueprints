@@ -51,7 +51,7 @@ variant parts.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: Feedback
@@ -79,7 +79,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: DomainManifest

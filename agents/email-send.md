@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 2.0.0
+version: 3.0.0
 port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -69,7 +69,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -105,11 +105,11 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:
@@ -118,7 +118,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/notification
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: channel-dispatch
@@ -219,8 +219,8 @@ config:
   from_address: noreply@example.com
   from_name: My App
   queue_batch_size: 50          # emails per processing cycle
-  max_retries: 3
-  retry_backoff: exponential    # 1m, 2m, 4m
+  max_attempts: 3
+  retry_backoff: exponential    # protocol/conventions:backoff, base 1m, max 15m
   rate_limit: 100               # max sends per minute
 
   smtp:
@@ -434,10 +434,10 @@ types:
         type: int
         required: true
         description: "Send attempt count"
-      max_retries:
+      max_attempts:
         type: int
         required: true
-        description: "Max attempts allowed"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       next_retry:
         type: int64
         required: false
@@ -514,10 +514,10 @@ types:
         type: int
         required: true
         description: "Emails per processing cycle"
-      max_retries:
+      max_attempts:
         type: int
         required: true
-        description: "Max delivery attempts"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       rate_limit:
         type: int
         required: true
@@ -625,7 +625,7 @@ state_machine:
       - from: pending
         to: sending
         trigger: queue_sweep_picks_entry
-        validates: attempts < max_retries AND next_retry <= now
+        validates: attempts < max_attempts AND next_retry <= now
       - from: sending
         to: delivered
         trigger: provider_success
@@ -634,21 +634,21 @@ state_machine:
       - from: sending
         to: failed
         trigger: provider_error_retryable
-        validates: attempts < max_retries
+        validates: attempts < max_attempts
         side_effect: increment attempts, compute next_retry
       - from: failed
         to: sending
         trigger: retry_sweep
-        validates: next_retry <= now AND attempts < max_retries
+        validates: next_retry <= now AND attempts < max_attempts
       - from: sending
         to: permanently_failed
         trigger: provider_error_final
-        validates: attempts >= max_retries
+        validates: attempts >= max_attempts
         side_effect: emit email.delivery_failed event
       - from: failed
         to: permanently_failed
         trigger: retries_exhausted
-        validates: attempts >= max_retries on retry sweep
+        validates: attempts >= max_attempts on retry sweep
 ```
 
 ---
@@ -676,7 +676,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine (sqlite)
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
   Backout:     Close any partial connection
 
 Step 4 — Validate Schema
@@ -697,7 +697,7 @@ Step 6 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 7 — Subscribe to Events
@@ -811,8 +811,8 @@ Final:  Log process.version_updated {from, to}
   to prevent injection. HTML entities in variables MUST be escaped.
 - **Queue persistence**: The email queue MUST be persistent. In-memory
   queues lose emails on restart.
-- **Retry timing**: Use exponential backoff: 1 minute, 2 minutes,
-  4 minutes. Do not retry immediately.
+- **Retry timing**: `protocol/conventions:backoff` with base 1m and max 15m. Do not
+  retry immediately.
 
 ---
 
@@ -1012,7 +1012,7 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_retry
     default: enabled
-    override: Set max_retries = 0 per email or globally
+    override: Set max_attempts = 1 per email or globally
     audit: logged
 
   - behavior: queue_processing

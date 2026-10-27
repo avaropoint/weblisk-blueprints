@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 4.1.0
+version: 5.0.0
 requires: []
 platform: any
 tier: free
@@ -816,11 +816,11 @@ types:
         type: string
         required: false
         description: "`\"fail\"` (default), `\"skip\"`, or `\"retry\"`"
-      max_retries:
-        name: MaxRetries
+      max_attempts:
+        name: MaxAttempts
         type: int
         required: false
-        description: "Retry count when `on_error` = `\"retry\"` (default: 0)"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       condition:
         name: Condition
         type: string
@@ -3600,7 +3600,7 @@ security:
 - [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
 - [ ] RouteEntry requires `agent`, `url`, and `scope`
 - [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`
-- [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
+- [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_attempts` applies only when `on_error` = `"retry"`
 - [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
 - [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785

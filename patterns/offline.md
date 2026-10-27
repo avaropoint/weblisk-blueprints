@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
@@ -68,7 +68,7 @@ requires:
     version: ">=2.0.0 <4.0.0"
     bindings:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -636,7 +636,7 @@ types:
         type: string
         required: false
         description: "`low`, `normal`, `high` — affects flush order"
-      retry_count:
+      attempts:
         type: int
         required: false
         description: "Number of failed push attempts for this entry"
@@ -1041,9 +1041,9 @@ config:
   retry_backoff:
     type: string
     default: exponential
-    values: [fixed, exponential]
+    values: [exponential]
     overridable: true
-    description: Retry backoff strategy
+    description: The one backoff, protocol/conventions:backoff
 ```
 
 ---
@@ -1187,7 +1187,7 @@ Errors follow the protocol/spec `ErrorResponse` structure:
 - [ ] Offline queue persists across app restarts
 - [ ] Queue entries are flushed in the declared order (oldest-first by default)
 - [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity
-- [ ] Failed flush attempts increment `retry_count` on the queue entry
+- [ ] Failed flush attempts increment `attempts` on the queue entry
 
 ### State Machine
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: file-upload
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free
@@ -28,7 +28,7 @@ and CDN integration for public assets.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: FileRecord
@@ -103,13 +103,13 @@ contracts:
     - path: /files/upload/batch
       description: Upload multiple files in a single request
       inherited_by: Endpoints section
-    - path: /files/:id
+    - path: /files/{id}
       description: Retrieve file metadata
       inherited_by: Endpoints section
-    - path: /files/:id/download
+    - path: /files/{id}/download
       description: Download file or redirect to CDN
       inherited_by: Endpoints section
-    - path: /files/:id/signed-url
+    - path: /files/{id}/signed-url
       description: Generate a time-limited signed download URL for private files
       inherited_by: Endpoints section
 
@@ -172,10 +172,10 @@ config:
 |--------|------|------|-------------|
 | POST | `/files/upload` | authenticated | Upload a file |
 | POST | `/files/upload/batch` | authenticated | Upload multiple files |
-| GET | `/files/:id` | varies | Get file metadata |
-| GET | `/files/:id/download` | varies | Download file or redirect to CDN |
-| DELETE | `/files/:id` | owner or admin | Delete a file |
-| POST | `/files/:id/signed-url` | authenticated | Generate signed download URL |
+| GET | `/files/{id}` | varies | Get file metadata |
+| GET | `/files/{id}/download` | varies | Download file or redirect to CDN |
+| DELETE | `/files/{id}` | owner or admin | Delete a file |
+| POST | `/files/{id}/signed-url` | authenticated | Generate signed download URL |
 | GET | `/files` | authenticated | List user's files |
 
 ---
@@ -217,7 +217,7 @@ types:
    c. Read file magic bytes to verify actual type (not just header)
 
 2. Generate file record
-   a. id = UUID v4
+   a. id = a new UUID (`protocol/conventions:uuid`)
    b. storage_key = "<year>/<month>/<id>/<original_filename>"
    c. Record original filename, size, MIME type
 
@@ -412,7 +412,7 @@ storage:
 For private files that require authentication to access:
 
 ```
-POST /files/:id/signed-url
+POST /files/{id}/signed-url
 
 Response:
 {

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: webhook
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/retry]
 platform: any
 tier: free
@@ -36,7 +36,7 @@ and override only the parts they need.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -46,7 +46,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RetryConfig
@@ -98,10 +98,10 @@ contracts:
           type: string
           required: true
           description: HMAC algorithm for signing outbound payloads
-        - name: max_retries
+        - name: max_attempts
           type: int
           required: true
-          description: Maximum delivery retry attempts
+          description: Total attempts, the first included (protocol/conventions:max-attempts)
         - name: timeout
           type: int
           required: true
@@ -126,7 +126,7 @@ contracts:
       description: Outbound delivery payload with event type, timestamp, and data
       inherited_by: Types section
   endpoints:
-    - path: /webhooks/:source
+    - path: /webhooks/{source}
       description: Receive inbound webhook from a named external source
       inherited_by: Inbound Webhooks section
     - path: /webhooks/log
@@ -221,7 +221,7 @@ inbound:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/webhooks/:source` | Receive webhook from named source |
+| POST | `/webhooks/{source}` | Receive webhook from named source |
 | GET | `/webhooks/log` | View recent delivery log |
 
 ### Reception Flow
@@ -280,8 +280,8 @@ extends: patterns/webhook
 
 outbound:
   signing_algorithm: hmac-sha256
-  max_retries: 5
-  retry_backoff: exponential        # 1s, 2s, 4s, 8s, 16s
+  max_attempts: 5
+  retry_backoff: exponential        # protocol/conventions:backoff
   timeout: 10                       # seconds per delivery attempt
   max_payload_size: 262144          # 256 KB
   event_types:
@@ -297,7 +297,7 @@ outbound:
 |--------|------|-------------|
 | POST | `/webhooks/subscribers` | Register a new subscriber |
 | GET | `/webhooks/subscribers` | List registered subscribers |
-| DELETE | `/webhooks/subscribers/:id` | Remove a subscriber |
+| DELETE | `/webhooks/subscribers/{id}` | Remove a subscriber |
 
 ### Subscriber Registration (POST /webhooks/subscribers)
 
@@ -360,17 +360,10 @@ Response (201 Created):
 
 ### Retry Strategy
 
-Failed deliveries are retried with exponential backoff:
+Failed deliveries are retried up to `max_attempts`, waiting as
+`protocol/conventions:backoff` says between attempts.
 
-| Attempt | Delay |
-|---------|-------|
-| 1 | 1 second |
-| 2 | 2 seconds |
-| 3 | 4 seconds |
-| 4 | 8 seconds |
-| 5 | 16 seconds |
-
-After `max_retries` failures, the delivery is marked `failed`.
+After `max_attempts` failures, the delivery is marked `failed`.
 If 3 consecutive events all fail for a subscriber, the subscriber
 MAY be deactivated automatically.
 

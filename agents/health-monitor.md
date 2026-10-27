@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 2.0.0
+version: 2.0.1
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -65,7 +65,7 @@ requires:
 
   - blueprint: protocol/types
     # 3.0.0 is where LeaseRenewal, the request this agent's lease renewal sends, exists
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -82,7 +82,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -445,7 +445,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts → EXIT with STORAGE_UNREACHABLE
   Backout:     Close partial connection
 
 Step 4 — Validate Schema
@@ -459,7 +459,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 6 — Subscribe to Events

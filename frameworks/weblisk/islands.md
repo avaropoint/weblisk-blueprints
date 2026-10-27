@@ -69,7 +69,7 @@ accessibility:
 ```yaml
 protocol: websocket
 behavior:
-  reconnect: exponential     # backoff: 1s, 2s, 4s, 8s...
+  reconnect: exponential     # protocol/conventions:backoff
   heartbeat: 30s             # keep-alive ping interval
   buffer: 50                 # max queued messages during reconnect
 ```

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: Strategy
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -100,7 +100,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -351,7 +351,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -359,18 +359,18 @@ extends:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - pattern: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:

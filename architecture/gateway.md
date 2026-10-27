@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 2.0.1
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentEndpoints
@@ -657,8 +657,8 @@ gateway:
     min_version: "1.2"
 
   session:
-    token_ttl: 86400              # 24 hours
-    idle_timeout: 3600            # 1 hour of inactivity
+    token_ttl: 24h                # protocol/conventions:duration
+    idle_timeout: 1h              # of inactivity
     max_per_user: 5
     binding: strict               # strict | standard
     store: encrypted              # encrypted | plain
@@ -726,7 +726,7 @@ workflow completes:
 
 Status values: `pending`, `running`, `completed`, `failed`.
 
-The gateway routes `/api/<domain>/status/:id` to the owning domain's
+The gateway routes `/api/<domain>/status/{id}` to the owning domain's
 `HandleMessage` with action `get_status`. The domain queries the
 Workflow Agent's execution store via `POST /v1/message` (action:
 `get_status`) and returns the current state.

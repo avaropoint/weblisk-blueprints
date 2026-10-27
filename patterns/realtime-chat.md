@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: realtime-chat
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, architecture/gateway]
 platform: any
 tier: free
@@ -28,7 +28,7 @@ connection handles live messaging and presence.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -38,7 +38,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -108,13 +108,13 @@ contracts:
     - path: /channels
       description: List available channels
       inherited_by: Specification section
-    - path: /channels/:name
+    - path: /channels/{name}
       description: Get channel details and current presence
       inherited_by: Specification section
-    - path: /channels/:name/history
+    - path: /channels/{name}/history
       description: Retrieve paginated message history
       inherited_by: Specification section
-    - path: /channels/:name/send
+    - path: /channels/{name}/send
       description: Send a message via HTTP fallback
       inherited_by: Specification section
 ```
@@ -149,9 +149,9 @@ channels:
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/channels` | List available channels |
-| GET | `/channels/:name` | Get channel details and presence |
-| GET | `/channels/:name/history` | Retrieve message history |
-| POST | `/channels/:name/send` | Send a message (HTTP fallback) |
+| GET | `/channels/{name}` | Get channel details and presence |
+| GET | `/channels/{name}/history` | Retrieve message history |
+| POST | `/channels/{name}/send` | Send a message (HTTP fallback) |
 
 ### WebSocket Endpoint
 
@@ -214,7 +214,7 @@ joins or leaves.
 ```
 
 Presence list is returned in the `connected` frame and via
-`GET /channels/:name`.
+`GET /channels/{name}`.
 
 ### History
 

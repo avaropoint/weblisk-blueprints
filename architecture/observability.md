@@ -36,7 +36,7 @@ events to specific tasks, agents, domains, and workflows.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TraceContext
@@ -76,7 +76,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # Where an agent serves the probes Health Endpoint points to

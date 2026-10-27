@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 2.0.0
+version: 3.0.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -66,7 +66,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -83,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -98,7 +98,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -106,18 +106,18 @@ requires:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:
@@ -206,7 +206,7 @@ types:
         type: string
         optional: true
         description: Workflow correlation context
-      retry_count:
+      attempts:
         type: int
         default: 0
         description: Number of dispatch retries
@@ -528,12 +528,12 @@ Step 2 — Load Identity
 Step 3 — Initialize Storage
   Action:      Open flat-file JSONL storage directory
   Validates:   Directory writable, existing task records parseable
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
 
 Step 4 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 5 — Subscribe to Events
   Action:      Subscribe to: task.submit, task.cancel,
@@ -1133,7 +1133,7 @@ tests:
       task.failed after exhaustion
     validates:
       - Exponential backoff applied
-      - retry_count incremented per attempt
+      - attempts incremented per attempt
 
   - name: Task timeout
     trigger: "task.submit with timeout: 5, agent takes 10s"

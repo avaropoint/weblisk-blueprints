@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: expression
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -18,7 +18,7 @@ function calls, no variable assignment.
 
 Multiple blueprints need to evaluate expressions at runtime:
 
-- **State machine guards**: transition conditions (`attempts < max_retries`)
+- **State machine guards**: transition conditions (`attempts < max_attempts`)
 - **Workflow phase conditions**: skip logic (`$phases.scan.status == "success"`)
 - **Storage constraints**: check constraints, partial index conditions
 - **ABAC policy rules**: authorization decisions
@@ -36,7 +36,7 @@ scalar value, never mutates state, and never performs I/O.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -207,7 +207,7 @@ blueprint. Each consumer defines its own context roots:
 | `transition` | Transition metadata: `from`, `to`, `trigger` |
 | `now` | Current Unix epoch seconds (int64) |
 
-Example: `entity.attempts < entity.max_retries AND entity.status != "cancelled"`
+Example: `entity.attempts < entity.max_attempts AND entity.status != "cancelled"`
 
 ### Workflow Phase Context
 

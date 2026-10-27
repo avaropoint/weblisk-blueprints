@@ -28,7 +28,7 @@ The fields are [`LogEntry`](../protocol/types.md#logentry)'s.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -49,7 +49,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

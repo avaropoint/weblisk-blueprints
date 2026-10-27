@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentState
@@ -61,7 +61,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RetryConfig
@@ -562,9 +562,9 @@ framework retries using [patterns/retry](retry.md) configuration:
 ```yaml
 event_delivery_retry:
   max_attempts: 3
-  backoff: exponential
-  base_delay: 1000
-  max_delay: 30000
+  backoff: exponential   # protocol/conventions:backoff
+  base_delay: 1s
+  max_delay: 30s
 ```
 
 429 responses respect the `Retry-After` header specifically.
@@ -665,8 +665,8 @@ messaging:
   default_ttl: 86400            # 24 hours — event expiry for dead-letter
   dlq_retention: 604800         # 7 days — dead-letter entry retention
   delivery_retry_max: 3         # Max delivery attempts per subscriber
-  delivery_retry_base: 1000     # Base delay (ms) for exponential backoff
-  delivery_retry_max_delay: 30000  # Max delay (ms) cap
+  delivery_retry_base: 1s       # base of protocol/conventions:backoff
+  delivery_retry_max_delay: 30s # max of protocol/conventions:backoff
   idempotency_window: 86400     # Seconds to track processed event_ids
 ```
 

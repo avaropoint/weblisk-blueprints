@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-token
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free
@@ -38,7 +38,7 @@ what it can access.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <5.0.0"
+    version: ">=1.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Route
@@ -303,7 +303,7 @@ superset of the required scopes.
 ```
 GET /tasks       → requires: [read]
 POST /tasks      → requires: [write]
-DELETE /tasks/:id → requires: [write]
+DELETE /tasks/{id} → requires: [write]
 POST /auth/apikey → requires: [admin]
 ```
 

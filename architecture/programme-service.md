@@ -55,7 +55,7 @@ here.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <5.0.0"
+    version: ">=3.0.0 <6.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -94,7 +94,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # What an installed workflow becomes, and what execution answers
