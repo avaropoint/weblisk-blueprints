@@ -48,7 +48,7 @@ the framework's native interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -64,7 +64,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentState

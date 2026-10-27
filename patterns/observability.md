@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free
@@ -42,7 +42,7 @@ no latency threshold and no probe of one component by another.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -59,7 +59,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentState
@@ -179,7 +179,7 @@ agents do not need to redeclare them.
 | `agent_errors_total` | counter | `action`, `error_type` | Errors by type |
 | `agent_ready` | gauge | — | 1 while the component would answer `GET /readyz` with `ready: true`, 0 otherwise |
 | `agent_uptime_seconds` | gauge | — | Time since last start |
-| `agent_last_activity_timestamp` | gauge | — | Unix timestamp of last processed request |
+| `agent_last_activity_timestamp` | gauge | — | When the last request was processed, in seconds as OpenMetrics writes a timestamp gauge |
 
 ### Domain Metrics (additional)
 
@@ -290,8 +290,8 @@ types:
   answering.
 - **Metric cardinality**: Keep label cardinality low. Do not use
   unbounded values (e.g. user IDs) as labels.
-- **Clock sync**: Timestamps in metrics and alerts use Unix epoch
-  seconds. Components SHOULD use NTP-synced clocks.
+- **Clock sync**: Timestamps in alerts are `protocol/conventions:instant`; a metric
+  sample's is OpenMetrics'. Components SHOULD use NTP-synced clocks.
 - **Starting and draining**: a component is `not_ready` from registration
   until its first renewal says `ready: true`, and again while it drains.
   Neither is a fault.

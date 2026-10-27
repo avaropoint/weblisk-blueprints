@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.1.0
 kind: blueprint
 noun: protocol
 match: [protocol/*.md]
@@ -157,7 +157,7 @@ Declares wire-level rules that all implementations must follow:
 ```markdown
 - All paths are prefixed with `/v1`
 - All request/response bodies are `application/json`
-- All timestamps are Unix epoch seconds (`int64`)
+- All timestamps are `protocol/conventions:instant`
 - ...
 ```
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: incident-response
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/alerting, patterns/state-machine]
 platform: any
 tier: free
@@ -61,7 +61,7 @@ pattern for specialized incident handling.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       events:
         - topic: alert.fired
@@ -379,17 +379,17 @@ types:
         required: false
         description: Post-incident report ID (populated after post-mortem)
       created_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
         description: Incident creation timestamp
       updated_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
         description: Last state change timestamp
       resolved_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: false
         description: Resolution timestamp
@@ -398,7 +398,7 @@ types:
     description: Single chronological event in an incident timeline
     fields:
       time:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
         description: Event timestamp
@@ -679,7 +679,7 @@ types:
         required: false
         description: Improvement recommendations
       created_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
         description: Report generation timestamp
@@ -688,7 +688,7 @@ types:
         required: false
         description: Operator who reviewed and annotated the report
       reviewed_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: false
         description: Review timestamp

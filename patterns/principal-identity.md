@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: principal-identity
-version: 1.9.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -57,7 +57,7 @@ the same way.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.8.0 <3.0.0"
+    version: ">=1.8.0 <4.0.0"
     bindings:
       types:
         # cid and record_keys are how a verifier holding a token tells a
@@ -72,7 +72,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.16.0 <6.0.0"
+    version: ">=1.16.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -83,7 +83,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -619,6 +619,8 @@ types:
       not_after:
         type: timestamp
         required: true
+        description: An instant, written inside the signed body as
+          protocol/conventions:instant writes one (a string since 2.0.0)
       signature:
         type: string
         required: true

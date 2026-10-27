@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: alerting
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/messaging, patterns/notification]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ extend this pattern.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -69,7 +69,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/notification
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: notification-dispatch
@@ -386,15 +386,15 @@ types:
         type: "map[string]string"
         required: false
       fired_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
       resolved_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: false
       acknowledged_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: false
       acknowledged_by:
@@ -515,11 +515,11 @@ types:
         required: false
         description: Which alerts to suppress (empty = all alerts)
       start:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
       end:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
       critical_override:
@@ -558,11 +558,11 @@ types:
         type: int
         required: true
       first_fired_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
       last_fired_at:
-        type: datetime
+        type: timestamp
         format: ISO8601
         required: true
       state:

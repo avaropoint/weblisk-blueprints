@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: user-management
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ identifier and the address is a coordinate.
 ## Dependencies
 
   - blueprint: patterns/api-rest
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PaginatedResponse
@@ -55,7 +55,7 @@ identifier and the address is a coordinate.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -65,7 +65,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-session
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Session
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RefreshToken
@@ -85,7 +85,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Route
@@ -166,10 +166,10 @@ contracts:
     - path: /auth/verify-email
       description: Verify email address with token
       inherited_by: Email Verification section
-    - path: /auth/oauth/:provider
+    - path: /auth/oauth/{provider}
       description: Initiate OAuth authorization flow
       inherited_by: OAuth Social Login section
-    - path: /auth/oauth/:provider/callback
+    - path: /auth/oauth/{provider}/callback
       description: Handle OAuth provider callback
       inherited_by: OAuth Social Login section
 ```
@@ -206,18 +206,18 @@ config:
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/users` | admin | List users with pagination, filtering |
-| GET | `/users/:id` | self or admin | Get user profile |
-| PUT | `/users/:id` | self or admin | Update user profile |
-| DELETE | `/users/:id` | admin | Soft-delete a user |
-| PUT | `/users/:id/role` | admin | Change user role |
+| GET | `/users/{id}` | self or admin | Get user profile |
+| PUT | `/users/{id}` | self or admin | Update user profile |
+| DELETE | `/users/{id}` | admin | Soft-delete a user |
+| PUT | `/users/{id}/role` | admin | Change user role |
 | POST | `/auth/forgot-password` | none | Request password reset email |
 | POST | `/auth/reset-password` | none | Set new password with reset token |
 | POST | `/auth/verify-email` | none | Verify email with token |
 | POST | `/auth/resend-verification` | authenticated | Resend verification email |
-| GET | `/auth/oauth/:provider` | none | Initiate OAuth flow |
-| GET | `/auth/oauth/:provider/callback` | none | OAuth callback handler |
-| POST | `/auth/oauth/:provider/link` | authenticated | Link OAuth to existing account |
-| DELETE | `/auth/oauth/:provider/link` | authenticated | Unlink OAuth from account |
+| GET | `/auth/oauth/{provider}` | none | Initiate OAuth flow |
+| GET | `/auth/oauth/{provider}/callback` | none | OAuth callback handler |
+| POST | `/auth/oauth/{provider}/link` | authenticated | Link OAuth to existing account |
+| DELETE | `/auth/oauth/{provider}/link` | authenticated | Unlink OAuth from account |
 
 ---
 
@@ -294,14 +294,12 @@ types:
         description: "Lockout expiry (internal)"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### OAuthLink
@@ -327,9 +325,8 @@ types:
         description: "Email from OAuth (may differ from primary)"
       linked_at:
         name: LinkedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -359,8 +356,8 @@ Admin only. Returns paginated user list.
       "role": "admin",
       "email_verified": true,
       "status": "active",
-      "created_at": 1712160000,
-      "updated_at": 1712160000
+      "created_at": "2024-04-03T16:00:00.000Z",
+      "updated_at": "2024-04-03T16:00:00.000Z"
     }
   ],
   "pagination": {
@@ -372,7 +369,7 @@ Admin only. Returns paginated user list.
 
 Passwords, login attempts, and lockout fields are NEVER returned.
 
-### Get User (GET /users/:id)
+### Get User (GET /users/{id})
 
 Authenticated users can view their own profile. Admins can view any
 user. Non-admin viewing another user → 403.
@@ -380,7 +377,7 @@ user. Non-admin viewing another user → 403.
 **Response:** Single user object (same shape as list item, plus
 `metadata`, `oauth_links`, `avatar_url`).
 
-### Update User (PUT /users/:id)
+### Update User (PUT /users/{id})
 
 Users can update their own name, avatar, and metadata. Admins can
 update any user's fields except password (use reset flow).
@@ -396,11 +393,11 @@ update any user's fields except password (use reset flow).
 
 **Rules:**
 - `email` changes require re-verification (send verification email)
-- `role` changes MUST use the dedicated `/users/:id/role` endpoint
+- `role` changes MUST use the dedicated `/users/{id}/role` endpoint
 - `password` changes MUST use the reset flow or a dedicated
   change-password endpoint
 
-### Delete User (DELETE /users/:id)
+### Delete User (DELETE /users/{id})
 
 Admin only. Soft-delete — sets `status` to `"deleted"`. The user
 record is retained for audit purposes but the account cannot
@@ -408,7 +405,7 @@ authenticate.
 
 **Response:** 204 No Content
 
-### Change Role (PUT /users/:id/role)
+### Change Role (PUT /users/{id}/role)
 
 Admin only.
 
@@ -534,7 +531,7 @@ ID and client secret.
 
 ### OAuth Flow
 
-#### Initiate (GET /auth/oauth/:provider)
+#### Initiate (GET /auth/oauth/{provider})
 
 ```
 1. Validate provider is configured
@@ -548,7 +545,7 @@ ID and client secret.
    &response_type=code
 ```
 
-#### Callback (GET /auth/oauth/:provider/callback)
+#### Callback (GET /auth/oauth/{provider}/callback)
 
 ```
 1. Validate state parameter matches stored state (CSRF protection)
@@ -582,13 +579,13 @@ ID and client secret.
 - Access tokens from OAuth providers are used once and discarded
   (not stored)
 
-#### Link Account (POST /auth/oauth/:provider/link)
+#### Link Account (POST /auth/oauth/{provider}/link)
 
 Authenticated user links an OAuth provider to their existing account.
 Initiates the same OAuth flow but on callback, adds an OAuthLink to
 the current user rather than creating a new account.
 
-#### Unlink Account (DELETE /auth/oauth/:provider/link)
+#### Unlink Account (DELETE /auth/oauth/{provider}/link)
 
 Remove an OAuth link. User MUST have either a password or at least
 one remaining OAuth link (cannot remove all auth methods).
@@ -652,14 +649,14 @@ Applications MAY define custom roles and hierarchy via configuration.
 | Endpoint | Minimum Role | Additional Rules |
 |----------|-------------|------------------|
 | `GET /users` | admin | — |
-| `GET /users/:id` | user | Self or admin |
-| `PUT /users/:id` | user | Self (limited fields) or admin (all fields) |
-| `DELETE /users/:id` | admin | Cannot delete self |
-| `PUT /users/:id/role` | admin | Cannot demote self |
+| `GET /users/{id}` | user | Self or admin |
+| `PUT /users/{id}` | user | Self (limited fields) or admin (all fields) |
+| `DELETE /users/{id}` | admin | Cannot delete self |
+| `PUT /users/{id}/role` | admin | Cannot demote self |
 | `POST /auth/forgot-password` | none | Rate limited |
 | `POST /auth/reset-password` | none | Valid token required |
 | `POST /auth/verify-email` | none | Valid token required |
-| `GET /auth/oauth/:provider` | none | — |
+| `GET /auth/oauth/{provider}` | none | — |
 
 ---
 
@@ -680,14 +677,14 @@ Applications MAY define custom roles and hierarchy via configuration.
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| StoreResetToken | `(email string, token string, expiry int64) → error` | Store reset token |
+| StoreResetToken | `(email string, token string, expiry timestamp) → error` | Store reset token |
 | ConsumeResetToken | `(token string) → (email string, error)` | Retrieve and delete |
 
 ### Store: Verification Tokens
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| StoreVerificationToken | `(email string, token string, expiry int64) → error` | Store verification token |
+| StoreVerificationToken | `(email string, token string, expiry timestamp) → error` | Store verification token |
 | ConsumeVerificationToken | `(token string) → (email string, error)` | Retrieve and delete |
 
 ### Store: OAuth Links
@@ -718,8 +715,8 @@ Applications MAY define custom roles and hierarchy via configuration.
 
 - [ ] GET /users is admin-only and returns paginated results with `cursor`, `limit` (max 100), `role`, `status`, `search`, and `sort` query params
 - [ ] PasswordHash, LoginAttempts, and LockedUntil are never returned in any API response
-- [ ] DELETE /users/:id performs soft-delete (sets status to `deleted`); admin cannot delete self
-- [ ] PUT /users/:id/role validates role against configured roles list and prevents admin from demoting themselves
+- [ ] DELETE /users/{id} performs soft-delete (sets status to `deleted`); admin cannot delete self
+- [ ] PUT /users/{id}/role validates role against configured roles list and prevents admin from demoting themselves
 - [ ] POST /auth/forgot-password returns 200 OK regardless of whether the email exists (prevents email enumeration)
 - [ ] Password reset tokens are single-use, expire after configured TTL, and only the most recent token per email is valid
 - [ ] Successful password reset invalidates all existing sessions and refresh tokens for the user

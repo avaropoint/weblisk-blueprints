@@ -98,19 +98,17 @@
       ]
     },
     "timestamp": {
-      "see": "vectors/timestamp-wire.json"
+      "see": "vectors/conventions.json"
     },
     "integer": {
-      "pending": "v2-conventions",
-      "why": "D10 decides an integer is signed 64-bit, and protocol/types states no integer range yet. RFC 8785 serialises a number as an IEEE 754 double, so an integer beyond 2^53 - 1 does not survive canonicalisation exactly, and the lane that states the range states its wire form with it."
+      "see": "vectors/conventions.json"
     },
     "duration": {
-      "pending": "v2-conventions",
-      "why": "D10 decides durations are written as strings; today's fields carry integer seconds, and the convention changes every binding at once."
+      "see": "vectors/conventions.json"
     },
     "bytes": {
-      "pending": "v2-conventions",
-      "why": "protocol/types states base64url for signatures and public keys only, and no decision states it for every bytes field."
+      "pending": "owner decision",
+      "why": "protocol/conventions (D10) states instants, ids, durations and integers, not bytes; protocol/types states base64url for signatures and public keys only, and no decision states it for every bytes field."
     }
   }
 }

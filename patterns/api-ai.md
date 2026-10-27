@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 3.0.0
+version: 4.0.0
 requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
 platform: any
 tier: free
@@ -30,7 +30,7 @@ through a single interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <6.0.0"
+    version: ">=1.13.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -42,7 +42,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.6.0 <3.0.0"
+    version: ">=2.6.0 <4.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -56,13 +56,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Route
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <4.0.0"
+    version: ">=2.14.0 <5.0.0"
     bindings:
       endpoints:
         # Read before every send. See Destination Ceilings
@@ -703,7 +703,7 @@ ai:
   rate_limit: 60                 # requests per minute
   max_concurrent: 5              # concurrent inference requests
   timeout: 120                   # seconds per request
-  retry_count: 2                 # retries on transient failure
+  max_attempts: 3             # protocol/conventions:max-attempts
 ```
 
 ## Model Routing

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 2.6.6
+version: 3.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -41,7 +41,7 @@ Scope is the primitive; everything else is a consumer.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <6.0.0"
+    version: ">=1.13.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -638,9 +638,9 @@ types:
         required: false
         description: Identifier of the agent or domain that applied this classification
       - name: declared_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when scope was declared
+        description: When scope was declared
 
   ScopeEvaluation:
     description: Result of evaluating an entity's effective scope in context
@@ -734,9 +734,9 @@ types:
         required: true
         description: Enforcement action applied
       - name: timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the violation occurred
+        description: When the violation occurred
       - name: environment
         type: string
         required: false
@@ -785,21 +785,21 @@ types:
         required: true
         description: The identity id of the person who recorded it, from their verified operator token. Never taken from a request body
       - name: recorded_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when it was recorded
+        description: When it was recorded
       - name: not_after
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when it lapses — the end, or the next review, of the agreement. In the future when recorded, and no more than 90 days after, the cap architecture/admin puts on every attestation a hub records. After it, the ceiling is internal
+        description: When it lapses — the end, or the next review, of the agreement. In the future when recorded, and no more than 90 days after, the cap architecture/admin puts on every attestation a hub records. After it, the ceiling is internal
       - name: withdrawn_by
         type: string
         required: false
         description: The identity id of the person who withdrew it, from their verified operator token
       - name: withdrawn_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when it was withdrawn. From then, the ceiling is internal
+        description: When it was withdrawn. From then, the ceiling is internal
 
   ProviderCeiling:
     description: |
@@ -823,7 +823,7 @@ types:
         required: false
         description: The id of the current agreement that gives the ceiling. Absent when none does
       - name: not_after
-        type: int64
+        type: timestamp
         required: false
         description: When that agreement lapses. Absent when none gives the ceiling
       - name: address
@@ -959,7 +959,7 @@ and event envelopes:
     "propagation_rule": "inherit",
     "custom_labels": ["pii"],
     "declared_by": "content-analyzer",
-    "declared_at": 1712160001
+    "declared_at": "2024-04-03T16:00:01.000Z"
   },
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7",

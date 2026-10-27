@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.1.1
 noun: block
 ---
 # Schema: Blocks
@@ -88,8 +88,9 @@ Where this differs from the closed set the analyses proposed (`list<T>`,
   instead. The older `json` reads as `any` because it meant any JSON value.
 - **`date`** is below.
 
-The wire form of `integer`, `timestamp`, `duration`, `uuid` and `bytes` is
-[`protocol/types`](../protocol/types.md#conventions)' to state. `date` is a
+The wire form of `integer`, `timestamp`, `duration` and `uuid` is
+[`protocol/conventions`](../protocol/conventions.md)' to state, and of `bytes`
+[`protocol/types`](../protocol/types.md#conventions)'. `date` is a
 calendar date with no time or zone, written as RFC 3339's `full-date`
 (`2026-10-15`); it exists because a review date, an expiry or a due date is
 not an instant, and writing one as a timestamp invents a time of day and a
@@ -136,9 +137,10 @@ table, which grammar 1 carries whole except for `optional`, which said the
 same as `required: false`, and `enum`, which `values` now names so that the
 word `enum` means one thing, the type.
 
-An `int64` that holds a time is read as `integer` here; whether it becomes a
-`timestamp` is a convention, decided once for every field by the lane that
-owns the wire conventions, never field by field in a walk.
+An `int64` that holds a time is read as `integer` here, as any `int64` is. A
+field that holds an instant is declared `timestamp`
+([`protocol/conventions`](../protocol/conventions.md#instant)); a walk never
+decides that field by field.
 
 ## Formats
 

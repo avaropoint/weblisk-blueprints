@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 5.0.0
+version: 6.0.0
 requires: []
 platform: any
 tier: free
@@ -22,7 +22,7 @@ JSON using the exact field names shown in the `json` column.
 
 ## Conventions
 
-- All timestamps are Unix epoch seconds (`int64`), except those [LogEntry](#logentry) and [Span](#span) declare
+- Every `timestamp`, `uuid`, `duration` and `integer` is written as [`protocol/conventions`](conventions.md) says, and every field that holds an instant is a `timestamp`
 - All IDs are 32-character hex strings (16 random bytes), except a span id ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
@@ -816,11 +816,11 @@ types:
         type: string
         required: false
         description: "`\"fail\"` (default), `\"skip\"`, or `\"retry\"`"
-      max_retries:
-        name: MaxRetries
+      max_attempts:
+        name: MaxAttempts
         type: int
         required: false
-        description: "Retry count when `on_error` = `\"retry\"` (default: 0)"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       condition:
         name: Condition
         type: string
@@ -870,14 +870,12 @@ types:
         description: "Results per phase"
       started_at:
         name: StartedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       completed_at:
         name: CompletedAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
 ```
 
 ### PhaseResult
@@ -910,14 +908,12 @@ types:
         description: "Phase output data (referenced by subsequent phases)"
       started_at:
         name: StartedAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       completed_at:
         name: CompletedAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       error:
         name: Error
         type: string
@@ -976,14 +972,12 @@ types:
         description: "`active`, `paused`, `completed`"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       metadata:
         name: Metadata
         type: map
@@ -1238,9 +1232,8 @@ types:
         description: "ML-DSA-65 signature of payload (3309 bytes, base64url-encoded)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### TaskContext
@@ -1338,9 +1331,8 @@ types:
         description: "ML-DSA-65 signature (3309 bytes, base64url-encoded)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### ProposedChange
@@ -1435,9 +1427,8 @@ types:
         description: "What was observed (file path, URL)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       measurements:
         name: Measurements
         type: "map[string]float64"
@@ -1585,14 +1576,12 @@ types:
         description: "`pending`, `accepted`, `rejected`, `applied`"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       resolved_at:
         name: ResolvedAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -1693,14 +1682,14 @@ types:
         description: "`normal`, `urgent` or `emergency`"
       requested_at:
         name: RequestedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
+        description: "When the request was filed"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds; an expired request is denied, never approved"
+        description: "When it expires undecided; an expired request is denied, never approved"
       correlation_id:
         name: CorrelationID
         type: string
@@ -1771,9 +1760,8 @@ types:
         description: "Which metric"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -1882,9 +1870,8 @@ types:
         description: "ML-DSA-65 signature (3309 bytes, base64url-encoded)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       trace_id:
         name: TraceID
         type: string
@@ -1937,9 +1924,9 @@ types:
         description: "What this component's lease says now: `ready`, `not_ready` or `unknown`. See [LeaseState](#leasestate)"
       lease_expires_at:
         name: LeaseExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds at which the lease lapses unless the component renews it. From then on `lease_state` is `unknown`"
+        description: "The instant at which the lease lapses unless the component renews it. From then on `lease_state` is `unknown`"
       address_provenance:
         name: AddressProvenance
         type: string
@@ -1991,14 +1978,14 @@ types:
         description: "Namespace → owning agent name. Used to validate publish rights."
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds: the time of the last change, or one more than the previous directory's when that is greater, so it only ever rises (protocol/spec, POST /v1/services)"
+        description: "The time of the last change, or one millisecond after the previous directory's when that is later, so it only ever rises (protocol/spec, POST /v1/services)"
       signature:
         name: Signature
         type: string
         required: false
-        description: "The orchestrator's ML-DSA-65 signature (3309 bytes, base64url-encoded) over the fixed-form statement weblisk/directory/v1, which signs updated_at and the digest of the rest of the directory. Required on a push, which an agent refuses without it (protocol/spec, POST /v1/services)"
+        description: "The orchestrator's ML-DSA-65 signature (3309 bytes, base64url-encoded) over the fixed-form statement weblisk/directory/v2, which signs updated_at and the digest of the rest of the directory. Required on a push, which an agent refuses without it (protocol/spec, POST /v1/services)"
 ```
 
 ---
@@ -2023,9 +2010,8 @@ types:
         description: "ML-DSA-65 signature of JSON(manifest) (3309 bytes, base64url-encoded)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### RegisterResponse
@@ -2046,9 +2032,9 @@ types:
         description: "Auth token (WLT format)"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Token expiry (Unix epoch)"
+        description: "Token expiry"
       services:
         name: Services
         type: ServiceDirectory
@@ -2181,9 +2167,9 @@ types:
         description: "Scoped channel token"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Expiry (Unix epoch)"
+        description: "Expiry"
       signature:
         name: Signature
         type: string
@@ -2226,14 +2212,14 @@ types:
         description: "Scoped channel token"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of creation"
+        description: "The instant of creation"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of expiry"
+        description: "The instant of expiry"
 ```
 
 ---
@@ -2346,14 +2332,14 @@ types:
         description: "Seconds the lease lasts from each renewal (`orchestrator.lease_duration`)"
       renewed_at:
         name: RenewedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of the registration or renewal that set it"
+        description: "The instant of the registration or renewal that set it"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds at which it lapses unless renewed"
+        description: "The instant at which it lapses unless renewed"
 ```
 
 A first registration grants the first lease (`RegisterResponse.lease`), with
@@ -2380,9 +2366,8 @@ types:
         description: "Subsystem name → `ready` or `not_ready`: each subsystem's readiness, saying where the component is short, whether or not that makes it not ready. It never changes the lease state, which `ready` alone sets. Carried on the lease only, never served at `/readyz`"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 A component renews at `POST /v1/lease` ([`protocol/spec`](spec.md#post-v1lease))
@@ -2452,14 +2437,14 @@ types:
         description: "Whether this operator may obtain a token"
       created_at:
         name: CreatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds when the record was written"
+        description: "When the record was written"
       last_seen:
         name: LastSeen
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds of the most recent token issued to this operator"
+        description: "The instant of the most recent token issued to this operator"
 ```
 
 ### RetiredKey
@@ -2479,9 +2464,9 @@ types:
         description: "Base64url-encoded ML-DSA-65 identity public key the operator held"
       retired_at:
         name: RetiredAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of the change that retired it. No attestation it signed vouches for anything recorded at or after this time, because the change revoked every credential it attested"
+        description: "The instant of the change that retired it. No attestation it signed vouches for anything recorded at or after this time, because the change revoked every credential it attested"
 ```
 
 ### OperatorRole
@@ -2590,7 +2575,7 @@ types:
         description: "Present when issued: the pass, a WLT of type pass addressed to the audience (protocol/identity, The pass)"
       expires_at:
         name: ExpiresAt
-        type: int64
+        type: timestamp
         required: false
         description: "Present when issued: the pass's exp, no more than 30 seconds after it was minted"
       capabilities:
@@ -2613,9 +2598,8 @@ types:
         description: "Unique identifier"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       actor:
         name: Actor
         type: string
@@ -2705,9 +2689,8 @@ types:
         description: "Links all events in a single execution chain (e.g., one workflow run)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       trace_id:
         name: TraceID
         type: string
@@ -2827,14 +2810,14 @@ types:
         description: "Total delivery attempts"
       first_attempt:
         name: FirstAttempt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of first attempt"
+        description: "The instant of first attempt"
       last_attempt:
         name: LastAttempt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds of final attempt"
+        description: "The instant of final attempt"
       subscriber:
         name: Subscriber
         type: string
@@ -3065,7 +3048,7 @@ types:
         description: "Human-readable explanation"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
         description: "When the decision was made"
 ```
@@ -3120,9 +3103,8 @@ types:
         description: "`development`, `staging`, `production`"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ### IntentDecision
@@ -3160,9 +3142,8 @@ types:
         description: Explanation
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
 ```
 
 ---
@@ -3268,9 +3249,8 @@ types:
         description: "Privacy actions applied (masking, minimization)"
       timestamp:
         name: Timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       trace_id:
         name: TraceID
         type: string
@@ -3303,9 +3283,9 @@ types:
     fields:
       ts:
         name: Timestamp
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 UTC time with milliseconds, e.g. `2026-04-25T10:30:01.123Z`: the one timestamp format for log lines"
+        description: "When the line was written, e.g. `2026-04-25T10:30:01.123Z`"
       level:
         name: Level
         type: string
@@ -3469,14 +3449,12 @@ types:
         description: "The component that performed it, as the service directory names it"
       start:
         name: Start
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 UTC time with milliseconds"
       end:
         name: End
-        type: string
+        type: timestamp
         required: true
-        description: "RFC 3339 UTC time with milliseconds"
       status:
         name: Status
         type: string
@@ -3628,7 +3606,7 @@ security:
 
 ## Verification Checklist
 
-- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); all timestamps are Unix epoch seconds (int64) except those LogEntry and Span declare
+- [ ] All IDs are 32-character hex strings (16 random bytes) and a span id 16 (8 random bytes); every timestamp is `protocol/conventions:instant`
 - [ ] ML-DSA-65 signatures serialize as base64url-encoded 3309 bytes; public keys serialize as base64url-encoded 1952 bytes
 - [ ] ErrorResponse includes `error` (required), `code`, `category`, `retryable`, and `detail` fields with exact JSON keys
 - [ ] Error categories are constrained to `transient`, `permanent`, or `partial` and each standard error code maps to the correct HTTP status
@@ -3638,7 +3616,7 @@ security:
 - [ ] Subscription requires `pattern`; `scope` defaults to `"self"`; `group` defaults to agent name
 - [ ] RouteEntry requires `agent`, `url`, and `scope`
 - [ ] ServiceDirectory includes `services`, `routing_table`, and `namespaces`
-- [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_retries` applies only when `on_error` = `"retry"`
+- [ ] WorkflowPhase `on_error` supports `fail`, `skip`, and `retry`; `max_attempts` applies only when `on_error` = `"retry"`
 - [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
 - [ ] TaskRequest requires `id`, `from`, `action`, `payload`, `context`, `token`, and `timestamp`; TaskResult status is `success`, `failed`, or `pending_approval`
 - [ ] AgentMessage `signature` covers `canonicalize({from, to, action, payload})` per RFC 8785

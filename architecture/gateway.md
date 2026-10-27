@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 2.0.1
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ separate listener with a separate threat profile — see
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: RegisterRequest
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentEndpoints
@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/admin
-    version: ">=2.0.0 <5.0.0"
+    version: ">=2.0.0 <6.0.0"
     bindings:
       patterns:
         - behavior: admin-separation
@@ -92,7 +92,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-session
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: session-lifecycle
@@ -102,7 +102,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-token
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: token-signing
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/user-management
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: user-lookup
@@ -657,8 +657,8 @@ gateway:
     min_version: "1.2"
 
   session:
-    token_ttl: 86400              # 24 hours
-    idle_timeout: 3600            # 1 hour of inactivity
+    token_ttl: 24h                # protocol/conventions:duration
+    idle_timeout: 1h              # of inactivity
     max_per_user: 5
     binding: strict               # strict | standard
     store: encrypted              # encrypted | plain
@@ -720,13 +720,13 @@ workflow completes:
   "execution_id": "wf-exec-001",
   "status": "completed",
   "result": { ... },
-  "completed_at": 1712160300
+  "completed_at": "2024-04-03T16:05:00.000Z"
 }
 ```
 
 Status values: `pending`, `running`, `completed`, `failed`.
 
-The gateway routes `/api/<domain>/status/:id` to the owning domain's
+The gateway routes `/api/<domain>/status/{id}` to the owning domain's
 `HandleMessage` with action `get_status`. The domain queries the
 Workflow Agent's execution store via `POST /v1/message` (action:
 `get_status`) and returns the current state.
@@ -785,9 +785,9 @@ types:
         description: "Ordered list of route rules"
       updated_at:
         name: UpdatedAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of last route table refresh"
+        description: "The instant of last route table refresh"
 ```
 
 ### Route
@@ -880,7 +880,7 @@ types:
         type: string
         description: Secret from which per-form CSRF tokens are derived. Never transmitted to the browser
       expiry:
-        type: string
+        type: timestamp
         format: rfc3339
         description: When the session ends, checked on use rather than by a sweep
 ```

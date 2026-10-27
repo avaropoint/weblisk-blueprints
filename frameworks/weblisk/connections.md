@@ -137,7 +137,7 @@ schema:
     symbol: string
     price: number
     change: number
-    timestamp: datetime
+    timestamp: timestamp
 ```
 
 ## Security Model

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: webhook
-version: 2.0.0
+version: 3.0.0
 port: 9753
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
@@ -34,7 +34,7 @@ background process alongside the main server.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -54,7 +54,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -70,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -86,7 +86,7 @@ requires:
 
 extends:
   - pattern: patterns/webhook
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: inbound-verification
@@ -112,7 +112,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes, relationships, constraints]
     on_change:
@@ -199,7 +199,7 @@ config:
 
   outbound:
     signing_algorithm: hmac-sha256
-    max_retries: 5
+    max_attempts: 5
     retry_backoff: exponential
     timeout: 10
     max_payload_size: 262144      # 256 KB
@@ -252,7 +252,7 @@ Phase 3 — Deliver:
 Phase 4 — Handle result:
   If 2xx → mark delivered
   If non-2xx or timeout → schedule retry (respect backoff)
-  After max_retries → mark failed
+  After max_attempts → mark failed
 
 Phase 5 — Track:
   Update delivery record with status, response code, duration.
@@ -356,14 +356,14 @@ types:
         type: string
         required: true
         description: "HMAC algorithm for signing"
-      max_retries:
+      max_attempts:
         type: int
         required: true
-        description: "Max delivery attempts"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       retry_backoff:
         type: string
         required: true
-        description: "Backoff strategy"
+        description: "The one backoff, protocol/conventions:backoff"
       timeout:
         type: int
         required: true
@@ -390,8 +390,8 @@ storage:
         secret: {type: string, description: HMAC signing secret}
         active: {type: bool, default: true}
         consecutive_failures: {type: int, default: 0}
-        created_at: {type: int64, auto: true}
-        updated_at: {type: int64, auto: true}
+        created_at: {type: timestamp, auto: true}
+        updated_at: {type: timestamp, auto: true}
       indexes:
         - name: idx_subscriber_events
           fields: [active, events]
@@ -410,13 +410,13 @@ storage:
         payload: {type: object}
         status: {type: string, enum: [pending, delivered, failed]}
         attempts: {type: int, default: 0}
-        max_retries: {type: int}
-        next_retry: {type: int64, optional: true}
+        max_attempts: {type: int}
+        next_retry: {type: timestamp, optional: true}
         response_code: {type: int, optional: true}
         duration_ms: {type: int, optional: true}
         error: {type: string, optional: true}
-        created_at: {type: int64, auto: true}
-        delivered_at: {type: int64, optional: true}
+        created_at: {type: timestamp, auto: true}
+        delivered_at: {type: timestamp, optional: true}
       indexes:
         - name: idx_delivery_status
           fields: [status, next_retry]
@@ -433,7 +433,7 @@ storage:
         source: {type: string}
         event_type: {type: string}
         status: {type: string, enum: [success, rejected, filtered]}
-        timestamp: {type: int64, auto: true}
+        timestamp: {type: timestamp, auto: true}
       indexes:
         - name: idx_inbound_time
           fields: [timestamp]
@@ -521,12 +521,12 @@ state_machine:
       - from: pending
         to: pending
         trigger: http_error_retryable
-        validates: attempts < max_retries
+        validates: attempts < max_attempts
         side_effect: increment attempts, compute next_retry with backoff
       - from: pending
         to: failed
         trigger: retries_exhausted
-        validates: attempts >= max_retries
+        validates: attempts >= max_attempts
         side_effect: emit webhook.delivery.failed event
 ```
 
@@ -555,7 +555,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
   Backout:     Close partial connection
 
 Step 4 — Validate Schema
@@ -569,7 +569,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 6 — Subscribe to Events
@@ -937,7 +937,7 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_retry
     default: enabled
-    override: Set max_retries = 0 per subscriber or globally
+    override: Set max_attempts = 1 per subscriber or globally
     audit: logged
 
   - behavior: subscriber_auto_deactivation

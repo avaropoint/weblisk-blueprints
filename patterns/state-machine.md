@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: state-machine
-version: 1.0.2
+version: 1.0.3
 requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
@@ -35,7 +35,7 @@ machines consistently.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -45,7 +45,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -245,7 +245,7 @@ transitions:
     from: failed
     to: pending
     trigger: retry_requested
-    guard: "attempts < max_retries"
+    guard: "attempts < max_attempts"
     description: Re-queue for retry if attempts remain
 
   - name: deactivate_subscriber

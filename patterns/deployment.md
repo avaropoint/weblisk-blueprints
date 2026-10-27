@@ -29,7 +29,7 @@ safely, and automate the build-test-deploy pipeline.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: Liveness
@@ -43,7 +43,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       types:
         - name: OrchestratorConfig

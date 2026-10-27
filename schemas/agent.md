@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.0.1
 kind: blueprint
 noun: agent
 match: [agents/*.md]
@@ -805,7 +805,7 @@ philosophy. Must be self-contained.>
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -825,7 +825,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -843,7 +843,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -1041,7 +1041,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts → EXIT with STORAGE_UNREACHABLE
   Backout:     Close partial connection
 
 Step 4 — Validate Schema
@@ -1055,7 +1055,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 6 — Subscribe to Events

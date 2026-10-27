@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: notification
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/retry, patterns/secrets]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ The alerting agent is a consumer of this pattern, not the owner.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentMessage
@@ -50,7 +50,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RetryConfig
@@ -61,7 +61,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/secrets
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SecretDeclaration
@@ -295,7 +295,7 @@ Any agent sends a notification using this standard format:
       "domain": "health"
     },
     "title": "Site unreachable",
-    "body": "GET https://example.com returned 503 after 3 retries",
+    "body": "GET https://example.com returned 503 after 3 attempts",
     "context": {
       "url": "https://example.com",
       "status_code": 503
@@ -380,7 +380,7 @@ templates:
 | `upper` | Uppercase | `{{severity \| upper}}` → `CRITICAL` |
 | `lower` | Lowercase | `{{title \| lower}}` |
 | `truncate:N` | Truncate to N chars | `{{body \| truncate:120}}` |
-| `datetime` | Format Unix timestamp | `{{timestamp \| datetime}}` |
+| `datetime` | Format an instant for reading | `{{timestamp \| datetime}}` |
 | `json` | JSON encode | `{{context \| json}}` |
 
 ---
@@ -463,14 +463,18 @@ types:
 
 Failed deliveries follow `patterns/retry` defaults:
 
-| Channel | Max Retries | Backoff | Timeout |
-|---------|-------------|---------|---------|
-| email | 3 | exponential (1m, 2m, 4m) | 30s |
-| webhook | 3 | exponential (1s, 4s, 16s) | 10s |
-| slack | 2 | exponential (1s, 4s) | 10s |
-| sms | 2 | exponential (2s, 8s) | 15s |
-| push | 1 | none | 10s |
-| in_app | 0 | none | local |
+Each channel's limit is `max_attempts` (`protocol/conventions:max-attempts`),
+and every retry waits as `protocol/conventions:backoff` says, with the base and max
+below.
+
+| Channel | max_attempts | Backoff base | Backoff max | Timeout |
+|---------|--------------|--------------|-------------|---------|
+| email | 4 | 1m | 15m | 30s |
+| webhook | 4 | 1s | 30s | 10s |
+| slack | 3 | 1s | 30s | 10s |
+| sms | 3 | 2s | 30s | 15s |
+| push | 2 | 1s | 30s | 10s |
+| in_app | 1 | — | — | local |
 
 ---
 

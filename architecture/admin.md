@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 4.2.0
+version: 5.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -53,7 +53,7 @@ with every tenant ([The Admin Gateway as a Component](#the-admin-gateway-as-a-co
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         # The admin gateway registers like any component, and serves the
@@ -86,7 +86,7 @@ requires:
   - blueprint: protocol/identity
     # 2.2.0 is where step_up_at is set through a re-confirmation and
     # weblisk/step-up/v1 is registered
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.2.0 <4.0.0"
     bindings:
       types:
         - name: WLToken
@@ -100,7 +100,7 @@ requires:
   - blueprint: patterns/principal-identity
     # 1.9.0 is where an attestation's purpose may be step-up, naming rp_id
     # and origin
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.9.0 <3.0.0"
     bindings:
       types:
         - name: Attestation
@@ -237,7 +237,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/domain
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: DomainManifest
@@ -247,7 +247,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -257,7 +257,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/client
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: WLS
@@ -1265,7 +1265,7 @@ contracts:
       required: true
       rules:
         # <!-- wl:id destructive-acts -->
-        - These acts are destructive. Removing an operator (DELETE /v1/admin/operators/{name}), admitting one (POST /v1/admin/operators/{name}/approve), changing one's role (PUT /v1/admin/operators/{name}/role), force-deregistering an agent (POST /v1/admin/agents/{name}/deregister) and revoking a federation peer (POST /v1/admin/federation/peers/{name}/revoke), and each act another blueprint marks destructive by naming this behaviour. Rotating the orchestrator's own key and force-revoking an agent's key (protocol/identity, Key Compromise Recovery, POST /v1/admin/agents/:name/revoke-key) are destructive too, from the moment architecture/orchestrator specifies a route for either; it specifies neither yet, so nothing serves them
+        - These acts are destructive. Removing an operator (DELETE /v1/admin/operators/{name}), admitting one (POST /v1/admin/operators/{name}/approve), changing one's role (PUT /v1/admin/operators/{name}/role), force-deregistering an agent (POST /v1/admin/agents/{name}/deregister) and revoking a federation peer (POST /v1/admin/federation/peers/{name}/revoke), and each act another blueprint marks destructive by naming this behaviour. Rotating the orchestrator's own key and force-revoking an agent's key (protocol/identity, Key Compromise Recovery, POST /v1/admin/agents/{name}/revoke-key) are destructive too, from the moment architecture/orchestrator specifies a route for either; it specifies neither yet, so nothing serves them
         # <!-- wl:id credential-revocation-not-destructive -->
         - Revoking a credential (DELETE /v1/admin/operators/{name}/credentials/{cid}, one or each of an operator's, operator-credential-revocation) is NOT destructive and MUST be served without a step-up, by an admin on another operator as by an operator on its own. It is how a compromised key is cut off, and incident response must not wait on a re-confirmation the compromised person may be unable to give; it takes nothing the operator cannot regain by attesting a new credential, and it is audited as every revocation is. Removing the operator, which ends their access, is the destructive act above
         # <!-- wl:id step-up-required -->
@@ -1449,7 +1449,7 @@ defined:
      "name": "alice",
      "public_key": "<ML-DSA-65 public key (base64url)>",
      "role": "admin",
-     "timestamp": 1712160000,
+     "timestamp": "2024-04-03T16:00:00.000Z",
      "signature": "<sign(canonicalize({name, public_key, role, timestamp}))>",
      "bootstrap_secret": "<only at a hub with no operator yet>"
    }
@@ -1538,7 +1538,7 @@ POST /v1/admin/operators/token
   "hub_id": "<the hub_id the client recorded for this hub>",
   "jti": "<at least 128 random bits, base64url, fresh for this request>",
   "name": "alice",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "signature": "<sign(canonicalize({hub_id, jti, name, timestamp}))>"
 }
 ```
@@ -1582,7 +1582,7 @@ signature did not verify (`attestation-token-issuance`).
 ```
 200 {
   "token": "<WLT, type attestation>",
-  "expires_at": 1712160300,
+  "expires_at": "2024-04-03T16:05:00.000Z",
   "hub_id": "<fingerprint of the orchestrator's first public key>",
   "identity_id": "<alice's identity id at this hub>"
 }
@@ -1746,7 +1746,7 @@ Authorization: Bearer <attestation token, or alice's operator token>
   "credential_public_key": "<ML-DSA-65 public key>",
   "hub_id": "<this hub's hub_id>",
   "device_label": "<for people reading a list of credentials>",
-  "not_after": 1714752000,
+  "not_after": "2024-05-03T16:00:00.000Z",
   "signature": "<identity signature over the canonical form of every other field>"
 }
 
@@ -1793,7 +1793,7 @@ sign in is refused for signing records, and the reverse.
 POST /v1/admin/credentials/challenge
 { "cid": "<credential id>" }
 
-200 { "nonce": "<base64url>", "hub_id": "<this hub's hub_id>", "expires_at": 1712160300 }
+200 { "nonce": "<base64url>", "hub_id": "<this hub's hub_id>", "expires_at": "2024-04-03T16:05:00.000Z" }
 ```
 
 A challenge for a credential the hub does not hold is refused with
@@ -1816,7 +1816,7 @@ POST /v1/admin/credentials/token
 
 200 {
   "token": "<WLT, type operator, carries cid, identity_id and record_keys>",
-  "expires_at": 1712163600,
+  "expires_at": "2024-04-03T17:00:00.000Z",
   "role": "operator",
   "capabilities": ["admin:read", "admin:approve", "admin:strategy",
                    "content:read", "content:describe", "content:write",
@@ -1824,7 +1824,7 @@ POST /v1/admin/credentials/token
                    "programme:read", "programme:install",
                    "programme:operate", "programme:switch",
                    "integration:read", "fabric:read", "fabric:attest"],
-  "not_after": 1714752000
+  "not_after": "2024-05-03T16:00:00.000Z"
 }
 ```
 
@@ -2031,7 +2031,7 @@ POST /v1/admin/operators/alice/key
 {
   "new_public_key": "<ML-DSA-65 public key>",
   "hub_id": "<this hub's hub_id>",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "current_signature": "<the current identity key's signature over the input below>",
   "new_signature": "<the new identity key's signature over the same input>"
 }
@@ -2150,7 +2150,7 @@ it, as any operator does ([Obtaining a token](#obtaining-a-token)). Handing a
 token back here would issue a credential to whoever ran the approval rather
 than to its subject.
 
-**Refusal is `DELETE /v1/admin/operators/:name`**, which already exists. There
+**Refusal is `DELETE /v1/admin/operators/{name}`**, which already exists. There
 is no separate reject verb, because a rejected registration and a removed
 operator leave the deployment in the same state, and two routes to one state
 drift.
@@ -2411,7 +2411,7 @@ presents a token it received
 | Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a `PassRoute` can name the inbox group a route answers, with an owner that cannot be asked reported absent. None can yet, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 | Health | the orchestrator's leases, in the agent list and the overview; and telemetry's SLO status, which no blueprint specifies yet: telemetry's is written in the second step of the tenant service plan | the leases always; SLO status once a telemetry component's blueprint specifies it on a pass |
 | Domains | Domain controllers | a domain controller is deployed |
-| Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/:id` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
+| Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/{id}` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
 | Programme objectives | The programme service ([`architecture/programme-service`](programme-service.md)), whose objectives retire strategies | a programme service whose blueprint specifies its objectives and a pass for them is deployed. None does yet |
 | Federation | Federation layer | the deployment federates |
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
@@ -2427,7 +2427,7 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 > **Gap — no provider but the orchestrator serves its group on a pass yet.**
 > No blueprint specifies the administrative routes of the Domains,
 > Programme objectives or Federation groups, telemetry's SLO status, or
-> `/v1/admin/metrics` and `/v1/admin/agents/:name/metrics`.
+> `/v1/admin/metrics` and `/v1/admin/agents/{name}/metrics`.
 > [`architecture/programme-service`](programme-service.md#execution) names
 > execution as the provider of the two workflow routes, on a pass carrying
 > `admin:read`, and no execution blueprint specifies them yet. Of the owners
@@ -2487,16 +2487,16 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 | `/v1/admin/operators/token` | POST | — | Obtain an attestation token by signing `{hub_id, jti, name, timestamp}` with the identity, `hub_id` the one the client recorded and `jti` fresh for each request. Deprecated as a way to an operator token |
 | `/v1/admin/credentials/challenge` | POST | — | Issue a single-use nonce for a credential |
 | `/v1/admin/credentials/token` | POST | — | Obtain an operator token by signing the nonce with the credential |
-| `/v1/admin/operators/:name/key` | POST | — | Change the operator's identity key, signed by the current key and the new one. Keeps the operator and its identity id, and revokes its credentials |
+| `/v1/admin/operators/{name}/key` | POST | — | Change the operator's identity key, signed by the current key and the new one. Keeps the operator and its identity id, and revokes its credentials |
 | `/v1/admin/hub/proof` | POST | — | Prove, by a signature under the key `hub_id` names, that this hub is reached at one of its admin addresses ([Proving the hub at an address](#proving-the-hub-at-an-address)) |
-| `/v1/admin/operators/:name/credentials` | POST | the operator | Attest a credential (an attestation token, or the operator's own token) |
-| `/v1/admin/operators/:name/credentials` | GET | viewer+ | List an operator's credentials, revoked included |
-| `/v1/admin/operators/:name/credentials/:cid` | DELETE | the operator, or admin | Revoke one credential |
+| `/v1/admin/operators/{name}/credentials` | POST | the operator | Attest a credential (an attestation token, or the operator's own token) |
+| `/v1/admin/operators/{name}/credentials` | GET | viewer+ | List an operator's credentials, revoked included |
+| `/v1/admin/operators/{name}/credentials/{cid}` | DELETE | the operator, or admin | Revoke one credential |
 | `/v1/admin/operators` | GET | admin | List all operators |
-| `/v1/admin/operators/:name` | GET | viewer+ | Get operator details |
-| `/v1/admin/operators/:name` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked. After step-up (`destructive-action-step-up`) |
-| `/v1/admin/operators/:name/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*). After step-up |
-| `/v1/admin/operators/:name/role` | PUT | admin | Change operator role. After step-up |
+| `/v1/admin/operators/{name}` | GET | viewer+ | Get operator details |
+| `/v1/admin/operators/{name}` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked. After step-up (`destructive-action-step-up`) |
+| `/v1/admin/operators/{name}/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*). After step-up |
+| `/v1/admin/operators/{name}/role` | PUT | admin | Change operator role. After step-up |
 
 ### System Overview
 
@@ -2510,18 +2510,18 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/agents` | GET | viewer+ | List all agents with what the orchestrator's registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`. No metrics: they are another component's (below), and the orchestrator reports no figure it does not hold |
-| `/v1/admin/agents/:name` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
-| `/v1/admin/agents/:name/deregister` | POST | admin | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
-| `/v1/admin/agents/:name/metrics` | GET | viewer+ | Agent performance metrics history. A component's runtime signal is telemetry's, not the orchestrator's, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
+| `/v1/admin/agents/{name}` | GET | viewer+ | Agent detail — the orchestrator's registry entry for it without its token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([below](#get-v1adminagentsname)). No metrics and no recent tasks: the orchestrator holds neither and handles no task |
+| `/v1/admin/agents/{name}/deregister` | POST | admin | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
+| `/v1/admin/agents/{name}/metrics` | GET | viewer+ | Agent performance metrics history. A component's runtime signal is telemetry's, not the orchestrator's, and no blueprint specifies this route, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 
 ### Domain & Workflow Management
 
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/domains` | GET | viewer+ | List domains with status, required agent availability |
-| `/v1/admin/domains/:name` | GET | viewer+ | Domain detail — workflows, agents, recent executions |
+| `/v1/admin/domains/{name}` | GET | viewer+ | Domain detail — workflows, agents, recent executions |
 | `/v1/admin/workflows` | GET | viewer+ | List all workflow executions (paginated) |
-| `/v1/admin/workflows/:id` | GET | viewer+ | Workflow execution detail — phases, timing, output |
+| `/v1/admin/workflows/{id}` | GET | viewer+ | Workflow execution detail — phases, timing, output |
 
 ### Programme Objectives
 
@@ -2578,11 +2578,11 @@ platform asks no second person of its own.
 |------|--------|------|---------|
 | `/v1/admin/changes` | GET | viewer+ | List changes; `?awaiting=me` lists those this person may decide |
 | `/v1/admin/changes` | POST | operator+ | Plan a change: `kind`, `request`, `strict`. Answers the change with its plan |
-| `/v1/admin/changes/:id` | GET | viewer+ | One change: plan, verdicts, conflicts introduced and cleared, approval, run |
-| `/v1/admin/changes/:id/approve` | POST | as [`architecture/cli`](cli.md#who-may-approve-a-change) says | Approve, signed by the person over the plan digest |
-| `/v1/admin/changes/:id/reject` | POST | as for approve | Reject, with a reason |
-| `/v1/admin/changes/:id/apply` | POST | operator+ | Apply an approved change |
-| `/v1/admin/changes/:id/verify` | POST | operator+ | Verify an applied change |
+| `/v1/admin/changes/{id}` | GET | viewer+ | One change: plan, verdicts, conflicts introduced and cleared, approval, run |
+| `/v1/admin/changes/{id}/approve` | POST | as [`architecture/cli`](cli.md#who-may-approve-a-change) says | Approve, signed by the person over the plan digest |
+| `/v1/admin/changes/{id}/reject` | POST | as for approve | Reject, with a reason |
+| `/v1/admin/changes/{id}/apply` | POST | operator+ | Apply an approved change |
+| `/v1/admin/changes/{id}/verify` | POST | operator+ | Verify an applied change |
 | `/v1/admin/build` | GET | viewer+ | The tenant's build lock and its runs, each with its run statement's id and digest |
 
 A change is [`schemas/change`](../schemas/change.md)'s, the lock
@@ -2607,10 +2607,10 @@ waits on the credential layer, so the gateway answers these routes
 | Path | Method | Role | Purpose |
 |------|--------|------|---------|
 | `/v1/admin/federation/peers` | GET | viewer+ | List federation peers with trust tier, status |
-| `/v1/admin/federation/peers/:name` | GET | viewer+ | Peer detail — capabilities, data contracts, metrics |
-| `/v1/admin/federation/peers/:name/revoke` | POST | admin | Revoke trust relationship, after step-up (`destructive-action-step-up`) |
+| `/v1/admin/federation/peers/{name}` | GET | viewer+ | Peer detail — capabilities, data contracts, metrics |
+| `/v1/admin/federation/peers/{name}/revoke` | POST | admin | Revoke trust relationship, after step-up (`destructive-action-step-up`) |
 | `/v1/admin/federation/pending` | GET | operator+ | List pending peering requests |
-| `/v1/admin/federation/pending/:id` | POST | admin | Accept or reject peering request |
+| `/v1/admin/federation/pending/{id}` | POST | admin | Accept or reject peering request |
 | `/v1/admin/federation/contracts` | GET | viewer+ | List active data contracts |
 
 ### Audit
@@ -2660,7 +2660,7 @@ never counts (the gap under
 `PassRoute` can yet name the group a route answers
 ([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
 asks no component and answers each of them unavailable. `timestamp` is the
-gateway's own: when it composed the answer, in Unix seconds. The
+gateway's own: when it composed the answer. The
 orchestrator's answer carries none:
 
 ```json
@@ -2682,7 +2682,7 @@ orchestrator's answer carries none:
   "approvals": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "federation": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
   "objectives": {"unavailable": "ADMIN_GROUP_UNAVAILABLE"},
-  "timestamp": 1712160000
+  "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
 
@@ -2696,8 +2696,8 @@ orchestrator's answer carries none:
       "type": "agent",
       "version": "1.0.0",
       "lease_state": "ready",
-      "registered_at": 1712073600,
-      "last_seen": 1712159900
+      "registered_at": "2024-04-02T16:00:00.000Z",
+      "last_seen": "2024-04-03T15:58:20.000Z"
     }
   ],
   "pagination": {
@@ -2731,12 +2731,12 @@ never with its `token`:
   "lease": {
     "agent_id": "3f9a1c2e7b4d4e0f8a6b5c1d2e3f4a5b",
     "duration": 30,
-    "renewed_at": 1712159890,
-    "expires_at": 1712159920
+    "renewed_at": "2024-04-03T15:58:10.000Z",
+    "expires_at": "2024-04-03T15:58:40.000Z"
   },
-  "last_renewal": {"ready": true, "timestamp": 1712159890},
-  "registered_at": 1712073600,
-  "last_seen": 1712159900
+  "last_renewal": {"ready": true, "timestamp": "2024-04-03T15:58:10.000Z"},
+  "registered_at": "2024-04-02T16:00:00.000Z",
+  "last_seen": "2024-04-03T15:58:20.000Z"
 }
 ```
 
@@ -2757,8 +2757,8 @@ never with its `token`:
         {"phase_name": "accessibility", "agent_name": "a11y-checker", "status": "completed", "duration_ms": 1500},
         {"phase_name": "report", "agent_name": "seo-analyzer", "status": "completed", "duration_ms": 2000}
       ],
-      "started_at": 1712159400,
-      "completed_at": 1712159409,
+      "started_at": "2024-04-03T15:50:00.000Z",
+      "completed_at": "2024-04-03T15:50:09.000Z",
       "duration_ms": 8500
     }
   ],
@@ -2790,8 +2790,8 @@ A sign-records credential is listed beside the ones that sign in, with its
       "form": "key-file",
       "device_bound": false,
       "status": "active",
-      "not_after": 1714752000,
-      "last_used_at": 1712160000
+      "not_after": "2024-05-03T16:00:00.000Z",
+      "last_used_at": "2024-04-03T16:00:00.000Z"
     }
   ]
 }
@@ -3181,7 +3181,7 @@ Every admin action is logged:
 ```json
 {
   "id": "audit-abc123",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "actor": "<the operator's identity_id>",
   "actor_type": "operator",
   "action": "deregister",
@@ -3366,7 +3366,7 @@ The rest SHOULD be:
 - [ ] An exchange answered `issued: false` is answered to the client with the code it names, at the status `protocol/types` registers for it, and one answered 404 because the provider is not registered now is answered `ADMIN_GROUP_UNAVAILABLE`; neither forwards anything <!-- wl:check exchange-code-relayed covers gateway-exchange-refusals -->
 - [ ] While no deployed component's blueprint specifies the route, a request for `/v1/admin/domains`, `/v1/admin/workflows`, `/v1/admin/federation/peers`, `/v1/admin/metrics` or `/v1/admin/agents/{name}/metrics` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, never with an empty result, and nothing is forwarded or sent as a `POST /v1/message` action <!-- wl:check unspecified-groups-unavailable covers gateway-unknown-route-unavailable -->
 - [ ] While their blueprints do not say that they accept a pass, a request for `/v1/admin/alerts`, `/v1/admin/runbooks` or `/v1/admin/rate-limits`, or any route under them, is answered 503 `ADMIN_GROUP_UNAVAILABLE` even where the alerting agent, the incident-response agent or the component applying `patterns/rate-limiting` is deployed, and nothing is forwarded, on a pass or on the operator token <!-- wl:check passless-groups-unavailable covers gateway-unknown-route-unavailable -->
-- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `POST /v1/admin/federation/peers/:name/revoke`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token <!-- wl:check admin-route-elsewhere covers provider-accepts-pass -->
+- [ ] A request for a route whose minimum is `admin` and whose provider is not the orchestrator, such as `POST /v1/admin/federation/peers/{name}/revoke`, is answered `ADMIN_GROUP_UNAVAILABLE` while that provider's blueprint specifies no such route, and once one does reaches that provider only on a pass addressed to it carrying `admin:*`, never on an operator token <!-- wl:check admin-route-elsewhere covers provider-accepts-pass -->
 - [ ] A component other than the orchestrator that serves an administrative route acts only on a pass addressed to it whose `cap` names every capability the request requires: an `operator`'s approval carried on a pass naming `admin:approve` is recorded under the pass's `identity_id`, with the gateway's `act.identity_id` beside it, while an operator token is refused with `PASS_REQUIRED`, a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`, and an agent's or a channel's token with `FORBIDDEN`, none of these refusals performing anything <!-- wl:check provider-acts-on-pass covers provider-accepts-pass -->
 - [ ] Through the admin gateway, a request for a route another component provides is refused by the exchange with `OPERATOR_REVOKED` on the token of an operator removed since it was minted, and with `FORBIDDEN` on the token of an operator since lowered to `viewer`; while the orchestrator cannot be asked it is refused with 503 `ADMIN_TOKEN_UNCHECKED` carrying `retry_after`; where the exchange answers `404` `NOT_FOUND` because the provider is not registered now it is refused with 503 `ADMIN_GROUP_UNAVAILABLE`, never `ADMIN_TOKEN_UNCHECKED`; in none of these is anything forwarded <!-- wl:check exchange-refuses-revoked covers gateway-judged-by-orchestrator gateway-exchange-refusals -->
 - [ ] All admin API responses include Cache-Control: no-store header

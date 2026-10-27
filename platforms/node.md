@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 3.0.0
+version: 4.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -40,7 +40,7 @@ minus the type annotations.
 ## Project Structure
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -97,13 +97,13 @@ weblisk-app/
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: Liveness
@@ -386,7 +386,7 @@ export interface Readiness {
 export interface LeaseRenewal {
   ready: boolean;
   checks?: Record<string, "ready" | "not_ready">;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface Observation {
@@ -394,7 +394,7 @@ export interface Observation {
   domain: string;
   source: string;
   data: Record<string, unknown>;
-  timestamp: number;
+  timestamp: string;
 }
 
 export interface Recommendation {
@@ -409,7 +409,7 @@ export interface Recommendation {
     reason: string;
     impact_estimate: number;
   };
-  timestamp: number;
+  timestamp: string;
 }
 ```
 
@@ -784,7 +784,7 @@ for process management, performance, and security details.
 | `object` | `Record<string, unknown>` | Or typed interface |
 | `list` | `T[]` | Typed array |
 | `uuid` | `string` | Validated with zod or regex |
-| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
+| `timestamp` | `string` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `new Date().toISOString()` |
 
 ---
 

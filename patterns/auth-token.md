@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-token
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free
@@ -26,7 +26,7 @@ what it can access.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -38,7 +38,7 @@ what it can access.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -48,13 +48,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Route
@@ -267,8 +267,8 @@ Response (201 Created):
   "key": "<generated API key>",
   "name": "CI Pipeline",
   "scopes": ["read"],
-  "expires_at": 1715856000,
-  "created": 1713264000
+  "expires_at": "2024-05-16T10:40:00.000Z",
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 
@@ -303,7 +303,7 @@ superset of the required scopes.
 ```
 GET /tasks       → requires: [read]
 POST /tasks      → requires: [write]
-DELETE /tasks/:id → requires: [write]
+DELETE /tasks/{id} → requires: [write]
 POST /auth/apikey → requires: [admin]
 ```
 
@@ -358,11 +358,11 @@ types:
         required: true
         description: "Granted scopes"
       created_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Creation timestamp"
       expires_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Expiration timestamp"
       revoked:
@@ -398,11 +398,11 @@ types:
         required: true
         description: "Granted scopes"
       created_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Creation timestamp"
       expires_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Expiration timestamp"
       revoked:
@@ -428,7 +428,7 @@ types:
         description: Capabilities the token conveys. A token conveying none authenticates without authorising
       exp:
         type: int64
-        description: Expiry as a Unix timestamp, checked on every use
+        description: Expiry, an RFC 7519 NumericDate, checked on every use
 ```
 
 ---

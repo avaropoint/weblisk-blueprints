@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ those outputs to downstream phases. The workflow engine handles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -75,7 +75,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -229,7 +229,7 @@ workflows:
         timeout: <seconds>           # phase-level (default: 300)
         approval: required | auto    # phase-level override
         on_error: fail | skip | retry
-        max_retries: <int>           # when on_error = retry (default: 0)
+        max_attempts: <int>           # when on_error = retry (default: 3)
         condition: <expression>      # skip phase if falsy
 ```
 
@@ -251,7 +251,7 @@ workflows:
 | timeout | phase | no | 300 | Max seconds for this phase |
 | approval | phase | no | workflow default | Phase-specific approval override |
 | on_error | phase | no | fail | Error strategy: fail / skip / retry |
-| max_retries | phase | no | 0 | Retry attempts when on_error = retry |
+| max_attempts | phase | no | 3 | Total attempts when on_error = retry, the first included (`protocol/conventions:max-attempts`) |
 | condition | phase | no | — | Expression; phase skipped if falsy |
 
 ---
@@ -509,7 +509,7 @@ Each phase declares its own error strategy via `on_error`:
 |----------|----------|
 | `fail` | Phase fails → entire workflow fails immediately. Default. |
 | `skip` | Phase marked `skipped`. Dependents proceed without its output. |
-| `retry` | Retry up to `max_retries` with exponential backoff. After exhaustion, treat as `fail`. |
+| `retry` | Retry up to `max_attempts` with exponential backoff. After exhaustion, treat as `fail`. |
 
 ### Error Propagation
 
@@ -528,9 +528,9 @@ When a phase fails with `on_error: skip`:
 4. Workflow continues
 
 When a phase fails with `on_error: retry`:
-1. Re-submit via `task.submit` (same phase, incremented retry count)
-2. Apply exponential backoff: 1s, 2s, 4s (base × 2^attempt)
-3. After `max_retries` exhausted → treat as `fail`
+1. Re-submit via `task.submit` (same phase, `attempts` incremented)
+2. Wait as `protocol/conventions:backoff` says
+3. After `max_attempts` exhausted → treat as `fail`
 
 ---
 
@@ -702,10 +702,10 @@ types:
         type: string
         required: false
         description: "`fail`, `skip`, or `retry` (default: `fail`)"
-      max_retries:
+      max_attempts:
         type: int
         required: false
-        description: "Retry count when on_error = retry (default: 0)"
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       condition:
         type: string
         required: false
@@ -751,13 +751,11 @@ types:
         required: true
         description: "Results per phase"
       started_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch seconds"
       completed_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
 ```
 
 ### PhaseResult
@@ -783,13 +781,11 @@ types:
         required: false
         description: "Phase output data"
       started_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       completed_at:
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch seconds"
       error:
         type: string
         required: false

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 2.0.1
+version: 3.0.0
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -52,7 +52,7 @@ protocol endpoints.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -90,7 +90,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -104,7 +104,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -128,7 +128,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: backup-restore
@@ -150,7 +150,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/change-management
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       events:
         - topic: system.change.assessment
@@ -169,7 +169,7 @@ requires:
 
 extends:
   - pattern: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -177,7 +177,7 @@ extends:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -197,11 +197,11 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:
@@ -210,7 +210,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/versioning
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: schema-migration
@@ -242,18 +242,18 @@ config:
     unit: seconds
     description: Schedule evaluation frequency
 
-  max_retries:
+  max_attempts:
     type: int
     default: 3
-    min: 0
+    min: 1
     max: 100
-    description: Default retry attempts per task
+    description: Total attempts, the first included (protocol/conventions:max-attempts)
 
   retry_backoff:
     type: string
     default: exponential
-    enum: [fixed, linear, exponential]
-    description: Backoff strategy between retries
+    enum: [exponential]
+    description: The one backoff, protocol/conventions:backoff
 
   max_concurrent:
     type: int
@@ -271,11 +271,11 @@ config:
 
   task_timeout:
     type: int
-    default: 30
+    default: 300
     min: 1
     max: 300
     unit: seconds
-    description: Default per-task execution timeout
+    description: Per-task execution timeout; the default is protocol/conventions:task-timeout
 
   lock_ttl:
     type: int
@@ -309,9 +309,9 @@ types:
         type: string
         description: Cron expression or "once"
       fire_at:
-        type: int64
+        type: timestamp
         required_when: schedule = "once"
-        description: One-time fire timestamp (epoch seconds)
+        description: One-time fire timestamp
       target_agent:
         type: string
         exclusive_with: target_url
@@ -328,12 +328,12 @@ types:
         type: object
         optional: true
         description: Data to send with the task
-      max_retries:
+      max_attempts:
         type: int
         default: 3
-        min: 0
+        min: 1
         max: 100
-        description: Max retry attempts for this task
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       timeout:
         type: int
         default: 30
@@ -346,19 +346,19 @@ types:
         enum: [active, paused, completed, failed, cancelled]
         description: Current task state
       next_fire:
-        type: int64
+        type: timestamp
         optional: true
         description: Next scheduled execution timestamp
-      retry_count:
+      attempts:
         type: int
         default: 0
         description: Current retry count for latest execution
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Task creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
       created_by:
@@ -392,10 +392,10 @@ types:
         references: CronTask.task_id
         description: Parent task
       fired_at:
-        type: int64
+        type: timestamp
         description: When execution started
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When execution finished
       status:
@@ -441,10 +441,10 @@ types:
         type: string
         description: Instance ID holding the lock
       acquired_at:
-        type: int64
+        type: timestamp
         description: Lock acquisition timestamp
       expires_at:
-        type: int64
+        type: timestamp
         description: Lock expiration timestamp
 ```
 
@@ -609,7 +609,7 @@ state_machine:
       - from: active
         to: failed
         trigger: retries exhausted
-        validates: retry_count >= CronTask.max_retries
+        validates: attempts >= CronTask.max_attempts
         side_effect: emit cron.task.failed event
       - from: active
         to: cancelled
@@ -648,7 +648,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine (config.engine)
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
   Backout:     Close any partial connection
 
 Step 4 — Validate Schema
@@ -666,7 +666,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned in response body
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (registration is idempotent)
 
 Step 6 — Subscribe to Events
@@ -860,7 +860,7 @@ Register a new scheduled task.
 **Purpose:** Schedule a recurring or one-time task for execution.
 
 **Input:** Subset of `CronTask` fields:
-`{name, schedule, fire_at?, target_agent?, target_url?, action?, payload?, max_retries?, timeout?}`
+`{name, schedule, fire_at?, target_agent?, target_url?, action?, payload?, max_attempts?, timeout?}`
 
 **Processing:**
 
@@ -885,7 +885,7 @@ Register a new scheduled task.
 8. Return {task_id, next_fire}
 ```
 
-**Output:** `{task_id: string, next_fire: int64}`
+**Output:** `{task_id: string, next_fire: timestamp}`
 
 **Errors:**
 
@@ -1000,7 +1000,7 @@ Resume a paused task.
 8. Return {task_id, status: "active", next_fire}
 ```
 
-**Output:** `{task_id: string, status: "active", next_fire: int64}`
+**Output:** `{task_id: string, status: "active", next_fire: timestamp}`
 
 **Errors:** `NOT_FOUND` (permanent), `INVALID_STATE` (permanent)
 
@@ -1073,7 +1073,7 @@ Remove completed and failed tasks older than a threshold.
 
 **Input:** `{older_than: int64, include_failed?: bool}`
 
-- `older_than`: Unix timestamp — purge tasks with updated_at before this
+- `older_than`: an instant — purge tasks with updated_at before it
 - `include_failed`: also purge failed tasks (default: false)
 
 **Processing:**
@@ -1145,12 +1145,12 @@ Phase 4 — Collect Results
 
 Phase 5 — Handle Failures
   For each failed task:
-    If retry_count < CronTask.max_retries:
-      Increment retry_count on cron_tasks
+    If attempts < CronTask.max_attempts:
+      Increment attempts on cron_tasks
       Compute retry delay (per patterns/retry backoff strategy)
       Set next_fire = now + retry_delay
       Log: cron.task.retry {task_id, attempt, next_retry}
-    If retry_count >= CronTask.max_retries:
+    If attempts >= CronTask.max_attempts:
       CronTask state transition: active → failed
       Publish: cron.task.failed {task_id, final: true, total_attempts}
       Log: cron.task.exhausted {task_id, total_attempts}
@@ -1160,7 +1160,7 @@ Phase 6 — Advance Schedules
     CronTask state transition: active → completed
   Recurring tasks:
     Compute next_fire from cron expression
-    Reset retry_count to 0
+    Reset attempts to 0
     UPDATE cron_tasks
 
 Phase 7 — Cleanup
@@ -1280,7 +1280,7 @@ override_levels:
 overridable_behaviors:
   - behavior: automatic_task_retry
     default: enabled
-    override: Set max_retries=0 per task
+    override: Set max_attempts = 1 per task
     audit: logged
 
   - behavior: history_cleanup
@@ -1563,13 +1563,13 @@ tests:
     input:
       name: one-shot
       schedule: once
-      fire_at: 1745582400
+      fire_at: "2025-04-25T12:00:00.000Z"
       target_agent: email-send
       action: send_notification
       payload: {}
     expected:
       task_id: "<uuid-v7>"
-      next_fire: 1745582400
+      next_fire: "2025-04-25T12:00:00.000Z"
     validates:
       - ck_once_needs_fire_at constraint passes
       - CronTask.status = active
@@ -1635,7 +1635,7 @@ tests:
 
   - name: One-time task in the past
     action: register
-    input: {name: late, schedule: once, fire_at: 1000000000, target_agent: test, action: ping}
+    input: {name: late, schedule: once, fire_at: "2001-09-09T01:46:40.000Z", target_agent: test, action: ping}
     expected: Fires immediately on next tick
 
   - name: Resume after target deregistered
@@ -1749,7 +1749,7 @@ scaling:
 - [ ] config.max_concurrent enforced per tick
 - [ ] Excess tasks queued for next tick
 - [ ] Failed tasks retried with patterns/retry backoff
-- [ ] CronTask.max_retries enforced — state transition active → failed
+- [ ] CronTask.max_attempts enforced — state transition active → failed
 - [ ] cron.task.failed event published when retries exhausted
 - [ ] CronExecution records created with valid task_executions FK
 - [ ] History purged per config.history_retention

@@ -55,7 +55,7 @@ here.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -80,7 +80,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
@@ -94,7 +94,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # What an installed workflow becomes, and what execution answers
@@ -111,7 +111,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=4.0.0 <5.0.0"
+    version: ">=4.0.0 <6.0.0"
     bindings:
       types:
         # The adopted map and adoption.md are read from content, never copied
@@ -123,7 +123,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. Relied on, never called
@@ -135,7 +135,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/admin
-    version: ">=4.0.0 <5.0.0"
+    version: ">=4.0.0 <6.0.0"
     bindings:
       behaviors:
         # The one door a person's request arrives through

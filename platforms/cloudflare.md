@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -32,7 +32,7 @@ runtime dependencies and global low-latency distribution.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -44,13 +44,13 @@ runtime dependencies and global low-latency distribution.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: Liveness
@@ -628,7 +628,7 @@ Domain controllers running as Workers dispatch phases using
 | `object` | `object` | `Record<string, unknown>` |
 | `list` | `Array<T>` | Typed arrays |
 | `uuid` | `string` | Validated with regex |
-| `timestamp` | `number` | Unix epoch seconds via `Math.floor(Date.now() / 1000)` |
+| `timestamp` | `string` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `new Date().toISOString()` |
 
 ---
 

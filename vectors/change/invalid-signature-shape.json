@@ -5,7 +5,7 @@
     "blueprint://weblisk/architecture/admin@4.1.1"
   ],
   "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
-  "requested_at": 1793000000,
+  "requested_at": "2026-10-26T07:33:20.000Z",
   "strict": true,
   "state": "approved",
   "base": {
@@ -50,7 +50,7 @@
     "by": "5555eeee6666ffff7777aaaa8888bbbb",
     "signature": "AAAAAAAAAAAAAAAA",
     "plan_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
-    "at": 1793000600,
+    "at": "2026-10-26T07:43:20.000Z",
     "development": false
   }
 }

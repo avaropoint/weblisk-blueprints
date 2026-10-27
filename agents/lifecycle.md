@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 2.0.0
+version: 2.1.0
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -42,7 +42,7 @@ without being able to alter anything on its own.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -63,7 +63,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -76,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -104,7 +104,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -160,11 +160,11 @@ types:
         enum: [active, paused, completed, abandoned]
         description: Current strategy state
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
 
@@ -219,7 +219,7 @@ types:
         enum: [success, failed, partial]
         description: Observation outcome
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Observation timestamp
 
@@ -254,7 +254,7 @@ types:
         optional: true
         description: Rejection reason (if rejected)
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Creation timestamp
 
@@ -278,7 +278,7 @@ types:
         max: 512
         description: Additional context
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Feedback timestamp
 
@@ -305,7 +305,7 @@ types:
         optional: true
         description: Recommendation acceptance rate
       last_active:
-        type: int64
+        type: timestamp
         description: Last workflow participation timestamp
 
   EntityContext:
@@ -321,7 +321,7 @@ types:
         type: object
         description: Entity-specific metadata
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last update timestamp
 ```
@@ -624,12 +624,12 @@ Step 2 — Load Identity
 Step 3 — Initialize Storage
   Action:      Open flat-file JSONL storage directory
   Validates:   Directory writable, existing files parseable
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
 
 Step 4 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 5 — Subscribe to Events
   Action:      Subscribe to: workflow.completed (scope: "*"),
@@ -1108,7 +1108,7 @@ errors:
       fallback: Enter degraded state, buffer in memory, retry on next event
     - code: WORKFLOW_TRIGGER_FAILED
       description: Failed to publish workflow.trigger event
-      fallback: Retry 3x with exponential backoff, log warning
+      fallback: Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`, log warning
     - code: EVENT_DELIVERY_FAILED
       description: Published event not acknowledged by bus
       fallback: Retry with backoff, log warning, continue processing

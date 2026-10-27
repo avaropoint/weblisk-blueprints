@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: migration
-version: 1.1.1
+version: 2.0.0
 requires: [protocol/types, patterns/safety, patterns/approval, patterns/storage, patterns/versioning, patterns/state-machine, patterns/logging]
 platform: any
 tier: free
@@ -71,7 +71,7 @@ violation subject to kill-switch enforcement.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -84,7 +84,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: OperationClass
@@ -108,7 +108,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/approval
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       behaviors:
         - name: approval-routing
@@ -121,7 +121,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: MigrationStep
@@ -135,7 +135,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/versioning
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: BlueprintRevision
@@ -759,13 +759,13 @@ types:
         required: true
         description: Identity of who created the plan (operator, agent, system)
       - name: created_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the plan was created
+        description: When the plan was created
       - name: updated_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds of last status change
+        description: The instant of last status change
 ```
 
 ### Mutation Contract
@@ -820,13 +820,13 @@ types:
         required: true
         description: Identity that issued the contract (system, operator)
       - name: issued_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the contract was issued
+        description: When the contract was issued
       - name: expires_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the contract expires — absolute deadline
+        description: When the contract expires — absolute deadline
       - name: revoked
         type: boolean
         required: true
@@ -860,7 +860,7 @@ types:
         required: false
         description: >
           Row-level filter for backfill/transform operations
-          (e.g., "status = 'inactive' AND created_at < 1713264000").
+          (e.g., "status = 'inactive' AND created_at < '2024-04-16T10:40:00.000Z'").
           If specified, the operation MUST only affect rows matching
           this constraint. Violation triggers automatic rollback.
       - name: max_rows
@@ -1009,9 +1009,9 @@ types:
         required: true
         description: How long the simulation took — used for duration estimate in real execution
       - name: simulated_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the simulation completed
+        description: When the simulation completed
 ```
 
 #### Table Impact
@@ -1089,12 +1089,12 @@ types:
         required: false
         description: >
           If only a subset of rows were checksummed (for large tables),
-          the filter expression used (e.g., "created_at > 1713264000").
+          the filter expression used (e.g., "created_at > '2024-04-16T10:40:00.000Z'").
           If null, the entire table was checksummed.
       - name: captured_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the checkpoint was captured
+        description: When the checkpoint was captured
 ```
 
 ### Migration Execution
@@ -1152,13 +1152,13 @@ types:
         required: false
         description: Result of each completed step
       - name: started_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when execution began
+        description: When execution began
       - name: completed_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when execution finished (null if still running)
+        description: When execution finished (null if still running)
       - name: error
         type: string
         required: false
@@ -1337,9 +1337,9 @@ types:
         required: true
         description: SHA-256 of this record (all fields except record_hash itself)
       - name: recorded_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when this record was written
+        description: When this record was written
 ```
 
 ---

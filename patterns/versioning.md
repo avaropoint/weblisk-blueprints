@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -32,7 +32,7 @@ migration validation, and rollback capabilities.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -45,7 +45,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -207,7 +207,7 @@ Every version of a blueprint is recorded as a revision:
 | version | string | yes | New version |
 | previous_version | string | yes | Version this replaces (null for initial) |
 | changed_by | string | yes | Identity of who made the change |
-| changed_at | string | yes | ISO 8601 timestamp |
+| changed_at | timestamp | yes | When the change was made |
 | change_type | string | yes | `major`, `minor`, `patch` |
 | change_summary | string | yes | Human-readable summary |
 | changelog | string[] | yes | List of specific changes |
@@ -454,7 +454,7 @@ in reverse order.
 | version | string | Indexed |
 | previous_version | string | |
 | changed_by | string | |
-| changed_at | int64 | Unix timestamp |
+| changed_at | timestamp | |
 | change_type | string | major, minor, patch |
 | change_summary | string | |
 | changelog | json | Array of change descriptions |

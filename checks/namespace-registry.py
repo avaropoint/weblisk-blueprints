@@ -34,7 +34,7 @@ key.
     checks/namespace-registry.py --vectors FILE      read the registry
         vectors from FILE instead of vectors/namespace-registry.json
 """
-import copy, hashlib, json, os, re, sys
+import datetime, copy, hashlib, json, os, re, sys
 import yaml
 import importlib.util
 
@@ -44,12 +44,19 @@ spec = importlib.util.spec_from_file_location("statements", os.path.join(HERE, "
 statements = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(statements)
 
-CLAIM, GRANT, TRANSFER, RELEASE = (f"weblisk/{p}/v1" for p in ("namespace-claim", "namespace-grant", "namespace-transfer", "catalog-release"))
+CLAIM, GRANT, TRANSFER, RELEASE = (f"weblisk/{p}/v2" for p in ("namespace-claim", "namespace-grant", "namespace-transfer", "catalog-release"))
 LAYOUT = {CLAIM: ["registry", "namespace", "holder", "issued_at"],
           GRANT: ["registry", "namespace", "grantee", "role", "issued_at"],
           TRANSFER: ["registry", "namespace", "from", "to", "kind", "issued_at"],
           RELEASE: ["registry", "namespace", "release", "index", "previous", "issued_at"]}
 HEX64, DEC = re.compile(r"[0-9a-f]{64}"), re.compile(r"0|[1-9][0-9]*")
+# An instant as protocol/conventions writes it; read as Unix milliseconds.
+INSTANT = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")
+
+
+def ms(s):
+    d = datetime.datetime.strptime(s, "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+    return int(d.timestamp()) * 1000 + d.microsecond // 1000
 INDEX_LINE = re.compile(r"(\S+) (sha256:[0-9a-f]{64}|retired)")
 DIGEST, NAME = re.compile(r"sha256:[0-9a-f]{64}"), re.compile(r"[a-z][a-z0-9-]{1,38}")
 variant = sys.argv[sys.argv.index("--variant") + 1] if "--variant" in sys.argv else None
@@ -68,7 +75,7 @@ WINDOW = int(re.search(r"^  replay_protection:\n    window: (\d+) seconds$", rea
 
 
 def well_formed(prefix, f):
-    ok = HEX64.fullmatch(f["registry"]) and DEC.fullmatch(f["issued_at"])
+    ok = HEX64.fullmatch(f["registry"]) and INSTANT.fullmatch(f["issued_at"])
     if prefix == RELEASE:
         return (ok and DEC.fullmatch(f["release"]) and f["release"] != "0" and DIGEST.fullmatch(f["index"])
                 and (f["previous"] == "" if f["release"] == "1" else DIGEST.fullmatch(f["previous"])))
@@ -149,7 +156,7 @@ class Registry:
         if f["registry"] != self.id: return "NAMESPACE_WRONG_REGISTRY"
         signers = self.signed(st, msg)
         if signers is None: return "NAMESPACE_SIGNATURE_INVALID"
-        if abs(at - int(f["issued_at"])) > WINDOW: return "NAMESPACE_STATEMENT_STALE"
+        if abs(at - ms(f["issued_at"])) > WINDOW * 1000: return "NAMESPACE_STATEMENT_STALE"
         if msg in self.log: return "NAMESPACE_STATEMENT_REPLAYED"
         name = f["namespace"]
         if not NAME.fullmatch(name): return "NAMESPACE_INVALID"
@@ -203,7 +210,7 @@ class Registry:
     def release(self, name, f, lines, signers, at):
         """Step 8: a catalog release, at the registry's own clock, continuing
         the latest release the log records for the namespace."""
-        s = self.state_at(name, int(f["issued_at"])) if variant == "release-signer-time" else self.ns.get(name)
+        s = self.state_at(name, ms(f["issued_at"])) if variant == "release-signer-time" else self.ns.get(name)
         if not s: return "NAMESPACE_UNKNOWN"
         if s["status"] == "retired": return "NAMESPACE_RETIRED"
         if s["status"] == "frozen": return "NAMESPACE_FROZEN"
@@ -331,10 +338,10 @@ def main():
             reg = Registry(vec, keys, ver)
             for i, step in enumerate(seq["steps"], 1):
                 steps += 1
-                if "ruling" in step: got = reg.ruling(step["ruling"], step["at"])
+                if "ruling" in step: got = reg.ruling(step["ruling"], ms(step["at"]))
                 elif "revoke" in step: got = reg.revoke(step["revoke"])
                 elif "verify" in step: got = reg.verify(step["verify"], step.get("index"))
-                else: got = reg.decide(step["statement"], step["at"], step.get("index"))
+                else: got = reg.decide(step["statement"], ms(step["at"]), step.get("index"))
                 if got != step["expect"]:
                     faults.append(f"{seq['id']} step {i}: got {got}, want {step['expect']}")
             for name, want in seq["state"].items():

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-rest
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -28,7 +28,7 @@ built-in — not bolted on.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -100,13 +100,13 @@ contracts:
     - path: /v1/{model} (POST)
       description: Create a new resource
       inherited_by: Specification section
-    - path: /v1/{model}/:id
+    - path: /v1/{model}/{id}
       description: Read a single resource by ID
       inherited_by: Specification section
-    - path: /v1/{model}/:id (PUT)
+    - path: /v1/{model}/{id} (PUT)
       description: Update (full replace) a resource by ID
       inherited_by: Specification section
-    - path: /v1/{model}/:id (DELETE)
+    - path: /v1/{model}/{id} (DELETE)
       description: Delete a resource by ID
       inherited_by: Specification section
 ```
@@ -147,9 +147,9 @@ For each model `M`, the following 5 endpoints MUST be generated:
 |--------|------|-------------|
 | GET | `/M` | List resources with pagination, filtering, sorting |
 | POST | `/M` | Create a new resource |
-| GET | `/M/:id` | Read a single resource by ID |
-| PUT | `/M/:id` | Update (full replace) a resource by ID |
-| DELETE | `/M/:id` | Delete a resource by ID |
+| GET | `/M/{id}` | Read a single resource by ID |
+| PUT | `/M/{id}` | Update (full replace) a resource by ID |
+| DELETE | `/M/{id}` | Delete a resource by ID |
 
 Model names in URLs are lowercased and pluralised (e.g. `Task` → `/tasks`).
 
@@ -202,12 +202,12 @@ sort keys.
 
 | Type | JSON Type | Description |
 |------|-----------|-------------|
-| `uuid` | string | UUID v4, auto-generated if `auto` |
+| `uuid` | string | UUID (`protocol/conventions:uuid`), generated if `auto` |
 | `string` | string | Text value |
 | `boolean` | boolean | True/false |
 | `integer` | number | 64-bit signed integer |
 | `float` | number | 64-bit floating point |
-| `timestamp` | number | Unix epoch seconds, auto-set if `auto` |
+| `timestamp` | string | `protocol/conventions:instant`, set if `auto` |
 
 ### Field Modifiers
 
@@ -237,23 +237,23 @@ Response (201 Created):
   "id": "a1b2c3d4-...",
   "title": "Ship v1",
   "done": false,
-  "created": 1713264000,
-  "updated": 1713264000
+  "created": "2024-04-16T10:40:00.000Z",
+  "updated": "2024-04-16T10:40:00.000Z"
 }
 ```
 
-**Read (GET /tasks/:id)**
+**Read (GET /tasks/{id})**
 
 Response (200 OK): full resource object.
 
-**Update (PUT /tasks/:id)**
+**Update (PUT /tasks/{id})**
 
 Request: full resource body (partial updates are NOT supported in base
 api-rest — use PATCH semantics via a custom extension if needed).
 
 Response (200 OK): updated resource object.
 
-**Delete (DELETE /tasks/:id)**
+**Delete (DELETE /tasks/{id})**
 
 Response (204 No Content): empty body.
 
@@ -357,9 +357,9 @@ types:
 
 ## Implementation Notes
 
-- **ID generation**: Use UUID v4 (crypto-random). Never expose internal
+- **ID generation**: Mint a UUID (`protocol/conventions:uuid`). Never expose internal
   database IDs.
-- **Timestamps**: Always store and return as Unix epoch seconds. Set
+- **Timestamps**: Always return as `protocol/conventions:instant`. Set
   `created` on insert, update `updated` on every write.
 - **Cursor encoding**: Cursors SHOULD be opaque base64-encoded strings
   containing the sort key value and ID. Clients MUST NOT parse them.

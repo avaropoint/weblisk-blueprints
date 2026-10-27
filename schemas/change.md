@@ -53,7 +53,7 @@ change:
   request: [<ref or citation>]     # what was asked for, as asked
   reverts: <change id>             # kind revert only
   requested_by: <identity id>      # the operator who asked
-  requested_at: <unix seconds>
+  requested_at: <instant>
   strict: <bool>                   # C2 refuses when true, as it does for Studio
   state: planned | approved | rejected | applied | verified | failed | superseded
   base:                            # what the plan read; apply refuses if any moved
@@ -85,14 +85,14 @@ change:
     position: <position id>        # equals approver_position, which the approver holds
     signature: <base64url ML-DSA-65 over the plan digest>
     plan_digest: sha256:<hex>
-    at: <unix seconds>
+    at: <instant>
     development: <bool>            # the tenant is flagged development
   rejection:                       # state rejected only: the person's signed refusal
     by: <identity id>
     reason: <text>
     signature: <base64url ML-DSA-65 over the plan digest>
     plan_digest: sha256:<hex>
-    at: <unix seconds>
+    at: <instant>
   applied_run: <run id>            # the run statement apply wrote
   verify: {result: pass | fail | repair, run: <run id>}
 ```

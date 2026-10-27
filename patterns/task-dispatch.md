@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ through the event and type contracts defined here.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/execute
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -73,7 +73,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -81,17 +81,17 @@ requires:
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
         - behavior: dead-letter
-          parameters: [max_retries, dlq_topic]
+          parameters: [max_attempts, dlq_topic]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:
@@ -173,11 +173,11 @@ contracts:
           type: int
           required: true
           description: Per-task execution timeout in seconds
-        - name: max_retries
+        - name: max_attempts
           type: int
           required: false
           default: 3
-          description: Maximum dispatch retry attempts on transient failure
+          description: Total attempts, the first included (protocol/conventions:max-attempts)
       inherits: HTTP dispatch, timeout enforcement, retry on transient errors
       overridable: false
       override_constraints: Dispatch protocol is fixed (POST /v1/execute)
@@ -201,10 +201,10 @@ contracts:
     - name: dead-letter-handling
       description: Capture failed tasks after retry exhaustion for later inspection
       parameters:
-        - name: max_retries
+        - name: max_attempts
           type: int
           required: true
-          description: Retry count before dead-lettering
+          description: Total attempts, the first included (protocol/conventions:max-attempts)
         - name: retention
           type: int
           required: false
@@ -252,7 +252,7 @@ contracts:
       payload: {task_id, workflow_id, phase, result, duration_ms}
     - topic: task.failed
       description: Target agent reported failure or dispatch exhausted retries
-      payload: {task_id, workflow_id, phase, error, retry_count}
+      payload: {task_id, workflow_id, phase, error, attempts}
     - topic: task.timeout
       description: Task exceeded execution timeout
       payload: {task_id, timeout_seconds, target_agent}
@@ -528,10 +528,10 @@ types:
         type: int
         description: "Total dispatch attempts"
       first_attempt_at:
-        type: int64
+        type: timestamp
         description: "Timestamp of first dispatch attempt"
       dead_lettered_at:
-        type: int64
+        type: timestamp
         description: "Timestamp of dead-letter capture"
       trace_id:
         type: string
@@ -606,7 +606,7 @@ types:
         optional: true
         description: Queue position (if queued behind other tasks)
       accepted_at:
-        type: int64
+        type: timestamp
         description: Acceptance timestamp
 
   TaskResult:
@@ -634,7 +634,7 @@ types:
         optional: true
         description: Execution duration in milliseconds
       timestamp:
-        type: int64
+        type: timestamp
         description: Completion timestamp
 
   TaskPriority:
@@ -683,10 +683,10 @@ types:
         type: int
         description: Total dispatch attempts
       first_attempt_at:
-        type: int64
+        type: timestamp
         description: Timestamp of first dispatch attempt
       dead_lettered_at:
-        type: int64
+        type: timestamp
         description: Timestamp of dead-letter capture
       trace_id:
         type: string
@@ -706,7 +706,7 @@ types:
         default: 0
         description: Currently dispatched task count
       last_seen:
-        type: int64
+        type: timestamp
         description: When the agent last registered or renewed its lease
 ```
 
@@ -736,13 +736,13 @@ config:
     min: 100
     max: 1000000
     description: Maximum queued tasks before rejecting submissions
-  max_retries:
+  max_attempts:
     type: int
     default: 3
     overridable: true
-    min: 0
+    min: 1
     max: 10
-    description: Maximum dispatch retry attempts on transient failure
+    description: Total attempts, the first included (protocol/conventions:max-attempts)
   dead_letter_retention:
     type: int
     default: 604800
@@ -802,7 +802,7 @@ to handle failures in their workflow.
   Queue wait time is unbounded (within queue depth limits).
 - **Re-queue on 429**: When a target agent returns 429, the task
   re-enters the queue with the `Retry-After` delay. This does NOT
-  count as a retry attempt against `max_retries`.
+  count as a retry attempt against `max_attempts`.
 - **Graceful drain**: On shutdown, the dispatcher stops accepting
   new tasks, waits for in-flight tasks to complete (up to 30s
   drain timeout), then fails remaining tasks.
@@ -838,7 +838,7 @@ to handle failures in their workflow.
 - [ ] Timeout enforcement publishes `task.timeout` after configured seconds
 - [ ] 429 responses re-queue the task with `Retry-After` delay (not counted as retry)
 - [ ] Transient failures (5xx, connection error) retry per `patterns/retry`
-- [ ] Tasks failing after `max_retries` are dead-lettered with full context
+- [ ] Tasks failing after `max_attempts` are dead-lettered with full context
 - [ ] Dead-letter entries are queryable and replayable
 - [ ] `task.cancelled` is published when a queued or in-flight task is cancelled
 - [ ] Agent deregistration fails all in-flight and queued tasks for that agent

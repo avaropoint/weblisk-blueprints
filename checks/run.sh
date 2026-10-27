@@ -77,15 +77,28 @@ grep -q "table rows and" "$tmp/out" || { echo "FAIL retired control: the missing
 expect 1 "retired control: an allowance its file has passed fails" python3 checks/retired.py --file "$tmp/ended.md"
 grep -q "has reached it" "$tmp/out" || { echo "FAIL retired control: the ended allowance was not what was reported"; fails=$((fails + 1)); }
 
-# Every mapping's wire timestamp against one vector, and a mapping changed to
-# milliseconds that must be the one disagreement reported.
+# protocol/conventions' worked values, each computed here from the rule; an
+# implementation that writes instants without milliseconds and backs off from
+# 2^n must be reported in exactly those two rules.
+expect 0 "conventions: every vector is what its rule gives" python3 checks/conventions.py vectors
+expect 0 "conventions control: a second-precision instant and a 2^n backoff are reported" python3 checks/conventions.py vectors --control
+# No specification restates a rule protocol/conventions holds; a seeded file
+# with one restatement of each kind must be reported, and nothing else.
+expect 0 "conventions sites: no file restates a convention" python3 checks/conventions.py sites
+expect 0 "conventions sites control: one seeded restatement of each kind is reported" python3 checks/conventions.py sites --control
+
+# Every mapping's wire timestamp against the conventions vector, and a mapping
+# left in epoch seconds that must be the one disagreement reported; every
+# field that holds an instant typed timestamp, and a seeded int64 one reported.
 expect 0 "timestamp-wire: every mapping agrees with the vector" python3 checks/timestamp-wire.py
-expect 0 "timestamp-wire control: a mapping in milliseconds is reported" python3 checks/timestamp-wire.py --control
+expect 0 "timestamp-wire control: a mapping left in epoch seconds is reported" python3 checks/timestamp-wire.py --control
+expect 0 "conventions time-fields: every instant field is a timestamp" python3 checks/conventions.py time-fields
+expect 0 "conventions time-fields control: a seeded int64 instant is reported" python3 checks/conventions.py time-fields --control
 
 # The fixed-form statement vectors against OpenSSL, which did not make them;
 # the signed directory push must have one. Copies whose push body differs by
 # one byte, and whose push is signed by another key, must each fail.
-expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v1
+expect 0 "fixed-form: every vector verifies with OpenSSL, and the directory push has one" python3 checks/fixed-form.py --require-body weblisk/directory/v2
 python3 - "$tmp" <<'PY'
 import json, sys
 p = "vectors/fixed-form-statements.json"

@@ -1,0 +1,180 @@
+{
+  "format": "The worked values of protocol/conventions, one entry per rule that has a value to compute. An instant is given as Unix milliseconds and the one wire string for it; a uuid with the Unix milliseconds its version 7 time field holds; a duration with its milliseconds; backoff as the cap on the delay after each failed attempt n, for the default base and max, which a full-jitter delay never exceeds. Each `invalid` list holds values a receiver refuses. The rules themselves are stated once, in protocol/conventions; this file holds only what they give (checks/conventions.py, checks/timestamp-wire.py).",
+  "conventions": "protocol/conventions.md",
+  "instant": {
+    "rule": "protocol/conventions:instant",
+    "binding": {
+      "unix_ms": 1767323045123,
+      "wire": "2026-01-02T03:04:05.123Z"
+    },
+    "cases": [
+      {
+        "unix_ms": 1767323045123,
+        "wire": "2026-01-02T03:04:05.123Z"
+      },
+      {
+        "unix_ms": 1767323045000,
+        "wire": "2026-01-02T03:04:05.000Z"
+      },
+      {
+        "unix_ms": 0,
+        "wire": "1970-01-01T00:00:00.000Z"
+      },
+      {
+        "unix_ms": 1645557742000,
+        "wire": "2022-02-22T19:22:22.000Z"
+      },
+      {
+        "unix_ms": 253402300799999,
+        "wire": "9999-12-31T23:59:59.999Z"
+      }
+    ],
+    "invalid": [
+      "2026-01-02T03:04:05Z",
+      "2026-01-02T03:04:05.1234Z",
+      "2026-01-02T03:04:05.123+00:00",
+      "2026-01-02T04:04:05.123+01:00",
+      "2026-01-02t03:04:05.123z",
+      "2026-01-02 03:04:05.123Z",
+      "1767323045",
+      "2026-01-02T03:04:05.123",
+      "2026-02-30T03:04:05.123Z"
+    ]
+  },
+  "uuid": {
+    "rule": "protocol/conventions:uuid",
+    "cases": [
+      {
+        "value": "017f22e2-79b0-7cc3-98c4-dc0c0c07398f",
+        "unix_ms": 1645557742000,
+        "source": "RFC 9562, Appendix A.6"
+      }
+    ],
+    "invalid": [
+      "017F22E2-79B0-7CC3-98C4-DC0C0C07398F",
+      "919108f7-52d1-4320-9bac-f847db4148a8",
+      "017f22e279b07cc398c4dc0c0c07398f",
+      "017f22e2-79b0-7cc3-08c4-dc0c0c07398f",
+      "{017f22e2-79b0-7cc3-98c4-dc0c0c07398f}"
+    ]
+  },
+  "duration": {
+    "rule": "protocol/conventions:duration",
+    "cases": [
+      {
+        "value": "30s",
+        "ms": 30000
+      },
+      {
+        "value": "5m",
+        "ms": 300000
+      },
+      {
+        "value": "24h",
+        "ms": 86400000
+      },
+      {
+        "value": "1h30m",
+        "ms": 5400000
+      },
+      {
+        "value": "250ms",
+        "ms": 250
+      },
+      {
+        "value": "0s",
+        "ms": 0
+      },
+      {
+        "value": "1h0m0s",
+        "ms": 3600000
+      },
+      {
+        "value": "2m3s4ms",
+        "ms": 123004
+      }
+    ],
+    "invalid": [
+      "30",
+      "1.5s",
+      "-1s",
+      "1d",
+      "30S",
+      "1s1h",
+      "1m1m",
+      "",
+      "1h 30m"
+    ]
+  },
+  "integer": {
+    "rule": "protocol/conventions:integer",
+    "cases": [
+      "0",
+      "-1",
+      "9007199254740991",
+      "9223372036854775807",
+      "-9223372036854775808"
+    ],
+    "invalid": [
+      "9223372036854775808",
+      "-9223372036854775809",
+      "1.0",
+      "1e3",
+      "01"
+    ]
+  },
+  "max_attempts": {
+    "rule": "protocol/conventions:max-attempts",
+    "default": 3,
+    "cases": [
+      {
+        "max_attempts": 3,
+        "attempts": 3,
+        "retries": 2
+      },
+      {
+        "max_attempts": 1,
+        "attempts": 1,
+        "retries": 0
+      }
+    ],
+    "invalid": [
+      0
+    ]
+  },
+  "backoff": {
+    "rule": "protocol/conventions:backoff",
+    "base": "1s",
+    "max": "30s",
+    "caps": [
+      {
+        "after_attempt": 1,
+        "cap_ms": 1000
+      },
+      {
+        "after_attempt": 2,
+        "cap_ms": 2000
+      },
+      {
+        "after_attempt": 3,
+        "cap_ms": 4000
+      },
+      {
+        "after_attempt": 4,
+        "cap_ms": 8000
+      },
+      {
+        "after_attempt": 5,
+        "cap_ms": 16000
+      },
+      {
+        "after_attempt": 6,
+        "cap_ms": 30000
+      },
+      {
+        "after_attempt": 7,
+        "cap_ms": 30000
+      }
+    ]
+  }
+}

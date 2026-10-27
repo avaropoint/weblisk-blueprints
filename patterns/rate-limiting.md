@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.5
+version: 1.1.6
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
@@ -34,7 +34,7 @@ domain-specific throttling (e.g., external API call budgets).
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.16.1 <6.0.0"
+    version: ">=1.16.1 <7.0.0"
     bindings:
       types:
         - name: RateLimitConfig
@@ -46,7 +46,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -59,7 +59,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -69,7 +69,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentConfig
@@ -358,7 +358,7 @@ Every response includes rate limit headers (successful or rejected):
 |--------|-------|-------------|
 | `X-RateLimit-Limit` | 100 | Maximum requests in window |
 | `X-RateLimit-Remaining` | 42 | Requests remaining in window |
-| `X-RateLimit-Reset` | 1714060800 | Unix timestamp when window resets |
+| `X-RateLimit-Reset` | 1714060800 | When the window resets, a NumericDate as the header is conventionally written |
 | `Retry-After` | 12 | Seconds until retry (429 only) |
 
 ### Retry Guidance

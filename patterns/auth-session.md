@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-session
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -26,7 +26,7 @@ state-changing operations.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -38,7 +38,7 @@ state-changing operations.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -48,13 +48,13 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Route
@@ -64,7 +64,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/client
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ClientRecord
@@ -180,7 +180,7 @@ Response (201 Created):
   "id": "a1b2c3d4...",
   "email": "user@example.com",
   "name": "Alice",
-  "created": 1713264000
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 
@@ -242,7 +242,7 @@ Response (200 OK):
   "id": "a1b2c3d4...",
   "email": "user@example.com",
   "name": "Alice",
-  "created": 1713264000
+  "created": "2024-04-16T10:40:00.000Z"
 }
 ```
 
@@ -273,8 +273,8 @@ Sessions are stored server-side. Each session record contains:
 | session_id | Random 32-byte hex string |
 | user_id | Associated user ID |
 | csrf_token | Random 32-byte hex string |
-| created_at | Unix timestamp |
-| expires_at | Unix timestamp |
+| created_at | An instant (`protocol/conventions:instant`) |
+| expires_at | An instant |
 | ip_address | Client IP at creation |
 | user_agent | Client User-Agent at creation |
 
@@ -319,7 +319,7 @@ types:
         required: true
         description: "Hashed password (never returned in API)"
       created:
-        type: int64
+        type: timestamp
         required: true
         description: "Account creation timestamp"
 ```
@@ -343,11 +343,11 @@ types:
         required: true
         description: "CSRF protection token"
       created_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Creation timestamp"
       expires_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Expiration timestamp"
       ip_address:

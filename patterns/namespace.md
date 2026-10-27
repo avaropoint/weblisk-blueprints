@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: namespace
-version: 1.0.0
+version: 2.0.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity]
 related: [architecture/storage, architecture/hub, architecture/tenancy]
 platform: any
@@ -36,10 +36,10 @@ accepted, records it in its log:
 
 | Statement | Signed by | Does |
 |---|---|---|
-| `weblisk/namespace-claim/v1` | the claimant | takes an unheld name, first come |
-| `weblisk/namespace-grant/v1` | the holder | lets another identity publish under the namespace, or withdraws that |
-| `weblisk/namespace-transfer/v1` | the outgoing and the incoming holder; for a retirement, the outgoing holder alone | hands the namespace on, follows a key rotation, or retires it for good |
-| `weblisk/catalog-release/v1` | the holder, or an identity it granted `publish` | publishes the index of the namespace's parts at one release, which counts once the registry's log records it |
+| `weblisk/namespace-claim/v2` | the claimant | takes an unheld name, first come |
+| `weblisk/namespace-grant/v2` | the holder | lets another identity publish under the namespace, or withdraws that |
+| `weblisk/namespace-transfer/v2` | the outgoing and the incoming holder; for a retirement, the outgoing holder alone | hands the namespace on, follows a key rotation, or retires it for good |
+| `weblisk/catalog-release/v2` | the holder, or an identity it granted `publish` | publishes the index of the namespace's parts at one release, which counts once the registry's log records it |
 
 ---
 
@@ -48,7 +48,7 @@ accepted, records it in its log:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -59,7 +59,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.4.0 <3.0.0"
+    version: ">=2.4.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -71,7 +71,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/principal-identity
-    version: ">=1.9.0 <2.0.0"
+    version: ">=1.9.0 <3.0.0"
     bindings:
       types:
         # Who may hold a namespace: an enrolled identity whose kind is user
@@ -223,14 +223,14 @@ requirements:
 Each is a fixed-form statement: the prefix, then each field in the order
 given, each preceded by one 0x00 byte ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
 A fingerprint is [Key Fingerprint](../protocol/identity.md#key-fingerprint)'s
-64 lowercase hex characters. A time is decimal Unix seconds, UTC, with no sign
-and no leading zeros. `<registry>` is the registry's log id
+64 lowercase hex characters. A time is an instant as
+[`protocol/conventions`](../protocol/conventions.md#instant) writes it. `<registry>` is the registry's log id
 ([`architecture/storage`](../architecture/storage.md#what-a-sealed-log-holds)).
 
 ### Claim
 
 ```
-"weblisk/namespace-claim/v1" 0x00 <registry> 0x00 <namespace> 0x00 <holder> 0x00 <issued_at>
+"weblisk/namespace-claim/v2" 0x00 <registry> 0x00 <namespace> 0x00 <holder> 0x00 <issued_at>
 
 <namespace>  the name claimed, as schemas/names.md's grammar writes it
 <holder>     the claimant's fingerprint; the claim is signed by that key
@@ -239,7 +239,7 @@ and no leading zeros. `<registry>` is the registry's log id
 ### Grant
 
 ```
-"weblisk/namespace-grant/v1" 0x00 <registry> 0x00 <namespace> 0x00 <grantee> 0x00 <role> 0x00 <issued_at>
+"weblisk/namespace-grant/v2" 0x00 <registry> 0x00 <namespace> 0x00 <grantee> 0x00 <role> 0x00 <issued_at>
 
 <grantee>  the fingerprint of the identity the grant is for
 <role>     publish, or none, which withdraws an earlier grant to the grantee
@@ -251,7 +251,7 @@ enrolled identity, a service among them; a grant never makes it the holder.
 ### Transfer
 
 ```
-"weblisk/namespace-transfer/v1" 0x00 <registry> 0x00 <namespace> 0x00 <from> 0x00 <to> 0x00 <kind> 0x00 <issued_at>
+"weblisk/namespace-transfer/v2" 0x00 <registry> 0x00 <namespace> 0x00 <from> 0x00 <to> 0x00 <kind> 0x00 <issued_at>
 
 <from>  the outgoing holder's fingerprint
 <to>    the incoming holder's fingerprint; empty for a retirement
@@ -276,7 +276,7 @@ move the namespace.
 ### Catalog release
 
 ```
-"weblisk/catalog-release/v1" 0x00 <registry> 0x00 <namespace> 0x00 <release> 0x00 <index> 0x00 <previous> 0x00 <issued_at>
+"weblisk/catalog-release/v2" 0x00 <registry> 0x00 <namespace> 0x00 <release> 0x00 <index> 0x00 <previous> 0x00 <issued_at>
 
 <release>   the release's number in decimal: 1 for the first, one more for each next
 <index>     the digest of the release's index, written sha256:<hex>

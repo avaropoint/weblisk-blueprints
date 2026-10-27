@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: contract
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -45,7 +45,7 @@ where obligations are declared and enforced.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: IOSpec
@@ -57,7 +57,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -182,7 +182,7 @@ contracts:
     - topic: contract.negotiated
       payload: { contract: string, version: string, initiator: string, responder: string, scope: string }
     - topic: contract.deprecated
-      payload: { contract: string, version: string, migration_target: string, deprecated_at: int }
+      payload: { contract: string, version: string, migration_target: string, deprecated_at: timestamp }
 ```
 
 ---
@@ -280,7 +280,7 @@ Uses the same type system as `patterns/storage`:
 | `int` | 64-bit signed integer |
 | `float` | 64-bit floating point |
 | `boolean` | True/false |
-| `timestamp` | Unix epoch seconds (int64) |
+| `timestamp` | An instant (`protocol/conventions:instant`) |
 | `json` | Arbitrary JSON object |
 | `[]<type>` | Array of type |
 | `enum(<values>)` | Enumerated values |
@@ -674,7 +674,7 @@ lifecycle:
   scan_request:
     version: 1.0.0
     status: deprecated
-    deprecated_at: 1750000000
+    deprecated_at: "2025-06-15T15:06:40.000Z"
     migration:
       target_contract: scan_request
       target_version: 2.0.0
@@ -864,7 +864,7 @@ created and `contract.violated` is emitted:
   "rule_violated": "forwarding:denied",
   "severity": "critical",
   "payload_hash": "sha256:abc123...",
-  "timestamp": 1750000000
+  "timestamp": "2025-06-15T15:06:40.000Z"
 }
 ```
 

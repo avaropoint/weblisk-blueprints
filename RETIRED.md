@@ -104,6 +104,19 @@ rewrites that place.
 | `/v1/admin/approvals/batch` and `/v1/admin/approvals/{id}`, the Approval Queue of recommendations, and `weblisk approvals accept --all` and `--priority` | The decision inbox, `GET /v1/admin/approvals`, each decision made at the route its item's `decide` names | [`architecture/admin`](architecture/admin.md#decision-inbox) 4.0.0, Decision Inbox; [`architecture/cli`](architecture/cli.md#approval-commands) 4.0.0, Approval Commands |
 | `fabric.traversal.max_depth`, the fabric's configured traversal depth | requirement `reach-max-depth`, `requirement://weblisk/architecture/fabric:reach-max-depth`, which no configuration sets | [`architecture/fabric`](architecture/fabric.md#requirements) 3.0.0, Requirements and Configuration |
 | `{hub}:{capability}`, as the form of a listing id | `listing://<namespace>/<name>` | [`architecture/hub`](architecture/hub.md#the-public-namespace-registry) 2.0.0, Listing Fields and The public namespace registry |
+| `max_retries`; the type field name `MaxRetries` | `max_attempts`, which counts every attempt, the first included; `MaxAttempts` | [`protocol/conventions`](protocol/conventions.md#attempts) 1.0.0, Attempts |
+| `retry_count` | `attempts` | [`protocol/conventions`](protocol/conventions.md#attempts) 1.0.0, Attempts |
+| `UUID v4`, as the version a component mints | a UUID as [`protocol/conventions`](protocol/conventions.md#uuid) says, version 7 | [`protocol/conventions`](protocol/conventions.md#uuid) 1.0.0, UUID |
+| `vectors/timestamp-wire.json` | [`vectors/conventions.json`](vectors/conventions.json), its `instant` entry | [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0, Instant |
+| `weblisk/log-key/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/log-key/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/storage`](architecture/storage.md#sealing-a-chained-log), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/log-checkpoint/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/log-checkpoint/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/storage`](architecture/storage.md#sealing-a-chained-log), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/content-change/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/content-change/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`architecture/content`](architecture/content.md#the-change-statement), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/directory/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/directory/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`protocol/spec`](protocol/spec.md#post-v1services), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-claim/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-claim/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#claim), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-grant/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-grant/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#grant), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/namespace-transfer/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-transfer/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#transfer), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `weblisk/catalog-release/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/catalog-release/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#catalog-release), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `_ms`, `_seconds`, `_secs`, `_minutes`, `_hours`, `_days`, `unit: seconds`, `unit: milliseconds`, `unit: minutes`, `unit: hours`, `unit: days`, as the form of a length of time: a key or field holding a bare number of the unit its name or `unit:` gives | a `duration`, a string such as `30s`, as [`protocol/conventions`](protocol/conventions.md#duration) says | [`protocol/conventions`](protocol/conventions.md#duration) 1.0.0, Duration |
 | `schemas/structures/`, the directory of the section structures a document is checked against, and its files | The document families in `documents/families/`, one declaration each | [`documents/families/policy`](documents/families/policy.md), [`procedure`](documents/families/procedure.md), [`standard`](documents/families/standard.md) and [`guideline`](documents/families/guideline.md), each 1.0.0, and [`schemas/programme`](schemas/programme.md#the-structures-a-document-is-checked-against), The structures a document is checked against |
 | `ApprovalResponse` and `ApprovalResult`, the response to a decision on recommendations, and `ApprovalRequest` in its sense of that decision's body (`recommendation_ids`, `decision`, `token`) | None. `ApprovalRequest` is the request an owner holds open; it is answered at the route its owner names | [`protocol/types`](protocol/types.md#approvals) 5.0.0, Approvals |
 
@@ -456,6 +469,83 @@ itself is always allowed.
   - {spelling: fabric.traversal.max_depth, match: exact}
 - retired:
   - {spelling: '{hub}:{capability}', match: exact}
+- retired:
+  - {spelling: max_retries, match: exact}
+  - {spelling: MaxRetries, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: 'the check that reports it, and its seeded control'}
+- retired:
+  - {spelling: retry_count, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: the check that reports it}
+- retired:
+  - {spelling: UUID v4, match: exact}
+  allow:
+  - {path: checks/conventions.py, why: the seeded control of the check that reports it}
+- retired:
+  - {spelling: vectors/timestamp-wire.json, match: exact}
+- retired:
+  - {spelling: weblisk/log-key/v1, match: exact}
+- retired:
+  - {spelling: weblisk/log-checkpoint/v1, match: exact}
+- retired:
+  - {spelling: weblisk/content-change/v1, match: exact}
+- retired:
+  - {spelling: weblisk/directory/v1, match: exact}
+  allow:
+  - {path: protocol/spec.md, why: 'says which layout the v2 prefix replaced, and why it took a new prefix'}
+- retired:
+  - {spelling: weblisk/namespace-claim/v1, match: exact}
+- retired:
+  - {spelling: weblisk/namespace-grant/v1, match: exact}
+- retired:
+  - {spelling: weblisk/namespace-transfer/v1, match: exact}
+- retired:
+  - {spelling: weblisk/catalog-release/v1, match: exact}
+- retired:
+  - {spelling: '_ms', match: sense}
+  - {spelling: '_seconds', match: sense}
+  - {spelling: '_secs', match: sense}
+  - {spelling: '_minutes', match: sense}
+  - {spelling: '_hours', match: sense}
+  - {spelling: '_days', match: sense}
+  - {spelling: 'unit: seconds', match: sense}
+  - {spelling: 'unit: milliseconds', match: sense}
+  - {spelling: 'unit: minutes', match: sense}
+  - {spelling: 'unit: hours', match: sense}
+  - {spelling: 'unit: days', match: sense}
+  allow:
+  - {path: agents/cron.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/health-monitor.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/hub.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/incident-response.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/lifecycle.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/task.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/webhook.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/workflow.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/change-management.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/data-security.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/gateway.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/hub.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/tenancy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/api-ai.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/auth-oauth.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/billing.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/command.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/incident-response.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/notification.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/policy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/privacy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/safety.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/scheduling.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/storage.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/task-dispatch.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/webhook.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/federation.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/secret-source.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/types.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: schemas/agent.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: checks/conventions.py, why: 'the check that reports a bare-number duration outside this list, and its seeded control'}
 - retired:
   - {spelling: schemas/structures/, match: exact}
 - retired:

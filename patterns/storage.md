@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: storage
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ the format so that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -148,11 +148,11 @@ types:
 | `int` | 64-bit signed integer | `42` |
 | `float` | 64-bit floating point | `3.14` |
 | `boolean` | True/false | `true` |
-| `timestamp` | Unix epoch seconds (int64) | `1713264000` |
+| `timestamp` | An instant, kept to the millisecond and served as `protocol/conventions:instant` | `"2026-04-16T10:40:00.000Z"` |
 | `json` | Arbitrary JSON object | `{"key": "value"}` |
 | `[]<type>` | Array of type | `[]string` |
 | `enum(<values>)` | Enumerated string values | `enum(active,suspended,deleted)` |
-| `uuid` | UUID v4 string | `"a1b2c3d4-..."` |
+| `uuid` | UUID, as `protocol/conventions:uuid` says | `"017f22e2-79b0-7cc3-98c4-dc0c0c07398f"` |
 
 ### Example
 
@@ -377,21 +377,21 @@ migrations:
       - action: add_field
         type: EmailQueueEntry
         field:
-          name: retry_count
+          name: attempts
           type: int
           required: true
           default: 0
       - action: add_index
         index:
           name: idx_retry_pending
-          fields: [status, retry_count]
+          fields: [status, attempts]
           condition: "status = 'failed'"
     down:
       - action: drop_index
         name: idx_retry_pending
       - action: drop_field
         type: EmailQueueEntry
-        field: retry_count
+        field: attempts
 
   - version: "1.2.0"
     description: Rename status values
@@ -454,7 +454,7 @@ schema_version_interface:
         steps_applied: int
         rows_affected: int
         duration_ms: int
-        applied_at: int64        # Unix epoch seconds
+        applied_at: timestamp
     - name: ValidateSchema
       description: Verify that the current schema matches the declared types
       returns:
@@ -513,10 +513,10 @@ types:
 - **Type names are PascalCase**: `EmailQueueEntry`, not
   `email_queue_entry`. Table names in DDL use snake_case
   automatically.
-- **Timestamps are Unix epoch**: All timestamp fields store seconds
-  since epoch as int64. Display formatting is a presentation concern.
-- **UUIDs for IDs**: Use UUID v4 for all primary keys unless there
-  is a specific reason for sequential IDs.
+- **Timestamps are instants**: every timestamp field is kept to the
+  millisecond and served as `protocol/conventions:instant`. Display formatting is a presentation concern.
+- **UUIDs for IDs**: Use a UUID (`protocol/conventions:uuid`) for every primary key
+  unless there is a specific reason for sequential IDs.
 - **Soft deletes**: Prefer `status: deleted` over physical deletes
   for auditable records. Physical deletes are acceptable for
   retention-purged data.

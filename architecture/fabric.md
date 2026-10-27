@@ -48,7 +48,7 @@ and is reachable from either.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -76,7 +76,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
@@ -113,7 +113,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         # An enum: it declares values, not fields, so nothing is bound FROM it.
@@ -128,7 +128,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/content
-    version: ">=2.22.10 <5.0.0"
+    version: ">=2.22.10 <6.0.0"
     bindings:
       types:
         - name: ContentEntry
@@ -147,7 +147,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: durable-records
@@ -160,7 +160,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/enforcement
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ViolationRecord
@@ -171,7 +171,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <4.0.0"
+    version: ">=2.15.0 <5.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See This service honours

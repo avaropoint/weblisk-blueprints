@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 2.0.0
+version: 3.0.0
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -41,7 +41,7 @@ domain change and never a change to this agent.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -62,7 +62,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -79,7 +79,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -94,7 +94,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -107,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: dag-resolution
@@ -164,11 +164,11 @@ types:
         items: PhaseResult
         description: Results from each phase
       started_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Execution start timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Execution completion timestamp
       error:
@@ -210,10 +210,10 @@ types:
         optional: true
         description: Recommendations extracted from phase
       started_at:
-        type: int64
+        type: timestamp
         description: Phase start timestamp
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Phase completion timestamp
       error:
@@ -271,10 +271,10 @@ types:
         enum: [fail, skip, retry]
         default: fail
         description: Error handling strategy
-      max_retries:
+      max_attempts:
         type: int
-        default: 0
-        description: Retries for "retry" on_error strategy
+        default: 3
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       approval:
         type: string
         enum: [none, required]
@@ -476,9 +476,9 @@ Else:
      Downstream phases referencing this output → receive null
      Continue execution
    "retry":
-     If retries < max_retries:
-       Increment retry count
-       Wait: base_delay × 2^retry (1s, 2s, 4s)
+     If attempts < max_attempts:
+       Increment attempts
+       Wait per `protocol/conventions:backoff`
        Re-dispatch via task.submit
      Else:
        Treat as "fail"
@@ -627,12 +627,12 @@ Step 2 — Load Identity
 Step 3 — Initialize Storage
   Action:      Open flat-file JSONL storage directory
   Validates:   Directory writable, existing execution records parseable
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
 
 Step 4 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 5 — Subscribe to Events
   Action:      Subscribe to: workflow.trigger, workflow.approval.decision,
@@ -856,7 +856,7 @@ Phase 2 — Definition Fetch
   Action:    Check cache for WorkflowDefinition
   If miss:   POST /v1/message to source_domain (action: get_workflow)
   Cache:     Store definition, invalidate on domain re-registration
-  On Fail:   Retry 3x → publish workflow.failed
+  On Fail:   Retry, up to 3 attempts → publish workflow.failed
 
 Phase 3 — DAG Resolution
   Action:    Topological sort by depends_on
@@ -1117,7 +1117,7 @@ errors:
   transient:
     - code: DEFINITION_FETCH_FAILED
       description: Could not fetch workflow definition from source domain
-      fallback: Retry 3x with exponential backoff, then fail workflow
+      fallback: Retry, up to 3 attempts, backoff per `protocol/conventions:backoff`, then fail workflow
     - code: TASK_DISPATCH_FAILED
       description: task.submit event not acknowledged
       fallback: Retry event publish, then fail phase
@@ -1293,7 +1293,7 @@ tests:
   - name: Definition fetch fails
     trigger: workflow.trigger, source domain unreachable
     expected:
-      Retry 3x, then workflow.failed
+      Retry, up to 3 attempts, then workflow.failed
     validates:
       - DEFINITION_FETCH_FAILED error after retries
 ```

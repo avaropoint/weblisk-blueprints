@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 2.1.0
+version: 3.0.0
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -34,7 +34,7 @@ only what makes this agent different.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -58,7 +58,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -70,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -100,11 +100,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_retries, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff_strategy, timeout]
         - behavior: circuit-breaker
           parameters: [failure_threshold, recovery_timeout]
     on_change:
@@ -112,7 +112,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -308,8 +308,8 @@ must re-register before expiry to maintain connectivity.
    b. Orchestrator performs idempotent re-registration for existing agents
    c. New token issued; old token invalidated
 3. If re-registration fails:
-   a. Retry with exponential backoff (1s, 2s, 4s, max 30s)
-   b. After 5 failures: log critical, answer `GET /readyz` not ready, and
+   a. Retry, waiting as `protocol/conventions:backoff` says
+   b. After 5 attempts fail: log critical, answer `GET /readyz` not ready, and
       renew the lease with `ready: false` while the old token is still
       valid; once it expires the lease cannot be renewed and lapses to
       `unknown`, as [`protocol/spec`](../protocol/spec.md#token-renewal)
@@ -724,7 +724,8 @@ level. When dispatching, domains MUST:
 1. Check the target agent's declared `max_concurrent` (from manifest)
 2. Track how many in-flight requests exist per agent
 3. If at limit, queue the phase and dispatch when a slot frees
-4. If 429 received, apply exponential backoff: 1s, 2s, 4s, 8s (max 30s)
+4. If 429 received, wait as `protocol/conventions:backoff` says, with the 429's
+   Retry-After as a floor
 5. After 3 consecutive 429s for the same agent, degrade gracefully:
    serialize remaining phases for that agent instead of parallel dispatch
 
@@ -753,10 +754,10 @@ into the retry pattern:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| Task timeout | 30s | Max execution time per task |
+| Task timeout | 300s | Max execution time per task (`protocol/conventions:task-timeout`) |
 | HTTP outbound timeout | 10s | Per-request timeout for outbound calls |
-| Retry attempts | 3 | Max retries on transient failure |
-| Backoff base | 1s | Exponential backoff: base × 2^attempt |
+| Retry attempts | 3 | `max_attempts`: total attempts, the first included (`protocol/conventions:max-attempts`) |
+| Backoff base | 1s | Base of `protocol/conventions:backoff` |
 | Backoff max | 30s | Cap on backoff delay |
 | Outbound rate limit | 50 req/s | Max outbound HTTP requests per second |
 
@@ -912,14 +913,14 @@ types:
         description: "Active event subscriptions"
       lease_expires_at:
         name: LeaseExpiresAt
-        type: int64
+        type: timestamp
         required: false
-        description: "Unix epoch at which the agent's lease lapses unless renewed"
+        description: "The instant at which the agent's lease lapses unless renewed"
       registered_at:
         name: RegisteredAt
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix epoch of registration"
+        description: "The instant of registration"
 ```
 
 ---
@@ -990,6 +991,6 @@ security:
 - [ ] Outbound HTTP calls respect the configured outbound rate limit (default 50 req/s)
 - [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (7 endpoints, the two probes among them), starts server, registers with orchestrator, and starts renewing its lease
 - [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold (default 10%)
-- [ ] Token refresh failure makes the agent not ready, on `/readyz` and on its lease, after 5 retries with exponential backoff
+- [ ] Token refresh failure makes the agent not ready, on `/readyz` and on its lease, after 5 attempts, waiting as `protocol/conventions:backoff` says
 - [ ] Graceful shutdown when asked to stop, by whatever mechanism the platform blueprint names: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes the server
 - [ ] Shutdown respects the configured shutdown timeout (default 30s) for in-flight task drain

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 2.4.0
+version: 3.0.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -118,7 +118,7 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <6.0.0"
+    version: ">=1.15.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -544,17 +544,17 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/auth/v1` | An identity, proving that it holds its key to a service that is not a hub | [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) |
 | `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
 | `weblisk/step-up/v1` | An operator's identity, over a hub's `hub_id`, the nonce of the token request it rides on and the act that asked, re-confirming the person for a destructive act. A passkey's assertion is made over the same bytes as its WebAuthn challenge | [`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act) |
-| `weblisk/log-key/v1` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
-| `weblisk/log-checkpoint/v1` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-key/v2` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-checkpoint/v2` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
-| `weblisk/content-change/v1` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
+| `weblisk/content-change/v2` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 | `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
-| `weblisk/directory/v1` | An orchestrator, by its signing key, over the service directory it pushes and serves | [`protocol/spec`](spec.md#post-v1services) |
-| `weblisk/namespace-claim/v1` | A person's identity, claiming a namespace at one registry | [`patterns/namespace`](../patterns/namespace.md#claim) |
-| `weblisk/namespace-grant/v1` | A namespace's holder, letting another identity publish under it or withdrawing that | [`patterns/namespace`](../patterns/namespace.md#grant) |
-| `weblisk/namespace-transfer/v1` | A namespace's outgoing and incoming holders, each over a transfer or rotation; the outgoing holder alone over a retirement | [`patterns/namespace`](../patterns/namespace.md#transfer) |
-| `weblisk/catalog-release/v1` | A namespace's holder or `publish` grantee, over the index of one release | [`patterns/namespace`](../patterns/namespace.md#catalog-release) |
+| `weblisk/directory/v2` | An orchestrator, by its signing key, over the service directory it pushes and serves | [`protocol/spec`](spec.md#post-v1services) |
+| `weblisk/namespace-claim/v2` | A person's identity, claiming a namespace at one registry | [`patterns/namespace`](../patterns/namespace.md#claim) |
+| `weblisk/namespace-grant/v2` | A namespace's holder, letting another identity publish under it or withdrawing that | [`patterns/namespace`](../patterns/namespace.md#grant) |
+| `weblisk/namespace-transfer/v2` | A namespace's outgoing and incoming holders, each over a transfer or rotation; the outgoing holder alone over a retirement | [`patterns/namespace`](../patterns/namespace.md#transfer) |
+| `weblisk/catalog-release/v2` | A namespace's holder or `publish` grantee, over the index of one release | [`patterns/namespace`](../patterns/namespace.md#catalog-release) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
@@ -571,11 +571,11 @@ a data file no blueprint requires, so no build carries it in its prompt, and
 every build receives it as test data
 ([`architecture/generation`](../architecture/generation.md#published-test-vectors)).
 It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
-`weblisk/step-up/v1`, `weblisk/log-key/v1`, `weblisk/log-checkpoint/v1`,
-`weblisk/log-succession/v1`, `weblisk/content-change/v1`,
-`weblisk/directory/v1`, `weblisk/namespace-claim/v1`,
-`weblisk/namespace-grant/v1`, `weblisk/namespace-transfer/v1` and
-`weblisk/catalog-release/v1`. None is published
+`weblisk/step-up/v1`, `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2`,
+`weblisk/log-succession/v1`, `weblisk/content-change/v2`,
+`weblisk/directory/v2`, `weblisk/namespace-claim/v2`,
+`weblisk/namespace-grant/v2`, `weblisk/namespace-transfer/v2` and
+`weblisk/catalog-release/v2`. None is published
 yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
 implementation may yet sign under either.
 
@@ -665,8 +665,8 @@ token*. It is the same token, under two names.
 Fields:
 - `sub` (subject): agent name or identity
 - `iss` (issuer): who created the token ("orchestrator" or agent name)
-- `iat` (issued at): Unix timestamp
-- `exp` (expires at): Unix timestamp (0 = no expiry)
+- `iat` (issued at): an RFC 7519 NumericDate
+- `exp` (expires at): an RFC 7519 NumericDate (0 = no expiry)
 - `cap` (capabilities): granted capability names (optional). An operator
   token always carries `cap`, an empty list included, and names no capability
   its `cap` does not name: an operator token whose `cap` is absent or empty
@@ -696,7 +696,7 @@ Fields:
   `act`
 - `identity_key`: on a pass alone, the fingerprint of its person's identity
   public key when the pass was minted
-- `step_up_at`: when the subject last completed a step-up, in Unix seconds
+- `step_up_at`: when the subject last completed a step-up, a NumericDate
   (optional). An operator token carries it only where the orchestrator minted
   it through an interactive re-confirmation it verified itself, the
   operator's identity signing `weblisk/step-up/v1` or a user-verified passkey
@@ -896,10 +896,10 @@ types:
             description: Issuer (orchestrator or agent name)
           iat:
             type: int64
-            description: Issued at (Unix epoch seconds)
+            description: Issued at, an RFC 7519 NumericDate (protocol/conventions, Instant)
           exp:
             type: int64
-            description: Expires at (Unix epoch seconds, 0 = no expiry)
+            description: Expires at, an RFC 7519 NumericDate; 0 = no expiry
           cap:
             type: "list<string>"
             description: Granted capability names. Always present on an operator token, an empty list included; an operator token whose cap is absent or empty may use no capability
@@ -941,8 +941,8 @@ types:
             required: false
           step_up_at:
             type: int64
-            description: When the subject last completed a step-up (Unix epoch
-              seconds). A pass carries its person's token's, unchanged
+            description: When the subject last completed a step-up, a NumericDate
+              (RFC 7519) like iat. A pass carries its person's token's, unchanged
             required: false
           role:
             type: string
@@ -988,8 +988,8 @@ types:
         format: base64url
         description: Same agent manifest signed with new private key
       timestamp:
-        type: int64
-        description: Unix epoch seconds (replay window 300s)
+        type: timestamp
+        description: Replay window 300s
 
   Signature:
     description: A detached ML-DSA-65 signature over canonicalized content
@@ -1043,7 +1043,7 @@ types:
         format: base64url
         description: Announcement signed with the new key, proving possession of it
       timestamp:
-        type: string
+        type: timestamp
         format: rfc3339
         description: When the rotation was announced, for replay rejection
 ```
@@ -1212,7 +1212,7 @@ When an agent moves to a new host:
 
 1. Generate new key pair on a clean system
 2. Operator uses admin gateway to force-revoke the compromised key:
-   `POST /v1/admin/agents/:name/revoke-key`
+   `POST /v1/admin/agents/{name}/revoke-key`
 3. Agent re-registers with the new key
 4. All tokens issued to the old key are invalidated
 5. Admin reviews audit trail for unauthorized activity

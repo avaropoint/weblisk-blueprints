@@ -69,7 +69,7 @@ social:
 | Field | Type | Required | Description |
 |-------|------|:--------:|-------------|
 | `type` | `page` | ✅ | Always "page" |
-| `route` | string | ✅ | URL path (e.g., `/`, `/about`, `/blog/:slug`) |
+| `route` | string | ✅ | URL path (e.g., `/`, `/about`, `/blog/{slug}`) |
 | `title` | string | ✅ | Page title (used in nav, breadcrumbs) |
 | `layout` | string | — | Layout variant: `default`, `hero-split`, `sidebar`, `full-width` |
 
@@ -139,7 +139,7 @@ For pages generated from data (blog posts, product pages):
 ```yaml
 # blueprints/pages/blog-post.yaml
 type: page
-route: /blog/:slug
+route: /blog/{slug}
 title: "{post.title}"
 source: content/posts
 layout: article

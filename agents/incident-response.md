@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 2.0.0
+version: 3.0.0
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -34,7 +34,7 @@ to operators when human judgment is required.
 ## Dependencies
 
   - blueprint: patterns/alerting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: AlertEvent
@@ -46,7 +46,7 @@ to operators when human judgment is required.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -67,7 +67,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskResult
@@ -78,7 +78,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <3.0.0"
+    version: ">=1.14.4 <4.0.0"
     bindings:
       types:
         # Read only to recognise a person's operator token and refuse it on
@@ -92,7 +92,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -107,7 +107,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       events:
         - topic: alert.fired
@@ -134,7 +134,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: flat-file-engine
@@ -156,7 +156,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -169,7 +169,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/notification
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: notify
@@ -263,15 +263,15 @@ types:
         items: TimelineEntry
         description: Chronological event log
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Incident creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last state change timestamp
       resolved_at:
-        type: int64
+        type: timestamp
         optional: true
         description: Resolution timestamp
     constraints:
@@ -283,8 +283,7 @@ types:
     description: Single event in an incident timeline
     fields:
       time:
-        type: string
-        format: iso8601
+        type: timestamp
         description: Event timestamp
       event:
         type: string
@@ -517,10 +516,10 @@ Custom runbooks are managed at these routes:
 
 ```
 POST /v1/admin/runbooks
-PUT /v1/admin/runbooks/:name
-DELETE /v1/admin/runbooks/:name
+PUT /v1/admin/runbooks/{name}
+DELETE /v1/admin/runbooks/{name}
 GET /v1/admin/runbooks
-GET /v1/admin/runbooks/:name
+GET /v1/admin/runbooks/{name}
 ```
 
 No person reaches them yet. This agent refuses a person's operator token on
@@ -725,7 +724,7 @@ Step 2 — Load Identity
 Step 3 — Initialize Storage
   Action:      Open flat-file JSONL storage directory
   Validates:   Directory writable, existing files parseable
-  On Fail:     RETRY 3x with 2s backoff → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with STORAGE_UNREACHABLE
 
 Step 4 — Load Runbooks
   Action:      Parse built-in runbooks + custom runbooks from storage
@@ -735,7 +734,7 @@ Step 4 — Load Runbooks
 Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
 
 Step 6 — Subscribe to Events
   Action:      Subscribe to: alert.fired, alert.resolved,

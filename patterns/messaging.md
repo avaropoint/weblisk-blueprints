@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -39,7 +39,7 @@ complete.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -51,7 +51,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentState
@@ -61,7 +61,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: RetryConfig
@@ -182,7 +182,7 @@ body of `POST /v1/event`:
   "source": "workflow",
   "scope": "seo",
   "correlation_id": "wf-exec-001",
-  "timestamp": 1712160001,
+  "timestamp": "2024-04-03T16:00:01.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7",
   "version": "1.0.0",
@@ -204,7 +204,7 @@ body of `POST /v1/event`:
 | source | string | yes | Name of the publishing agent |
 | scope | string | yes | Target agent name, or `"*"` for global |
 | correlation_id | string | no | Links all events in one execution chain |
-| timestamp | int64 | yes | Unix epoch seconds |
+| timestamp | timestamp | yes | When the event was published |
 | trace_id | string | yes | The trace this event belongs to ([TraceContext](../protocol/types.md#tracecontext)) |
 | span_id | string | yes | The publisher's span for this publish; what a subscriber does with it is [`protocol/spec`](../protocol/spec.md#trace-propagation)'s |
 | version | string | yes | Schema version of the payload |
@@ -332,7 +332,7 @@ publish(topic, payload, scope, options)
    correlation_id: provided or inherited from current context
    trace_id:       inherited from current trace context
    span_id:        the span this agent opened for the publish
-   timestamp:      now (Unix epoch seconds)
+   timestamp:      now
    version:        agent's event schema version
    payload:        provided payload
    token:          this agent's auth token
@@ -562,9 +562,9 @@ framework retries using [patterns/retry](retry.md) configuration:
 ```yaml
 event_delivery_retry:
   max_attempts: 3
-  backoff: exponential
-  base_delay: 1000
-  max_delay: 30000
+  backoff: exponential   # protocol/conventions:backoff
+  base_delay: 1s
+  max_delay: 30s
 ```
 
 429 responses respect the `Retry-After` header specifically.
@@ -584,8 +584,8 @@ by the publishing agent's framework in a dead-letter log.
   "failure_reason": "UNREACHABLE",
   "last_error": "connection refused",
   "attempts": 3,
-  "first_attempt": 1712160001,
-  "last_attempt": 1712160035,
+  "first_attempt": "2024-04-03T16:00:01.000Z",
+  "last_attempt": "2024-04-03T16:00:35.000Z",
   "subscriber": "alerting"
 }
 ```
@@ -665,8 +665,8 @@ messaging:
   default_ttl: 86400            # 24 hours — event expiry for dead-letter
   dlq_retention: 604800         # 7 days — dead-letter entry retention
   delivery_retry_max: 3         # Max delivery attempts per subscriber
-  delivery_retry_base: 1000     # Base delay (ms) for exponential backoff
-  delivery_retry_max_delay: 30000  # Max delay (ms) cap
+  delivery_retry_base: 1s       # base of protocol/conventions:backoff
+  delivery_retry_max_delay: 30s # max of protocol/conventions:backoff
   idempotency_window: 86400     # Seconds to track processed event_ids
 ```
 

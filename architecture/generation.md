@@ -43,7 +43,7 @@ Checklist, and the conformance result.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
       endpoints:
         - name: orchestrator-endpoints
@@ -63,7 +63,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

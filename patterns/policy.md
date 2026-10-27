@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: policy
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
@@ -43,7 +43,7 @@ reporting belong to `patterns/governance`, which consumes this engine.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -55,7 +55,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -234,8 +234,8 @@ types:
     active: boolean                 # Whether currently active (default: true)
     version: string                 # Semantic version (default: "1.0.0")
     state: PolicyState              # Lifecycle state (draft | active | deprecated | archived)
-    created_at: integer             # Unix epoch seconds
-    updated_at: integer             # Unix epoch seconds
+    created_at: timestamp
+    updated_at: timestamp
     created_by: string              # Identity of the creator
     metadata: map                   # Optional key-value pairs for domain-specific extensions
 ```
@@ -298,7 +298,7 @@ types:
     operation: OperationContext     # What operation is being performed
     resource: ResourceContext       # What resource is being accessed
     agent: AgentContext             # Which agent is involved
-    timestamp: integer              # Unix epoch seconds — when the evaluation occurs
+    timestamp: timestamp            # when the evaluation occurs
     hub_id: string                  # Hub context for hub/namespace-scoped policies
     namespace: string               # Namespace context for namespace/agent-scoped policies
 ```
@@ -343,7 +343,7 @@ types:
     policy_scope: PolicyScope       # Precedence level of the policy
     matched_rules: "list<MatchedRule>"    # Which rules matched and their individual results
     enforcement: EnforcementMode    # The policy's enforcement mode
-    evaluated_at: integer           # Unix epoch seconds
+    evaluated_at: timestamp
     duration_ms: integer            # Evaluation time in milliseconds
     context_summary: string         # Abbreviated context for logging
 

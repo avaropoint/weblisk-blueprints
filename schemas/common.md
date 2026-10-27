@@ -527,19 +527,20 @@ types:
 | `string` | UTF-8 text | `"hello"` |
 | `text` | Long-form text (no max by default) | Multi-paragraph content |
 | `int` | 32-bit signed integer | `42` |
-| `int64` | 64-bit signed integer (timestamps, IDs) | `1712160001` |
+| `int64` | 64-bit signed integer (counts, sizes) | `1712160001` |
+| `timestamp` | An instant, as [`protocol/conventions`](../protocol/conventions.md#instant) writes it | `"2026-01-02T03:04:05.123Z"` |
 | `float` | 64-bit floating point | `3.14` |
 | `bool` | Boolean | `true` / `false` |
 | `object` | Nested JSON object | `{"key": "value"}` |
 | `list` | Ordered array | `[1, 2, 3]` |
-| `uuid` | UUID string | `"550e8400-e29b-41d4-a716-446655440000"` |
+| `uuid` | UUID string ([`protocol/conventions`](../protocol/conventions.md#uuid)) | `"017f22e2-79b0-7cc3-98c4-dc0c0c07398f"` |
 
 ### Format Hints
 
 | Format | Applies To | Description |
 |--------|-----------|-------------|
 | `uuid-v7` | string | UUID version 7 (time-ordered) |
-| `iso8601` | string | ISO 8601 datetime string |
+| `iso8601` | string | An instant written as a string; a field that holds one is declared `timestamp` instead |
 | `email` | string | Email address |
 | `url` | string | HTTP(S) URL |
 | `hex` | string | Hex-encoded bytes |
@@ -649,7 +650,7 @@ types:
 
 Configuration parameter names SHOULD follow a consistent naming scheme
 within each implementation. The specification defines semantic parameter
-names (e.g., `tick_interval`, `max_retries`). Platform implementations
+names (e.g., `tick_interval`, `max_attempts`). Platform implementations
 MAY map these to environment variables, config files, or other mechanisms
 using their own conventions.
 

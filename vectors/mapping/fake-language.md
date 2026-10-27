@@ -22,7 +22,7 @@ rules:
     produce: {via: model, spelling: int64}
   - id: type-timestamp
     concept: type/timestamp
-    produce: {via: model, spelling: int64, encode: epoch seconds}
+    produce: {via: model, spelling: string, encode: RFC 3339 UTC with milliseconds}
     verify: [vectors/types.json#timestamp]
 ```
 

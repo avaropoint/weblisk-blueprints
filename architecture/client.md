@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 1.0.5
+version: 2.0.0
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -46,7 +46,7 @@ This architecture ensures that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -57,7 +57,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SigningKeyPair
@@ -70,7 +70,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/gateway
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: GatewayConfig
@@ -81,7 +81,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: AgentContext
@@ -92,7 +92,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -337,15 +337,15 @@ base64url(header) . base64url(payload) . base64url(signature)
 |-------|------|----------|-------------|
 | sub | string | yes | User ID |
 | iss | string | yes | Always `"gateway"` |
-| iat | int64 | yes | Issued-at timestamp |
-| exp | int64 | yes | Expiry timestamp |
+| iat | int64 | yes | Issued at, an RFC 7519 NumericDate |
+| exp | int64 | yes | Expiry, an RFC 7519 NumericDate |
 | sid | string | yes | Session ID (links to server-side state) |
 | roles | []string | yes | User's current roles |
 | bind | string | yes | Client binding hash |
 | csrf | string | yes | CSRF secret hash |
 | sec | string | yes | Security level: `standard`, `elevated`, `critical` |
 | mfa | bool | yes | Whether MFA has been completed this session |
-| ren | int64 | yes | Next renewal timestamp (sliding window) |
+| ren | int64 | yes | Next renewal (sliding window), a NumericDate like iat and exp |
 
 #### Token Lifecycle
 
@@ -424,8 +424,8 @@ platform-specific secure storage.
 |-------|------|----------|-------------|
 | sub | string | yes | User ID |
 | iss | string | yes | Always `"gateway"` |
-| iat | int64 | yes | Issued-at timestamp |
-| exp | int64 | yes | Expiry timestamp (longer than WLS — default 7 days) |
+| iat | int64 | yes | Issued at, an RFC 7519 NumericDate |
+| exp | int64 | yes | Expiry, an RFC 7519 NumericDate (longer than WLS — default 7 days) |
 | cid | string | yes | Client registration ID (links to server-side client record) |
 | roles | []string | yes | User's current roles |
 | bind | string | yes | Device binding hash |
@@ -657,16 +657,16 @@ types:
         type: string
         description: "Which MFA method was used"
       created_at:
-        type: int64
+        type: timestamp
         description: "Session creation time"
       last_active:
-        type: int64
+        type: timestamp
         description: "Last request timestamp"
       expires_at:
-        type: int64
+        type: timestamp
         description: "Absolute session expiry"
       idle_expires_at:
-        type: int64
+        type: timestamp
         description: "Idle timeout expiry"
       ip_address:
         type: string
@@ -701,7 +701,7 @@ Salt: unique per session (stored alongside ciphertext)
 |-----------|-----------|-------------|
 | CreateSession | `(session Session) → error` | Store new session |
 | GetSession | `(id string) → (Session, error)` | Load session by ID |
-| UpdateActivity | `(id string, ts int64) → error` | Update last_active |
+| UpdateActivity | `(id string, ts timestamp) → error` | Update last_active |
 | RevokeSession | `(id string) → error` | Mark as revoked |
 | CleanExpired | `() → (int, error)` | Purge expired sessions |
 | ListUserSessions | `(userID string) → ([]Session, error)` | All sessions for user |
@@ -1036,11 +1036,11 @@ types:
         required: true
         description: "Assigned trust classification"
       registered_at:
-        type: int64
+        type: timestamp
         required: true
         description: "Registration timestamp"
       last_seen:
-        type: int64
+        type: timestamp
         required: true
         description: "Last successful authentication"
       revoked:

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 1.0.4
+version: 2.0.0
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
@@ -65,10 +65,10 @@ bidirectional and symmetric.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=2.0.0 <4.0.0"
+    version: ">=2.0.0 <5.0.0"
     bindings:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -79,7 +79,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/client
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ClientType
@@ -96,7 +96,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -121,7 +121,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -132,7 +132,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/privacy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ConsentRecord
@@ -405,9 +405,9 @@ types:
         required: false
         description: "Transfer hint (`low`, `normal`, `high`)"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
-        description: "Envelope creation time (Unix ms)"
+        description: "Envelope creation time"
       revocations:
         type: "[]RevocationDirective"
         required: false
@@ -493,9 +493,9 @@ types:
         required: true
         description: "Version vector or sequence number"
       timestamp:
-        type: int64
+        type: timestamp
         required: true
-        description: "When the change was made (Unix ms)"
+        description: "When the change was made"
       source:
         type: string
         required: true
@@ -567,9 +567,9 @@ types:
         required: true
         description: "`auto` or operator ID for manual resolution"
       resolved_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "Resolution timestamp (Unix ms)"
+        description: "Resolution timestamp"
 ```
 
 ### SyncCursor
@@ -629,14 +629,14 @@ types:
         required: true
         description: "The queued change record"
       queued_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "When the entry was queued (Unix ms)"
+        description: "When the entry was queued"
       priority:
         type: string
         required: false
         description: "`low`, `normal`, `high` — affects flush order"
-      retry_count:
+      attempts:
         type: int
         required: false
         description: "Number of failed push attempts for this entry"
@@ -684,17 +684,17 @@ types:
         required: true
         description: "Encryption applied: `none`, `aes-256-gcm`, `hardware-backed`"
       stored_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "When the record was stored on the device (Unix ms)"
+        description: "When the record was stored on the device"
       ttl:
         type: int
         required: true
         description: "Maximum retention in seconds (from stored_at)"
       expires_at:
-        type: int64
+        type: timestamp
         required: true
-        description: "Absolute expiry timestamp (stored_at + ttl, Unix ms)"
+        description: "Absolute expiry timestamp (stored_at + ttl)"
       sync_version:
         type: string
         required: true
@@ -748,11 +748,11 @@ types:
         required: false
         description: "New encryption requirement (for `re-encrypt` type)"
       deadline:
-        type: int64
+        type: timestamp
         required: true
-        description: "Unix timestamp by which client MUST complete the directive"
+        description: "The instant by which client MUST complete the directive"
       issued_at:
-        type: int64
+        type: timestamp
         required: true
         description: "When the directive was issued"
 ```
@@ -1041,9 +1041,9 @@ config:
   retry_backoff:
     type: string
     default: exponential
-    values: [fixed, exponential]
+    values: [exponential]
     overridable: true
-    description: Retry backoff strategy
+    description: The one backoff, protocol/conventions:backoff
 ```
 
 ---
@@ -1187,7 +1187,7 @@ Errors follow the protocol/spec `ErrorResponse` structure:
 - [ ] Offline queue persists across app restarts
 - [ ] Queue entries are flushed in the declared order (oldest-first by default)
 - [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity
-- [ ] Failed flush attempts increment `retry_count` on the queue entry
+- [ ] Failed flush attempts increment `attempts` on the queue entry
 
 ### State Machine
 

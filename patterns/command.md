@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: command
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, architecture/agent, patterns/logging, patterns/secrets]
 platform: any
 tier: free
@@ -48,7 +48,7 @@ commands it's allowed to run.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -60,7 +60,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -76,7 +76,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/secrets
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: SecretRef
@@ -547,13 +547,13 @@ types:
         required: true
         description: "Whether command was killed by timeout"
       started_at:
-        type: string
+        type: timestamp
         required: true
-        description: "ISO 8601 start timestamp"
+        description: "Start"
       completed_at:
-        type: string
+        type: timestamp
         required: true
-        description: "ISO 8601 completion timestamp"
+        description: "Completion"
       remote:
         type: bool
         required: true

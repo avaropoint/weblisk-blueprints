@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -38,7 +38,7 @@ trait-based abstractions, and type safety.
 ## Dependencies
 
   - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: Identity
@@ -50,13 +50,13 @@ trait-based abstractions, and type safety.
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: Liveness
@@ -637,13 +637,13 @@ async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<
 |-------------|-----------|-------|
 | `string` | `String` | Owned string; `&str` for borrows |
 | `int` | `i32` | |
-| `int64` | `i64` | Used for timestamps |
+| `int64` | `i64` | |
 | `float` | `f64` | |
 | `bool` | `bool` | |
 | `object` | `HashMap<String, serde_json::Value>` | Or typed struct with `#[derive(Deserialize)]` |
 | `list` | `Vec<T>` | Typed vector |
 | `uuid` | `String` | Validated format; or `uuid::Uuid` crate |
-| `timestamp` | `i64` | Unix epoch seconds via `chrono::Utc::now().timestamp()` |
+| `timestamp` | `String` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)` |
 | `optional` | `Option<T>` | `#[serde(skip_serializing_if = "Option::is_none")]` |
 | `json` | `serde_json::Value` | Arbitrary JSON payload |
 
@@ -690,7 +690,7 @@ pub struct LeaseRenewal {
     pub ready: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub checks: Option<std::collections::HashMap<String, String>>,
-    pub timestamp: i64,
+    pub timestamp: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

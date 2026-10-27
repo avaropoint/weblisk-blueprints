@@ -46,7 +46,7 @@
    },
    "status": "inferred",
    "actor": "015859355627236ab6e98507de7786b0451238af7e7085b6a3f2f753a1109511",
-   "recorded_at": 1767225600,
+   "recorded_at": "2026-01-01T00:00:00.000Z",
    "partition": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
    "run": {
     "id": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
@@ -97,7 +97,7 @@
    },
    "status": "inferred",
    "actor": "015859355627236ab6e98507de7786b0451238af7e7085b6a3f2f753a1109511",
-   "recorded_at": 1767225600,
+   "recorded_at": "2026-01-01T00:00:00.000Z",
    "partition": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
    "run": {
     "id": "run://example/0193f0a8-7c2e-7d41-9b1a-2f4c6e8a0b13",
@@ -105,7 +105,7 @@
     "signed": false
    },
    "on_behalf_of": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
-   "previous_digest": "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367"
+   "previous_digest": "sha256:acb5d126ec63dbf36a7cfe37f5672b72402b1a97d074221a3f91373b70ab8b9c"
   },
   {
    "seq": 3,
@@ -151,9 +151,9 @@
    },
    "status": "inferred",
    "actor": "3cc1c0dac442d9a58d6e6ba7fce2dbde9cfcb2af157e22792f2223e2c15d3249",
-   "recorded_at": 1767229200,
+   "recorded_at": "2026-01-01T01:00:00.000Z",
    "partition": "provider/example-idp",
-   "previous_digest": "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7"
+   "previous_digest": "sha256:408f0f2629cd48a97b7d7075cc8df2a9cc8830eb8fa951289650fcd85dc2856c"
   },
   {
    "seq": 4,
@@ -199,14 +199,14 @@
    },
    "status": "confirmed",
    "actor": "d3f2e3d63f21b02ff510447d262db365e250c29b7393a2527117973ab2130a9f",
-   "recorded_at": 1767232800,
-   "previous_digest": "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991"
+   "recorded_at": "2026-01-01T02:00:00.000Z",
+   "previous_digest": "sha256:7aebc823671a7bd23780c760bdf2c20beda9be6fe5a40d1c7ceda4c5318d36b9"
   }
  ],
  "line_sha256": [
-  "sha256:789dd01e5c3361ad5a5d5e4e1b2e33316ba4920ae2c57c53405cda440b864367",
-  "sha256:d8db39f44440a8859e67bc759771a360f7c8a600b7d800608952eb006d9d85d7",
-  "sha256:c60e233b1f2e4e9c48518d0681ca325c8776d34fc05e880a9f6116a428b77991",
-  "sha256:6565197c7230740296660078b6b26c20f66391828429b2f8df4f912139eb26c1"
+  "sha256:acb5d126ec63dbf36a7cfe37f5672b72402b1a97d074221a3f91373b70ab8b9c",
+  "sha256:408f0f2629cd48a97b7d7075cc8df2a9cc8830eb8fa951289650fcd85dc2856c",
+  "sha256:7aebc823671a7bd23780c760bdf2c20beda9be6fe5a40d1c7ceda4c5318d36b9",
+  "sha256:d5f917d4c9c05c3722e63c9375c8b660a18feffa5e4b521020e5526f9977b904"
  ]
 }

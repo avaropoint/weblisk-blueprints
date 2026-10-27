@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 1.2.0
+version: 2.0.0
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -40,7 +40,7 @@ framework. It does not define policies (see
 ```yaml
 requires:
   - blueprint: protocol/identity
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: WLToken
@@ -50,7 +50,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeDeclaration
@@ -62,7 +62,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/policy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PolicyDefinition
@@ -72,7 +72,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/safety
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: OperationClass
@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/approval
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       behaviors:
         - name: approval-routing
@@ -91,7 +91,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: protocol/types
-    version: ">=5.0.0 <6.0.0"
+    version: ">=5.0.0 <7.0.0"
     bindings:
       types:
         - name: ApprovalRequest
@@ -107,7 +107,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       behaviors:
         - name: event-subscribing
@@ -400,7 +400,7 @@ payload:
   evidence:
     input_hash: <sha256 of input>    # what was evaluated
     policy_version: <policy-version> # which policy version
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -410,7 +410,8 @@ The `evidence` block provides tamper-evident context:
   evaluated, proving what data the decision was based on
 - **policy_version** — which version of the policy was active,
   proving which rules applied
-- **timestamp** and **trace_id** — when and in what context
+- **timestamp** and **trace_id** — when (an instant, as
+  `protocol/conventions:instant` writes one) and in what context
 
 These events flow to the audit log (see
 [architecture/storage](../architecture/storage.md)) and the
@@ -431,7 +432,7 @@ payload:
   evidence:
     input_hash: <sha256 of input>
     boundary_version: <boundary-version>
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -448,7 +449,7 @@ payload:
   approver: <approver-identity>
   evidence:
     request_hash: <sha256 of request>
-    timestamp: <unix-epoch>
+    timestamp: <instant>
     trace_id: <correlation-id>
 ```
 
@@ -470,7 +471,7 @@ Directives are delivered as `POST /v1/message` with action
   "action": "governance.directive",
   "directive": "<directive-type>",
   "data": { ... },
-  "timestamp": 1713264000,
+  "timestamp": "2024-04-16T10:40:00.000Z",
   "signature": "<orchestrator-ml-dsa-65-signature>"
 }
 ```
@@ -494,7 +495,7 @@ Agents respond via the `POST /v1/message` response payload:
 {
   "status": "accepted",
   "directive": "<directive-type>",
-  "effective_at": 1713264000
+  "effective_at": "2024-04-16T10:40:00.000Z"
 }
 ```
 
@@ -521,7 +522,7 @@ payload:
   directive: <directive-type>
   target_agent: <agent-name>
   data_hash: <sha256 of directive data>
-  timestamp: <unix-epoch>
+  timestamp: <instant>
   result: accepted | rejected
   trace_id: <correlation-id>
 ```
@@ -585,12 +586,12 @@ GET /admin/governance/report
       "action": "file:write",
       "resource": "config/settings.json",
       "count": 3,
-      "first_seen": 1713264000,
-      "last_seen": 1713350400
+      "first_seen": "2024-04-16T10:40:00.000Z",
+      "last_seen": "2024-04-17T10:40:00.000Z"
     }
   ],
   "evidence_count": 154200,
-  "report_generated_at": 1713436800
+  "report_generated_at": "2024-04-18T10:40:00.000Z"
 }
 ```
 
@@ -608,8 +609,8 @@ GET /admin/governance/evidence
   Query:
     profile=<profile-name>
     control=<control-id>
-    since=<unix-epoch>
-    until=<unix-epoch>
+    since=<instant>
+    until=<instant>
     format=json|csv
   Response: stream of governance events
 ```

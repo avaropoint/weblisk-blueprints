@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scheduling
-version: 1.0.2
+version: 2.0.0
 requires: [protocol/types, patterns/messaging, patterns/state-machine, patterns/storage]
 platform: any
 tier: free
@@ -44,7 +44,7 @@ policies, and target actions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: EventEnvelope
@@ -56,7 +56,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/messaging
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: publish
@@ -78,7 +78,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: TypeDefinition
@@ -125,9 +125,9 @@ contracts:
       description: Evaluate all active schedules against the current tick and dispatch due work
       parameters:
         - name: tick_time
-          type: int64
+          type: timestamp
           required: true
-          description: Current evaluation timestamp (epoch seconds)
+          description: The instant of this evaluation
         - name: max_concurrent
           type: int
           required: false
@@ -274,9 +274,9 @@ types:
         type: string
         description: Cron expression, alias (@daily, etc.), or "once"
       fire_at:
-        type: int64
+        type: timestamp
         required_when: expression = "once"
-        description: One-time fire timestamp (epoch seconds)
+        description: One-time fire timestamp
       timezone:
         type: string
         default: "UTC"
@@ -307,12 +307,12 @@ types:
         enum: [fire-once, fire-all, skip]
         default: fire-once
         description: What to do when ticks are missed
-      max_retries:
+      max_attempts:
         type: int
         default: 3
-        min: 0
+        min: 1
         max: 100
-        description: Retry attempts per execution
+        description: Total attempts, the first included (protocol/conventions:max-attempts)
       timeout:
         type: int
         default: 30
@@ -326,19 +326,19 @@ types:
         default: active
         description: Current schedule lifecycle state
       expires_at:
-        type: int64
+        type: timestamp
         optional: true
-        description: Schedule end date (epoch seconds). Null means no expiry.
+        description: Schedule end. Null means no expiry.
       next_fire:
-        type: int64
+        type: timestamp
         optional: true
         description: Next scheduled execution timestamp
       created_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Schedule creation timestamp
       updated_at:
-        type: int64
+        type: timestamp
         auto: true
         description: Last modification timestamp
       created_by:
@@ -430,10 +430,10 @@ types:
         references: ScheduleDefinition.schedule_id
         description: Parent schedule
       fired_at:
-        type: int64
+        type: timestamp
         description: When execution was dispatched
       completed_at:
-        type: int64
+        type: timestamp
         optional: true
         description: When execution finished (null if pending)
       status:
@@ -474,10 +474,10 @@ types:
         type: string
         description: Instance ID holding the lock
       acquired_at:
-        type: int64
+        type: timestamp
         description: Lock acquisition timestamp
       expires_at:
-        type: int64
+        type: timestamp
         description: Lock expiration timestamp (TTL-based)
     constraints:
       - name: ck_lock_ttl
@@ -579,9 +579,9 @@ Phase 6 — Collect Results
   Wait for responses (per schedule timeout)
   For each response:
     UPDATE ScheduleExecution with status, duration_ms, completed_at
-    If failed and attempt < max_retries:
+    If failed and attempt < max_attempts:
       Schedule retry with backoff
-    If failed and attempt >= max_retries:
+    If failed and attempt >= max_attempts:
       Emit schedule.failed {schedule_id, execution_id, total_attempts}
 
 Phase 7 — Advance Schedules
@@ -653,8 +653,8 @@ config:
 | `INVALID_EXPRESSION` | Cron expression fails parsing | No | Reject registration |
 | `INVALID_TIMEZONE` | Timezone not in IANA database | No | Reject registration |
 | `INVALID_TARGET` | Neither target_agent nor target_url provided | No | Reject registration |
-| `TARGET_UNREACHABLE` | Target agent or URL not responding | Yes | Retry per max_retries with backoff |
-| `EXECUTION_TIMEOUT` | Execution exceeded timeout | Yes | Retry per max_retries |
+| `TARGET_UNREACHABLE` | Target agent or URL not responding | Yes | Retry per max_attempts with backoff |
+| `EXECUTION_TIMEOUT` | Execution exceeded timeout | Yes | Retry per max_attempts |
 | `LOCK_CONTENTION` | Another instance holds the tick lock | No | Skip tick — standby mode |
 | `OVERLAP_SKIPPED` | Tick skipped due to skip-if-running policy | No | Log and emit schedule.skipped |
 | `QUEUE_FULL` | Queue depth exceeded for queue overlap policy | No | Skip tick, emit schedule.skipped |
@@ -674,7 +674,7 @@ Failed executions are retried with exponential backoff per
 | 4 | 8 seconds |
 | 5 | 16 seconds |
 
-After `max_retries` exhausted, the execution is marked `failed`
+After `max_attempts` exhausted, the execution is marked `failed`
 and `schedule.failed` is emitted. The schedule itself remains
 `active` — only the individual execution fails. The next tick
 dispatches a fresh execution with attempt = 1.
@@ -729,5 +729,5 @@ dispatches a fresh execution with attempt = 1.
 - [ ] `schedule.fired` event emitted on every successful dispatch
 - [ ] `schedule.skipped` event emitted with reason and policy on every skip
 - [ ] `schedule.expired` event emitted when schedule reaches `expires_at`
-- [ ] Failed executions retry with backoff up to `max_retries` before emitting `schedule.failed`
+- [ ] Failed executions retry with backoff up to `max_attempts` before emitting `schedule.failed`
 - [ ] Schedule lifecycle transitions match the declared state machine (no illegal transitions)

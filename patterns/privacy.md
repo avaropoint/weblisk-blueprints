@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: privacy
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/contract]
 platform: any
 tier: free
@@ -58,7 +58,7 @@ system scales privacy proportionally — not uniformly.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <6.0.0"
+    version: ">=1.0.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -70,7 +70,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/scope
-    version: ">=2.0.0 <3.0.0"
+    version: ">=2.0.0 <4.0.0"
     bindings:
       types:
         - name: ScopeLevel
@@ -82,7 +82,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/policy
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: PolicyDefinition
@@ -94,7 +94,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/contract
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ContractDefinition
@@ -414,22 +414,22 @@ types:
         required: false
         description: Specific agent or component this consent is granted to. If empty, consent applies to any consumer with a valid contract for the purpose.
       - name: granted_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when consent was granted
+        description: When consent was granted
       - name: expires_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when consent expires. If null, consent is indefinite but still revocable. Indefinite consent requires scope <= confidential.
+        description: When consent expires. If null, consent is indefinite but still revocable. Indefinite consent requires scope <= confidential.
       - name: revocable
         type: boolean
         required: true
         default: true
         description: Whether this consent can be revoked. Must be true for scope >= confidential. Irrevocable consent is only valid for public/internal scope with explicit justification.
       - name: revoked_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when consent was revoked. Null if still active.
+        description: When consent was revoked. Null if still active.
       - name: revoked_by
         type: string
         required: false
@@ -673,13 +673,13 @@ types:
         required: false
         description: Reference to the legal hold order — required when legal_hold is true
       - name: requested_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the erasure request was initiated
+        description: When the erasure request was initiated
       - name: deadline_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds by which erasure must complete — regulatory deadline
+        description: The instant by which erasure must complete — regulatory deadline
       - name: scope_filter
         type: ScopeLevel
         required: false
@@ -726,13 +726,13 @@ types:
         required: false
         description: Agents that could not delete — legal hold, technical failure, retention requirement
       - name: started_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the cascade began
+        description: When the cascade began
       - name: completed_at
-        type: int64
+        type: timestamp
         required: false
-        description: Unix epoch seconds when the last agent confirmed or the request timed out
+        description: When the last agent confirmed or the request timed out
 ```
 
 ### ErasureException
@@ -759,9 +759,9 @@ types:
         required: true
         description: Whether the erasure can be retried for this agent
       - name: reported_at
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the exception was reported
+        description: When the exception was reported
 ```
 
 ---
@@ -823,9 +823,9 @@ types:
         required: false
         description: SHA-256 hash of the transferred payload — for integrity verification
       - name: timestamp
-        type: int64
+        type: timestamp
         required: true
-        description: Unix epoch seconds when the exchange occurred
+        description: When the exchange occurred
       - name: metadata
         type: map
         required: false
@@ -1048,8 +1048,8 @@ legal_hold:
   hold_reference: string    # External reference to the legal hold order
   subject_id: string        # Data subject affected by the hold
   scope_filter: ScopeLevel  # Scope level of held data (or null for all)
-  created_at: int64         # When the hold was created
-  expires_at: int64         # When the hold expires (null = indefinite, requires review)
+  created_at: timestamp     # When the hold was created
+  expires_at: timestamp     # When the hold expires (null = indefinite, requires review)
   created_by: string        # Operator who created the hold
   review_interval_days: 90  # How often indefinite holds must be reviewed
 ```
@@ -1354,8 +1354,8 @@ consent:
   scope: confidential
   fields: ["name", "email", "preferences"]
   consumer: "recommendation-agent"
-  granted_at: 1745740800
-  expires_at: 1777276800
+  granted_at: "2025-04-27T08:00:00.000Z"
+  expires_at: "2026-04-27T08:00:00.000Z"
   revocable: true
 ```
 
@@ -1384,8 +1384,8 @@ erasure:
   requested_by: "user-42"
   cascading: true
   legal_hold: false
-  requested_at: 1745740800
-  deadline_at: 1748332800
+  requested_at: "2025-04-27T08:00:00.000Z"
+  deadline_at: "2025-05-27T08:00:00.000Z"
 ```
 
 ### Minimization Rule
@@ -1416,7 +1416,7 @@ lineage:
   purpose: "personalization"
   fields_transferred: ["name", "email", "preferences"]
   payload_hash: "sha256:a3f2b8c1d4e5f6..."
-  timestamp: 1745740800
+  timestamp: "2025-04-27T08:00:00.000Z"
 ```
 
 ---

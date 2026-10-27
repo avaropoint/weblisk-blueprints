@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 2.0.0
+version: 2.1.0
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -40,7 +40,7 @@ CLI interrogation, and federation advertisement.
 ```yaml
 requires:
   - blueprint: protocol/spec
-    version: ">=3.0.0 <4.0.0"
+    version: ">=3.0.0 <5.0.0"
     bindings:
       endpoints:
         - path: /v1/register
@@ -65,7 +65,7 @@ requires:
 
   - blueprint: protocol/types
     # 3.0.0 is where LeaseRenewal, the request this agent's lease renewal sends, exists
-    version: ">=3.0.0 <6.0.0"
+    version: ">=3.0.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
@@ -82,7 +82,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/agent
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
         - behavior: startup-sequence
@@ -97,7 +97,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: agents/alerting
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       actions:
         - name: alert
@@ -120,7 +120,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/storage
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
           parameters: [engine, tables, indexes]
     on_change:
@@ -255,7 +255,7 @@ types:
         optional: true
         description: Latest probe latency
       last_check:
-        type: int64
+        type: timestamp
         description: Timestamp of last probe
       consecutive_failures:
         type: int
@@ -274,7 +274,7 @@ types:
         format: uuid-v7
         description: Unique snapshot identifier
       timestamp:
-        type: int64
+        type: timestamp
         description: When snapshot was taken
       hub_score:
         type: int
@@ -311,7 +311,7 @@ types:
         type: string
         description: Human-readable state change description
       timestamp:
-        type: int64
+        type: timestamp
 ```
 
 ---
@@ -445,7 +445,7 @@ Step 3 — Initialize Storage
   Action:      Connect to storage engine
   Pre-check:   Storage engine available
   Validates:   SELECT 1 succeeds within 5 seconds
-  On Fail:     RETRY 3x → EXIT with STORAGE_UNREACHABLE
+  On Fail:     RETRY, up to 3 attempts → EXIT with STORAGE_UNREACHABLE
   Backout:     Close partial connection
 
 Step 4 — Validate Schema
@@ -459,7 +459,7 @@ Step 5 — Register with Orchestrator
   Action:      POST /v1/register with AgentManifest
   Pre-check:   Steps 1-4 validated
   Validates:   HTTP 200, agent_id returned
-  On Fail:     RETRY 3x exponential → EXIT with REGISTRATION_FAILED
+  On Fail:     RETRY, up to 3 attempts, backoff per `protocol/conventions:backoff` → EXIT with REGISTRATION_FAILED
   Backout:     None (idempotent)
 
 Step 6 — Subscribe to Events
@@ -665,14 +665,14 @@ The health-monitor maintains a real-time map of all components:
 ```json
 {
   "hub_id": "my-hub",
-  "timestamp": 1712160000,
+  "timestamp": "2024-04-03T16:00:00.000Z",
   "hub_score": 94,
   "hub_state": "online",
   "components": {
     "orchestrator": {
       "state": "online",
       "latency_ms": 2,
-      "last_check": 1712160000,
+      "last_check": "2024-04-03T16:00:00.000Z",
       "consecutive_failures": 0,
       "uptime_24h": 100.0
     },
@@ -680,7 +680,7 @@ The health-monitor maintains a real-time map of all components:
       "alerting": {
         "state": "online",
         "latency_ms": 5,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9752,
         "uptime_24h": 99.98
@@ -688,7 +688,7 @@ The health-monitor maintains a real-time map of all components:
       "sync": {
         "state": "degraded",
         "latency_ms": 850,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9751,
         "uptime_24h": 97.2
@@ -698,7 +698,7 @@ The health-monitor maintains a real-time map of all components:
       "seo": {
         "state": "online",
         "latency_ms": 12,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "consecutive_failures": 0,
         "port": 9700,
         "uptime_24h": 100.0
@@ -708,20 +708,20 @@ The health-monitor maintains a real-time map of all components:
       "state": "online",
       "read_latency_ms": 1,
       "write_latency_ms": 3,
-      "last_check": 1712160000
+      "last_check": "2024-04-03T16:00:00.000Z"
     },
     "federation_peers": {
       "partner-hub": {
         "state": "online",
         "latency_ms": 45,
-        "last_check": 1712160000,
+        "last_check": "2024-04-03T16:00:00.000Z",
         "peer_url": "https://partner.example.com/v1/federation"
       }
     },
     "gateway": {
       "state": "online",
       "latency_ms": 3,
-      "last_check": 1712160000
+      "last_check": "2024-04-03T16:00:00.000Z"
     }
   }
 }
@@ -786,7 +786,7 @@ alerting agent:
     "current_state": "degraded",
     "latency_ms": 850,
     "consecutive_failures": 0,
-    "timestamp": 1712160000,
+    "timestamp": "2024-04-03T16:00:00.000Z",
     "severity": "warning",
     "message": "Agent 'sync' degraded — latency 850ms exceeds threshold 500ms"
   }
@@ -812,7 +812,7 @@ informed decisions about collaboration:
     "components_online": 8,
     "components_degraded": 1,
     "components_offline": 0,
-    "last_check": 1712160000
+    "last_check": "2024-04-03T16:00:00.000Z"
   }
 }
 ```
@@ -956,7 +956,7 @@ Return historical health snapshots.
 
 **Purpose:** Query past health states for analysis.
 
-**Input:** `{since: int64, until?: int64, limit?: int}`
+**Input:** `{since: timestamp, until?: timestamp, limit?: int}`
 
 **Output:** `{snapshots: HealthSnapshot[]}`
 
@@ -1288,7 +1288,7 @@ tests:
 
   - name: Health history query
     action: get-health-history
-    input: {since: 1712073600, limit: 10}
+    input: {since: "2024-04-02T16:00:00.000Z", limit: 10}
     expected: {snapshots: [...]}
     validates:
       - Snapshots ordered by timestamp DESC
