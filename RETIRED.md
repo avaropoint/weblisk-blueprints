@@ -116,6 +116,7 @@ rewrites that place.
 | `weblisk/namespace-grant/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-grant/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#grant), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
 | `weblisk/namespace-transfer/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/namespace-transfer/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#transfer), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
 | `weblisk/catalog-release/v1`, whose layout wrote a time as decimal Unix seconds | `weblisk/catalog-release/v2`, which writes it as [`protocol/conventions`](protocol/conventions.md#instant) says | [`patterns/namespace`](patterns/namespace.md#catalog-release), and [`protocol/conventions`](protocol/conventions.md#instant) 1.0.0 |
+| `_ms`, `_seconds`, `_secs`, `_minutes`, `_hours`, `_days`, `unit: seconds`, `unit: milliseconds`, `unit: minutes`, `unit: hours`, `unit: days`, as the form of a length of time: a key or field holding a bare number of the unit its name or `unit:` gives | a `duration`, a string such as `30s`, as [`protocol/conventions`](protocol/conventions.md#duration) says | [`protocol/conventions`](protocol/conventions.md#duration) 1.0.0, Duration |
 
 ## Entries
 
@@ -499,4 +500,48 @@ itself is always allowed.
   - {spelling: weblisk/namespace-transfer/v1, match: exact}
 - retired:
   - {spelling: weblisk/catalog-release/v1, match: exact}
+- retired:
+  - {spelling: '_ms', match: sense}
+  - {spelling: '_seconds', match: sense}
+  - {spelling: '_secs', match: sense}
+  - {spelling: '_minutes', match: sense}
+  - {spelling: '_hours', match: sense}
+  - {spelling: '_days', match: sense}
+  - {spelling: 'unit: seconds', match: sense}
+  - {spelling: 'unit: milliseconds', match: sense}
+  - {spelling: 'unit: minutes', match: sense}
+  - {spelling: 'unit: hours', match: sense}
+  - {spelling: 'unit: days', match: sense}
+  allow:
+  - {path: agents/cron.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/health-monitor.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/hub.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/incident-response.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/lifecycle.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/task.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/webhook.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/workflow.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/change-management.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/data-security.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/gateway.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/hub.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: architecture/tenancy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/api-ai.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/auth-oauth.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/billing.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/command.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/incident-response.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/notification.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/policy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/privacy.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/safety.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/scheduling.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/storage.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/task-dispatch.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: patterns/webhook.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/federation.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/secret-source.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: protocol/types.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: schemas/agent.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: checks/conventions.py, why: 'the check that reports a bare-number duration outside this list, and its seeded control'}
 ```

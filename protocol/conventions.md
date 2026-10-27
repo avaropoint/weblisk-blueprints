@@ -75,9 +75,9 @@ A length of time — a field of type `duration`, or a configuration key that
 holds one — is a string of one or more `<digits><unit>` parts with units `h`,
 `m`, `s` and `ms`, each at most once and in that order: `30s`, `5m`, `1h30m`,
 `250ms`, `0s`. No sign, no fraction, no other unit. A bare number is not a
-duration. A key written before this rule that holds a bare number of a unit
-its name or comment gives (`task_timeout_seconds`) is the older form: it means
-that number of that unit until its file is rewritten to a duration.
+duration. A key that holds one is a retired form, and the files that still
+carry it are listed, each with what its keys mean until it is rewritten, in
+[`RETIRED.md`](../RETIRED.md); no other file may hold one.
 
 ### Integer
 

@@ -1320,7 +1320,7 @@ types:
       not_after:
         type: timestamp
         required: true
-        description: The last second the log key may sign
+        description: The last instant at which the log key may sign
       key_protection:
         type: string
         required: true

@@ -495,10 +495,10 @@ above. They are normalised on the way in, so nothing downstream has to know them
 None is accepted today: `satisfies`, the one there was, is a relation of its
 own (above).
 
-A spelling must name a relation this table already declares, and must not be
-declared as a relation itself. Adding one is a statement that the two names have
-always meant the same thing; if they do not, the answer is a new relation in the
-table above, not a spelling.
+A spelling, if one is ever added, is listed here beside the relation declared
+above that it stands for, and is never declared as a relation itself. Adding one
+is a statement that the two names have always meant the same thing; if they do
+not, the answer is a new relation in the table above, not a spelling.
 
 ---
 

@@ -20,7 +20,9 @@ Usage: conventions.py vectors|time-fields|sites [--control] [--root DIR]
              described in epoch or Unix units in any spelling (unix-epoch,
              <unix-timestamp> ...), or an example that writes an instant as
              an epoch integer (a NumericDate or OpenMetrics timestamp, whose
-             form an external authority fixes, excepted).
+             form an external authority fixes, excepted), or a length of time
+             held as a bare number of a unit outside the files RETIRED.md
+             still allows to hold one.
 --control runs the mode with a seeded fault and passes only if exactly the
 seeded fault is reported. --root reads another corpus checkout.
 """
@@ -113,11 +115,12 @@ SITES = {
     "task-timeout": [re.compile(r"(?i)\|\s*(?:agent → agent \(task\)|task timeout)\s*\|\s*(?!300\s*s)\d+\s*s\s*\|")],
     "path-param": [re.compile(r"/:[a-z_][a-z0-9_]*")],
     "instant": [re.compile(r"^(?!.*(?:NumericDate|OpenMetrics))(?i:.*(?:unix[-_ ]epoch|epoch[-_ ]seconds|unix[-_ ]seconds|unix[-_ ]timestamp|unix[-_ ]ms\b|epoch[-_ ]milli|decimal unix|unix[-_ ]time\b|<epoch\b|seconds since (?:the )?epoch))")],
+    "duration": [re.compile(r"(?<![\w.])(?!(?:allowed|quiet)_hours\b)[a-z][a-z0-9_]*_(?:ms|seconds|secs|minutes|hours|days)\??\s*:|\bunit:\s*(?:seconds|milliseconds|minutes|hours|days)\b")],
     "epoch-literal": [re.compile(r"^(?!.*NumericDate)(?!.*[\"'\s{,](?:iat|exp|nbf|ren)[\"']?\s*:).*[\"']?\b[A-Za-z_]\w*[\"']?\s*(?::|=|<=?|>=?)\s*1[5-9]\d{8}(?:\d{3})?\b(?![.\d])")],
 }
 SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retries": "  max_retries: 3",
           "task-timeout": "| Task timeout | 30s | per task |", "path-param": "GET /v1/things/:id",
-          "instant": "| created_at | int64 | Unix epoch seconds |", "epoch-literal": '  "last_check": 1712160000,'}
+          "instant": "| created_at | int64 | Unix epoch seconds |", "duration": "  lease_ttl_seconds: 30", "epoch-literal": '  "last_check": 1712160000,'}
 
 
 INSTANT_NAME = re.compile(r"(?:^|_)(?:at|timestamp)$|^(?:ts|time|since|until|deadline|expiry|expires|not_after|not_before|iat|exp|created|updated|start|end|last_updated)$|^(?:last|next|first)_(?:seen|check|active|verified|refreshed|retry|fire|attempt|updated|rotated|renewal)$")
@@ -214,8 +217,20 @@ def site_lines(text):
                 if d and d.group(1) != "300": yield i + 1, f"| Task timeout | {d.group(1)}s |"
 
 
+def duration_allowed():
+    """The files RETIRED.md still allows to hold a bare-number duration."""
+    import yaml
+    text = open(os.path.join(root, "RETIRED.md"), encoding="utf-8").read()
+    entries = yaml.safe_load(re.search(r"^## Entries\n.*?```yaml\n(.*?)```", text, re.S | re.M).group(1))
+    for e in entries:
+        if any(r["spelling"] == "unit: seconds" for r in e["retired"]):
+            return {a["path"] for a in e.get("allow", [])}
+    return set()
+
+
 def sites():
     found = []
+    allowed = duration_allowed()
     files = sorted(p for d in SPEC_DIRS for p in glob.glob(os.path.join(root, d, "**", "*.md"), recursive=True))
     texts = [(os.path.relpath(p, root), open(p, encoding="utf-8").read()) for p in files]
     if control: texts.append(("seeded.md", "\n".join(SEEDED.values())))
@@ -223,6 +238,7 @@ def sites():
         if rel == HOME: continue
         for n, l in site_lines(text):
             for rule, pats in SITES.items():
+                if rule == "duration" and rel in allowed: continue
                 if any(p.search(l) for p in pats): found.append(f"{rule}: {rel}:{n}: {l.strip()[:120]}")
     if control:
         seeded = [f for f in found if " seeded.md:" in f]
