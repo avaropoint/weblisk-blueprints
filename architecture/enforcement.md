@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 2.3.6
+version: 2.4.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
 platform: any
 tier: free
@@ -100,9 +100,11 @@ Enforcement operates on four principles:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.13.0 <5.0.0"
+    version: ">=4.2.0 <5.0.0"
     bindings:
       types:
+        - name: ApprovalRequest
+          fields_used: [operation, requester, authority_required, intent_id]
         - name: ServiceDirectory
           fields_used: [services, routing_table, namespaces]
         - name: AuditEntry
@@ -201,11 +203,10 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/approval
-    version: ">=1.0.0 <2.0.0"
+    version: ">=2.0.0 <3.0.0"
     bindings:
-      types:
-        - name: ApprovalRequest
-          fields_used: [operation, agent, authority_required, context]
+      behaviors:
+        - name: approval-routing
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: migration
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, patterns/safety, patterns/approval, patterns/storage, patterns/versioning, patterns/state-machine, patterns/logging]
 platform: any
 tier: free
@@ -108,7 +108,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/approval
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       behaviors:
         - name: approval-routing

@@ -664,6 +664,21 @@ else
 	fails=$((fails + 1))
 fi
 
+# ApprovalRequest has one home, protocol/types (D27); the bindings to it in
+# other files are not definitions. A copy of patterns/ that defines it again
+# must report exactly the two files.
+expect 0 "type-home: every settled type is defined in its home alone" python3 checks/type-home.py
+mkdir -p "$tmp/th" && cp -R protocol patterns "$tmp/th/"
+printf '\n```yaml\ntypes:\n  - name: ApprovalRequest\n    fields:\n      - name: id\n```\n' >>"$tmp/th/patterns/approval.md"
+expect 1 "type-home control: a second definition fails" python3 checks/type-home.py --root "$tmp/th"
+if [ "$(grep -c ': defines ApprovalRequest$' "$tmp/out")" -eq 2 ] && grep -q '^patterns/approval.md: defines ApprovalRequest$' "$tmp/out"; then
+	echo "ok   type-home control: exactly two files, the second home among them"
+else
+	echo "FAIL type-home control: want exactly two files, patterns/approval.md among them"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
