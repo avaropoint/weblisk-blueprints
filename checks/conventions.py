@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """protocol/conventions, checked from outside every Weblisk tool.
 
-Usage: conventions.py vectors|sites [--control] [--root DIR]
+Usage: conventions.py vectors|time-fields|sites [--control] [--root DIR]
   vectors    each value in vectors/conventions.json is what the rule it names
              gives, computed here from the rule's text alone.
   time-fields  every field a specification declares that holds an instant is
              typed timestamp. An instant is a field named as one (*_at,
              timestamp, since, until, last_seen ...) or described by an epoch,
              Unix time, RFC 3339 or ISO 8601; a field whose description cites
-             an RFC 7519 NumericDate keeps the form that RFC fixes.
+             an RFC 7519 NumericDate keeps the form that RFC fixes. Fields are
+             read in every shape the corpus writes one: name: {type: X}, a
+             type: key under the name, name: X  # description, an inline
+             {name: X} signature, a Go-style (name X) parameter list and a
+             table row | name | X | description |.
   sites      no specification file restates a rule protocol/conventions holds:
              a UUID version other than 7, a backoff formula, schedule or
              second algorithm, a retry limit counted in retries, a task
@@ -115,17 +119,41 @@ SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retri
 
 INSTANT_NAME = re.compile(r"(?:^|_)(?:at|timestamp)$|^(?:ts|time|since|until|deadline|expiry|expires|not_after|not_before|iat|exp|created|updated|start|end|last_updated)$|^(?:last|next|first)_(?:seen|check|active|verified|refreshed|retry|fire|attempt|updated|rotated|renewal)$")
 INSTANT_DESC = re.compile(r"(?i)\bepoch\b|\bunix\b|RFC ?3339|ISO ?8601|\btimestamp\b")
-NOT_INSTANT = re.compile(r"(?i)\bseq\b|\bcount\b|ISO 8601 date\b|\bcursor\b|version vector|\bnumber of\b|NumericDate")
-SCALARS = {"int64", "integer", "int", "int32", "number", "datetime", "string", "*int64", "timestamp"}
+NOT_INSTANT = re.compile(r"(?i)\bseq\b|\bcount\b|ISO 8601 date\b|\bcursor\b|version vector|\bnumber of\b|NumericDate|\bthe column\b|and when it leaves\b")
+TYPE_ROWS = {"timestamp", "iso8601"}  # a type-mapping table's row names a type, not a field
+SCALARS = {"int64", "integer", "int", "int32", "number", "datetime", "string", "*int64", "timestamp", "time.Time"}
 NOT_INSTANT_NAMES = {"last_error", "next_cursor", "depends_on", "updated", "broken_at", "terminates_at"}
 
 
+SCALAR = r"(?:\*?int64|integer|int32|int|number|datetime|string|timestamp|time\.Time)"
+INLINE = re.compile(r"([A-Za-z_]\w*)\??:\s*(" + SCALAR + r")\b(?!\.)")
+GOPARAM = re.compile(r"([A-Za-z_]\w*) (" + SCALAR + r")\b")
+
+
 def declared_fields(text):
-    """(line, name, type, description) for each field a YAML block declares."""
+    """(line, name, type, description) for each field a specification declares,
+    in every shape one is written: `name: {type: X}`, a `type:` key under the
+    name, the shorthand `name: X  # description`, an inline `{name: X, ...}`
+    signature, a Go-style `(name X, ...)` parameter list, and a table row
+    `| name | X | description |`."""
     lines, inside = text.split("\n"), False
     for i, l in enumerate(lines):
         if re.match(r"^\s*```", l): inside = not inside; continue
+        for seg in re.findall(r"\{([^{}]*)\}", l):
+            for name, typ in INLINE.findall(seg):
+                if name != "type": yield i + 1, name, typ, ""
+        for seg in re.findall(r"\(([^()]*)\)", l):
+            for name, typ in GOPARAM.findall(seg):
+                yield i + 1, name, typ, ""
+        t = re.match(r"^\|\s*`?([A-Za-z_]\w*)\??`?\s*\|\s*`?(" + SCALAR + r")`?\s*\|(.*)\|\s*$", l)
+        if t and not inside and t.group(1) not in TYPE_ROWS:
+            yield i + 1, t.group(1), t.group(2), t.group(3)
+            continue
         if not inside: continue
+        m = re.match(r"^\s*(?:-\s+)?([A-Za-z_]\w*)\??:\s*(" + SCALAR + r")\s*(?:#\s*(.*))?$", l)
+        if m and m.group(1) not in ("type", "format"):
+            yield i + 1, m.group(1), m.group(2), m.group(3) or ""
+            continue
         m = re.match(r"^\s*([A-Za-z_]\w*):\s*\{type:\s*([^,}\s]+)(.*)\}\s*$", l)
         if m:
             d = re.search(r"description:\s*(.*)$", m.group(3))
@@ -151,7 +179,13 @@ def time_fields():
     found = []
     files = sorted(p for d in SPEC_DIRS for p in glob.glob(os.path.join(root, d, "**", "*.md"), recursive=True))
     texts = [(os.path.relpath(p, root), open(p, encoding="utf-8").read()) for p in files]
-    if control: texts.append(("seeded.md", "```yaml\nSeeded:\n  fields:\n    created_at:\n      type: int64\n      description: Unix epoch seconds\n```\n"))
+    seeded_shapes = ["```yaml\nSeeded:\n  fields:\n    created_at:\n      type: int64\n      description: Unix epoch seconds\n```",
+                     "```yaml\nSeeded:\n  updated_at: {type: integer}\n```",
+                     "```yaml\nHold:\n  expires_at: int64         # When the hold expires\n```",
+                     "**Input:** `{since: int64, limit?: int}`",
+                     "| Verify | `(until int64) → error` | |",
+                     "\n| last_seen | int64 | yes | When the peer was last heard from |\n"]
+    if control: texts.append(("seeded.md", "\n".join(seeded_shapes) + "\n"))
     for rel, text in texts:
         for n, name, typ, desc in declared_fields(text):
             if typ == "timestamp" or typ not in SCALARS or name in NOT_INSTANT_NAMES or NOT_INSTANT.search(desc): continue
@@ -159,7 +193,7 @@ def time_fields():
                 found.append(f"time-fields: {rel}:{n}: {name} is {typ}, not timestamp")
     if control:
         seeded = [f for f in found if " seeded.md:" in f]
-        return (seeded if len(seeded) == 1 and found == seeded else found + ["control: the corpus is not clean, or the seeded field was missed"]), {"time-fields"}
+        return (seeded if len(seeded) == len(seeded_shapes) and found == seeded else found + ["control: the corpus is not clean, or a seeded shape was missed"]), {"time-fields"}
     return found, set()
 
 

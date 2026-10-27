@@ -207,7 +207,7 @@ Every version of a blueprint is recorded as a revision:
 | version | string | yes | New version |
 | previous_version | string | yes | Version this replaces (null for initial) |
 | changed_by | string | yes | Identity of who made the change |
-| changed_at | string | yes | ISO 8601 timestamp |
+| changed_at | timestamp | yes | When the change was made |
 | change_type | string | yes | `major`, `minor`, `patch` |
 | change_summary | string | yes | Human-readable summary |
 | changelog | string[] | yes | List of specific changes |

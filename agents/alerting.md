@@ -745,7 +745,7 @@ Query alert history with filtering.
 
 **Purpose:** Retrieve stored alerts for admin review.
 
-**Input:** `{severity?: string, source_name?: string, since?: int64, limit?: int, offset?: int}`
+**Input:** `{severity?: string, source_name?: string, since?: timestamp, limit?: int, offset?: int}`
 
 **Processing:**
 

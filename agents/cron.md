@@ -885,7 +885,7 @@ Register a new scheduled task.
 8. Return {task_id, next_fire}
 ```
 
-**Output:** `{task_id: string, next_fire: int64}`
+**Output:** `{task_id: string, next_fire: timestamp}`
 
 **Errors:**
 
@@ -1000,7 +1000,7 @@ Resume a paused task.
 8. Return {task_id, status: "active", next_fire}
 ```
 
-**Output:** `{task_id: string, status: "active", next_fire: int64}`
+**Output:** `{task_id: string, status: "active", next_fire: timestamp}`
 
 **Errors:** `NOT_FOUND` (permanent), `INVALID_STATE` (permanent)
 

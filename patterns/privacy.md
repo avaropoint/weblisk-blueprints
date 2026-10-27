@@ -1048,8 +1048,8 @@ legal_hold:
   hold_reference: string    # External reference to the legal hold order
   subject_id: string        # Data subject affected by the hold
   scope_filter: ScopeLevel  # Scope level of held data (or null for all)
-  created_at: int64         # When the hold was created
-  expires_at: int64         # When the hold expires (null = indefinite, requires review)
+  created_at: timestamp     # When the hold was created
+  expires_at: timestamp     # When the hold expires (null = indefinite, requires review)
   created_by: string        # Operator who created the hold
   review_interval_days: 90  # How often indefinite holds must be reviewed
 ```

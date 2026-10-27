@@ -719,7 +719,7 @@ types:
 |-----------|-----------|-------------|
 | AppendAudit | `(entry AuditEntry) → error` | Append audit entry (computes hash chain) |
 | QueryAudit | `(filter AuditFilter) → ([]AuditEntry, error)` | Query audit log |
-| VerifyChain | `(since int64, until int64) → (valid bool, brokenAt string, error)` | Verify hash chain integrity over a time range |
+| VerifyChain | `(since timestamp, until timestamp) → (valid bool, brokenAt string, error)` | Verify hash chain integrity over a time range |
 
 ### Hash Chain Integrity
 

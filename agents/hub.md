@@ -2221,7 +2221,7 @@ Record a completed federated task for metrics.
 
 **Source:** Federation Layer
 
-**Input:** `{listing_id: string, timestamp: int64, latency_ms: int, status: string, data_bytes_in: int, data_bytes_out: int}`
+**Input:** `{listing_id: string, timestamp: timestamp, latency_ms: int, status: string, data_bytes_in: int, data_bytes_out: int}`
 
 **Processing:**
 
@@ -2244,7 +2244,7 @@ Record a failed federated task.
 
 **Source:** Federation Layer
 
-**Input:** `{listing_id: string, error: string, timestamp: int64}`
+**Input:** `{listing_id: string, error: string, timestamp: timestamp}`
 
 **Processing:**
 
@@ -2415,7 +2415,7 @@ Validate key rotation with dual-signature proof.
 
 **Source:** Federation
 
-**Input:** `{hub_name: string, old_key: string, new_key: string, old_signature: string, new_signature: string, timestamp: int64}`
+**Input:** `{hub_name: string, old_key: string, new_key: string, old_signature: string, new_signature: string, timestamp: timestamp}`
 
 **Processing:**
 
@@ -2670,7 +2670,7 @@ Suppress alerts for a listing during known maintenance.
 
 **Input:** `{listing_id: string, reason: string, duration: int}`
 
-**Output:** `{mute_id: string, expires_at: int64}`
+**Output:** `{mute_id: string, expires_at: timestamp}`
 
 **Side Effects:** Writes to alert_mutes store.
 

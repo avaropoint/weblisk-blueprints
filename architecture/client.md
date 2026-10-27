@@ -337,15 +337,15 @@ base64url(header) . base64url(payload) . base64url(signature)
 |-------|------|----------|-------------|
 | sub | string | yes | User ID |
 | iss | string | yes | Always `"gateway"` |
-| iat | int64 | yes | Issued-at timestamp |
-| exp | int64 | yes | Expiry timestamp |
+| iat | int64 | yes | Issued at, an RFC 7519 NumericDate |
+| exp | int64 | yes | Expiry, an RFC 7519 NumericDate |
 | sid | string | yes | Session ID (links to server-side state) |
 | roles | []string | yes | User's current roles |
 | bind | string | yes | Client binding hash |
 | csrf | string | yes | CSRF secret hash |
 | sec | string | yes | Security level: `standard`, `elevated`, `critical` |
 | mfa | bool | yes | Whether MFA has been completed this session |
-| ren | int64 | yes | Next renewal timestamp (sliding window) |
+| ren | int64 | yes | Next renewal (sliding window), a NumericDate like iat and exp |
 
 #### Token Lifecycle
 
@@ -424,8 +424,8 @@ platform-specific secure storage.
 |-------|------|----------|-------------|
 | sub | string | yes | User ID |
 | iss | string | yes | Always `"gateway"` |
-| iat | int64 | yes | Issued-at timestamp |
-| exp | int64 | yes | Expiry timestamp (longer than WLS — default 7 days) |
+| iat | int64 | yes | Issued at, an RFC 7519 NumericDate |
+| exp | int64 | yes | Expiry, an RFC 7519 NumericDate (longer than WLS — default 7 days) |
 | cid | string | yes | Client registration ID (links to server-side client record) |
 | roles | []string | yes | User's current roles |
 | bind | string | yes | Device binding hash |
@@ -701,7 +701,7 @@ Salt: unique per session (stored alongside ciphertext)
 |-----------|-----------|-------------|
 | CreateSession | `(session Session) → error` | Store new session |
 | GetSession | `(id string) → (Session, error)` | Load session by ID |
-| UpdateActivity | `(id string, ts int64) → error` | Update last_active |
+| UpdateActivity | `(id string, ts timestamp) → error` | Update last_active |
 | RevokeSession | `(id string) → error` | Mark as revoked |
 | CleanExpired | `() → (int, error)` | Purge expired sessions |
 | ListUserSessions | `(userID string) → ([]Session, error)` | All sessions for user |

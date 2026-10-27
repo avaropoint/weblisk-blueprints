@@ -677,14 +677,14 @@ Applications MAY define custom roles and hierarchy via configuration.
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| StoreResetToken | `(email string, token string, expiry int64) → error` | Store reset token |
+| StoreResetToken | `(email string, token string, expiry timestamp) → error` | Store reset token |
 | ConsumeResetToken | `(token string) → (email string, error)` | Retrieve and delete |
 
 ### Store: Verification Tokens
 
 | Operation | Signature | Description |
 |-----------|-----------|-------------|
-| StoreVerificationToken | `(email string, token string, expiry int64) → error` | Store verification token |
+| StoreVerificationToken | `(email string, token string, expiry timestamp) → error` | Store verification token |
 | ConsumeVerificationToken | `(token string) → (email string, error)` | Retrieve and delete |
 
 ### Store: OAuth Links

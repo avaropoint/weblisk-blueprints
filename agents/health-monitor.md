@@ -956,7 +956,7 @@ Return historical health snapshots.
 
 **Purpose:** Query past health states for analysis.
 
-**Input:** `{since: int64, until?: int64, limit?: int}`
+**Input:** `{since: timestamp, until?: timestamp, limit?: int}`
 
 **Output:** `{snapshots: HealthSnapshot[]}`
 

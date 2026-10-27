@@ -30,7 +30,7 @@ data:
       id: string
       content: string
       author: string
-      timestamp: datetime
+      timestamp: timestamp
 
 behavior:
   reconnect: exponential
