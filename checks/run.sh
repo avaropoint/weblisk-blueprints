@@ -291,6 +291,15 @@ expect 0 "families: every spec's structure is a document family" python3 checks/
 expect 0 "families: every form's structure is a document family" python3 checks/families.py schemas/programme-template --resolve frontmatter.structure documents/families
 expect 0 "families: every family's template walks against it" python3 checks/families.py --distinct --templates $progs $docs \
 	schemas/protocol schemas/pattern schemas/agent schemas/domain schemas/position schemas/policy-domain
+[ -s "$tmp/out" ] && { echo "FAIL families: a template walks with a finding, and each must walk with none"; sed 's/^/     /' "$tmp/out"; fails=$((fails + 1)); }
+# A document's header is the organisation's own: a policy carrying uid:, the
+# keys a client reads from a header, and a key no family types walks with
+# nothing refused. A uid: that is not a string is still refused, once.
+awk '{ print } /^kind: policy$/ { print "uid: 0192f3a4-7b1c-7d2e-8f3a-4b5c6d7e8f90"; print "effective_date: 2026-01-01"; print "classification: internal"; print "review_cycle: annual"; print "approved_by: Head of Operations"; print "department: operations" }' templates/policy.md >"$tmp/uid.md"
+expect 0 "families: a policy whose header carries uid: walks with nothing refused" python3 checks/families.py documents/families/policy --file "$tmp/uid.md"
+sed 's/^uid: .*$/uid: [not, a, string]/' "$tmp/uid.md" >"$tmp/uid-list.md"
+expect 1 "families control: a uid: that is not a string is refused" python3 checks/families.py documents/families/policy --file "$tmp/uid-list.md"
+[ "$(grep -c ' refuse ' "$tmp/out")" -eq 1 ] && grep -q ': header-schema refuse /uid$' "$tmp/out" || { echo "FAIL families control: want exactly one refusal, of /uid"; fails=$((fails + 1)); }
 sed 's/^structure: procedure$/structure: nonesuch/' programmes/ohs/specs/ohs.certificate-renewal.md >"$tmp/nonesuch.md"
 expect 1 "families control: a structure no family declares fails" python3 checks/families.py schemas/programme-spec --resolve structure documents/families --file "$tmp/nonesuch.md"
 grep -q 'structure: nonesuch names no declaration' "$tmp/out" || { echo "FAIL families control: the unknown structure was not what was reported"; fails=$((fails + 1)); }
@@ -298,17 +307,19 @@ sed 's/^    - {slot: purpose, heading: Purpose,/    - {slot: purpose, heading: P
 expect 1 "families control: a heading opening two slots fails" python3 checks/families.py --distinct --templates documents/families/policy --against "$tmp/policy.md"
 grep -q "the heading 'Scope' opens both purpose and scope" "$tmp/out" || { echo "FAIL families control: the shared heading was not what was reported"; fails=$((fails + 1)); }
 # Every declaration walks against schemas/family. The families whose files
-# are written today in the form they declare walk those files with nothing
-# refused: positions and policy domains in migration mode, and the older
-# language, platform and framework files their families read until they are
-# rewritten into mapping rules. A directory's README.md is not a file of its
-# family, and a match cannot exclude it, so the walk names the files.
+# are written today in the form they declare walk the files their match
+# covers with nothing refused: positions and policy domains in migration mode,
+# and the older language, platform and framework files their families read
+# until they are rewritten into mapping rules. A match never covers a
+# directory's README.md (family-names-declaration); positions/README.md walked
+# as a position is refused, so that rule is what these walks rest on. An empty
+# --file list is a fault, never a walk of nothing.
 expect 0 "families: every declaration walks against schemas/family" python3 checks/families.py --declarations
-for pair in position:positions policy-domain:policy-domains language:languages platform:platforms framework:frameworks/*; do
-	fam=${pair%%:*} dir=${pair#*:}
-	files=$(ls $dir/*.md | grep -v '/README\.md$')
-	expect 0 "families: today's $dir files walk against schemas/$fam" python3 checks/families.py schemas/$fam --file $files
+for fam in position policy-domain language platform framework; do
+	expect 0 "families: today's files walk against schemas/$fam by its match" python3 checks/families.py schemas/$fam
 done
+expect 1 "families control: positions/README.md walked as a position is refused" python3 checks/families.py schemas/position --file positions/README.md
+expect 1 "families control: an empty --file list fails" python3 checks/families.py schemas/position --file
 
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.

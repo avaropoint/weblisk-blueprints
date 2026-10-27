@@ -14,12 +14,30 @@ any other file does, and a missing section is a finding with the slot's
 | `documents/families/standard` | [`standard.md`](standard.md) | [`templates/standard.md`](../../templates/standard.md) |
 | `documents/families/guideline` | [`guideline.md`](guideline.md) | [`templates/guideline.md`](../../templates/guideline.md) |
 
-They were the structures under `schemas/structures/`, and each section of a
-structure is a slot here: its title the slot's heading, its aliases the
-slot's aliases, its guidance the slot's `guidance`. A section that made a
-document incomplete when missing is `required: report`, because a document
-without it is incomplete, not unreadable: the walk reports it and refuses
-nothing.
+Each section a document of a family is expected to carry is a slot: its
+title the slot's heading, its aliases the slot's aliases, its guidance the
+slot's `guidance`. A section that makes a document incomplete when missing is
+`required: report`, because a document without it is incomplete, not
+unreadable: the walk reports the missing section and refuses nothing for it.
+
+## The header
+
+A document's header is the organisation's own, so each family's header schema
+is **open**: a key it does not type is carried, never refused. It types the
+keys a client reads from a document header — `family`, `title`, `kind`,
+`structure`, `status`, `owner`, `version`, `reference`, `scope` — and these:
+
+| Key | What it holds |
+|---|---|
+| `uid` | the document's own identity, minted when it is created and never changed; records join on it, so a family never refuses it |
+| `approver`, `approved_by` | who approved the version |
+| `effective`, `effective_date` | when the version takes effect |
+| `review_cycle`, `last_reviewed`, `last_review` | when it is next due for review, and when it last was |
+| `classification` | how it may be handled and shared |
+| `frameworks` | the frameworks it is written against |
+
+A key typed here with a value of the wrong type is refused; nothing else in a
+header is.
 
 ## Rules
 
@@ -88,6 +106,8 @@ families from the corpus repository it has open.
 [`checks/run.sh`](../../checks/run.sh): each template here walks against its
 family with no refused finding, no family lets a heading open two slots, and
 every `structure:` a programme's spec or form names is a family in this
-directory. Each has a control: a spec naming a structure no family declares is
-reported, and a family whose alias repeats another slot's heading is
-reported.
+directory, and a policy whose header carries `uid:`, `effective_date:` and
+`classification:` walks with nothing refused. Each has a control: a spec
+naming a structure no family declares is reported, a family whose alias
+repeats another slot's heading is reported, and a `uid:` that is not a string
+is refused.

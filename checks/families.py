@@ -20,6 +20,7 @@ reported as not judged, with exit 2, and never passes.
 Exits 0 when no finding is refused, 1 when one is or a fault is found, 2 when
 something could not be judged."""
 import collections, glob, json, os, re, sys
+sys.dont_write_bytecode = True  # importing ids.py leaves no bytecode in the corpus
 import yaml  # PyYAML
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -475,7 +476,9 @@ def rel(p):
 
 def covered(decl_path):
     head = front(decl_path)
-    return sorted({f for pat in head.get("match") or [] for f in glob.glob(os.path.join(ROOT, pat), recursive=True)})
+    # family-names-declaration: a match never covers a README.md.
+    return sorted({f for pat in head.get("match") or [] for f in glob.glob(os.path.join(ROOT, pat), recursive=True)
+                   if os.path.basename(f) != "README.md"})
 
 
 def report(results, counts):
@@ -569,6 +572,9 @@ def main(argv):
         if "--file" in argv:
             i = argv.index("--file")
             files, argv = [os.path.abspath(f) for f in argv[i + 1:]], argv[:i]
+            if not files:
+                print("--file names no file")
+                return 1
         distinct = "--distinct" in argv
         if distinct: argv.remove("--distinct")
         templates = "--templates" in argv

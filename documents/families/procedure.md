@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 kind: procedure
 noun: procedure
 capabilities: [author, versioned, publishable, adoptable]
@@ -24,7 +24,6 @@ copy is checked are [`documents/families`](README.md)'s.
 header:
   schema:
     type: object
-    unevaluatedProperties: false
     properties:
       family:         {const: documents/families/procedure@1}
       title:          {type: string}
@@ -37,7 +36,21 @@ header:
       task:           {type: string, description: "What a safe job procedure is for, as its form writes it."}
       scope:          {type: string}
       scope_metadata: {type: object}
+      uid:            {type: string, description: "The document's own identity, minted by the client that created it and never changed."}
+      approver:       {type: [string, "null"]}
+      approved_by:    {type: [string, "null"]}
+      effective:      {type: [string, "null"]}
+      effective_date: {type: [string, "null"]}
+      review_cycle:   {type: [string, "null"]}
+      last_reviewed:  {type: [string, "null"]}
+      last_review:    {type: [string, "null"]}
+      classification: {type: [string, "null"]}
+      frameworks:     {type: [array, string, "null"]}
 ```
+
+The header is open: it is the organisation's own, and a key this family does
+not type is carried, never refused. The keys typed here are the ones a client
+reads from a document header ([`documents/families`](README.md#the-header)).
 
 ## Sections
 

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 kind: specification
 noun: family
 capabilities: [author, versioned]
@@ -38,7 +38,9 @@ requirements:
       the ref family specification, so its local id is the declaration's path
       without `.md`, and <major> is the major of that declaration's version.
       A file with no `family:` is read as the family whose `match` covers its
-      path, and a path two families match is a finding.
+      path, and a path two families match is a finding. A match never covers
+      a file named `README.md`: that is a directory's own prose, a file of a
+      family only when its header names one.
   - id: declaration-validates-itself
     level: must
     text: >-
@@ -271,7 +273,7 @@ grammar that adds it does so as a new major of this file.
 |---|---|---|
 | `match`, `kind`, `extends` | header | Which paths the family covers when a file names no family, which kind its files are, and the family it inherits slots and header properties from |
 | `noun`, `capabilities`, `template`, `location`, `adopt`, `generates` | header | What the verbs acting on the family need: the word a person reads, which verbs apply (verbs, never [`schemas/kinds`](kinds.md#capabilities)' capabilities, though the key shares the word), the starting file, where new files go, how an adoption is recorded, and what a build makes from one |
-| `header.schema` | header block | JSON Schema 2020-12 for the frontmatter, with unknown keys refused |
+| `header.schema` | header block | JSON Schema 2020-12 for the frontmatter; with `unevaluatedProperties: false` a key it does not name is refused, and without it the header is open |
 | `header.uses` | header block | Per field: its `use`, the ref family it `resolves` to, and its `send` |
 | `header.legacy` | header block | Keys still found in older files, each `report` or `refuse`. Used only while files are migrated |
 | `header.required` | header block | Keys a file should hold whose absence is reported rather than refused, each `report`. Used only while files are migrated: a key whose absence is refused is in `header.schema`'s `required`, its one home |
