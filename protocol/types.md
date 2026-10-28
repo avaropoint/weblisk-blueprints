@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.0.0
+version: 6.1.0
 requires: []
 platform: any
 tier: free
@@ -2979,6 +2979,11 @@ error_codes:
     category: partial
     retryable: varies
     description: Some phases succeeded, some failed
+  - code: WORKER_PROPOSAL_WITHHELD
+    status: 409
+    category: permanent
+    retryable: false
+    description: The prompt worker did not make a proposal an agent instruction asked for, because the run is muted. The proposal is kept, with its bytes, in the phase's outcome and nowhere else, and reaches no person. Recorded on the refused tool call; never an HTTP answer (architecture/prompt-worker, Muted runs)
 ```
 All errors across the protocol use the `ErrorResponse` type defined in the
 Errors section above. Error categories (`transient`, `permanent`, `partial`)
