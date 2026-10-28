@@ -257,8 +257,9 @@ When `kdf = none`:
    writes a passphrase anywhere; a secret source MAY keep one under its own
    protection, as [`protocol/secret-source`](secret-source.md) describes.
 5. Failed passphrase attempts log `identity.key_decrypt_failed` and
-   exit with code 2 (auth error). No retry loop — the operator
-   re-runs the command.
+   fail the operation. No retry loop — the operator re-runs the command.
+   How the failure is signalled is the platform blueprint's: the CLI
+   exits with its auth-error code ([`architecture/cli`](../architecture/cli.md#exit-codes)).
 
 ### Service Key Protection
 
@@ -1372,7 +1373,7 @@ Implementation MUST:
 - [ ] A proof of an identity to a service that is not a hub is the `weblisk/auth/v1` signature [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) gives, over a nonce spent and expiring as that section says; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
 - [ ] Parse the weblisk-key-v1 format correctly, every field [Private Key Format](#private-key-format) gives
 - [ ] Never store passphrase on disk — only hold in memory during decrypt ([Key Categories](#key-categories), rule 4)
-- [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled
+- [ ] A failed passphrase fails the operation immediately — no retry loop, no passphrase enumeration — and the platform blueprint states how that is signalled ([Key Categories](#key-categories), rule 5)
 - [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive ([Verify Signature](#verify-signature))
 - [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values ([Header](#header))
 - [ ] Check token expiry on every verification ([Token Verification](#token-verification))
