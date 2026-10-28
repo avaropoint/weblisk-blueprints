@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.0.0
+version: 6.1.0
 requires: []
 platform: any
 tier: free
@@ -208,6 +208,20 @@ and answered by every sender it binds):
 What the gate refuses, and what a `DestinationRefusal` carries, are
 `patterns/scope`'s.
 
+**Resource codes** (produced by the owner of a resource kind, and by the admin
+gateway at the uniform address, [`schemas/resource`](../schemas/resource.md);
+when each is answered is
+[`architecture/admin`](../architecture/admin.md#writes-and-what-guards-them)'s).
+Every owner of a kind answers them with these statuses and no other.
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `RESOURCE_KIND_UNDECLARED` | 404 | permanent | The kind is not one the tenant's catalogue declares. An undeclared kind does not exist on the wire |
+| `RESOURCE_OPERATION_UNDECLARED` | 405 | permanent | The kind is declared and the operation or verb is not one its declaration names. The answer's `Allow` header names the methods the address does serve |
+| `RESOURCE_FIELD_NOT_SETTABLE` | 400 | permanent | A write names a field its declaration does not let a person set there: a `read-only` field, or a `create` field on `update`. `detail.fields` names each. Nothing changes |
+| `RESOURCE_IF_MATCH_REQUIRED` | 428 | permanent | An `update`, a `delete` or a verb arrived with no `If-Match`. A write with no precondition acts on something its sender has not seen |
+| `RESOURCE_PRECONDITION_FAILED` | 412 | permanent | `If-Match` does not equal the item's ETag now. Nothing changes. The answer carries the current ETag; the client reads the item again |
+
 **Identity error codes** (produced by `protocol/identity`):
 
 | Code | HTTP | Category | Description |
@@ -238,7 +252,7 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, operator token, destination, identity, and common codes are
+  safety, operator token, resource, destination, identity, and common codes are
   registered in this central table. These codes may appear in any
   component.
 - Agent-local codes (specific to a single agent's domain logic) are
@@ -358,6 +372,11 @@ types:
         type: "[]PassRoute"
         required: false
         description: "Every route at which this component admits a person's request on a pass, with every capability each requires. Absent or empty: the admin gateway carries no person's request here. See [PassRoute](#passroute)"
+      resources:
+        name: Resources
+        type: "[]ResourceDeclaration"
+        required: false
+        description: "Each kind this component's blueprint declares in its Resources block, and no other. Absent or empty: it owns no kind a person may operate. See [Resources](#resources)"
 ```
 
 ### Capability
@@ -527,9 +546,12 @@ carries it.
 - `action:invoke` (orchestrator) — invoke an operator action a component's blueprint declares, where the action names no capability of that component's own family. *Person only*
 - `scope:admit` (orchestrator) — admit the operational scope a component declares, the highest classification it may reach. *Person only*
 
-Neither guards a route yet: no blueprint declares an operator action, and
-`AgentManifest` has no operational scope. Both are listed so that each act has
-one name before it is specified.
+`action:invoke` is what a verb in a Resources block names when its act is in
+no capability family its owner holds ([`schemas/resource`](../schemas/resource.md#verbs)).
+The first such verbs are execution's on a run, held until execution's
+blueprint is written, so it guards no running route yet. `scope:admit` guards
+none either: `AgentManifest` has no operational scope. Both are listed so that
+each act has one name before it is specified.
 
 No capability is listed here for a component recording into the one audit
 ledger. No route for that write exists yet; whether it needs a capability is
@@ -924,6 +946,742 @@ types:
         type: int
         required: false
         description: "Number of retry attempts"
+```
+
+---
+
+## Resources
+
+The wire form of a component's Resources block
+([`schemas/resource`](../schemas/resource.md)), and what the admin gateway
+answers for the one API every kind is served at
+([`architecture/admin`](../architecture/admin.md#resources-one-api-for-every-kind)).
+What each field means is `schemas/resource`'s; these types say only how it is
+carried.
+
+### ResourceDeclaration
+
+One kind, as its owner declares it. A component's manifest carries one for
+each kind its blueprint declares (`AgentManifest.resources`), and the
+catalogue answers it for each kind it reports. It is the block with
+`operations` written as a list, each entry carrying its key as `name`, since
+this vocabulary cannot declare a map's value shape.
+
+```yaml
+types:
+  ResourceDeclaration:
+    fields:
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "A kind schemas/kinds declares"
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The name of the component that holds the kind's items"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "The type an item is answered as, by its name in the owner's blueprint or one it requires"
+      list_type:
+        name: ListType
+        type: string
+        required: false
+        description: "The type of one list item, where it differs from `type`"
+      identity:
+        name: Identity
+        type: ResourceIdentity
+        required: true
+        description: "The field that carries the item's identity, and its form"
+      label:
+        name: Label
+        type: string
+        required: false
+        description: "The field a client shows as the item's name. Never its identity"
+      fields:
+        name: Fields
+        type: "[]ResourceField"
+        required: true
+        description: "Every field a client may render or set"
+      operations:
+        name: Operations
+        type: "[]ResourceOperation"
+        required: true
+        description: "Each operation the kind serves, and no other"
+      verbs:
+        name: Verbs
+        type: "[]ResourceVerb"
+        required: false
+        description: "Each verb the kind serves, and no other"
+      states:
+        name: States
+        type: object
+        required: false
+        description: "The kind's state machine, as patterns/state-machine declares one"
+      events:
+        name: Events
+        type: "[]string"
+        required: false
+        description: "What the owner announces when an item changes"
+      relations:
+        name: Relations
+        type: "[]ResourceRelation"
+        required: false
+        description: "Each relation an item holds, by the field that holds its target"
+      unavailable:
+        name: Unavailable
+        type: ResourceUnavailable
+        required: false
+        description: "Present only where the block itself declares the kind unavailable: `owner-unspecified`"
+
+  ResourceIdentity:
+    fields:
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "The field of `type` that carries the identity, as a dotted path where it is nested"
+      form:
+        name: Form
+        type: string
+        required: true
+        description: "`minted` or `declared-name`"
+
+  ResourceField:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "A field of `type`, as a dotted path where it is nested"
+      access:
+        name: Access
+        type: string
+        required: true
+        description: "`read-only`, `create` or `settable`"
+      present:
+        name: Present
+        type: string
+        required: false
+        description: "One presentation schemas/resource declares. Absent: rendered read-only, as its value"
+      sensitive:
+        name: Sensitive
+        type: bool
+        required: false
+        description: "True: never answered, in any answer, list or event"
+      volatile:
+        name: Volatile
+        type: bool
+        required: false
+        description: "True: changes by observation, and is left out of the item's ETag"
+      kind:
+        name: Kind
+        type: string
+        required: false
+        description: "For `present: reference`, the kind of the item the field names"
+
+  ResourceOperation:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "`list`, `get`, `create`, `update` or `delete`"
+      capability:
+        name: Capability
+        type: string
+        required: true
+        description: "The one capability a request must be able to use"
+      step_up:
+        name: StepUp
+        type: bool
+        required: false
+        description: "True: a destructive act, governed by architecture/admin's destructive-action-step-up"
+      approval:
+        name: Approval
+        type: object
+        required: false
+        description: "Who must approve the act before it is applied (schemas/resource, Authority)"
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "The method the owner serves the operation at"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The path the owner serves it at: the route its `binds` names, or the uniform address. A `{name}` segment matches any one non-empty segment, as in PassRoute"
+      filters:
+        name: Filters
+        type: "[]string"
+        required: false
+        description: "For `list`: the fields a list may be narrowed by, each by equality"
+      items:
+        name: Items
+        type: string
+        required: false
+        description: "For a `list` served at a bound route: the member of its answer that holds the items. Absent: `items`, as ResourceList answers"
+
+  ResourceVerb:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "The verb, kebab-case"
+      capability:
+        name: Capability
+        type: string
+        required: true
+        description: "The one capability a request must be able to use"
+      step_up:
+        name: StepUp
+        type: bool
+        required: false
+        description: "True: a destructive act"
+      approval:
+        name: Approval
+        type: object
+        required: false
+        description: "Who must approve the act before it is applied"
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "The method the owner serves the verb at, POST unless a bound route says otherwise"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The path the owner serves it at"
+      transition:
+        name: Transition
+        type: string
+        required: false
+        description: "The transition of `states` the verb fires"
+      body:
+        name: Body
+        type: string
+        required: false
+        description: "The type of the request's body. Absent: the body is empty"
+      preconditions:
+        name: Preconditions
+        type: "[]string"
+        required: true
+        description: "What the owner checks before acting"
+      in_flight:
+        name: InFlight
+        type: object
+        required: true
+        description: "`handling` (`none`, `drains`, `cancels` or `continues`) and `says`"
+      effect:
+        name: Effect
+        type: string
+        required: true
+        description: "What is true once it is answered"
+      reversible:
+        name: Reversible
+        type: string
+        required: true
+        description: "`false`, or the verb of the kind that undoes it"
+
+  ResourceRelation:
+    fields:
+      relation:
+        name: Relation
+        type: string
+        required: true
+        description: "A relation schemas/kinds declares from this kind"
+      to:
+        name: To
+        type: string
+        required: true
+        description: "The kind of its target"
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "The field that holds the target's identity"
+
+  ResourceUnavailable:
+    fields:
+      reason:
+        name: Reason
+        type: string
+        required: true
+        description: "One reason schemas/resource declares"
+      says:
+        name: Says
+        type: string
+        required: true
+        description: "Why, in a sentence a client shows as it is"
+```
+
+### ResourceCatalogue
+
+What `GET /v1/admin/resources` answers: every kind the tenant declares,
+available or not ([`architecture/admin`](../architecture/admin.md#the-catalogue)).
+
+```yaml
+types:
+  ResourceCatalogue:
+    fields:
+      kinds:
+        name: Kinds
+        type: "[]CatalogueEntry"
+        required: true
+        description: "One entry per declared kind, available or not, sorted by kind"
+      corpus:
+        name: Corpus
+        type: string
+        required: false
+        description: "The corpus revision the declared kinds were read from, where the tenant's declared catalogue names one"
+
+  CatalogueEntry:
+    fields:
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "The kind"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`available` or `declared-unavailable`"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "For `declared-unavailable`: one reason schemas/resource declares"
+      says:
+        name: Says
+        type: string
+        required: false
+        description: "For `declared-unavailable`: why, in a sentence"
+      declaration:
+        name: Declaration
+        type: ResourceDeclaration
+        required: true
+        description: "The kind's declaration: the registered owner's, where one is registered, and otherwise the tenant's declared one"
+```
+
+### ResourceList
+
+What a `list` served at the uniform address answers. A list bound to an
+existing route answers that route's own shape, and its declaration names the
+member holding the items (`ResourceOperation.items`).
+
+```yaml
+types:
+  ResourceList:
+    fields:
+      items:
+        name: Items
+        type: "[]object"
+        required: true
+        description: "The items, each of the kind's list type, no sensitive field among them"
+      next_cursor:
+        name: NextCursor
+        type: string
+        required: false
+        description: "Where the next page starts. Absent or empty: there is none"
+      has_more:
+        name: HasMore
+        type: bool
+        required: true
+        description: "Whether a next page exists"
+```
+
+### ResourceEvent
+
+One change to one item, as the feed carries it. Its attributes are the
+required and the `subject` and `time` attributes of CloudEvents 1.0, so a
+general tool reads it without knowing Weblisk.
+
+```yaml
+types:
+  ResourceEvent:
+    fields:
+      specversion:
+        name: SpecVersion
+        type: string
+        required: true
+        description: "`1.0`"
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "The event's id, unique at its owner"
+      source:
+        name: Source
+        type: string
+        required: true
+        description: "The kind's uniform address, `/v1/admin/r/<kind>`"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`weblisk.<kind>.<event>`, the event one of the kind's declared events"
+      subject:
+        name: Subject
+        type: string
+        required: true
+        description: "The item's identity"
+      time:
+        name: Time
+        type: timestamp
+        required: true
+        description: "When the change happened"
+      datacontenttype:
+        name: DataContentType
+        type: string
+        required: true
+        description: "`application/json`"
+      data:
+        name: Data
+        type: map
+        required: true
+        description: "The fields that changed, by name, with their values now, no sensitive field among them. A `deleted` event carries none"
+      position:
+        name: Position
+        type: string
+        required: true
+        description: "Where this event sits in its owner's feed of the kind: opaque, and only ever rising"
+      traceparent:
+        name: TraceParent
+        type: string
+        required: false
+        description: "The W3C traceparent of the request or work that made the change ([TraceContext](#tracecontext))"
+
+  ResourceEventPage:
+    fields:
+      events:
+        name: Events
+        type: "[]ResourceEvent"
+        required: true
+        description: "The events after the position asked for, in order, that the request may read"
+      position:
+        name: Position
+        type: string
+        required: true
+        description: "The position to ask after next"
+      gap:
+        name: Gap
+        type: bool
+        required: true
+        description: "True: the owner no longer holds every event after the position asked for, so the reader has missed some and reads the items again"
+```
+
+---
+
+## Runs
+
+What execution keeps of a run: one record per run, of every step it took and
+every tool call each step made, with the model each step ran, what the backend
+reported it used and cost, the decisions it recorded and the approvals it
+waited on. The kinds are `run`, `run-step` and `tool-call`
+([`schemas/kinds`](../schemas/kinds.md#declared-kinds)); how a person reads
+and stops one is their Resources block, held in
+[`architecture/programme-service`](../architecture/programme-service.md#resources)
+until execution's blueprint is written.
+
+A run's record holds what its steps said. It is classified at the scope of the
+work it ran on, and is answered only to a request that may receive that scope
+([`patterns/scope`](../patterns/scope.md)). Nothing in it is a secret: a
+credential a step used is named by the integration it came through, never
+carried.
+
+### Run
+
+```yaml
+types:
+  Run:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The run's id, minted by execution: 32 lowercase hex characters, never reused"
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "What ran: the workflow's name, the task's action, or the operation or step an `agent:` instruction belongs to"
+      definition_kind:
+        name: DefinitionKind
+        type: string
+        required: true
+        description: "What sort of thing `definition` names"
+        enum: [workflow, task, agent-instruction]
+      agent:
+        name: Agent
+        type: string
+        required: false
+        description: "The agent that ran it: a work agent, or the prompt worker for an `agent:` instruction. Absent while queued"
+      parent:
+        name: Parent
+        type: string
+        required: false
+        description: "The run that started this one, where one did"
+      trigger:
+        name: Trigger
+        type: string
+        required: true
+        description: "What started it"
+        enum: [schedule, event, person, run]
+      triggered_by:
+        name: TriggeredBy
+        type: string
+        required: false
+        description: "Who or what: a person's identity id, an event's id, or the parent run's uid"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "A state of the run's state machine"
+        enum: [queued, running, waiting, completed, failed, cancelled]
+      queued_at:
+        name: QueuedAt
+        type: timestamp
+        required: true
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: false
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      usage:
+        name: Usage
+        type: RunUsage
+        required: false
+        description: "The sum of its steps' usage, over the steps whose backend reported one"
+      error:
+        name: Error
+        type: ErrorResponse
+        required: false
+        description: "Why it failed, where it did"
+      cancelled_by:
+        name: CancelledBy
+        type: string
+        required: false
+        description: "The identity id of the person who cancelled it"
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "The trace it ran under ([TraceContext](#tracecontext))"
+```
+
+### RunStep
+
+One stage of a run: a workflow phase, a model's turn, a decision the run
+recorded, or a wait on an approval.
+
+```yaml
+types:
+  RunStep:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The step's id, minted by execution, never reused"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The run it is part of"
+      seq:
+        name: Seq
+        type: int
+        required: true
+        description: "Its place in the run, from 1"
+      step_type:
+        name: StepType
+        type: string
+        required: true
+        description: "What sort of stage it is"
+        enum: [phase, model-turn, decision, approval]
+      name:
+        name: Name
+        type: string
+        required: false
+        description: "A phase's name, as its definition declares it"
+      status:
+        name: Status
+        type: string
+        required: true
+        enum: [pending, running, waiting, completed, failed, skipped]
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: false
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      backend:
+        name: Backend
+        type: string
+        required: false
+        description: "For a model's turn: the backend it ran on, as the tenant's model configuration names it"
+      model:
+        name: Model
+        type: string
+        required: false
+        description: "For a model's turn: the model, as the backend reported it ran, never as it was asked for"
+      usage:
+        name: Usage
+        type: RunUsage
+        required: false
+        description: "What the backend reported this turn used. Absent where it reported nothing, which is never read as zero"
+      content:
+        name: Content
+        type: text
+        required: false
+        description: "What the step said: a model's answer, or a decision as the run stated it"
+      reason:
+        name: Reason
+        type: text
+        required: false
+        description: "For a decision: the reason the run gave for it"
+      approval:
+        name: Approval
+        type: string
+        required: false
+        description: "For an approval: the id of the ApprovalRequest it waits on"
+      error:
+        name: Error
+        type: ErrorResponse
+        required: false
+      span_id:
+        name: SpanID
+        type: string
+        required: false
+        description: "The step's span ([TraceContext](#tracecontext))"
+```
+
+### RunToolCall
+
+One call a step made to a tool: an owner's API, an MCP tool, a declared action.
+
+```yaml
+types:
+  RunToolCall:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The call's id, minted by execution, never reused"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The run it was made in"
+      step:
+        name: Step
+        type: string
+        required: true
+        description: "The step that made it"
+      tool:
+        name: Tool
+        type: string
+        required: true
+        description: "The tool's name, as the step called it"
+      provider_call_id:
+        name: ProviderCallID
+        type: string
+        required: false
+        description: "The id the model's backend gave the call, where it gave one. Not an identity here"
+      arguments:
+        name: Arguments
+        type: map
+        required: false
+        description: "The arguments as the step sent them"
+      outcome:
+        name: Outcome
+        type: string
+        required: false
+        description: "How it ended. `refused`: a boundary refused it before the tool ran"
+        enum: [ok, error, refused]
+      refused_with:
+        name: RefusedWith
+        type: string
+        required: false
+        description: "For `refused`: the code the boundary refused it with"
+      result_digest:
+        name: ResultDigest
+        type: string
+        required: false
+        description: "The digest of what the tool answered, written sha256:<hex>"
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: true
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      span_id:
+        name: SpanID
+        type: string
+        required: false
+        description: "The call's span ([TraceContext](#tracecontext))"
+```
+
+### RunUsage
+
+What a backend reported a turn used, with the token counts named as
+[`patterns/api-ai`](../patterns/api-ai.md)'s `Usage` names them. A field the
+backend did not report is absent, never zero; the tenant computes no cost from
+a price list of its own, because a figure it made up would read as one the
+backend charged.
+
+```yaml
+types:
+  RunUsage:
+    fields:
+      prompt_tokens:
+        name: PromptTokens
+        type: int64
+        required: false
+        description: "Input tokens, as the backend reported them"
+      completion_tokens:
+        name: CompletionTokens
+        type: int64
+        required: false
+        description: "Output tokens, as the backend reported them"
+      total_tokens:
+        name: TotalTokens
+        type: int64
+        required: false
+        description: "Total tokens, as the backend reported them"
+      cost:
+        name: Cost
+        type: RunCost
+        required: false
+        description: "What the backend reported the turn cost, where it reported a cost"
+
+  RunCost:
+    fields:
+      amount:
+        name: Amount
+        type: string
+        required: true
+        description: "A decimal number, as the backend wrote it, so no rounding is introduced"
+      currency:
+        name: Currency
+        type: string
+        required: true
+        description: "An ISO 4217 code"
 ```
 
 ---
@@ -1937,6 +2695,11 @@ types:
         type: "[]PassRoute"
         required: false
         description: "The `pass_routes` this component's manifest declared, as its registration recorded them. Absent or empty: no person's request is carried here. See [PassRoute](#passroute)"
+      resources:
+        name: Resources
+        type: "[]ResourceDeclaration"
+        required: false
+        description: "The `resources` this component's manifest declared, as its registration recorded them. See [Resources](#resources)"
 ```
 
 **`url` is what a registrant claimed; `address_provenance` is how much that is worth.**
@@ -2969,6 +3732,31 @@ error_codes:
     category: permanent
     retryable: false
     description: Event envelope is malformed or topic is unowned
+  - code: RESOURCE_KIND_UNDECLARED
+    status: 404
+    category: permanent
+    retryable: false
+    description: The kind is not one the tenant's catalogue declares (schemas/resource)
+  - code: RESOURCE_OPERATION_UNDECLARED
+    status: 405
+    category: permanent
+    retryable: false
+    description: The operation or verb is not one the kind's declaration names. Allow names what the address serves
+  - code: RESOURCE_FIELD_NOT_SETTABLE
+    status: 400
+    category: permanent
+    retryable: false
+    description: A write names a field its declaration does not let a person set there. Nothing changes
+  - code: RESOURCE_IF_MATCH_REQUIRED
+    status: 428
+    category: permanent
+    retryable: false
+    description: An update, a delete or a verb arrived with no If-Match
+  - code: RESOURCE_PRECONDITION_FAILED
+    status: 412
+    category: permanent
+    retryable: false
+    description: If-Match does not equal the item's ETag now. Nothing changes; the answer carries the current ETag
   - code: PHASE_FAILED
     status: 500
     category: varies
