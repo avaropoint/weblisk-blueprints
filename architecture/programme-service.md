@@ -453,6 +453,12 @@ Execution dispatches an `agent:` phase to it, with the instruction and the
 - writes only through an owner's API, as a proposal where that owner requires
   one, and keeps nothing of its own. The run's record is execution's.
 
+Its component blueprint is [`architecture/prompt-worker`](prompt-worker.md):
+how execution hands it a phase, the closed tool set an instruction may be
+given, which capabilities each `needs:` word comes to, how a programme's
+`skills` reach the instruction, and what a phase answers, including that it
+was not runnable.
+
 ### The decision inbox
 
 **Each owner serves its own decisions, and the admin gateway composes one
@@ -477,7 +483,9 @@ How each decision is shaped is
 **No component blueprint implements any of this.** Nothing builds the
 programme service, execution, notification or the prompt worker. A tenant
 runs none of them, so an adoption today hands no block to an owner, and says
-so.
+so. The prompt worker's blueprint is written
+([`architecture/prompt-worker`](prompt-worker.md)), and nothing generates it
+yet.
 
 **Execution's blueprint is not written.** Until it is,
 [`architecture/domain`](domain.md) and the
