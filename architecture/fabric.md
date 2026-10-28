@@ -1957,47 +1957,47 @@ verifies:
 
 ## Verification Checklist
 
-- [ ] Two claims about the same two artifacts, the same anchors, the same relation and the same scope resolve to one relationship, whatever kind each producer assigned
-- [ ] Changing an artifact's classification does not change the key of any relationship recorded against it
-- [ ] A claim submitted with a `status` field is refused, and the submitted type has nowhere to carry one
-- [ ] A producer's claim that disagrees with an edge a person decided leaves that edge unchanged, returns a deferral, and publishes `fabric.relationship.deferred`
-- [ ] A producer's `Sync` retires only edges matching its own producer name, scope and declared partition
-- [ ] A `Sync` naming a partition the producer has not declared refuses the whole batch rather than retiring anything
-- [ ] Editing one endpoint of a confirmed relationship leaves the relationship recorded, its status unchanged, and its health `stale`
-- [ ] An endpoint that cannot be read yields health `unreachable`, never `broken` and never `current`, and coverage counts it as needing review
-- [ ] Moving a file to which a confirmed relationship points yields health `moved`, and the status is not demoted
-- [ ] An artifact carrying its own durable identifier keeps its relationships across a move with no repair, and its recorded address is refreshed on the next claim
-- [ ] A relocation whose content matches in two places is refused with both candidates named, and nothing is written
-- [ ] A relocation on an edge with no recorded size declines rather than hashing the workspace
-- [ ] A relocation request carrying a destination is refused
-- [ ] A reference naming a path that two sources in scope answer is refused, and both candidates are named
-- [ ] A relation the kind taxonomy does not declare between those two kinds is skipped and reported as a producer fault
-- [ ] A second process appending concurrently cannot produce two entries with the same predecessor digest
-- [ ] An entry altered on disk makes `Verify` report `valid` false and name the first entry that does not follow
-- [ ] A ledger whose byte length decreased is re-read in full and reported, and no answer is served from the incremental parse
-- [ ] A producer run writes one batch, and a person's act writes alone
-- [ ] Every answer carries an `AnswerCompleteness`, and a coverage result of zero states how many partitions have never been scanned
-- [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole
-- [ ] Every answer citing a repository whose `effective_custody` is shared or opaque carries `access_complete` false, and no caller can set it true
-- [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only
-- [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent
-- [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added
+- [ ] Two claims about the same two artifacts, the same anchors, the same relation and the same scope resolve to one relationship, whatever kind each producer assigned ([What makes two claims the same claim](#what-makes-two-claims-the-same-claim))
+- [ ] Changing an artifact's classification does not change the key of any relationship recorded against it ([What makes two claims the same claim](#what-makes-two-claims-the-same-claim), [Design Principles](#design-principles) 3)
+- [ ] A claim submitted with a `status` field is refused, and the submitted type has nowhere to carry one ([Design Principles](#design-principles) 4, [Security](#security))
+- [ ] A producer's claim that disagrees with an edge a person decided leaves that edge unchanged, returns a deferral, and publishes `fabric.relationship.deferred` ([Who may assert what](#who-may-assert-what), [Security](#security))
+- [ ] A producer's `Sync` retires only edges matching its own producer name, scope and declared partition ([Scale](#scale), [Security](#security))
+- [ ] A `Sync` naming a partition the producer has not declared refuses the whole batch rather than retiring anything ([Error Handling](#error-handling), [Security](#security))
+- [ ] Editing one endpoint of a confirmed relationship leaves the relationship recorded, its status unchanged, and its health `stale` ([Health](#health))
+- [ ] An endpoint that cannot be read yields health `unreachable`, never `broken` and never `current`, and coverage counts it as needing review ([The Custody Question](#the-custody-question), [Health](#health))
+- [ ] Moving a file to which a confirmed relationship points yields health `moved`, and the status is not demoted ([Health](#health))
+- [ ] An artifact carrying its own durable identifier keeps its relationships across a move with no repair, and its recorded address is refreshed on the next claim ([What makes two claims the same claim](#what-makes-two-claims-the-same-claim))
+- [ ] A relocation whose content matches in two places is refused with both candidates named, and nothing is written ([Relocation Flow](#relocation-flow), [Security](#security))
+- [ ] A relocation on an edge with no recorded size declines rather than hashing the workspace ([Relocation Flow](#relocation-flow), [Error Handling](#error-handling))
+- [ ] A relocation request carrying a destination is refused ([Security](#security))
+- [ ] A reference naming a path that two sources in scope answer is refused, and both candidates are named ([Design Principles](#design-principles) 2, [Error Handling](#error-handling))
+- [ ] A relation the kind taxonomy does not declare between those two kinds is skipped and reported as a producer fault ([Error Handling](#error-handling))
+- [ ] A second process appending concurrently cannot produce two entries with the same predecessor digest ([The Ledger](#the-ledger), [Security](#security))
+- [ ] An entry altered on disk makes `Verify` report `valid` false and name the first entry that does not follow ([Interfaces](#interfaces), [Types](#types), [Error Handling](#error-handling))
+- [ ] A ledger whose byte length decreased is re-read in full and reported, and no answer is served from the incremental parse ([The Ledger](#the-ledger), [Security](#security))
+- [ ] A producer run writes one batch, and a person's act writes alone ([The Ledger](#the-ledger))
+- [ ] Every answer carries an `AnswerCompleteness`, and a coverage result of zero states how many partitions have never been scanned ([Design Principles](#design-principles) 8, [Answer Flow](#answer-flow), [Types](#types))
+- [ ] An answer whose traversal limit was reached says so on its completeness rather than returning a trimmed result as whole ([Configuration](#configuration))
+- [ ] Every answer citing a repository whose `effective_custody` is shared or opaque carries `access_complete` false, and no caller can set it true ([The Custody Question](#the-custody-question), [Security](#security))
+- [ ] No fabric code path transfers content bytes; version resolution and relocation use identity lookup and listing only ([Why this is its own component](#why-this-is-its-own-component), [Security](#security))
+- [ ] A content service whose `ServiceEntry` is on another host is reached only with a grant for that address; absent one the repository is `unreachable` and no credential is sent ([Where the content service is](#where-the-content-service-is), [Security](#security))
+- [ ] The fabric's manifest declares no `agent:message`, and a remote content service does not cause it to be added ([Registration and Standalone Operation](#registration-and-standalone-operation), [Where the content service is](#where-the-content-service-is))
 - [ ] The fabric's manifest declares no `fabric:attest`, and its registration succeeds; a component whose manifest declares `fabric:attest` is refused at registration with `CAPABILITY_PERSON_ONLY` ([`protocol/types`](../protocol/types.md#capability)), and an agent's authorisation naming it is refused
-- [ ] The fabric's manifest's `pass_routes` declare the three `fabric:attest` routes with `[fabric:attest]` and the seven `fabric:read` routes with `[fabric:read]`, and neither `POST /v1/fabric/sync` nor `POST /v1/fabric/observations`
-- [ ] An attestation on a pass addressed to this service whose `cap` names `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, on a person's operator token with `PASS_REQUIRED`, and on a pass addressed to another component with `PASS_AUDIENCE_MISMATCH`
+- [ ] The fabric's manifest's `pass_routes` declare the three `fabric:attest` routes with `[fabric:attest]` and the seven `fabric:read` routes with `[fabric:read]`, and neither `POST /v1/fabric/sync` nor `POST /v1/fabric/observations` ([Registration and Standalone Operation](#registration-and-standalone-operation), [Endpoints](#endpoints))
+- [ ] An attestation on a pass addressed to this service whose `cap` names `fabric:attest` is recorded; the same request on a registered component's token or a channel token is refused with `FORBIDDEN`, whatever capabilities that token names, on a person's operator token with `PASS_REQUIRED`, and on a pass addressed to another component with `PASS_AUDIENCE_MISMATCH` ([Registration and Standalone Operation](#registration-and-standalone-operation), [Error Handling](#error-handling))
 - [ ] Through the admin gateway, an attestation, a decision or a relocation on an operator token minted before its operator was removed, its credential revoked, or its role lowered to one without `fabric:attest` is refused by the exchange with `OPERATOR_REVOKED`, `CREDENTIAL_REVOKED` or `FORBIDDEN` ([`architecture/admin`](admin.md#contracts), `token-status-on-use`), and this service is sent nothing and appends nothing
-- [ ] A person's attestation, decision or relocation records the pass's `identity_id` as the entry's `actor`, never its `sub`, so renaming the operator changes nothing the ledger holds, and its audit entry names the pass's `act.identity_id` as `via`; a producer's claims record the `identity_id` claim of the token it presented
+- [ ] A person's attestation, decision or relocation records the pass's `identity_id` as the entry's `actor`, never its `sub`, so renaming the operator changes nothing the ledger holds, and its audit entry names the pass's `act.identity_id` as `via`; a producer's claims record the `identity_id` claim of the token it presented ([Person Flow](#person-flow), [Registration and Standalone Operation](#registration-and-standalone-operation), [Types](#types))
 - [ ] With the orchestrator unreachable, an attestation on an unexpired pass whose `cap` names `fabric:attest` is recorded, because this service asks the orchestrator nothing about a pass, and one on a pass whose `exp` has passed is refused with `TOKEN_EXPIRED` ([The pass](../protocol/identity.md#the-pass), rule 3, and [`protocol/identity`](../protocol/identity.md#error-handling)) and appends nothing
-- [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical
-- [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool
-- [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised
-- [ ] An impact path reports its weakest step, and a recorded derivation and an inferred match never render identically
-- [ ] A partition whose recorded input digests are unchanged is skipped entirely, with no edge touched and no claim resolved
-- [ ] An edit to a governing document marks dependent edges stale and causes nothing to be regenerated
-- [ ] With no orchestrator configured, the service starts, serves `GET /livez` live and `GET /readyz` not ready, logs that no orchestrator is configured, and refuses every protected endpoint
-- [ ] A broken chain leaves the service refusing appends while still answering reads
-- [ ] Every digest the ledger writes as one string reads `sha256:<hex>`, the first entry's `previous_digest` included
-- [ ] An entry appended from a run statement carries `run` with the statement's digest and `signed`, and `on_behalf_of` as the statement records it; the statement's model, tool and prompt digest appear in no entry
-- [ ] An edge to generated code in a language whose mapping ships no symbol extractor is anchored to the whole file, and an answer resting on it counts it in `file_level_endpoints`
-- [ ] A `section` anchor survives a reworded heading unchanged, because its value is the slot key
-- [ ] No setting raises the reach depth above `reach-max-depth`
+- [ ] Recording, confirming, rejecting or retiring a relationship leaves both artifacts byte-identical ([Where relationships do not live](#where-relationships-do-not-live))
+- [ ] Projecting an unchanged ledger twice produces identical bytes, and every judgement in the projection can be recomputed from the content with a published digest tool ([Design Principles](#design-principles) 9, [Interfaces](#interfaces))
+- [ ] Every relationship reachable from one endpoint is reachable from the other, and a synthesised containment step is reported as synthesised ([Overview](#overview), [Answer Flow](#answer-flow))
+- [ ] An impact path reports its weakest step, and a recorded derivation and an inferred match never render identically ([Types](#types))
+- [ ] A partition whose recorded input digests are unchanged is skipped entirely, with no edge touched and no claim resolved ([Producer Flow](#producer-flow), [Scale](#scale))
+- [ ] An edit to a governing document marks dependent edges stale and causes nothing to be regenerated ([Staleness and rebuild are different questions](#staleness-and-rebuild-are-different-questions))
+- [ ] With no orchestrator configured, the service starts, serves `GET /livez` live and `GET /readyz` not ready, logs that no orchestrator is configured, and refuses every protected endpoint ([Registration and Standalone Operation](#registration-and-standalone-operation))
+- [ ] A broken chain leaves the service refusing appends while still answering reads ([Registration and Standalone Operation](#registration-and-standalone-operation))
+- [ ] Every digest the ledger writes as one string reads `sha256:<hex>`, the first entry's `previous_digest` included ([The Ledger](#the-ledger))
+- [ ] An entry appended from a run statement carries `run` with the statement's digest and `signed`, and `on_behalf_of` as the statement records it; the statement's model, tool and prompt digest appear in no entry ([Declared at write time](#declared-at-write-time), [Types](#types))
+- [ ] An edge to generated code in a language whose mapping ships no symbol extractor is anchored to the whole file, and an answer resting on it counts it in `file_level_endpoints` ([Declared at write time](#declared-at-write-time))
+- [ ] A `section` anchor survives a reworded heading unchanged, because its value is the slot key ([Types](#types))
+- [ ] No setting raises the reach depth above `reach-max-depth` ([Configuration](#configuration), [Reach from a diff](#reach-from-a-diff))

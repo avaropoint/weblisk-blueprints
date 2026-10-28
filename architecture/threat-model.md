@@ -785,19 +785,19 @@ security:
 
 ## Verification Checklist
 
-- [ ] Auth endpoints enforce rate limit of 10 requests/min/IP with account lockout after 5 failures and CAPTCHA after 3
-- [ ] Session cookies are HttpOnly + Secure + SameSite=Strict with ML-DSA-65-signed tokens and client binding hash
-- [ ] CSP with strict script-src is set on every response; X-Frame-Options: DENY prevents clickjacking
-- [ ] Gateway route table uses allowlisted agent targets only — no user-controlled URLs in forwarding (SSRF prevention)
-- [ ] Internal replay detection rejects duplicate X-Request-Id values within a 300-second window
-- [ ] Agents in zero-trust mode use mTLS for all inter-component communication; trusted mode agents bind to 127.0.0.1 only
-- [ ] Admin gateway is on a separate domain/port, unreachable from the application gateway's network path
-- [ ] A destructive admin act on a token without a `step_up_at` recent enough for `destructive-action-step-up` is refused `STEP_UP_REQUIRED` and audited, and none asks a second person (`architecture/admin`, `destructive-action-step-up`) <!-- wl:check threat-destructive-step-up-tested covers threat-destructive-step-up -->
-- [ ] Federation data contracts enforce field-level filtering; forbidden fields stripped by sender, independently validated by receiver
-- [ ] Every numbered attack vector (1.1–6.8) has a corresponding test in the conformance test suite
-- [ ] A caller refuses an address whose `ServiceEntry.address_provenance` is `self-asserted` and whose host is not its anchor's, and names the undeclared address rather than reporting the component unavailable
-- [ ] No caller presents its anchor credential at a host other than its anchor's, whatever the entry's `address_provenance` says
-- [ ] A caller compares an address's host with its anchor's as text and never by resolving either: with the anchor at `localhost`, an address at `127.0.0.1` is on the anchor's host, and an address at a name that resolves to the anchor's address is on a foreign host
-- [ ] Attack chains 1–7 are validated during penetration testing to confirm all stated control layers hold
-- [ ] Continuous security checks run at specified frequencies: dependency scan on every deploy, TLS expiry daily, OWASP baseline weekly
-- [ ] Residual risks are documented and accepted by the deployment operator in the deployment's risk register
+- [ ] Auth endpoints enforce the per-IP rate limit, account lockout and CAPTCHA thresholds vector 1.5 gives ([Authentication](#authentication))
+- [ ] Session cookies are HttpOnly + Secure + SameSite=Strict with ML-DSA-65-signed tokens and client binding hash ([Session Attacks](#session-attacks) 1.9)
+- [ ] CSP with strict script-src is set on every response; X-Frame-Options: DENY prevents clickjacking ([Injection](#injection) 1.14, [Client-Side](#client-side) 1.22)
+- [ ] Gateway route table uses allowlisted agent targets only — no user-controlled URLs in forwarding (SSRF prevention) ([Attack Surface Map](#attack-surface-map-1) 2.6)
+- [ ] Internal replay detection rejects duplicate X-Request-Id values within the replay window vector 2.10 gives ([Attack Surface Map](#attack-surface-map-1))
+- [ ] Agents in zero-trust mode use mTLS for all inter-component communication; trusted mode agents bind to 127.0.0.1 only ([Internal Network Model](#internal-network-model))
+- [ ] Admin gateway is on a separate domain/port, unreachable from the application gateway's network path ([Admin-Specific Threats](#admin-specific-threats) 4.2 and 4.8)
+- [ ] A destructive admin act on a token without a `step_up_at` recent enough for `destructive-action-step-up` is refused `STEP_UP_REQUIRED` and audited, and none asks a second person ([Admin-Specific Threats](#admin-specific-threats) 4.5, [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`) <!-- wl:check threat-destructive-step-up-tested covers threat-destructive-step-up -->
+- [ ] Federation data contracts enforce field-level filtering; forbidden fields stripped by sender, independently validated by receiver ([Boundary 5: Hub ↔ Hub (Federation)](#boundary-5-hub--hub-federation) 5.2 and 5.4)
+- [ ] Every numbered attack vector (1.1–6.8) has a corresponding test in the conformance test suite ([Implementation Notes](#implementation-notes))
+- [ ] A caller refuses an address whose `ServiceEntry.address_provenance` is `self-asserted` and whose host is not its anchor's, and names the undeclared address rather than reporting the component unavailable ([`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component))
+- [ ] No caller presents its anchor credential at a host other than its anchor's, whatever the entry's `address_provenance` says ([`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component))
+- [ ] A caller compares an address's host with its anchor's as text and never by resolving either: with the anchor at `localhost`, an address at `127.0.0.1` is on the anchor's host, and an address at a name that resolves to the anchor's address is on a foreign host ([`architecture/orchestrator`](orchestrator.md#presenting-a-credential-to-a-component))
+- [ ] Attack chains 1–7 are validated during penetration testing to confirm all stated control layers hold ([Attack Chains](#attack-chains), [Implementation Notes](#implementation-notes))
+- [ ] Continuous security checks run at the frequencies [Continuous](#continuous) gives, the dependency scan, TLS expiry check and OWASP baseline scan among them
+- [ ] Residual risks are documented and accepted by the deployment operator in the deployment's risk register ([Residual Risk Register](#residual-risk-register), [Implementation Notes](#implementation-notes))

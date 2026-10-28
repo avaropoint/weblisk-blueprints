@@ -448,14 +448,14 @@ security:
 
 ## Verification Checklist
 
-- [ ] All components write the one log envelope `patterns/logging` defines
-- [ ] The log level is `schemas/config`'s `observability.log_level`
-- [ ] Trace context is carried, continued and started as `protocol/spec`'s Trace Propagation says (`trace-propagation`)
-- [ ] Every span takes its name from the Span Names table, and opens and closes as Span Lifecycle says
-- [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication
-- [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics
-- [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type
-- [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII
-- [ ] No component answers a health request with more than `live` or `ready`, and observability counts agents by `lease_state` without probing any
-- [ ] Each sampled span is written as one log line whose `log_type` is `span`, and pushed as OTLP where telemetry is deployed
-- [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding
+- [ ] All components write the one log envelope [`patterns/logging`](../patterns/logging.md) defines ([Structured Logging](#structured-logging))
+- [ ] The log level is `schemas/config`'s `observability.log_level` ([Configuration Parameters](#configuration-parameters))
+- [ ] Trace context is carried, continued and started as [`protocol/spec`](../protocol/spec.md#trace-propagation)'s Trace Propagation says (`trace-propagation`, [Contracts](#contracts))
+- [ ] Every span takes its name from the [Span Names](#span-names) table, and opens and closes as [Span Lifecycle](#span-lifecycle) says
+- [ ] GET /metrics returns structured metrics with wl_ prefix and does NOT require authentication ([Metrics Endpoint](#metrics-endpoint), [Metric Naming Conventions](#metric-naming-conventions), [Implementation Notes](#implementation-notes))
+- [ ] Orchestrator exposes wl_agents_registered, wl_tasks_total, wl_task_duration_seconds, and wl_http_requests_total metrics ([Orchestrator Metrics](#orchestrator-metrics))
+- [ ] Agent metrics include wl_tasks_total by action/status, wl_llm_calls_total, and wl_llm_tokens_total by model/type ([Agent Metrics](#agent-metrics))
+- [ ] Metrics labels do NOT include high-cardinality values (user_id, URL) or PII ([Metric Naming Conventions](#metric-naming-conventions), [Implementation Notes](#implementation-notes))
+- [ ] No component answers a health request with more than `live` or `ready`, and observability counts agents by `lease_state` without probing any ([Health Endpoint](#health-endpoint))
+- [ ] Each sampled span is written as one log line whose `log_type` is `span`, and pushed as OTLP where telemetry is deployed ([Trace Export](#trace-export))
+- [ ] Components limit log output to ~100 lines per task at info level to prevent log flooding ([Implementation Notes](#implementation-notes))

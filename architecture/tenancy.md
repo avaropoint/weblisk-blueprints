@@ -594,15 +594,15 @@ security:
 
 ## Verification Checklist
 
-- [ ] A tenant identifier supplied in a request body or a tool argument MUST NOT select tenant state
-- [ ] A provisioned component's bindings MUST reference only its own tenant's resources
-- [ ] Provisioning failure at any step MUST leave no resource attributable to the tenant
-- [ ] Provisioning MUST refuse, before any resource exists, a namespace outside the grammar, reserved, a place or issuer code, or confusable with a reserved name, and, where the tenant's hub runs a namespace registry, MUST NOT return until the owner's claim is the first name that registry accepted
-- [ ] A suspended tenant MUST serve no request and MUST retain every record
-- [ ] `ExportTenant` MUST produce every record, configuration and agent definition the tenant owns
-- [ ] `DeleteTenant` MUST destroy every resource named in the provisioning record
-- [ ] The host MUST hold no credential registered as an operator of any tenant it did not create for itself
-- [ ] A pinned tenant MUST be skipped by fleet deployment
-- [ ] A fleet deployment MUST halt when a batch's error rate exceeds the configured threshold
-- [ ] Tenant creation MUST be refused when the admission ceiling is reached
-- [ ] Every host action against a tenant MUST appear in the control-plane audit with principal, tenant, action and time
+- [ ] A tenant identifier supplied in a request body or a tool argument MUST NOT select tenant state ([Data Flow](#data-flow), [Design Principles](#design-principles) 2, [Security](#security))
+- [ ] A provisioned component's bindings MUST reference only its own tenant's resources ([Design Principles](#design-principles) 3, [Security](#security))
+- [ ] Provisioning failure at any step MUST leave no resource attributable to the tenant ([Data Flow](#data-flow), [Security](#security))
+- [ ] Provisioning MUST refuse, before any resource exists, a namespace outside the grammar, reserved, a place or issuer code, or confusable with a reserved name, and, where the tenant's hub runs a namespace registry, MUST NOT return until the owner's claim is the first name that registry accepted ([Interfaces](#interfaces))
+- [ ] A suspended tenant MUST serve no request and MUST retain every record ([Security](#security))
+- [ ] `ExportTenant` MUST produce every record, configuration and agent definition the tenant owns ([Interfaces](#interfaces))
+- [ ] `DeleteTenant` MUST destroy every resource named in the provisioning record ([Security](#security), [Implementation Notes](#implementation-notes))
+- [ ] The host MUST hold no credential registered as an operator of any tenant it did not create for itself ([Security](#security))
+- [ ] A pinned tenant MUST be skipped by fleet deployment ([Interfaces](#interfaces))
+- [ ] A fleet deployment MUST halt when a batch's error rate exceeds the configured threshold ([Interfaces](#interfaces), [Configuration](#configuration))
+- [ ] Tenant creation MUST be refused when the admission ceiling is reached ([Design Principles](#design-principles) 7, [Configuration](#configuration))
+- [ ] Every host action against a tenant MUST appear in the control-plane audit with principal, tenant, action and time ([Security](#security))

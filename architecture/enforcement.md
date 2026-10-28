@@ -1617,28 +1617,28 @@ in the relevant `platforms/*.md` blueprint. All platforms MUST satisfy:
 
 ## Verification Checklist
 
-- [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery
-- [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION)
-- [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE)
-- [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal` as [the gate](../patterns/scope.md#the-gate) gives it; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production`
-- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from an agent whose manifest does not declare `model:route`, is denied with `ENFORCEMENT_BLOCKED_TARGET`; from one that declares it, the call reaches the destination gate and a payload above the provider's ceiling is denied with `SCOPE_CEILING_EXCEEDED`
-- [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION)
-- [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED)
-- [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected
-- [ ] Capability mismatch detected — agent with `[database:read]` cannot write, which needs `database:write` (capability_mismatch violation)
-- [ ] Data contract enforcement — storage proxy verifies operations match declared data contract; undeclared resource access blocked (ENFORCEMENT_DATA_CONTRACT_VIOLATION)
-- [ ] Volume anomaly triggers graduated response — 10x spike emits audit alert; sustained 5 minutes triggers quarantine
-- [ ] Pattern deviation triggers auto-quarantine — sustained deviation beyond configurable threshold (default: 30 minutes) triggers automatic quarantine without operator confirmation
-- [ ] Baseline manipulation defended — multi-window baselines, historical anchor, drift rate limit, and maximum baseline shift prevent gradual normalization of malicious patterns
-- [ ] Fail-closed on policy evaluation error — enforcement denies on error rather than allowing
-- [ ] Audit trail is complete — every decision logged with correlation_id, agent, boundary, operation, scope, policies, and result
-- [ ] Decision cache invalidation works — policy change causes next identical operation to be re-evaluated
-- [ ] Quarantine release requires appropriate authority — high-severity quarantine requires admin authority to release
-- [ ] ViolationRecord is produced for every blocked operation with all required fields
-- [ ] ApprovalContext is produced when decision is require_approval, with policy and safety context attached
-- [ ] Storage proxy operation vocabulary matches safety.md OperationClass (read, list, query, create, modify, delete, destroy)
-- [ ] Privacy enforcement: consent checked at all 4 boundaries for scope >= confidential — missing consent blocks the operation (ENFORCEMENT_CONSENT_REQUIRED)
-- [ ] Privacy enforcement: field masking applied before data crosses any boundary — masked fields never reach unauthorized recipients
-- [ ] Privacy enforcement: data minimization strips fields not required for the declared operation before delivery
-- [ ] Privacy enforcement: external boundary verifies consent includes external sharing permission before payload leaves the platform
-- [ ] Non-bypassability verified — no agent has any path to message bus, storage layer, or external services that does not pass through enforcement
+- [ ] Message boundary intercepts all messages — enforcement evaluates policies and logs decisions before delivery ([Message Interception](#message-interception))
+- [ ] Storage boundary blocks scope violations — agent with `internal` scope cannot write to `restricted` resource (ENFORCEMENT_SCOPE_VIOLATION) ([Storage Proxy](#storage-proxy))
+- [ ] External boundary prevents scope leakage — `restricted`-scope data cannot be sent to unclassified external endpoints (ENFORCEMENT_SCOPE_LEAKAGE) ([External Proxy](#external-proxy))
+- [ ] A model provider is sent nothing above the ceiling [`patterns/scope`](../patterns/scope.md#model-providers) gives it (`SCOPE_CEILING_EXCEEDED`), and nothing undeclared (`SCOPE_MISSING`), each refusal carrying a `DestinationRefusal` as [the gate](../patterns/scope.md#the-gate) gives it; the call is denied before any masking, never masked to fit, and is denied in the `development` profile as in `production` ([External Proxy](#external-proxy))
+- [ ] A call to the address `GET /v1/model/ceiling` reports for a model backend, from an agent whose manifest does not declare `model:route`, is denied with `ENFORCEMENT_BLOCKED_TARGET`; from one that declares it, the call reaches the destination gate and a payload above the provider's ceiling is denied with `SCOPE_CEILING_EXCEEDED` ([External Proxy](#external-proxy))
+- [ ] Response boundary blocks output contract violations — agent cannot return fields outside its declared output contract (ENFORCEMENT_OUTPUT_CONTRACT_VIOLATION) ([Response Proxy](#response-proxy))
+- [ ] Response boundary blocks output scope exceeded — agent cannot return data at a scope higher than its declared operational scope (ENFORCEMENT_OUTPUT_SCOPE_EXCEEDED) ([Response Proxy](#response-proxy))
+- [ ] Quarantine blocks all four boundaries — quarantined agent's messages, storage writes, external calls, and responses are all rejected ([Quarantine Sequence](#quarantine-sequence))
+- [ ] Capability mismatch detected — agent with `[database:read]` cannot write, which needs `database:write` (capability_mismatch violation) ([Storage Proxy](#storage-proxy), [Detection Rules](#detection-rules))
+- [ ] Data contract enforcement — storage proxy verifies operations match declared data contract; undeclared resource access blocked (ENFORCEMENT_DATA_CONTRACT_VIOLATION) ([Storage Proxy](#storage-proxy))
+- [ ] Volume anomaly triggers graduated response — a spike above the multiplier emits an audit alert, and one sustained past the sustain period triggers quarantine ([Detection Rules](#detection-rules) `volume_anomaly`)
+- [ ] Pattern deviation triggers auto-quarantine — deviation sustained beyond the configurable `auto_quarantine_threshold` triggers automatic quarantine without operator confirmation ([Detection Rules](#detection-rules) `pattern_deviation`)
+- [ ] Baseline manipulation defended — multi-window baselines, historical anchor, drift rate limit, and maximum baseline shift prevent gradual normalization of malicious patterns ([Detection Rules](#detection-rules) `pattern_deviation`)
+- [ ] Fail-closed on policy evaluation error — enforcement denies on error rather than allowing ([Fail-Closed Guarantees](#fail-closed-guarantees))
+- [ ] Audit trail is complete — every decision logged with correlation_id, agent, boundary, operation, scope, policies, and result ([Evaluation Sequence](#evaluation-sequence) step 11, [Sub-Components](#sub-components))
+- [ ] Decision cache invalidation works — policy change causes next identical operation to be re-evaluated ([Sub-Components](#sub-components), [Attack Surface](#attack-surface))
+- [ ] Quarantine release requires appropriate authority — high-severity quarantine requires admin authority to release ([Quarantine Release](#quarantine-release))
+- [ ] ViolationRecord is produced for every blocked operation with all required fields ([Types](#types), [Interfaces](#interfaces))
+- [ ] ApprovalContext is produced when decision is require_approval, with policy and safety context attached ([Message Interception](#message-interception), [Evaluation Sequence](#evaluation-sequence))
+- [ ] Storage proxy operation vocabulary matches safety.md OperationClass (read, list, query, create, modify, delete, destroy) ([Storage Proxy](#storage-proxy), [`patterns/safety`](../patterns/safety.md#operation-classes))
+- [ ] Privacy enforcement: consent checked at all 4 boundaries for scope >= confidential — missing consent blocks the operation (ENFORCEMENT_CONSENT_REQUIRED) ([Evaluation Sequence](#evaluation-sequence) step 6, [Interfaces](#interfaces))
+- [ ] Privacy enforcement: field masking applied before data crosses any boundary — masked fields never reach unauthorized recipients ([Evaluation Sequence](#evaluation-sequence) step 6)
+- [ ] Privacy enforcement: data minimization strips fields not required for the declared operation before delivery ([Evaluation Sequence](#evaluation-sequence) step 6)
+- [ ] Privacy enforcement: external boundary verifies consent includes external sharing permission before payload leaves the platform ([External Proxy](#external-proxy), [Evaluation Sequence](#evaluation-sequence) step 6)
+- [ ] Non-bypassability verified — no agent has any path to message bus, storage layer, or external services that does not pass through enforcement ([Overview](#overview), [Security](#security))

@@ -1561,29 +1561,29 @@ security:
 
 ## Verification Checklist
 
-- [ ] Dependency contracts declare version ranges (semver)
-- [ ] Bindings specify exact endpoints, types, fields, events used
-- [ ] on_change rules defined for compatible, breaking, and removed
-- [ ] Orchestrator computes structured diff on blueprint update
-- [ ] Impact classification maps diff entries against agent bindings
-- [ ] system.change.assessment emitted per affected agent
-- [ ] Transitive dependencies resolved (full graph walk)
-- [ ] Cycle detection flags circular dependencies
-- [ ] Agents self-govern reconciliation per on_change policy
-- [ ] Reconciliation results tracked per agent per change
-- [ ] Ecosystem rollback triggers when critical agent fails
-- [ ] Reconciliation deadline enforced with timeout events
-- [ ] Blue-green: new version starts alongside old version
-- [ ] Blue-green: shadow mode validates without side effects
+- [ ] Dependency contracts declare version ranges (semver) ([Contract Schema](#contract-schema), [Version Ranges](#version-ranges))
+- [ ] Bindings specify exact endpoints, types, fields, events used ([Contract Schema](#contract-schema))
+- [ ] on_change rules defined for compatible, breaking, and removed ([Contract Schema](#contract-schema))
+- [ ] Orchestrator computes structured diff on blueprint update ([Diff Computation](#diff-computation))
+- [ ] Impact classification maps diff entries against agent bindings ([Impact Classification](#impact-classification))
+- [ ] system.change.assessment emitted per affected agent ([Phase 2 — Impact Assessment](#phase-2--impact-assessment), [Events](#events))
+- [ ] Transitive dependencies resolved (full graph walk) ([Transitive Dependencies](#transitive-dependencies))
+- [ ] Cycle detection flags circular dependencies ([Transitive Dependencies](#transitive-dependencies))
+- [ ] Agents self-govern reconciliation per on_change policy ([Phase 3 — Reconciliation](#phase-3--reconciliation))
+- [ ] Reconciliation results tracked per agent per change ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))
+- [ ] Ecosystem rollback triggers when critical agent fails ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))
+- [ ] Reconciliation deadline enforced with timeout events ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking), [Constraints](#constraints))
+- [ ] Blue-green: new version starts alongside old version ([Deployment Phases](#deployment-phases))
+- [ ] Blue-green: shadow mode validates without side effects ([Deployment Phases](#deployment-phases))
 - [ ] Blue-green: cutover shifts traffic atomically
 - [ ] Blue-green: rollback restores previous version within seconds
-- [ ] Blue-green: destructive migrations deferred until cutover confirmed
-- [ ] Scaling: inter-agent communication is message-bus-only
-- [ ] Scaling: intra-agent coordination via shared storage + leader election
-- [ ] Scaling: message routing by agent name, never by instance address
-- [ ] Scaling: during blue-green, bus routes shadow traffic correctly
-- [ ] All events published with correct topics and payloads
-- [ ] Change records, assessments, and results persisted with relationships
-- [ ] Deployment records track full blue-green lifecycle
-- [ ] Concurrent changes to same blueprint serialized
-- [ ] Operator notified for halted/failed reconciliation
+- [ ] Blue-green: destructive migrations deferred until cutover confirmed ([Deployment Phases](#deployment-phases), [Constraints](#constraints))
+- [ ] Scaling: inter-agent communication is message-bus-only ([Inter-Agent Communication](#inter-agent-communication))
+- [ ] Scaling: intra-agent coordination via shared storage + leader election ([Intra-Agent Coordination](#intra-agent-coordination))
+- [ ] Scaling: message routing by agent name, never by instance address ([Inter-Agent Communication](#inter-agent-communication))
+- [ ] Scaling: during blue-green, bus routes shadow traffic correctly ([Message Routing During Versioning](#message-routing-during-versioning))
+- [ ] All events published with correct topics and payloads ([Events](#events))
+- [ ] Change records, assessments, and results persisted with relationships ([Storage](#storage))
+- [ ] Deployment records track full blue-green lifecycle ([Storage](#storage), [Deployment Phases](#deployment-phases))
+- [ ] Concurrent changes to same blueprint serialized ([Constraints](#constraints))
+- [ ] Operator notified for halted/failed reconciliation ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))

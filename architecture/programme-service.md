@@ -657,19 +657,19 @@ security:
 
 ## Verification Checklist
 
-- [ ] Every route in [Endpoints](#endpoints) but `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes`, with the one capability its row gives
-- [ ] An operator token on any route is refused with `PASS_REQUIRED`
-- [ ] `POST /v1/programme/installations` on a registration or channel token is refused with `FORBIDDEN`, and installs nothing
-- [ ] Every item an installation creates is muted, and is paused unless its `start` is `running`
-- [ ] Installing the same programme twice at one scope creates no second item
-- [ ] An installation asked for at a project is refused with `INVALID_REQUEST`, naming the organisation
-- [ ] An installation lists every block it could not hand to an owner, with the owner named, and does not call itself complete
-- [ ] A route other than `/livez`, `/readyz` and installing, missing `organisation`, or a route with `{id}` in its path missing `programme`, is refused with `INVALID_REQUEST`
-- [ ] With one programme installed at two organisations, `DELETE /v1/programme/installations/{programme}` withdraws only the organisation it names
-- [ ] The mute and unmute routes of operations, workflows and notices each need `programme:switch`, and the service never declares `programme:switch` on its own manifest
-- [ ] Pausing, resuming or running an unmuted item on a component's registration token is refused with `FORBIDDEN`. The same act on a muted item is admitted with `programme:operate`
-- [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true
-- [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent
-- [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND`
-- [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document
-- [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run
+- [ ] Every route in [Endpoints](#endpoints) but `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes`, with the one capability its row gives ([Endpoints](#endpoints))
+- [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
+- [ ] `POST /v1/programme/installations` on a registration or channel token is refused with `FORBIDDEN`, and installs nothing ([Who May Do What](#who-may-do-what) rule 2, [Error Handling](#error-handling))
+- [ ] Every item an installation creates is muted, and is paused unless its `start` is `running` ([Installing](#installing))
+- [ ] Installing the same programme twice at one scope creates no second item ([Responsibilities](#responsibilities), [Types](#types), [Implementation Notes](#implementation-notes))
+- [ ] An installation asked for at a project is refused with `INVALID_REQUEST`, naming the organisation ([Error Handling](#error-handling))
+- [ ] An installation lists every block it could not hand to an owner, with the owner named, and does not call itself complete ([Installing](#installing), [Error Handling](#error-handling))
+- [ ] A route other than `/livez`, `/readyz` and installing, missing `organisation`, or a route with `{id}` in its path missing `programme`, is refused with `INVALID_REQUEST` ([Endpoints](#endpoints), [Error Handling](#error-handling))
+- [ ] With one programme installed at two organisations, `DELETE /v1/programme/installations/{programme}` withdraws only the organisation it names ([Withdrawing](#withdrawing))
+- [ ] The mute and unmute routes of operations, workflows and notices each need `programme:switch`, and the service never declares `programme:switch` on its own manifest ([Endpoints](#endpoints))
+- [ ] Pausing, resuming or running an unmuted item on a component's registration token is refused with `FORBIDDEN`. The same act on a muted item is admitted with `programme:operate` ([Endpoints](#endpoints), [Who May Do What](#who-may-do-what) rules 2 and 3)
+- [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true ([Telling](#telling))
+- [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent ([Telling](#telling), [Endpoints](#endpoints))
+- [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
+- [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
+- [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run ([Known Gaps](#known-gaps))
