@@ -325,7 +325,7 @@ publish(topic, payload, scope, options)
    If no → reject locally, log error. Event is NOT sent.
 
 2. Build EventEnvelope:
-   event_id:       UUID v7
+   event_id:       UUID v7 (the recommended format)
    topic:          provided topic
    source:         this agent's name
    scope:          provided scope
@@ -737,7 +737,7 @@ perform the conversion.
 ## Verification Checklist
 
 - [ ] Events are published with every required field of [Envelope Fields](#envelope-fields)
-- [ ] Event IDs are globally unique (UUID v7) — [Event ID Generation](#event-id-generation), [Publish Flow](#publish-flow)
+- [ ] Event IDs are unique across the hub, in the format [Event ID Generation](#event-id-generation) recommends — [Publish Flow](#publish-flow)
 - [ ] Framework validates namespace ownership before publishing — [Namespace Ownership](#namespace-ownership), [Publish Flow](#publish-flow)
 - [ ] Framework resolves subscribers from local routing table (no orchestrator call) — [Publish Guarantees](#publish-guarantees)
 - [ ] Scope filtering applied: self-scoped subscribers only get their own events — [How Scope Works](#how-scope-works)

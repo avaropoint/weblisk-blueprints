@@ -504,6 +504,10 @@ config:
 - **Reconciliation must work with no notifications at all.** Build it that way from the
   start: a system that only corrects what it was told about cannot correct what it was
   never told.
+- **A payment that succeeded in the request path entitles at once.** Where the flow that
+  took the payment learns from the provider that it succeeded, it records that as
+  subscription state then, so entitlement never waits on a notification that may be late
+  or may not arrive.
 - **Compute entitlement in the request path**, from subscription state, quota usage and
   plan. If that is too slow, cache the inputs rather than the conclusion.
 - **Suspension and deletion are different operations with different authority.** Automatic
@@ -535,7 +539,7 @@ config:
 - [ ] A notification older than the state it would overwrite MUST be discarded — [Contracts](#contracts), [Error Handling](#error-handling)
 - [ ] Reconciliation MUST correct local state without any notification having been received — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
 - [ ] Entitlement MUST be derived from current subscription state at the moment of use — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] A subject whose payment succeeded MUST be entitled without waiting for a notification
+- [ ] A subject whose payment succeeded MUST be entitled without waiting for a notification — [Implementation Notes](#implementation-notes)
 - [ ] A lapsed subscription MUST suspend rather than delete — [Design Principles](#design-principles), [Configuration](#configuration)
 - [ ] A metering failure MUST NOT change whether an operation proceeds — [Contracts](#contracts), [Error Handling](#error-handling)
 - [ ] A quota refusal MUST name the measure exceeded and when it resets — [Contracts](#contracts), [Error Handling](#error-handling)

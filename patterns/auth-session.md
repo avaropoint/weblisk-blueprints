@@ -281,6 +281,10 @@ Sessions are stored server-side. Each session record contains:
 When `max_sessions_per_user` is exceeded, the oldest session MUST be
 evicted.
 
+A session whose `expires_at` has passed is not a valid session: every
+request presenting it is refused as one with no session (401), whether or
+not cleanup has yet removed the record.
+
 ### Password Storage
 
 Owned by [`patterns/user-management`](user-management.md#password-requirements),
@@ -394,7 +398,7 @@ types:
   and CSRF tokens.
 - **Session ID entropy**: Use crypto-random 32 bytes (256 bits). Never
   use sequential or predictable IDs.
-- **Cookie flags**: Always set HttpOnly, Secure (in production),
+- **Cookie flags**: Always set HttpOnly, Secure,
   SameSite=Lax. Never expose session IDs to JavaScript.
 - **Login throttling**: Implementations SHOULD rate-limit login attempts
   per IP (e.g. 10 attempts per minute) to mitigate brute force.
@@ -412,9 +416,9 @@ types:
 - [ ] Login returns CSRF token in response body — [Login (POST /auth/login)](#login-post-authlogin), [CSRF Protection](#csrf-protection)
 - [ ] Logout destroys session and clears cookie — [Logout (POST /auth/logout)](#logout-post-authlogout)
 - [ ] GET /auth/me returns user for valid session, 401 otherwise — [Get Current User (GET /auth/me)](#get-current-user-get-authme)
-- [ ] CSRF token is required on all state-changing endpoints
+- [ ] A CSRF token is required on every state-changing endpoint that [CSRF Protection](#csrf-protection) does not exempt
 - [ ] Invalid CSRF token returns 403 — [CSRF Protection](#csrf-protection)
-- [ ] Expired sessions are rejected
+- [ ] Expired sessions are rejected — [Session Storage](#session-storage)
 - [ ] Passwords are never returned in any API response — [User](#user), [Design Principles](#design-principles)
 - [ ] Failed login does not reveal whether email exists — [Login (POST /auth/login)](#login-post-authlogin), [Implementation Notes](#implementation-notes)
 - [ ] Session IDs have the entropy [Implementation Notes](#implementation-notes) sets

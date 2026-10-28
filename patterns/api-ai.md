@@ -430,7 +430,8 @@ Generate vector embeddings for text.
   ],
   "usage": {
     "total_tokens": 14
-  }
+  },
+  "latency_ms": 90
 }
 ```
 
@@ -888,6 +889,9 @@ than the one first chosen, the response's `provider` says so.
 - **Input limits**: Request body MUST be capped at 1 MB. Prompts
   exceeding the model's context window SHOULD return 400 with
   `INVALID_REQUEST` and the model's token limit in `detail`.
+- **Latency**: Every inference response (`/ai/chat`, `/ai/complete`,
+  `/ai/extract` and `/ai/embed`) carries `latency_ms`, the end-to-end
+  latency, as [ChatResponse](#chatresponse) declares it.
 - **Response caching**: Deterministic responses (temperature = 0) and
   embeddings MAY be cached per [patterns/caching](caching.md).
 
@@ -914,7 +918,7 @@ than the one first chosen, the response's `provider` says so.
 - [ ] Streaming request to a non-streaming model returns 406 Not Acceptable — [Implementation Notes](#implementation-notes)
 - [ ] Request body is capped at the input limit of [Implementation Notes](#implementation-notes)
 - [ ] Rate limiting returns 429 with Retry-After header — [`patterns/rate-limiting`](rate-limiting.md#429-too-many-requests), [`patterns/rate-limiting`](rate-limiting.md#response-headers)
-- [ ] All responses include `latency_ms` for observability
+- [ ] Every inference response includes `latency_ms` — [Implementation Notes](#implementation-notes), [ChatResponse](#chatresponse)
 - [ ] Tool calling works across providers that support it — [Provider Abstraction](#provider-abstraction), [POST /ai/chat](#post-aichat)
 - [ ] Provider-specific formats are fully normalised — [Provider Abstraction](#provider-abstraction)
 - [ ] A model the default provider does not list runs on another provider whose list holds the same name, and never as another model — [Resolution Order](#resolution-order), [Implementation Notes](#implementation-notes)

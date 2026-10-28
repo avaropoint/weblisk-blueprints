@@ -798,7 +798,7 @@ config:
 | No matching runbook found | Escalate immediately — no automated remediation available |
 | Runbook step timeout | Mark step as failed, execute on_failure action (next or escalate) |
 | Runbook step action unknown | Log error, skip step, escalate if no remaining safe steps |
-| Multiple runbooks match | Select highest-priority runbook; log alternatives for operator review |
+| Multiple runbooks match | Select the one Implementation Notes' runbook matching chooses (most specific trigger, then first declared); log alternatives for operator review |
 | Concurrent runbook limit reached | Queue incident for runbook execution; do not drop |
 
 ### Escalation Errors
@@ -815,7 +815,7 @@ config:
 | Scenario | Behavior |
 |----------|----------|
 | Invalid state transition attempted | Reject transition, log error, preserve current state |
-| Post-mortem generation failure | Log error, allow manual report creation, do not block closure |
+| Post-mortem generation failure | Log error, allow manual report creation, do not block closure: the manually created report stands in for the generated one |
 | Timeline append failure | Log error, continue incident processing — timeline is best-effort |
 | Storage unavailable | Retry with backoff; operate in degraded mode with in-memory state |
 
@@ -905,7 +905,7 @@ config:
 - [ ] Incidents auto-escalate to human operators after configurable thresholds (time, action count) — [Contracts](#contracts), [Types](#types)
 - [ ] Auto-resolved incidents are monitored for recurrence during the `auto_resolve_timeout` window — [Configuration](#configuration), [Implementation Notes](#implementation-notes)
 - [ ] Every resolved incident generates a PostIncidentReport with timeline, duration, and resolution method — [Contracts](#contracts), [Types](#types), [Implementation Notes](#implementation-notes)
-- [ ] No incident transitions to `closed` without a post-incident report (when `post_mortem_required: true`)
+- [ ] No incident transitions to `closed` without a post-incident report while `post_mortem_required` is true; a failed generation does not block closure, and a manually created report stands in for the generated one — [Contracts](#contracts), [Lifecycle Errors](#lifecycle-errors)
 - [ ] All incident lifecycle events declared in [Contracts](#contracts) `events` are emitted on the messaging bus
 - [ ] Escalation timers survive agent restart (durable storage, not in-memory) — [Implementation Notes](#implementation-notes)
 - [ ] Concurrent runbook execution respects the configured limit, with overflow queued by severity — [Runbook Errors](#runbook-errors), [Implementation Notes](#implementation-notes)
