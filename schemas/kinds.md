@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.2.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -145,6 +145,9 @@ Not capabilities — values a kind declares.
 | `workflow` | — | namespace + path | authored | — | versioned, has-custody |
 | `programme` | — | namespace + path | published | — | versioned |
 | `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |
+| `lease` | — | tenant + agent name | observed | — | *(none)* |
+| `run-step` | — | step id | observed | — | *(none)* |
+| `tool-call` | — | call id | observed | — | *(none)* |
 
 ### What the table says, in words
 
@@ -194,6 +197,14 @@ by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
+
+**`lease`, `run-step` and `tool-call` are records of something running, and
+govern nothing.** A lease is the presence a registered agent holds, one at a
+time, so it is named as its agent is. A step is one stage of a run, and a tool
+call one call a step made; each is named by an id its owner mints, because a
+step's position in its run is not a name. None is versioned, and none is a
+chain member: the run they belong to is the execution record
+([`resource.md`](resource.md) declares how a person reads each).
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
@@ -438,7 +449,19 @@ relation.
 | `copied_from` | policy, procedure, sop, standard, guideline, reference, document | the same kind | adoption |
 | `satisfies` | `specification` | `control` | declared |
 | `conforms_to` | `programme` | `standard` | declared |
+| `held_by` | `lease` | `agent` | registry |
+| `run_by` | `run` | `agent` | execution |
+| `spawned_by` | `run` | `run` | execution |
+| `part_of` | `run-step` | `run` | execution |
+| `part_of` | `tool-call` | `run-step` | execution |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
+
+`held_by`, `run_by`, `spawned_by` and `part_of` are what a run's record and a
+lease say of themselves: the owner of the record asserts them when it writes it,
+and a client reads them as a resource's relations
+([`resource.md`](resource.md#relations)). `execution` is the tenant's run
+ledger ([`architecture/programme-service`](../architecture/programme-service.md#execution)),
+whose blueprint is not written yet, so nothing asserts the last four today.
 
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.

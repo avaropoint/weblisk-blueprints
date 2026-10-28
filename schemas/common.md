@@ -717,6 +717,20 @@ storage:
 
 ---
 
+## Resources Section
+
+A component that holds or runs something a person may see and operate
+declares each such kind in a `## Resources` section, form `yaml:resources`,
+placed directly after `## Types`, in a blueprint of any type. A blueprint that
+carries a `## Declaration` holds the same block as that declaration's
+`resources:` key instead, and has no `## Resources` section.
+
+What the block holds, when it is well formed, and which blueprint declares a
+kind are [`schemas/resource`](resource.md)'s, and are not restated here. A
+section is optional: a component a person never operates declares none.
+
+---
+
 ## Verification Checklist Section
 
 Every blueprint MUST include a `## Verification Checklist` section with
@@ -1125,7 +1139,9 @@ Common sections that appear in all types follow this base order:
 3. Summary paragraph
 4. `## Overview`
 5. `## Dependencies`
-6. _(Type-specific sections — see type schema)_
+6. _(Type-specific sections — see type schema)_, with `## Resources`, where
+   present, directly after `## Types`
+   ([Resources Section](#resources-section))
 7. `## Implementation Notes`
 8. `## Verification Checklist`
 
