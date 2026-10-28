@@ -827,24 +827,24 @@ data_protection:
 
 Before submitting a blueprint, verify:
 
-- [ ] Frontmatter has all required fields for this blueprint type
-- [ ] `name` matches filename
-- [ ] All `requires` and `extends` entries resolve to existing blueprints
-- [ ] All `requires` entries reference compliant or certified blueprints (D011)
-- [ ] Extending a pattern does not weaken its security properties (D012)
-- [ ] Pattern behavior overrides satisfy all override_constraints (D013)
-- [ ] `## Dependencies` section has full YAML with bindings and on_change for every dependency
-- [ ] Types are in YAML format with descriptions, types, and constraints
-- [ ] Security section declares all capabilities with specific resources
-- [ ] Access control blocks unauthenticated callers
-- [ ] Constraints section declares blast radius and forbidden actions
-- [ ] Resource limits are declared and reasonable
-- [ ] Data sensitivity is classified for all stored data
-- [ ] Event namespaces are owned by this blueprint only
-- [ ] Storage tables reference types from the Types section
-- [ ] Verification checklist has concrete, testable assertions
-- [ ] Implementation notes cover pitfalls, performance, security, testing
-- [ ] Test fixtures cover happy path, errors, and edge cases
-- [ ] Blueprint is implementable from this document alone (no follow-up questions needed)
-- [ ] Blueprint content hash in compliance report matches current content (S011)
-- [ ] Compliance report is signed by a trusted validating authority
+- [ ] Frontmatter has all required fields for this blueprint type ([Phase 1](#phase-1--structural-validation) S002)
+- [ ] `name` matches filename ([Phase 1](#phase-1--structural-validation) S004)
+- [ ] All `requires` and `extends` entries resolve to existing blueprints ([Phase 2](#phase-2--dependency-validation) D002, D003)
+- [ ] All `requires` entries reference compliant or certified blueprints (D011) ([Phase 2](#phase-2--dependency-validation))
+- [ ] Extending a pattern does not weaken its security properties (D012) ([Phase 2](#phase-2--dependency-validation))
+- [ ] Pattern behavior overrides satisfy all override_constraints (D013) ([Phase 2](#phase-2--dependency-validation))
+- [ ] `## Dependencies` section has full YAML with bindings and on_change for every dependency ([Phase 2](#phase-2--dependency-validation) D001, D005, D007)
+- [ ] Types are in YAML format with descriptions, types, and constraints ([Phase 3](#phase-3--type-validation) T001, T003, T004)
+- [ ] Security section declares all capabilities with specific resources ([Phase 4](#phase-4--security-validation) SEC002, SEC006)
+- [ ] Access control blocks unauthenticated callers ([Phase 4](#phase-4--security-validation) SEC012)
+- [ ] Constraints section declares blast radius and forbidden actions ([Phase 4](#phase-4--security-validation) SEC009)
+- [ ] Resource limits are declared and reasonable ([Phase 4](#phase-4--security-validation) SEC011)
+- [ ] Data sensitivity is classified for all stored data ([Phase 4](#phase-4--security-validation) SEC004)
+- [ ] Event namespaces are owned by this blueprint only ([Phase 4](#phase-4--security-validation) SEC008)
+- [ ] Storage tables reference types from the Types section ([`schemas/common`](common.md#storage-section))
+- [ ] Verification checklist has concrete, testable assertions ([Phase 5](#phase-5--completeness-validation) C001, C002)
+- [ ] Implementation notes cover pitfalls, performance, security, testing ([Phase 5](#phase-5--completeness-validation) C003, [`schemas/common`](common.md#required-content))
+- [ ] Test fixtures cover happy path, errors, and edge cases ([Phase 5](#phase-5--completeness-validation) C005)
+- [ ] Blueprint is implementable from this document alone (no follow-up questions needed) ([Phase 5](#phase-5--completeness-validation) C010)
+- [ ] Blueprint content hash in compliance report matches current content (S011) ([Phase 1](#phase-1--structural-validation), [Registration](#registration-orchestrator))
+- [ ] Compliance report is signed by a trusted validating authority ([Compliance Report](#compliance-report), [Registration](#registration-orchestrator))
