@@ -638,9 +638,11 @@ async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<
 | `string` | `String` | Owned string; `&str` for borrows |
 | `int` | `i32` | |
 | `int64` | `i64` | |
+| `integer` | `i64` | No stated width, so the widest (`schemas/common`) |
 | `float` | `f64` | |
 | `bool` | `bool` | |
-| `object` | `HashMap<String, serde_json::Value>` | Or typed struct with `#[derive(Deserialize)]` |
+| `object` | a struct with `#[derive(Deserialize)]` | Its fields are the declared ones; `HashMap<String, serde_json::Value>` only where none are declared |
+| `map` | `HashMap<String, serde_json::Value>` | Its members are undeclared and its values any JSON (`schemas/common`) |
 | `list` | `Vec<T>` | Typed vector |
 | `uuid` | `String` | Validated format; or `uuid::Uuid` crate |
 | `timestamp` | `String` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)` |

@@ -2181,7 +2181,7 @@ agents hold, which is theirs.
 - [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke`
 - [ ] `POST /v1/admin/operators/{name}/key` is served as `OperatorKeyChange`, requires no bearer token, and keeps the operator's `identity_id` while revoking its credentials (`architecture/admin`, `operator-key-change`)
 - [ ] `POST /v1/admin/hub/proof` is served as `HubProof` and requires no bearer token: a request carrying none reaches its handler, and is never answered `401` `valid token required` (`architecture/admin`, `hub-proof`)
-- [ ] A token with `type` `attestation` is refused with `CREDENTIAL_REQUIRED` on every route but `CredentialAttest`, `GET /v1/audit` and `POST /v1/channel` included, and on `CredentialAttest` for any operator but its `sub`
+- [ ] A token with `type` `attestation` is refused as [Auth Middleware](#auth-middleware) step 5 says, on every route but `CredentialAttest` (`GET /v1/audit` and `POST /v1/channel` included) and on `CredentialAttest` for any operator but its `sub`
 - [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs
 
 - [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection

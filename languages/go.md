@@ -676,13 +676,12 @@ made afresh on every file.
 
 ### Where the Go type is not obvious
 
-The Primitive Mapping table above binds the protocol's primitives. Beyond it:
+The Primitive Mapping table above binds the protocol's primitives, and the
+[Type Mapping](#type-mapping) below binds each declared field type. Beyond them:
 
 | Declared | Go |
 |---|---|
-| an integer field with no stated width | `int64` — counts cross the wire and must not narrow by platform |
 | an optional scalar | a pointer, so absent and zero are distinguishable |
-| a map with declared value shape | `map[string]T`, never `map[string]any` |
 | a duration | `time.Duration`, parsed from the declared unit at the boundary |
 | an opaque cursor | `string`, never decoded — the blueprint says implementations may use offsets, timestamps or encoded keys, so nothing may depend on its content |
 
@@ -693,11 +692,13 @@ The Primitive Mapping table above binds the protocol's primitives. Beyond it:
 | Schema Type | Go Type | Notes |
 |-------------|---------|-------|
 | `string` | `string` | |
-| `int` | `int32` | |
+| `int` | `int32` | 32-bit, as `schemas/common` declares it |
 | `int64` | `int64` | |
+| `integer` | `int64` | No stated width, so the widest: a count crossing the wire never narrows |
 | `float` | `float64` | |
 | `bool` | `bool` | |
-| `object` | `map[string]any` | Or typed struct |
+| `object` | a struct | A struct whose fields are the declared ones; `map[string]any` only where none are declared |
+| `map` | `map[string]any` | Its members are undeclared and its values any JSON (`schemas/common`), so there is no `T` to type it on |
 | `list` | `[]T` | Typed slice |
 | `uuid` | `string` | Validated format |
 | `timestamp` | `string` | RFC 3339 UTC with milliseconds (`protocol/conventions:instant`) via `t.UTC().Format("2006-01-02T15:04:05.000Z")`; read back with `time.Parse` on the same layout |
@@ -821,7 +822,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling
 - [ ] The process binds its port and answers `GET /livez` when started with no terminal attached
 - [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and no `omitempty` appears that the blueprint did not state
-- [ ] An integer field with no stated width is `int64`; an optional scalar is a pointer; a declared map is typed on its value shape and never `map[string]any`
+- [ ] Every field's Go type is the one [Type Mapping](#type-mapping) gives its declared type, and an optional scalar is a pointer ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious))
 - [ ] A cursor is carried as an opaque string and never decoded
 
 ### Domain Controllers

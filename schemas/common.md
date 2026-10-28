@@ -528,10 +528,12 @@ types:
 | `text` | Long-form text (no max by default) | Multi-paragraph content |
 | `int` | 32-bit signed integer | `42` |
 | `int64` | 64-bit signed integer (counts, sizes) | `1712160001` |
+| `integer` | A signed integer whose width the field does not state; held as 64-bit, so it never narrows | `42` |
 | `timestamp` | An instant, as [`protocol/conventions`](../protocol/conventions.md#instant) writes it | `"2026-01-02T03:04:05.123Z"` |
 | `float` | 64-bit floating point | `3.14` |
 | `bool` | Boolean | `true` / `false` |
 | `object` | Nested JSON object | `{"key": "value"}` |
+| `map` | A JSON object keyed by string whose members are not declared; each value is any JSON value. This vocabulary has no way to declare a map's value shape, so none is ever assumed | `{"attempt": 2}` |
 | `list` | Ordered array | `[1, 2, 3]` |
 | `uuid` | UUID string ([`protocol/conventions`](../protocol/conventions.md#uuid)) | `"017f22e2-79b0-7cc3-98c4-dc0c0c07398f"` |
 
