@@ -893,19 +893,19 @@ opt-level = 3
 
 ## Verification Checklist
 
-- [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members
-- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test
-- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers
-- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code
-- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself
+- [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members ([Workspace Layout](#workspace-layout), [Workspace Cargo.toml](#workspace-cargotoml))
+- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface))
+- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface))
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
+- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface))
 - [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
-- [ ] `http_body_util::Limited` is applied on all request body reads: 1 MB for registration/messages, 10 MB for tasks, 64 KB for channels
-- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state
-- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity
+- [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
+- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes))
+- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits))
 - [ ] `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS`
-- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"`
-- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse`
-- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker
-- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment
-- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent`
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI
+- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode))
+- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling))
+- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency))
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables))
+- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism))
+- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI ([CI](#ci))

@@ -712,15 +712,15 @@ describe("liveness probe", () => {
 ## Verification Checklist
 
 - [ ] ML-DSA-65 operations use @noble/post-quantum for signing; keys exported as raw ArrayBuffer and hex-encoded for protocol
-- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test
-- [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding
-- [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse`
-- [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent)
-- [ ] Durable Object alarm handles channel TTL cleanup
-- [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads
-- [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json
+- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test ([The HTTP Surface](#the-http-surface))
+- [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding ([The HTTP Surface](#the-http-surface))
+- [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse` ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
+- [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent) ([State (Orchestrator)](#state-orchestrator), [Storage has no single default here, and that is the answer](#storage-has-no-single-default-here-and-that-is-the-answer))
+- [ ] Durable Object alarm handles channel TTL cleanup ([State (Orchestrator)](#state-orchestrator), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))
+- [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads ([Storage Mapping (Cloudflare)](#storage-mapping-cloudflare), [D1 for Queryable Data](#d1-for-queryable-data), [KV for Fast Reads](#kv-for-fast-reads))
+- [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json ([Runtime Requirements](#runtime-requirements), [Dependencies](#dependencies-1))
 - [ ] Private keys are stored via `wrangler secret put`, not in wrangler.toml or source code
 - [ ] Worker entry point routes requests by URL pathname with auth middleware applied to protected routes
-- [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent`
-- [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level
-- [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping
+- [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent` ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
+- [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
+- [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping ([wrangler.toml](#wranglertoml), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))
