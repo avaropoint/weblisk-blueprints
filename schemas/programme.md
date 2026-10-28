@@ -1551,8 +1551,10 @@ These are the tenant services of the tenant service architecture the owner appro
 specifies the part these blocks reach: the programme service's routes and
 capabilities, who may do what and on which token, what it hands execution,
 notification and the prompt worker, and how a decision reaches the admin
-gateway's one inbox. **No component blueprint implements any of them, and
-the model service is not specified**
+gateway's one inbox. The model service the prompt worker asks is
+[`architecture/model-service`](../architecture/model-service.md). **No
+component blueprint implements any of the others, and no hub serves the model
+service's route yet**
 ([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
 runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme

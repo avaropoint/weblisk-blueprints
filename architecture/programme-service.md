@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, protocol/identity, patterns/workflow, architecture/content, architecture/orchestrator, architecture/admin]
 platform: any
 tier: free
@@ -158,7 +158,7 @@ requires:
                   │       definitions, │      │
                   │       schedules    ▼      │
                   │                  execution ──► prompt worker ──► model service
-                  │                    │    (an agent: phase)         (not specified)
+                  │                    │    (an agent: phase)         (architecture/model-service)
           one     │                    │
           inbox ◄─┴── decisions        └──► (a fact) ──► programme service ──notify──► notification
           (owners serve their own)
@@ -209,6 +209,7 @@ requires:
   data in content. The second is each person's preference, held by
   notification
 - **A model.** The prompt worker asks the tenant's model service
+  ([`architecture/model-service`](model-service.md))
 - **Any decision.** A decision belongs to the owner whose work waits on it,
   and only a person makes one ([The decision inbox](#the-decision-inbox))
 
@@ -448,8 +449,13 @@ Execution dispatches an `agent:` phase to it, with the instruction and the
 
 - runs with the intersection of the ceiling, its own manifest's declaration
   and the identity under the run, and never more;
-- asks the tenant's model service for each completion, and reaches no model
-  any other way;
+- asks the tenant's model service for each completion, at
+  `POST /v1/model/complete` on its own registration token, stating the run and
+  phase it works for, and reaches no model any other way
+  ([`architecture/model-service`](model-service.md#asking-the-model-unattended));
+- hands back, with its phase result, each completion's id, the model that ran
+  and the usage the model service reported, which execution writes on the
+  run's record ([`architecture/model-service`](model-service.md#usage-and-cost));
 - writes only through an owner's API, as a proposal where that owner requires
   one, and keeps nothing of its own. The run's record is execution's.
 
@@ -518,19 +524,13 @@ item: a notice's `to` positions are the map's, and who holds them is the
 register above. Until a route is specified, neither act is admitted
 anywhere.
 
-**The prompt worker has no model to call.** The tenant's model is served at
-`POST /v1/admin/complete`, which is a person's route
-([`architecture/orchestrator`](orchestrator.md#the-tenants-model)). A
-registered component can reach a provider itself today, by declaring
-`model:route` ([`protocol/types`](../protocol/types.md#capability)) and
-reading `GET /v1/model/ceiling`
-([`architecture/orchestrator`](orchestrator.md#a-model-is-a-destination)),
-through enforcement's external boundary. The prompt worker does not: that
-makes every component that runs agent work its own model route, and the
-tenant service architecture puts the model in one model service instead.
-That service is not specified, so no route lets a service ask the tenant's
-model for unattended work. So an `agent:` operation or
-step installs, and cannot run, until the model service is specified. It is
+**No hub serves the prompt worker's model route yet.** The route is
+specified: [`architecture/model-service`](model-service.md) gives the tenant's
+one model service a route for a registered component, `POST /v1/model/complete`,
+on its own registration token holding `llm:chat`, on the same configuration,
+gate and audit as a person's completion. The model gateway the CLI installs
+does not serve it yet, and no component blueprint builds the prompt worker. So
+an `agent:` operation or step installs, and cannot run until both exist. It is
 reported as not runnable, never as having run.
 
 **Due answers are not specified here.** What is due, occurrences, counted
@@ -672,4 +672,4 @@ security:
 - [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent ([Telling](#telling), [Endpoints](#endpoints))
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
-- [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run ([Known Gaps](#known-gaps))
+- [ ] An `agent:` item is reported as not runnable while no prompt worker runs, or while the model service's route is not served, and is never reported as having run ([Known Gaps](#known-gaps))
