@@ -1149,22 +1149,22 @@ security:
 
 ## Verification Checklist
 
-- [ ] Orchestrator generates and stores ML-DSA-65 identity
-- [ ] Orchestrator manifest is self-signed and verifiable
-- [ ] Peering flow requires mutual signature verification
-- [ ] Trust relationships have explicit expiry (default: 90 days)
-- [ ] Trust is non-transitive (A↔B + B↔C ≠ A↔C)
-- [ ] Peering can be revoked immediately by either party
-- [ ] Key rotation uses dual-signature (old + new key)
-- [ ] Data contracts are enforced fail-closed (unknown fields rejected)
-- [ ] Forbidden field patterns are recursively applied to all JSON
-- [ ] DATA_BOUNDARY_VIOLATION logged when forbidden fields are stripped
-- [ ] Behavioral fingerprint computed on every registration
-- [ ] BREAKING/CRITICAL changes suspend agent from federation
-- [ ] Peer orchestrators notified of behavioral changes
-- [ ] Federated task payloads are signed by both orchestrators
-- [ ] Jurisdiction checked before routing federated tasks
-- [ ] Cross-boundary data purged within retention window
-- [ ] Retention deletion/anonymization logged in audit
-- [ ] TLS 1.3 required for all federation endpoints
-- [ ] Full cross-boundary audit trail on both sides
+- [ ] Orchestrator generates and stores ML-DSA-65 identity ([Orchestrator Identity](#orchestrator-identity))
+- [ ] Orchestrator manifest is self-signed and verifiable ([Orchestrator Manifest Fields](#orchestrator-manifest-fields))
+- [ ] Peering flow requires mutual signature verification ([Peering Flow](#peering-flow-partner-tier), [Authentication](#authentication))
+- [ ] Trust relationships have an explicit expiry, defaulting as [Peering Flow](#peering-flow-partner-tier) says
+- [ ] Trust is non-transitive (A↔B + B↔C ≠ A↔C) ([Peering Flow](#peering-flow-partner-tier))
+- [ ] Peering can be revoked immediately by either party ([Peering Flow](#peering-flow-partner-tier))
+- [ ] Key rotation uses dual-signature (old + new key) ([Key Rotation](#key-rotation))
+- [ ] Data contracts are enforced fail-closed (unknown fields rejected) ([Enforcement](#enforcement))
+- [ ] Forbidden field patterns are recursively applied to all JSON ([Enforcement](#enforcement))
+- [ ] DATA_BOUNDARY_VIOLATION logged when forbidden fields are stripped ([Enforcement](#enforcement))
+- [ ] Behavioral fingerprint computed on every registration ([Change Detection](#change-detection))
+- [ ] BREAKING/CRITICAL changes suspend agent from federation ([Change Detection](#change-detection))
+- [ ] Peer orchestrators notified of behavioral changes ([Change Detection](#change-detection))
+- [ ] Federated task payloads are signed by both orchestrators ([Conventions](#conventions), [Cross-Boundary Task Execution](#cross-boundary-task-execution))
+- [ ] Jurisdiction checked before routing federated tasks ([Jurisdiction Enforcement](#jurisdiction-enforcement))
+- [ ] Cross-boundary data purged within retention window ([Retention Enforcement](#retention-enforcement))
+- [ ] Retention deletion/anonymization logged in audit ([Retention Enforcement](#retention-enforcement))
+- [ ] TLS 1.3 required for all federation endpoints ([Security Layers Summary](#security-layers-summary))
+- [ ] Full cross-boundary audit trail on both sides ([Cross-Boundary Task Execution](#cross-boundary-task-execution))
