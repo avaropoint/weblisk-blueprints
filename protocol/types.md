@@ -189,13 +189,24 @@ pass). Every such component MUST answer it with this status and no other.
 |------|------|----------|-------------|
 | `STEP_UP_REQUIRED` | 401 | permanent | A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are [`architecture/admin`](../architecture/admin.md#contracts)'s `destructive-action-step-up`, stated nowhere else. The admin gateway returns it as the provider gave it |
 
+**Work pass codes** (produced by the orchestrator's judgement of a work
+authorisation at `POST /v1/token/work`, and answered in
+`WorkExchangeResponse.code`, [`protocol/identity`](identity.md#the-work-pass)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `WORK_AUTHORISATION_UNKNOWN` | 404 | permanent | The orchestrator holds no such work authorisation, or it does not name the caller among its actors. The two are answered alike |
+| `WORK_AUTHORISATION_REVOKED` | 403 | permanent | The work authorisation was revoked. Nothing is minted |
+| `WORK_AUTHORISATION_EXPIRED` | 403 | permanent | The work authorisation is past its `not_after`. Nothing is minted until a person renews it |
+| `WORK_OWNER_UNREGISTERED` | 409 | transient | The work authorisation's owner is not registered now under the identity id it names. Nothing is minted |
+
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator and the admin gateway was presented an operator token, which no holder may present there ([`protocol/identity`](identity.md#the-pass), rule 4). A person's request goes to the tenant's admin gateway, which carries it on a pass, and a tool call to the MCP surface on a credential [`patterns/auth-oauth`](../patterns/auth-oauth.md) issued for it ([`architecture/mcp`](../architecture/mcp.md)). Logged as a security event |
-| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
+| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass or a work pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
 
 **Destination codes** (produced by the destination gate of `patterns/scope`,
 and answered by every sender it binds):
@@ -609,6 +620,19 @@ step 1, and `token-exchange`). <!-- wl:id gateway-only-capability --> Without th
 declare it, and with a person's stolen token have it exchanged for a pass to
 any component, carrying everything that person may use there and passing none
 of the admin gateway's network controls.
+
+**Work capabilities:**
+- `work:authorise` (orchestrator) — make, renew and revoke a work authorisation: allow a registered component's definition to run with nobody present, under that component's authority and within capabilities the person may use themselves ([`protocol/identity`](identity.md#the-work-pass), rules 1 and 2). *Person only*
+- `work:exchange` (orchestrator) — have the orchestrator mint a work pass under a work authorisation that names this registration among its actors ([`protocol/identity`](identity.md#the-work-pass); `architecture/orchestrator`, `work-exchange`). No role carries it
+
+`work:authorise` is person only because allowing work that runs with nobody
+present is a judgement, and nothing that cannot judge may delegate
+([`patterns/principal-identity`](../patterns/principal-identity.md#implementation-notes)).
+It is not in the `admin` family, so `admin:*` does not carry it, and a person
+holds it only where [`architecture/admin`](../architecture/admin.md#operator-roles)'s
+roles table names it. `work:exchange` is a component's: any registration may
+declare it, and it reaches nothing until a person names that registration as
+an actor in an authorisation.
 
 ### PassRoute
 
@@ -2585,6 +2609,195 @@ types:
         description: "Present when issued: the capabilities the pass carries, which are those scope named that the person may use now"
 ```
 
+### WorkAuthorisation
+
+A person's allowance for one registered component's definition to run with
+nobody present, under that component's authority, held by the orchestrator
+([`protocol/identity`](identity.md#the-work-pass)). It is
+`patterns/principal-identity`'s agent authorisation for a service subject.
+
+```yaml
+types:
+  WorkAuthorisation:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Minted by the orchestrator, never reused. A work pass carries it as `cid`"
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The identity id of the registered component whose definition it covers, and whose authority the work uses"
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "The one definition it covers, as its owner names it. Opaque to the orchestrator; the owner checks it (protocol/identity, The work pass, rule 11)"
+      actors:
+        name: Actors
+        type: "[]string"
+        required: true
+        description: "The identity ids of the registered components that may obtain a work pass under it, at least one"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Its ceiling, by the names the Capability list gives them, at least one. None is person only or in the admin family, and none is token:exchange, work:exchange or work:authorise"
+      authorised_by:
+        name: AuthorisedBy
+        type: string
+        required: true
+        description: "The identity id of the person who made it, or who last renewed it"
+      created_at:
+        name: CreatedAt
+        type: timestamp
+        required: true
+      not_after:
+        name: NotAfter
+        type: timestamp
+        required: true
+        description: "When it ends: no more than 90 days after it was made or last renewed"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`active` or `revoked`. One past its not_after is answered `active` with that not_after, and mints nothing"
+      revoked_at:
+        name: RevokedAt
+        type: timestamp
+        required: false
+      revoked_by:
+        name: RevokedBy
+        type: string
+        required: false
+        description: "The identity id of the person, or of the owner component, that revoked it"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "Why it was revoked, as its revoker gave it"
+```
+
+### WorkAuthorisationRequest
+
+What a person's client sends the orchestrator to make work authorisations,
+one for each definition, in one act
+(`POST /v1/admin/work-authorisations`, `architecture/admin`).
+
+```yaml
+types:
+  WorkAuthorisationRequest:
+    fields:
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The identity id of the registered component whose definitions they cover"
+      definitions:
+        name: Definitions
+        type: "[]WorkDefinitionCeiling"
+        required: true
+        description: "One entry for each definition to authorise, at least one"
+      actors:
+        name: Actors
+        type: "[]string"
+        required: true
+        description: "The identity ids of the registered components that may act under each"
+      not_after:
+        name: NotAfter
+        type: timestamp
+        required: true
+        description: "When each ends, no more than 90 days ahead"
+```
+
+### WorkDefinitionCeiling
+
+```yaml
+types:
+  WorkDefinitionCeiling:
+    fields:
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "The definition, as its owner names it"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Its ceiling, at least one capability"
+```
+
+### WorkExchangeRequest
+
+What an actor sends the orchestrator for a work pass (`POST /v1/token/work`,
+`architecture/orchestrator`). The actor authenticates with its own
+registration token, in the `Authorization` header and nowhere else.
+
+```yaml
+types:
+  WorkExchangeRequest:
+    fields:
+      authorisation:
+        name: Authorisation
+        type: string
+        required: true
+        description: "The id of the work authorisation to act under"
+      audience:
+        name: Audience
+        type: string
+        required: true
+        description: "The identity id of the one component the work pass is for: the fingerprint of the public key that component's directory entry carries"
+      scope:
+        name: Scope
+        type: "[]string"
+        required: true
+        description: "The capabilities the request needs at that component. May be empty only where the audience is the authorisation's owner (protocol/identity, The work pass, rule 11)"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The id of the run the request belongs to, which the work pass carries for every receiver to record"
+```
+
+### WorkExchangeResponse
+
+Every answer about the authorisation is a 200 carrying this, so a status other
+than 200 only ever judged the actor's own request.
+
+```yaml
+types:
+  WorkExchangeResponse:
+    fields:
+      issued:
+        name: Issued
+        type: bool
+        required: true
+        description: "True when a work pass was minted"
+      code:
+        name: Code
+        type: string
+        required: false
+        description: "Present when issued is false: one of the work pass codes (Errors), or FORBIDDEN where the intersection is empty"
+      pass:
+        name: Pass
+        type: string
+        required: false
+        description: "Present when issued: the work pass, a WLT of type work addressed to the audience (protocol/identity, The work pass)"
+      expires_at:
+        name: ExpiresAt
+        type: timestamp
+        required: false
+        description: "Present when issued: the work pass's exp, no more than 30 seconds after it was minted"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: false
+        description: "Present when issued: the capabilities the work pass carries"
+```
+
 ### AuditEntry
 
 ```yaml
@@ -2609,7 +2822,17 @@ types:
         name: Via
         type: string
         required: false
-        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass). Absent, and omitted from the canonical JSON, otherwise"
+        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass); where a work pass did, the actor's, its act.identity_id (The work pass). Absent, and omitted from the canonical JSON, otherwise"
+      authorisation:
+        name: Authorisation
+        type: string
+        required: false
+        description: "Where a work pass carried the request, the work authorisation it was minted under, its cid. Absent, and omitted from the canonical JSON, otherwise"
+      run:
+        name: Run
+        type: string
+        required: false
+        description: "Where a work pass carried the request, its run. Absent, and omitted from the canonical JSON, otherwise"
       action:
         name: Action
         type: string
@@ -2640,7 +2863,9 @@ types:
 **Action types:** `register`, `deregister`, `channel`, `message`,
 `event`, `namespace_grant`, `namespace_release`, and the model routes'
 `model_set`, `model_complete`, `model_agreement_record` and
-`model_agreement_withdraw`. The orchestrator's
+`model_agreement_withdraw`, and the work pass's `work_authorise`,
+`work_authorisation_renew`, `work_authorisation_revoke`,
+`work_authorisation_rekey` and `work_exchange`. The orchestrator's
 [Audit Actions](../architecture/orchestrator.md#audit-actions) table says what
 each one it writes records
 
@@ -2850,6 +3075,9 @@ probes are, and which say nothing a version could change ([Health](#health)).
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 | `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
+| `/v1/token/work` | POST | yes | orchestrator | Mint a work pass under a work authorisation that names the caller as an actor (`WorkExchangeResponse`) |
+| `/v1/work/authorisations` | GET | yes | orchestrator | The work authorisations that name the caller as owner or actor |
+| `/v1/work/authorisations/{id}` | DELETE | yes | orchestrator | Revoke a work authorisation that names the caller as owner |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
 
 ---
