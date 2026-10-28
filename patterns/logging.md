@@ -364,14 +364,14 @@ whose records must be redacted points here.
 
 ## Verification Checklist
 
-- [ ] Every log line is one JSON object on standard output with the required `LogEntry` fields (`ts`, `level`, `log_type`, `msg`, `component`, `component_type`)
-- [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as the OpenTelemetry Log Data Model table says
-- [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time
-- [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`)
-- [ ] Standard action log types emit for every action (received, completed, failed)
-- [ ] No standard log type's first segment is an event namespace a component owns
-- [ ] Error logs include error code and message
-- [ ] Log level filtering works (debug disabled by default)
-- [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`)
-- [ ] Custom log types follow the naming convention
-- [ ] Log lines do not exceed 8 KB
+- [ ] Every log line is one JSON object on standard output carrying every required field of `LogEntry` — [Log Envelope](#log-envelope), [Contracts](#contracts), [`protocol/types`](../protocol/types.md#logentry)
+- [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as [OpenTelemetry Log Data Model](#opentelemetry-log-data-model) says
+- [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time — [Trace Correlation](#trace-correlation)
+- [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`) — [Process Events](#process-events)
+- [ ] Standard action log types emit for every action (received, completed, failed) — [Action Events](#action-events)
+- [ ] No standard log type's first segment is an event namespace a component owns — [Standard Log Types](#standard-log-types)
+- [ ] Error logs include error code and message — [Fields](#fields)
+- [ ] Log level filtering works (debug disabled by default) — [Level Configuration](#level-configuration), [`schemas/config`](../schemas/config.md#observability)
+- [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`) — [Sensitive Data](#sensitive-data), [Contracts](#contracts)
+- [ ] Custom log types follow the naming convention — [Custom Log Types](#custom-log-types)
+- [ ] Log lines stay within the size [Implementation Notes](#implementation-notes) gives

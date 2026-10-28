@@ -542,17 +542,17 @@ types:
 
 ## Verification Checklist
 
-- [ ] MIME type is verified by reading magic bytes (first 512 bytes), not just the Content-Type header; mismatches return 415
-- [ ] Content-Length is checked against `max_file_size` before reading the body; streaming enforces the limit and aborts with 413 if exceeded
-- [ ] Filenames are sanitized: path components stripped, non-alphanumeric chars (except `.-_`) replaced, truncated to 255 characters
-- [ ] EXIF metadata is stripped from all images before any variant is stored; orientation is applied to pixel data before stripping
-- [ ] Animated GIFs are preserved as GIF and not converted to static webp
-- [ ] Thumbnails are generated per configured dimensions and fit mode (cover, inside, fill) and stored alongside the original
-- [ ] Batch upload accepts max 10 files and returns partial-success responses (per-file status with `uploaded`/`rejected` counts)
-- [ ] Signed URL generation verifies requester permission, creates a provider-specific presigned URL, and includes an expiry timestamp
-- [ ] Local signed URLs use HMAC-SHA256 with a secret over path + expiry, and the server validates `expires` and `sig` on each request
-- [ ] Public files are served with `Cache-Control: public, max-age=31536000, immutable` when CDN is enabled
-- [ ] File upload uses streaming — the entire file is NOT buffered in memory before writing to storage
-- [ ] Storage `base_path` is not inside the source tree; uploaded files are not executable and are served with `X-Content-Type-Options: nosniff`
-- [ ] Per-user upload rate limits are enforced (e.g., 100 uploads per hour)
-- [ ] Deletion is soft (sets `deleted_at`); a background cleanup job purges storage after the retention period
+- [ ] MIME type is verified from magic bytes as [MIME Type Verification](#mime-type-verification) states, not just the Content-Type header; mismatches return 415
+- [ ] Content-Length is checked against `max_file_size` before reading the body; streaming enforces the limit and aborts with 413 if exceeded — [Size Limits](#size-limits)
+- [ ] Filenames are sanitized as [Filename Sanitization](#filename-sanitization) states
+- [ ] EXIF metadata is stripped from all images before any variant is stored; orientation is applied to pixel data before stripping — [EXIF Stripping](#exif-stripping), [Implementation Notes](#implementation-notes)
+- [ ] Animated GIFs are preserved as GIF and not converted to static webp — [Format Conversion](#format-conversion)
+- [ ] Thumbnails are generated per configured dimensions and fit mode (cover, inside, fill) and stored alongside the original — [Thumbnail Generation](#thumbnail-generation), [Single File Upload (POST /files/upload)](#single-file-upload-post-filesupload)
+- [ ] Batch upload accepts at most the files [Batch Upload (POST /files/upload/batch)](#batch-upload-post-filesuploadbatch) allows and returns partial-success responses (per-file status with `uploaded`/`rejected` counts)
+- [ ] Signed URL generation verifies requester permission, creates a provider-specific presigned URL, and includes an expiry timestamp — [Signed URLs](#signed-urls)
+- [ ] Local signed URLs use HMAC-SHA256 with a secret over path + expiry, and the server validates `expires` and `sig` on each request — [Signed URLs](#signed-urls)
+- [ ] Public files are served with the `Cache-Control` of [Cache Headers](#cache-headers) when CDN is enabled
+- [ ] File upload uses streaming — the entire file is NOT buffered in memory before writing to storage — [Implementation Notes](#implementation-notes)
+- [ ] Storage `base_path` is not inside the source tree; uploaded files are not executable and are served with `X-Content-Type-Options: nosniff` — [Local Storage](#local-storage), [Implementation Notes](#implementation-notes)
+- [ ] Per-user upload rate limits are enforced (e.g., 100 uploads per hour) — [Implementation Notes](#implementation-notes)
+- [ ] Deletion is soft (sets `deleted_at`); a background cleanup job purges storage after the retention period — [Implementation Notes](#implementation-notes), [Database Schema](#database-schema)

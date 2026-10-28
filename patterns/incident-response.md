@@ -895,18 +895,18 @@ config:
 
 ## Verification Checklist
 
-- [ ] Incoming alerts are correlated using configurable rules with deterministic hash computation
-- [ ] Related alerts within the correlation window merge into a single incident instead of creating duplicates
-- [ ] Incident severity is upgraded (never downgraded) when higher-severity alerts correlate
-- [ ] Runbook steps with `safe: true` auto-execute without operator approval
-- [ ] Runbook steps with `safe: false` pause execution and emit `incident.escalated`
-- [ ] Operator approval is required before dangerous steps execute
-- [ ] Runbook rollback executes completed steps in reverse order on failure
-- [ ] Incidents auto-escalate to human operators after configurable thresholds (time, action count)
-- [ ] Auto-resolved incidents are monitored for recurrence during the `auto_resolve_timeout` window
-- [ ] Every resolved incident generates a PostIncidentReport with timeline, duration, and resolution method
+- [ ] Incoming alerts are correlated using configurable rules with deterministic hash computation — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
+- [ ] Related alerts within the correlation window merge into a single incident instead of creating duplicates — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] Incident severity is upgraded (never downgraded) when higher-severity alerts correlate — [Implementation Notes](#implementation-notes)
+- [ ] Runbook steps with `safe: true` auto-execute without operator approval — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] Runbook steps with `safe: false` pause execution and emit `incident.escalated` — [Implementation Notes](#implementation-notes)
+- [ ] Operator approval is required before dangerous steps execute — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
+- [ ] Runbook rollback executes completed steps in reverse order on failure — [Implementation Notes](#implementation-notes)
+- [ ] Incidents auto-escalate to human operators after configurable thresholds (time, action count) — [Contracts](#contracts), [Types](#types)
+- [ ] Auto-resolved incidents are monitored for recurrence during the `auto_resolve_timeout` window — [Configuration](#configuration), [Implementation Notes](#implementation-notes)
+- [ ] Every resolved incident generates a PostIncidentReport with timeline, duration, and resolution method — [Contracts](#contracts), [Types](#types), [Implementation Notes](#implementation-notes)
 - [ ] No incident transitions to `closed` without a post-incident report (when `post_mortem_required: true`)
-- [ ] All incident lifecycle events (`incident.detected` through `incident.closed`) are emitted on the messaging bus
-- [ ] Escalation timers survive agent restart (durable storage, not in-memory)
-- [ ] Concurrent runbook execution respects the configured limit, with overflow queued by severity
-- [ ] Invalid state transitions are rejected and logged without corrupting incident state
+- [ ] All incident lifecycle events declared in [Contracts](#contracts) `events` are emitted on the messaging bus
+- [ ] Escalation timers survive agent restart (durable storage, not in-memory) — [Implementation Notes](#implementation-notes)
+- [ ] Concurrent runbook execution respects the configured limit, with overflow queued by severity — [Runbook Errors](#runbook-errors), [Implementation Notes](#implementation-notes)
+- [ ] Invalid state transitions are rejected and logged without corrupting incident state — [Lifecycle Errors](#lifecycle-errors)

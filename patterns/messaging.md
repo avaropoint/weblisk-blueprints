@@ -736,17 +736,17 @@ perform the conversion.
 
 ## Verification Checklist
 
-- [ ] Events published with complete envelope (`event_id`, `topic`, `source`, `scope`, `timestamp`, `trace_id`, `span_id`, `version`, `payload`)
-- [ ] Event IDs are globally unique (UUID v7)
-- [ ] Framework validates namespace ownership before publishing
-- [ ] Framework resolves subscribers from local routing table (no orchestrator call)
-- [ ] Scope filtering applied: self-scoped subscribers only get their own events
-- [ ] Global observers (scope: "*") require `event:observe` capability
-- [ ] Consumer groups load-balance events across instances (round-robin)
-- [ ] Different consumer groups each receive matching events (fan-out)
-- [ ] Duplicate events (same event_id) detected and skipped by subscribers
-- [ ] Failed deliveries retried with exponential backoff
-- [ ] Exhausted retries result in dead-letter storage (not discard)
-- [ ] 429 responses from subscribers respected with Retry-After
-- [ ] Correlation ID propagated through execution chains
-- [ ] Every event and every delivery carries its trace as `protocol/spec`'s Trace Propagation says
+- [ ] Events are published with every required field of [Envelope Fields](#envelope-fields)
+- [ ] Event IDs are globally unique (UUID v7) — [Event ID Generation](#event-id-generation), [Publish Flow](#publish-flow)
+- [ ] Framework validates namespace ownership before publishing — [Namespace Ownership](#namespace-ownership), [Publish Flow](#publish-flow)
+- [ ] Framework resolves subscribers from local routing table (no orchestrator call) — [Publish Guarantees](#publish-guarantees)
+- [ ] Scope filtering applied: self-scoped subscribers only get their own events — [How Scope Works](#how-scope-works)
+- [ ] Global observers (scope: "*") require `event:observe` capability — [Scope Permissions](#scope-permissions)
+- [ ] Consumer groups load-balance events across instances (round-robin) — [Consumer Groups](#consumer-groups)
+- [ ] Different consumer groups each receive matching events (fan-out) — [Consumer Groups](#consumer-groups)
+- [ ] Duplicate events (same event_id) detected and skipped by subscribers — [Idempotency](#idempotency)
+- [ ] Failed deliveries retried with exponential backoff — [Delivery Retry](#delivery-retry)
+- [ ] Exhausted retries result in dead-letter storage (not discard) — [Design Principles](#design-principles), [Dead-Letter Handling](#dead-letter-handling)
+- [ ] 429 responses from subscribers respected with Retry-After — [Delivery Retry](#delivery-retry), [Subscriber-Side](#subscriber-side)
+- [ ] Correlation ID propagated through execution chains — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow)
+- [ ] Every event and every delivery carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow)

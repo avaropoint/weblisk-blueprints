@@ -346,15 +346,15 @@ The adapter requires the following configuration parameters:
 
 ## Verification Checklist
 
-- [ ] Adapter exposes all 7 protocol endpoints
-- [ ] Registration with orchestrator succeeds
-- [ ] ML-DSA-65 signing works on all outbound messages
-- [ ] TaskRequest is correctly translated to framework input
-- [ ] Framework output is correctly translated to TaskResult
-- [ ] `/readyz` and the lease answer ready only while both the adapter and the framework can take work
-- [ ] Framework errors produce valid Weblisk error responses
-- [ ] No framework stack traces leak in error responses
-- [ ] Event delivery works (if framework supports events)
-- [ ] Adapter handles framework crash gracefully: `/readyz` answers not ready, and `/livez` stays live while the adapter itself can recover the framework
-- [ ] Sidecar mode correctly proxies to target URL
-- [ ] Subprocess mode correctly manages child process lifecycle
+- [ ] Adapter exposes every protocol endpoint [Adapter Contract](#adapter-contract) lists
+- [ ] Registration with orchestrator succeeds — [Adapter Contract](#adapter-contract), [`protocol/spec`](../protocol/spec.md#post-v1register)
+- [ ] ML-DSA-65 signing works on all outbound messages — [Adapter Contract](#adapter-contract), [Design Principles](#design-principles)
+- [ ] TaskRequest is correctly translated to framework input — [TaskRequest → Framework Input](#taskrequest--framework-input)
+- [ ] Framework output is correctly translated to TaskResult — [Framework Output → TaskResult](#framework-output--taskresult)
+- [ ] `/readyz` and the lease answer ready only while both the adapter and the framework can take work — [Health Mapping](#health-mapping)
+- [ ] Framework errors produce valid Weblisk error responses — [Error Handling](#error-handling)
+- [ ] No framework stack traces leak in error responses — [Error Handling](#error-handling)
+- [ ] Event delivery works (if framework supports events) — [Event Translation](#event-translation)
+- [ ] Adapter handles framework crash gracefully: `/readyz` answers not ready, and `/livez` stays live while the adapter itself can recover the framework — [Health Mapping](#health-mapping), [Error Handling](#error-handling)
+- [ ] Sidecar mode correctly proxies to target URL — [Type 2: Sidecar Adapter](#type-2-sidecar-adapter)
+- [ ] Subprocess mode correctly manages child process lifecycle — [Type 3: Subprocess Adapter](#type-3-subprocess-adapter)
