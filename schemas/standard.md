@@ -559,37 +559,37 @@ same way: the project's link reads `behind`, and the project takes it.
 
 ## Verification Checklist
 
-- [ ] Every published standard in this corpus is valid JSON and carries all nine required fields
-- [ ] The filename equals the `id`
-- [ ] Every `control.framework` equals the `id` of the standard it appears in
-- [ ] Every `control.family` names a family declared in that standard
-- [ ] Every `control.id` is unique within its standard
-- [ ] `category`, `status` and `priority` carry only declared values
-- [ ] A standard declaring `supersedes` names the prior edition in prose, and does not claim an `id` this corpus carries
-- [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries
-- [ ] No standard in this corpus records an organisation's adoption, score or evidence
+- [ ] Every published standard in this corpus is valid JSON and carries every field [Required fields](#required-fields) lists
+- [ ] The filename equals the `id` ([Format](#format), [Required fields](#required-fields))
+- [ ] Every `control.framework` equals the `id` of the standard it appears in ([Controls](#controls))
+- [ ] Every `control.family` names a family declared in that standard ([Controls](#controls), [Families](#families))
+- [ ] Every `control.id` is unique within its standard ([Controls](#controls), [`schemas/kinds`](kinds.md#naming-a-targets-kind))
+- [ ] `category`, `status` and `priority` carry only the values [Required fields](#required-fields) and [Controls](#controls) declare
+- [ ] A standard declaring `supersedes` names the prior edition in prose, and does not claim an `id` this corpus carries ([Optional fields](#optional-fields))
+- [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries ([Controls](#controls))
+- [ ] No standard in this corpus records an organisation's adoption, score or evidence ([What a standard is, and is not](#what-a-standard-is-and-is-not), [It never records adoption](#it-never-records-adoption))
 - [ ] `weblisk_framework` is generated from `schemas/` and never edited by hand — see [`../standards/README.md`](../standards/README.md#one-is-generated-and-is-here)
-- [ ] Every standard carries `applies_in` — optional in the schema so a customer's file still loads, filled in everywhere here
-- [ ] Every `applies_in` entry is an ISO 3166-1 alpha-2 code, an ISO 3166-2 subdivision code, or `international`
-- [ ] `international`, where it appears, is the only entry
-- [ ] No `applies_in` names a subdivision of a country it already names
-- [ ] No `applies_in` restates data residency — that is `jurisdiction` in `protocol/federation.md`, a different question
-- [ ] Adopting a standard generates the organisation's own at `standards/<id>.json` in the chosen repository, keeping the published `id`, and never writes the published file as it is
-- [ ] A generated standard carries `id`, `extends` — `standard`, `source`, `version` (the edition), `digest`, `revision` — and `adjustments`, and restates no published control it does not adjust
-- [ ] Every adjustment names a published control, or adds one whose `id` the standard does not carry in a family it declares, and carries a `reason` and a `basis` naming its scope and characteristic, or `decision: true`
-- [ ] No adjustment reaches the file without a person keeping it; a model's adjustment is a proposal
-- [ ] A project's generated standard links its organisation's, not the published one, and is a refinement, never a second adoption
-- [ ] A link that cannot be read at its pinned digest leaves the scope unscoreable, naming the link
-- [ ] A source a generated standard links is edited only under write permission on that source, and a tenant holds none on the corpus
-- [ ] The generated file is the standard's adoption record: a second `standards/<id>.json` carrying `extends` at the organisation is answered *already adopted* or refused, and un-adopting removes that file and nothing else
-- [ ] A project's generated standard carries its organisation repository's `id` in `repository`, never in `source`
-- [ ] Every `add` carries `id`, `family`, `name`, `description`, `priority` and the four `requires_*` flags
-- [ ] An export or audit package against a generated standard includes the linked standard's bytes, verified against the pinned digest
-- [ ] A new edition is offered as a choice and a revised one as an update, each as a regenerated standard a person applies, with every adjustment naming a missing control reported, never dropped
-- [ ] A text digest is `sha256:` and the lowercase hex SHA-256 of the UTF-8 RFC 8785 output for an object of exactly the control's `framework`, `id`, `name`, `description` and four `requires_*` flags, with `framework` filled for an added control; `family` and every other field are excluded
-- [ ] Every adjustment carries the `text_digest` of the control it adjusts, and every `add` derived from a published control names it in `derived_from` with that control's `text_digest`
-- [ ] A generated standard's `text_digest` and `derived_from` are the declared source of its `generated_from` claims and win where they disagree; a document, obligation or register made against a control carries the reference only as a `generated_from` claim, never in its bytes, and no output holds the control's text
-- [ ] Every `generated_from` claim onto a control records the control's identity, the edition and the text digest, stated through `Sync` at `inferred`
-- [ ] A control end's observed version is its text digest at the scope's pinned edition; a revision not yet adopted changes no claim's health
-- [ ] An update is reported per control as `changed`, `removed` or `added`, listing the outputs it affects by control identity with each one's cited digest and marking those citing none *cannot be compared*, before a person adopts it; a renamed control is `removed` and `added`, never matched by guess
-- [ ] On taking an update, an adjustment to an unchanged control takes the new digest and one to a changed control keeps its old digest and is listed for review until a person re-affirms it
+- [ ] Every standard carries `applies_in` — optional in the schema so a customer's file still loads, filled in everywhere here ([Absent means nobody has said](#absent-means-nobody-has-said-and-nothing-more))
+- [ ] Every `applies_in` entry is one of the forms [`applies_in`](#applies_in--where-a-standard-has-force) lists
+- [ ] `international`, where it appears, is the only entry ([`applies_in`](#applies_in--where-a-standard-has-force))
+- [ ] No `applies_in` names a subdivision of a country it already names ([`applies_in`](#applies_in--where-a-standard-has-force))
+- [ ] No `applies_in` restates data residency — that is `jurisdiction` in `protocol/federation.md`, a different question ([It is not `jurisdiction`](#it-is-not-jurisdiction-and-not-by-accident))
+- [ ] Adopting a standard generates the organisation's own at `standards/<id>.json` in the chosen repository, keeping the published `id`, and never writes the published file as it is ([Generated, never copied](#generated-never-copied))
+- [ ] A generated standard carries `id`, `extends` and `adjustments`, `extends` with every member [Generated, never copied](#generated-never-copied) gives it, and restates no published control it does not adjust
+- [ ] Every adjustment names a published control, or adds one as [Adjustments](#adjustments-and-the-characteristics-they-answer) allows, and carries a `reason` and a `basis` naming its scope and characteristic, or `decision: true`
+- [ ] No adjustment reaches the file without a person keeping it; a model's adjustment is a proposal ([Adjustments](#adjustments-and-the-characteristics-they-answer))
+- [ ] A project's generated standard links its organisation's, not the published one, and is a refinement, never a second adoption ([Adjustments](#adjustments-and-the-characteristics-they-answer))
+- [ ] A link that cannot be read at its pinned digest leaves the scope unscoreable, naming the link ([Adjustments](#adjustments-and-the-characteristics-they-answer))
+- [ ] A source a generated standard links is edited only under write permission on that source, and a tenant holds none on the corpus ([Editing what is linked](#editing-what-is-linked))
+- [ ] The generated file is the standard's adoption record: a second `standards/<id>.json` carrying `extends` at the organisation is answered *already adopted* or refused, and un-adopting removes that file and nothing else ([Generated, never copied](#generated-never-copied))
+- [ ] A project's generated standard carries its organisation repository's `id` in `repository`, never in `source` ([Adjustments](#adjustments-and-the-characteristics-they-answer))
+- [ ] Every `add` carries every field [Adjustments](#adjustments-and-the-characteristics-they-answer) requires of one
+- [ ] An export or audit package against a generated standard includes the linked standard's bytes, verified against the pinned digest ([Editing what is linked](#editing-what-is-linked))
+- [ ] A new edition is offered as a choice and a revised one as an update, each as a regenerated standard a person applies, with every adjustment naming a missing control reported, never dropped ([Updates](#updates-to-the-published-standard))
+- [ ] A text digest is computed over exactly the projection [Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from) declares, `framework` filled for an added control, and in the form it gives
+- [ ] Every adjustment carries the `text_digest` of the control it adjusts, and every `add` derived from a published control names it in `derived_from` with that control's `text_digest` ([Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from))
+- [ ] A generated standard's `text_digest` and `derived_from` are the declared source of its `generated_from` claims and win where they disagree; a document, obligation or register made against a control carries the reference only as a `generated_from` claim, never in its bytes, and no output holds the control's text ([Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from))
+- [ ] Every `generated_from` claim onto a control records the control's identity, the edition and the text digest, stated through `Sync` at `inferred` ([Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from))
+- [ ] A control end's observed version is its text digest at the scope's pinned edition; a revision not yet adopted changes no claim's health ([Outputs cite the control text](#outputs-cite-the-control-text-they-were-made-from))
+- [ ] An update is reported per control in the states [Updates](#updates-to-the-published-standard) gives, listing the outputs it affects by control identity with each one's cited digest and marking those citing none *cannot be compared*, before a person adopts it; a renamed control is `removed` and `added`, never matched by guess
+- [ ] On taking an update, an adjustment to an unchanged control takes the new digest and one to a changed control keeps its old digest and is listed for review until a person re-affirms it ([Updates](#updates-to-the-published-standard))
