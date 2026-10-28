@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.1.0
+version: 4.2.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -397,6 +397,14 @@ declaration:
       path: "/v1/admin/model/audit"
       operation: AdminModelAudit
       auth: "token"
+    # Generated, not platform-provided: the model gateway records a
+    # registered component's completion through it in process. "token" admits
+    # a registration token; the capability judged is llm:chat (Auth
+    # Middleware, step 8)
+    - method: POST
+      path: "/v1/model/audit"
+      operation: ModelAudit
+      auth: "token"
     # The resource API's part this orchestrator serves (Resources this
     # orchestrator owns): its kinds in the catalogue, the lease reads, and
     # the feed of each kind it owns
@@ -480,14 +488,6 @@ declaration:
       events: [created, updated]
       relations:
         - {relation: held_by, to: agent, field: agent}
-    # Generated, not platform-provided: the model gateway records a
-    # registered component's completion through it in process. "token" admits
-    # a registration token; the capability judged is llm:chat (Auth
-    # Middleware, step 8)
-    - method: POST
-      path: "/v1/model/audit"
-      operation: ModelAudit
-      auth: "token"
   checks:
     - check: no-path-literals
       subject: route registration
@@ -1176,7 +1176,10 @@ believed it was choosing learns that it was not. The model is the one `roles`
 gives the request's `role`, else `model`, else the backend's choice. Once it
 has read the body, the route records the completion before anything else,
 and again when it ends
-([Recording what the model routes do](#recording-what-the-model-routes-do)).
+([Recording what the model routes do](#recording-what-the-model-routes-do)),
+and keeps a `Completion` for it, with `route` `admin`, as for every
+completion the tenant's model runs
+([`architecture/model-service`](model-service.md#the-completion-record)).
 It applies the destination gate before it runs anything
 ([A model is a destination](#a-model-is-a-destination)), and is refused:
 
@@ -1185,6 +1188,10 @@ It applies the destination gate before it runs anything
   run now;
 - with `MODEL_NONE_LOADED` where the configuration names no model for the
   request's role and the backend, a local model server, reports none loaded;
+- with `MODEL_BACKEND_LIMITED` where the backend refuses under its own rate
+  or quota limit, with `retry_after` only where the backend reported when its
+  window resets
+  ([`architecture/model-service`](model-service.md#limits));
 - with `MODEL_BACKEND_FAILED` where the backend fails, or refuses the model it
   was asked for.
 
@@ -1204,6 +1211,7 @@ for as the one that ran.
 | `MODEL_NOT_CONFIGURED` | 409 | `POST /v1/admin/complete` at a hub that holds no configuration |
 | `MODEL_NONE_LOADED` | 409 | At `POST /v1/admin/complete`, the configuration names no model for the request's role and its backend, a local model server, reports none loaded. Nothing is loaded on the tenant's behalf |
 | `MODEL_BACKEND_FAILED` | 502 | The backend failed to answer, or refused the model it was asked for. Nothing else was run |
+| `MODEL_BACKEND_LIMITED` | 429 | The backend refused under its own rate or quota limit. `retry_after` is given only where the backend reported its reset. Nothing else was run |
 | `MODEL_UNRECORDED` | 503 | The route could not record what it was about to do, so it did not do it, or what it did, so it does not answer with it |
 
 > **Gap — the CLI's gateway serves four of the nine routes, and none of them
@@ -2685,6 +2693,7 @@ agents hold, which is theirs.
 - [ ] A completion on a coding agent's command-line tool runs it with every flag answer-only relies on and no prompt among its arguments, the prompt on its standard input, in a new empty directory outside the hub's root that is gone when it ends, with no `WL_` variable and no key in its environment, and kills it with every process it started at its deadline ([Running a tool answer-only](#running-a-tool-answer-only))
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none ([The tenant's model](#the-tenants-model))
 - [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing ([A model is a destination](#a-model-is-a-destination))
+- [ ] A completion whose backend refuses under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported its reset, runs no other backend, and is kept as a `Completion` with `route` `admin` and `ended` `failed` ([The tenant's model](#the-tenants-model))
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing ([The tenant's model](#the-tenants-model))
 - [ ] A completion appends a `model_complete` entry with `status` `ok` once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok` where the backend answered, `denied` where the gate refused it, and `failed` for every other refusal or failure after the first, a body refused with `INVALID_REQUEST` included, its `detail` naming the code; and returns no answer or refusal whose second entry was not appended ([Recording what the model routes do](#recording-what-the-model-routes-do))
 - [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) step 8)

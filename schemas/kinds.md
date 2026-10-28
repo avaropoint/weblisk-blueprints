@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.2.0
+version: 1.3.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -159,6 +159,8 @@ Not capabilities — values a kind declares.
 | `delivery` | — | delivery id | observed | runtime | *(none)* |
 | `preference` | — | preference id | authored | — | *(none)* |
 | `position-holder` | — | organisation + holding key | authored | — | *(none)* |
+| `completion` | — | completion id | observed | runtime | *(none)* |
+| `model` | — | tenant | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -246,6 +248,16 @@ none is versioned on its own, none is a chain member and none proves
 anything. They are declared so that
 [`architecture/notification`](../architecture/notification.md#resources) and
 [`position.md`](position.md#resources) can name them.
+
+**`completion` and `model` are the tenant's model, and govern nothing.** A
+completion is the record of one completion the tenant's model ran, named by
+the id the model gateway mints, and observed as a run is: it says the model
+was asked, and is corroboration, not evidence. `model` is the tenant's one
+model configuration, which a person chooses; there is one per tenant, so the
+tenant is its identity. Neither has a capability. They are declared so that
+[`architecture/model-service`](../architecture/model-service.md#resources)
+and [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-model)
+can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task

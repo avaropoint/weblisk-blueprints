@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: model-service
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, protocol/identity, architecture/orchestrator, patterns/scope]
 platform: any
 tier: free
@@ -22,7 +22,7 @@ at `PUT /v1/admin/model`, and a person asks it for a completion at
 ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)). Neither
 route admits a registered component: `/v1/admin/` admits a person's operator
 token alone. So a component doing unattended work, the prompt worker first
-([`architecture/programme-service`](programme-service.md#the-prompt-worker)),
+([`architecture/prompt-worker`](prompt-worker.md)),
 had two choices: no model at all, or a provider of its own reached through
 enforcement's external boundary on `model:route`, which makes every component
 that runs agent work its own model route.
@@ -60,8 +60,8 @@ audit records every completion: the orchestrator's hash-chained log, as two
 ```yaml
 requires:
   - blueprint: protocol/types
-    # 6.1.0 is where MODEL_BACKEND_LIMITED is registered
-    version: ">=6.1.0 <7.0.0"
+    # 6.2.0 is where MODEL_BACKEND_LIMITED is registered beside RunUsage
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -72,6 +72,11 @@ requires:
         # A caller asks the model on its own registration, which names it
         - name: AgentManifest
           fields_used: [name, capabilities]
+        # The one usage type, shared with the run record
+        - name: RunUsage
+          fields_used: [prompt_tokens, completion_tokens, total_tokens, cost]
+        - name: RunCost
+          fields_used: [amount, currency]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -225,7 +230,7 @@ token then carries it.
 
 **Consumed by execution, through the caller.** A `ServiceCompletionResponse`
 carries the `Completion` id, the backend and model that ran, and the
-`CompletionUsage`. The prompt worker hands those back with its phase result,
+`RunUsage`. The prompt worker hands those back with its phase result,
 and execution writes them on the run's record, as the run record's model,
 tokens and cost ([Usage and cost](#usage-and-cost)).
 
@@ -388,37 +393,38 @@ What this route admits:
    adds or removes it. What bounds the model is the worker's `llm:chat` and the
    gate.
 
-### What the model service requires of an unattended pass
+### What the model service requires of a work pass
 
-Unattended work reaches the owners it writes through on a pass the identity
-lane is specifying ([`protocol/identity`](../protocol/identity.md#the-pass)).
-The model service takes no pass, and requires three things of that pass:
+Unattended work reaches the owners it writes through on a **work pass**
+([`protocol/identity`](../protocol/identity.md#the-work-pass)). The model
+service takes none, and relies on three things the work pass already is:
 
 1. **It is never addressed to the orchestrator.** The orchestrator is the
-   audience of no pass (rule 3), and the model service is in its process. A
-   worker that holds a pass for its run presents it to the owners it writes
-   through, and its own registration token here.
-2. **The run it is minted for has the id execution records.** The worker is
-   given that id, and states it here as `run`, so that the model work of a run
-   and the writes made on its pass join on one id.
-3. **Its `cap` is not how a model is reached.** A pass's `cap` needs no
-   `llm:chat` for the worker to ask the model, and grants nothing here.
-
-> **Assumption for the coordinator.** This section assumes the identity lane
-> keeps rule 3, that the orchestrator is the audience of no pass. If an
-> unattended pass may be addressed to the orchestrator, or the model service
-> becomes a component of its own (alternative B, [Known Gaps](#known-gaps)),
-> this route would take that pass instead of the registration token, and
-> nothing else here changes.
+   audience of no work pass and refuses one with `PASS_AUDIENCE_MISMATCH`
+   ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass),
+   rule 7), and the model service is in its process. A worker that holds a
+   work pass for its run presents it to the owners it writes through, and its
+   own registration token here.
+2. **The run it is minted for has the id execution records.** A work pass
+   carries its `run`; the worker states the same id here as `run`, so that
+   the model work of a run and the writes made on its passes join on one id.
+3. **Its `cap` is not how a model is reached.** A work pass's `cap` needs no
+   `llm:chat` for the worker to ask the model, and grants nothing here. If
+   the model service becomes a component of its own (alternative B,
+   [Known Gaps](#known-gaps)), this route would take a work pass instead of
+   the registration token, and nothing else here changes.
 
 ---
 
 ## Usage and cost
 
-Every completion that reaches the backend reports a `CompletionUsage`:
+Every completion that reaches the backend reports a `RunUsage`, the one
+usage type a completion's record and a run's record share
+([`protocol/types`](../protocol/types.md#runs)):
 
-- **`input_tokens` and `output_tokens`**, as the backend's own answer counts
-  them. Absent where its answer counts none.
+- **`prompt_tokens`, `completion_tokens` and `total_tokens`**, as the
+  backend's own answer counts them. Each is absent where its answer counts
+  none, and none is worked out from the others.
 - **`cost`**, an amount and its currency, as the backend's own answer states
   it. Absent where it states none. The service holds no price, and a cost is
   never worked out from tokens.
@@ -461,76 +467,55 @@ against the two entries it names.
 
 ## Resources
 
-The resources this service holds, in the form
-[`schemas/resource.md`](../schemas/resource.md) defines. Where that schema,
-written in parallel, settles a different shape, the shape is its and the
-content here is reconciled to it.
+The kinds a person sees here, in the form
+[`schemas/resource.md`](../schemas/resource.md) defines. The model service is
+the model gateway in the orchestrator's process, so the component that holds
+a `completion` is the orchestrator, and the block names it as `owner`. The
+records are kept in `.weblisk/model-completions.jsonl`, one line each, and
+read at the uniform address
+([`architecture/admin`](admin.md#resources-one-api-for-every-kind)), since no
+route of this blueprint lists them.
+
+The tenant's `model` configuration is a declared kind
+([`schemas/kinds`](../schemas/kinds.md#declared-kinds)) and not a block here:
+there is one per tenant, so it has no item identity for the uniform address to
+name. It is read at `GET /v1/admin/model` with `admin:read` and set at
+`PUT /v1/admin/model` with `admin:*`, each recorded as
+[`architecture/orchestrator`](orchestrator.md#the-tenants-model) says.
 
 ```yaml
 resources:
-  - kind: model
-    owner: model-service
-    description: The tenant's model configuration, the one choice of backend and model. Its type and its routes are architecture/orchestrator's (The tenant's model)
-    identity: the hub. One per tenant, so it has no uid of its own
-    fields:
-      provider: string
-      model: string
-      base_url: string
-      roles: "map[string]string"
-    operations:
-      get:
-        route: GET /v1/admin/model
-        authority: {capability: "admin:read", step_up: false, approval: none}
-      update:
-        route: PUT /v1/admin/model
-        authority: {capability: "admin:*", step_up: false, approval: none}
-    events:
-      - audit action model_set, before each change
-    relations:
-      - withdraws: ProviderAgreement, where a change would carry a listed name past its agreement (architecture/orchestrator, A model is a destination)
-    states: [unconfigured, configured]
-
   - kind: completion
-    owner: model-service
-    description: One completion the model gateway ran, on either route
-    identity: id, a uid the gateway mints when the completion's first audit entry is appended
+    owner: orchestrator
+    type: Completion
+    identity: {field: id, form: minted}
+    label: id
     fields:
-      id: string
-      route: "enum[service, admin]"
-      caller: string
-      run: string
-      phase: string
-      role: string
-      scope: ScopeLevel
-      provider: string
-      model: string
-      ended: "enum[answered, refused, failed, cancelled]"
-      code: string
-      usage: CompletionUsage
-      started_at: timestamp
-      ended_at: timestamp
-      audit: "[]string"
+      - {name: id, access: read-only, present: text}
+      - {name: route, access: read-only, present: choice}
+      - {name: caller, access: read-only, present: text}
+      - {name: run, access: read-only, present: reference, kind: run}
+      - {name: phase, access: read-only, present: text}
+      - {name: role, access: read-only, present: text}
+      - {name: scope, access: read-only}
+      - {name: provider, access: read-only, present: text}
+      - {name: model, access: read-only, present: text}
+      - {name: ended, access: read-only, present: choice}
+      - {name: code, access: read-only, present: text}
+      - {name: usage, access: read-only}
+      - {name: started_at, access: read-only, present: instant}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: audit, access: read-only, present: list}
     operations:
-      create:
-        route: POST /v1/model/complete, or POST /v1/admin/complete
-        authority: {capability: "llm:chat", step_up: false, approval: none}
-      list:
-        route: none yet (Known Gaps)
-        authority: {capability: "admin:read", step_up: false, approval: none}
-      get:
-        route: none yet (Known Gaps)
-        authority: {capability: "admin:read", step_up: false, approval: none}
-    events:
-      - audit action model_complete, twice per completion
-    relations:
-      - cites: AuditEntry, the completion's two model_complete entries
-      - for: run, the run the caller stated, at execution
-    states: [answered, refused, failed, cancelled]
+      list: {capability: "admin:read", filters: [run, caller, route, ended]}
+      get: {capability: "admin:read"}
+    events: [created]
+    relations: []
 ```
 
 A `completion` is never updated or deleted: it is the record of something
-that happened. `create` is not an operation a caller asks for by that name;
-running a completion creates one.
+that happened. Running a completion, on either route, creates one; no person
+creates one by asking for it.
 
 ---
 
@@ -572,42 +557,9 @@ types:
         description: "The answer, the backend that ran it, and the model its answer says ran, as POST /v1/admin/complete answers them"
       usage:
         name: Usage
-        type: CompletionUsage
+        type: RunUsage
         required: true
         description: "What the completion used, as the backend reported it. Its members are absent where the backend reported none"
-
-  CompletionUsage:
-    description: What one completion used, as the backend's own answer reported it. Never estimated
-    fields:
-      input_tokens:
-        name: InputTokens
-        type: int
-        required: false
-        description: "Tokens the backend counted in what it was sent. Absent where it counted none"
-      output_tokens:
-        name: OutputTokens
-        type: int
-        required: false
-        description: "Tokens the backend counted in its answer. Absent where it counted none"
-      cost:
-        name: Cost
-        type: CompletionCost
-        required: false
-        description: "What the backend said the completion cost. Absent where it said nothing; never worked out from tokens"
-
-  CompletionCost:
-    description: An amount of money, as a backend stated it
-    fields:
-      amount:
-        name: Amount
-        type: string
-        required: true
-        description: "A decimal number as text, as the backend stated it, so no rounding is introduced"
-      currency:
-        name: Currency
-        type: string
-        required: true
-        description: "ISO 4217 code, upper-case"
 
   Completion:
     description: The record of one completion the model gateway ran, on either route
@@ -673,7 +625,7 @@ types:
         description: "The code it ended with. Absent where it was answered"
       usage:
         name: Usage
-        type: CompletionUsage
+        type: RunUsage
         required: false
         description: "Absent where nothing reached the backend"
       started_at:
@@ -771,18 +723,11 @@ caller reads that as not runnable ([Interfaces](#interfaces)). Closing it is
 the CLI's: serve the route as this document specifies, record through
 `POST /v1/model/audit`, and append a `Completion` for both routes.
 
-**No route reads a `Completion`.** The records are kept, and their `list` and
-`get` operations name a capability and no route. They are served once
-[`schemas/resource.md`](../schemas/resource.md)'s uniform resource API is
-specified. Until then a person reads what each completion did from the audit
-log's `model_complete` entries, and a run's usage from its record.
-
-**`POST /v1/admin/complete`'s own section does not yet name its
-`Completion`.** [A person's completion](#a-persons-completion) is the rule.
-[`architecture/orchestrator`](orchestrator.md#the-tenants-model) is being
-amended by another change, and is to cite it when that change lands. The
-same section answers a backend's own limit with `MODEL_BACKEND_FAILED` on the
-person's route; `MODEL_BACKEND_LIMITED` is registered for both.
+**No hub serves a `Completion` at the uniform address yet.** The records'
+`list` and `get` are read at the admin gateway's uniform address
+([Resources](#resources)), and no hub serves either. Until one does, a person
+reads what each completion did from the audit log's `model_complete` entries,
+and a run's usage from its record.
 
 **No per-caller budget.** A tenant cannot say how many tokens, or how much
 money, one component may spend on its model in a window. The alternatives,
@@ -798,11 +743,10 @@ alternatives, recorded for the owner:
 - **B. A model component of its own, holding the whole model job.** The
   configuration, the backends, both completion routes, the agreements and the
   ceilings move to a registered component the CLI supplies, reached by a
-  person through the admin gateway on a pass and by a component on an
-  unattended pass. It takes the model out of the orchestrator's process, and
+  person through the admin gateway on a pass and by a component on a work
+  pass. It takes the model out of the orchestrator's process, and
   it is the end state if the owner wants that. It moves
-  `architecture/orchestrator`'s model surface, which another change is
-  editing, and it needs a component route for recording into the one audit
+  `architecture/orchestrator`'s model surface, and it needs a component route for recording into the one audit
   log, which nothing specifies. The service route, the `Completion` record,
   the usage and the codes here would move unchanged; only the token rule in
   [Who may ask](#who-may-ask) would change.
@@ -822,7 +766,7 @@ alternatives, recorded for the owner:
 - [ ] Every completion on the service route appends exactly two `model_complete` entries through `POST /v1/model/audit`, the first before the gate, and the answer is sent only after the second ([Asking the model unattended](#asking-the-model-unattended))
 - [ ] A completion whose first or second entry cannot be appended answers `MODEL_UNRECORDED` and discloses no answer ([Asking the model unattended](#asking-the-model-unattended) step 9, [Error Handling](#error-handling))
 - [ ] Every completion on either route appends one `Completion` to `.weblisk/model-completions.jsonl`, naming its two audit entries, and none carries a prompt or an answer ([The Completion record](#the-completion-record), [A person's completion](#a-persons-completion))
-- [ ] `usage.input_tokens`, `usage.output_tokens` and `usage.cost` are each absent where the backend's answer reported none, and are never `0` in its place ([Usage and cost](#usage-and-cost))
+- [ ] `usage.prompt_tokens`, `usage.completion_tokens`, `usage.total_tokens` and `usage.cost` are each absent where the backend's answer reported none, and are never `0` in its place ([Usage and cost](#usage-and-cost))
 - [ ] A backend refusing under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported a reset, and no other backend is run ([Limits](#limits), [Error Handling](#error-handling))
 - [ ] `response.model` is the model the backend's answer says ran, and is absent where it says none ([Asking the model unattended](#asking-the-model-unattended), [Types](#types))
 - [ ] The `run` and `phase` a caller states are recorded on its first audit entry and on its `Completion`, under the caller's `identity_id` ([Asking the model unattended](#asking-the-model-unattended) step 2, [Design Principles](#design-principles) 4)
