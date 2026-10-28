@@ -122,6 +122,9 @@ which is the worst of both.
 **A position id must not move.** Renaming one detaches every obligation that
 names it and every holding a tenant has recorded against it.
 
+**A guide names no one.** It is published content about the job in any
+organisation, so it names no individual, and no tenant, customer or project.
+
 ## Frontmatter
 
 | field | type | required | means |
@@ -238,6 +241,5 @@ disagree about who holds a position, and neither can settle it.
 - [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
 - [ ] At least one recognised section has content
 - [ ] No artifact id and no register path appears anywhere in the body ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
-- [ ] Nothing in the body restates a cadence, an authority, an escalation target
-      or an approver — all four are rendered from the programmes beside it
-- [ ] No individual is named, and no tenant, customer or project is named
+- [ ] Prose naming a cadence, an authority, an escalation target or an approver is not refused; only the two patterns the section lists are ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
+- [ ] No individual is named, and no tenant, customer or project is named ([Format](#format))

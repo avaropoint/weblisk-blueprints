@@ -1,10 +1,4 @@
 {
-  "measured_at": "15fa0a2",
-  "known": [
-    {
-      "finding": "patterns/api-ai.md: names MODEL_UNAVAILABLE, which no registry declares and which cites nothing",
-      "count": 2,
-      "why": "Provider Health-Aware Routing refuses with 503 MODEL_UNAVAILABLE, and no registry declares the code: patterns/api-ai has no Error Handling, and protocol/types does not list it. Where it is registered, and so which section the two lines cite, is not decided. Citing the prose alone would pass this check and leave the code unregistered"
-    }
-  ]
+  "measured_at": "346bf86",
+  "known": []
 }

@@ -236,7 +236,7 @@ server/
   src/
     index.js           # Worker entry point — router + handlers
     protocol.js        # Protocol types and validation
-    identity.js        # ML-DSA-65 via @noble/post-quantum
+    identity.js        # ML-DSA-65 via the vendored implementation (UNFILLED)
     orchestrator.js    # Registration, routing, channel brokering
   package.json         # No runtime deps — devDependencies only for wrangler
 ```
@@ -469,7 +469,7 @@ cd agents/<component> && wrangler deploy
 |--------|-----------|------------|
 | Runtime | Go binary | V8 isolate |
 | State | In-memory maps | Durable Objects + KV |
-| Crypto | circl (ML-DSA-65) | @noble/post-quantum (ML-DSA-65) |
+| Crypto | circl (ML-DSA-65) | a vendored pure-JavaScript ML-DSA-65 (UNFILLED) |
 | HTTP | net/http | fetch API |
 | Persistence | Memory (lost on restart) | Durable Objects (persisted) |
 | Deployment | Local process | Edge (200+ locations) |
@@ -642,8 +642,8 @@ Domain controllers running as Workers dispatch phases using
 
 ### Cryptography
 
-- Use Web Crypto API (`crypto.subtle`) exclusively — no external crypto libraries
-- ML-DSA-65 for identity and signing (via @noble/post-quantum)
+- Use Web Crypto API (`crypto.subtle`) for every primitive it provides — no external crypto libraries
+- ML-DSA-65 for identity and signing, from the vendored first-party implementation whose slot the Primitive Mapping table owns, and which is UNFILLED
 - Use `crypto.getRandomValues()` for secure random generation
 
 ### Dependencies
@@ -654,7 +654,7 @@ Domain controllers running as Workers dispatch phases using
 
 ### Secrets Management
 
-- Store private keys and API keys via `wrangler secret put`
+- On a hosted deployment, store private keys and API keys via `wrangler secret put`; a component the CLI starts has none ([Key Storage](#key-storage))
 - Never place secrets in `wrangler.toml`, source code, or environment variables
 - Use Workers Secrets for all sensitive configuration
 
@@ -711,7 +711,7 @@ describe("liveness probe", () => {
 
 ## Verification Checklist
 
-- [ ] ML-DSA-65 operations use @noble/post-quantum for signing; keys exported as raw ArrayBuffer and hex-encoded for protocol
+- [ ] Signing uses the vendored first-party implementation, and while none is vendored and measured the slot is reported UNFILLED, never filled by a named package; keys exported as raw ArrayBuffer and hex-encoded for protocol ([Primitive Mapping](#primitive-mapping), [The signature slot, and why it stays UNFILLED](#the-signature-slot-and-why-it-stays-unfilled), [Crypto](#crypto))
 - [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test ([The HTTP Surface](#the-http-surface))
 - [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding ([The HTTP Surface](#the-http-surface))
 - [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse` ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
@@ -719,8 +719,8 @@ describe("liveness probe", () => {
 - [ ] Durable Object alarm handles channel TTL cleanup ([State (Orchestrator)](#state-orchestrator), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))
 - [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads ([Storage Mapping (Cloudflare)](#storage-mapping-cloudflare), [D1 for Queryable Data](#d1-for-queryable-data), [KV for Fast Reads](#kv-for-fast-reads))
 - [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json ([Runtime Requirements](#runtime-requirements), [Dependencies](#dependencies-1))
-- [ ] Private keys are stored via `wrangler secret put`, not in wrangler.toml or source code
-- [ ] Worker entry point routes requests by URL pathname with auth middleware applied to protected routes
+- [ ] A private key comes from a Workers Secret on a hosted deployment or is generated on first Durable Object creation and stored internally, and on a CLI start only the second; never in wrangler.toml or source code ([Key Storage](#key-storage), [Secrets Management](#secrets-management))
+- [ ] The Worker's `fetch` delegates to the one route table's dispatcher, which applies auth to the routes the Protocol Paths table marks as authenticated ([The HTTP Surface](#the-http-surface), [`protocol/types`](../protocol/types.md#protocol-paths))
 - [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent` ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
 - [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
 - [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping ([wrangler.toml](#wranglertoml), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))

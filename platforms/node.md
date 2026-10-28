@@ -156,7 +156,6 @@ projects with these defaults, but teams can swap them.
   "dependencies": {
     "fastify": "^4.28.0",
     "@noble/post-quantum": "^0.2.0",
-    "better-sqlite3": "^11.0.0",
     "pino": "^9.0.0",
     "zod": "^3.23.0",
     "undici": "^6.18.0"
@@ -165,7 +164,6 @@ projects with these defaults, but teams can swap them.
     "typescript": "^5.5.0",
     "tsx": "^4.16.0",
     "vitest": "^2.0.0",
-    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^20.14.0"
   }
 }
@@ -278,10 +276,10 @@ runtime:
       - name: "@noble/post-quantum"
         version: "^0.2.0"
         purpose: ML-DSA-65 signing (FIPS 204)
+    optional:
       - name: better-sqlite3
         version: "^11.0.0"
-        purpose: SQLite storage with synchronous API
-    optional:
+        purpose: SQLite storage, only if SQLite was chosen (Storage)
       - name: sharp
         version: "^0.33.0"
         purpose: High-performance image processing
@@ -360,19 +358,34 @@ export interface TaskContext {
   [field: string]: unknown;
 }
 
+// TaskRequest and TaskResult carry protocol/types' fields under its JSON keys
 export interface TaskRequest {
-  task_id: string;
+  id: string;
+  from: string;
   action: string;
   payload: Record<string, unknown>;
   context: TaskContext;
+  strategy_id?: string;
+  token: string;
+  signature?: string;
+  timestamp: string;
 }
 
 export interface TaskResult {
   task_id: string;
-  status: "completed" | "failed";
-  output?: Record<string, unknown>;
-  error?: string;
+  agent_name: string;
+  status: "success" | "failed" | "pending_approval";
+  summary: string;
+  changes?: unknown[]; // ProposedChange
+  observations?: Observation[];
+  recommendations?: Recommendation[];
+  metrics?: Record<string, unknown>;
+  signature?: string;
+  timestamp: string;
 }
+
+// What a handler produces; the execute endpoint adds the rest and signs it
+export type TaskOutcome = Omit<TaskResult, "task_id" | "agent_name" | "timestamp" | "signature">;
 
 export interface Liveness {
   live: boolean;
@@ -474,12 +487,18 @@ export function verify(
 
 ```typescript
 import type { FastifyInstance } from "fastify";
-import type { AgentManifest, Liveness, Readiness, TaskRequest } from "./types.js";
+import type { AgentManifest, Liveness, Readiness, TaskOutcome, TaskRequest, TaskResult } from "./types.js";
+import {
+  PATH_LIVEZ, PATH_READYZ, PATH_DESCRIBE, PATH_EXECUTE,
+  PATH_MESSAGE, PATH_EVENT, PATH_SERVICES,
+} from "./paths.js";
 
 interface EndpointConfig {
   manifest: AgentManifest;
   isReady: () => boolean;
-  onTask: (req: TaskRequest) => Promise<Record<string, unknown>>;
+  onTask: (req: TaskRequest) => Promise<TaskOutcome>;
+  // ML-DSA-65 signature over the result, as protocol/types (TaskResult) says
+  signResult: (result: Omit<TaskResult, "signature">) => string;
   onMessage?: (msg: Record<string, unknown>) => Promise<void>;
   onEvent?: (event: Record<string, unknown>) => Promise<void>;
 }
@@ -488,45 +507,46 @@ export function registerEndpoints(
   app: FastifyInstance,
   config: EndpointConfig
 ) {
-  const { manifest, isReady, onTask, onMessage, onEvent } = config;
+  const { manifest, isReady, onTask, signResult, onMessage, onEvent } = config;
 
   // Probes: live or ready, and nothing else (protocol/spec)
-  app.get("/livez", async () => {
+  app.get(PATH_LIVEZ, async () => {
     const response: Liveness = { live: true };
     return response;
   });
-  app.get("/readyz", async (_req, reply) => {
+  app.get(PATH_READYZ, async (_req, reply) => {
     const response: Readiness = { ready: isReady() };
     return reply.code(response.ready ? 200 : 503).send(response);
   });
 
   // Describe
-  app.post("/v1/describe", async () => {
+  app.post(PATH_DESCRIBE, async () => {
     return { manifest };
   });
 
-  // Task (execute)
-  app.post<{ Body: TaskRequest }>("/v1/execute", async (request, reply) => {
+  // Task (execute): a signed TaskResult (architecture/agent, POST /v1/execute)
+  app.post<{ Body: TaskRequest }>(PATH_EXECUTE, async (request) => {
     const task = request.body;
+    let outcome: TaskOutcome;
     try {
-      const output = await onTask(task);
-      return {
-        task_id: task.task_id,
-        status: "completed",
-        output,
-      };
+      outcome = await onTask(task);
     } catch (err) {
-      reply.status(500);
-      return {
-        task_id: task.task_id,
+      outcome = {
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        summary: err instanceof Error ? err.message : "Unknown error",
       };
     }
+    const result: Omit<TaskResult, "signature"> = {
+      ...outcome,
+      task_id: task.id,
+      agent_name: manifest.name,
+      timestamp: new Date().toISOString(),
+    };
+    return { ...result, signature: signResult(result) };
   });
 
   // Message
-  app.post("/v1/message", async (request) => {
+  app.post(PATH_MESSAGE, async (request) => {
     if (onMessage) {
       await onMessage(request.body as Record<string, unknown>);
     }
@@ -534,7 +554,7 @@ export function registerEndpoints(
   });
 
   // Event (pub/sub)
-  app.post("/v1/event", async (request) => {
+  app.post(PATH_EVENT, async (request) => {
     if (onEvent) {
       await onEvent(request.body as Record<string, unknown>);
     }
@@ -542,14 +562,8 @@ export function registerEndpoints(
   });
 
   // Services (service directory updates from orchestrator)
-  app.post("/v1/services", async (request) => {
+  app.post(PATH_SERVICES, async (request) => {
     // Accept service directory updates; agent may cache for peer discovery
-    return { acknowledged: true };
-  });
-
-  // Governance
-  app.post("/v1/governance", async (request) => {
-    // Accept and acknowledge governance directives
     return { acknowledged: true };
   });
 }
@@ -564,7 +578,8 @@ export function registerEndpoints(
 ```typescript
 import Fastify from "fastify";
 import { registerEndpoints } from "../../protocol/endpoints.js";
-import { loadIdentity } from "../../protocol/identity.js";
+import { loadIdentity, sign } from "../../protocol/identity.js";
+import { canonicalize } from "../../protocol/canonical.js"; // RFC 8785
 import { handleTask } from "./handler.js";
 import { logger } from "../../lib/logger.js";
 
@@ -573,7 +588,6 @@ const PORT = parseInt(process.env.WL_PORT || process.env.WL_AGENT_PORT || "9710"
 async function start() {
   const app = Fastify({ logger });
   const identity = await loadIdentity("./.weblisk/keys/<component>");
-  const startTime = Date.now();
 
   registerEndpoints(app, {
     manifest: {
@@ -582,8 +596,11 @@ async function start() {
       capabilities: ["file:read", "llm:chat"],
       actions: ["analyze", "audit"],
     },
-    startTime,
+    isReady: () => true,
     onTask: handleTask,
+    signResult: (result) => Buffer.from(
+      sign(new TextEncoder().encode(canonicalize(result)), identity.privateKey)
+    ).toString("base64url"),
   });
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
@@ -599,12 +616,12 @@ start().catch((err) => {
 ### Task Handler (src/agents/<component>/handler.ts)
 
 ```typescript
-import type { TaskRequest } from "../../protocol/types.js";
+import type { TaskOutcome, TaskRequest } from "../../protocol/types.js";
 import { analyzeSeo } from "./analyze.js";
 
 export async function handleTask(
   task: TaskRequest
-): Promise<Record<string, unknown>> {
+): Promise<TaskOutcome> {
   switch (task.action) {
     case "analyze":
       return analyzeSeo(task.payload);
@@ -725,7 +742,7 @@ export function createStorage(dbPath: string) {
 ### Error Handling
 
 - Use async/await with try/catch — never leave promises unhandled
-- Task handlers return structured `{ task_id, status, output | error }`
+- The execute endpoint returns a signed `TaskResult`; a handler that throws yields one with `status: "failed"` and the error as its `summary` ([`architecture/agent`](../architecture/agent.md#post-v1execute))
 - Use `process.on('unhandledRejection', ...)` as a safety net
 
 ### The HTTP Surface
@@ -845,6 +862,7 @@ describe("<component>", () => {
 ```typescript
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import Fastify from "fastify";
+import { PATH_LIVEZ, PATH_EXECUTE } from "../src/protocol/paths.js";
 
 describe("agent endpoints", () => {
   let app: ReturnType<typeof Fastify>;
@@ -862,7 +880,7 @@ describe("agent endpoints", () => {
   it("should answer the liveness probe", async () => {
     const res = await app.inject({
       method: "GET",
-      url: "/livez",
+      url: PATH_LIVEZ,
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ live: true });
@@ -871,15 +889,12 @@ describe("agent endpoints", () => {
   it("should process a task", async () => {
     const res = await app.inject({
       method: "POST",
-      url: "/task",
-      payload: {
-        task_id: "test-001",
-        action: "analyze",
-        payload: { url: "https://example.com" },
-      },
+      url: PATH_EXECUTE,
+      payload: validTaskRequest("analyze"), // a signed TaskRequest from the test's fixtures
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("completed");
+    expect(res.json().status).toBe("success");
+    expect(res.json().signature).toBeDefined();
   });
 });
 ```
@@ -959,12 +974,12 @@ the npm ecosystem.
 - [ ] Routes are registered with Fastify's method-specific helpers and read parameters from `request.params`; no handler branches on `request.method` ([The HTTP Surface](#the-http-surface))
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
 - [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600 ([Primitive Mapping](#primitive-mapping), [Cryptography](#cryptography))
-- [ ] SQLite is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON`
+- [ ] IF SQLite was chosen: it is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON` ([SQLite Implementation](#sqlite-implementation--only-if-sqlite-was-chosen-srcstoragesqlitets), [Storage](#storage))
 - [ ] Every log line is a `LogEntry` on standard output, as [`patterns/logging`](../patterns/logging.md) defines it ([Logging](#logging), [Structured Logging](#structured-logging))
 - [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits ([Process Management](#process-management))
 - [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly ([Input Validation](#input-validation))
 - [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev` ([Dependencies](#dependencies-1), [Implementation Notes](#implementation-notes))
 - [ ] Node is started with `--disable-proto=delete` to prevent prototype pollution ([Runtime Hardening](#runtime-hardening))
 - [ ] Agent entry point registers all 7 protocol endpoints (`/livez`, `/readyz`, describe, execute, message, services, event) via `registerEndpoints`, and renews its lease at `POST /v1/lease` ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [`architecture/agent`](../architecture/agent.md#lease-renewal))
-- [ ] Task handler dispatches by `action` field and returns structured `{ task_id, status, output }` or `{ task_id, status, error }`
-- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and task endpoint returns `status: "completed"` for valid actions
+- [ ] Task handler dispatches by `action` field, and the execute endpoint returns a signed `TaskResult`, one with `status: "failed"` when the handler throws ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [Error Handling](#error-handling), [`architecture/agent`](../architecture/agent.md#post-v1execute))
+- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and `POST /v1/execute` returns a signed `TaskResult` with `status: "success"` for a valid action ([Integration Tests](#integration-tests), [`protocol/types`](../protocol/types.md#taskresult))

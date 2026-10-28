@@ -227,7 +227,7 @@ What the gate refuses, and what a `DestinationRefusal` carries, are
 | `PAYLOAD_TOO_LARGE` | 413 | permanent | Request payload exceeds the maximum allowed size |
 | `DELIVERY_FAILED` | 502 | transient | Event or notification delivery to target failed after retries |
 | `CAPABILITY_DENIED` | 403 | permanent | Peer or agent lacks the required capability grant |
-| `BEHAVIORAL_CHANGE` | 403 | permanent | Entity behavior has deviated from its declared or historical pattern |
+| `BEHAVIORAL_CHANGE` | 409 | permanent | The agent has a behavioural change awaiting admin review, and is suspended from federated work until it is approved ([`protocol/federation`](federation.md#change-detection)) |
 | `RETENTION_EXPIRED` | 410 | permanent | Requested data has been purged per retention policy |
 
 #### Error Code Conventions
@@ -862,7 +862,7 @@ types:
         name: Status
         type: string
         required: true
-        description: "`pending`, `running`, `completed`, `failed`"
+        description: "A state of patterns/workflow's Workflow State Machine: `pending`, `running`, `pending_approval`, `completed`, `failed`"
       phases:
         name: Phases
         type: "[]PhaseResult"
@@ -1466,7 +1466,7 @@ types:
         name: Severity
         type: string
         required: true
-        description: "`critical`, `warning`, `info`"
+        description: "`critical`, `warning`, `info`. A finding's own scale: [Severity](#severity) is the one for enforcement, security and safety"
       element:
         name: Element
         type: string
@@ -2929,6 +2929,11 @@ error_codes:
     category: transient
     retryable: true
     description: Target agent did not respond within timeout
+  - code: MODEL_UNAVAILABLE
+    status: 503
+    category: transient
+    retryable: true
+    description: The model a request names is on an unhealthy provider and no other provider lists it under the same name. No other model runs instead (patterns/api-ai, Provider Health-Aware Routing)
   - code: UNSUPPORTED_VERSION
     status: 400
     category: permanent
@@ -3617,7 +3622,7 @@ security:
 - [ ] RouteEntry requires every field [RouteEntry](#routeentry) marks required
 - [ ] ServiceDirectory carries every field [ServiceDirectory](#servicedirectory) marks required
 - [ ] WorkflowPhase `on_error` takes only the values [WorkflowPhase](#workflowphase) lists, and `max_attempts` applies only when `on_error` is `"retry"` ([`patterns/workflow`](../patterns/workflow.md#declaration-fields))
-- [ ] WorkflowExecution `status` transitions follow `pending` → `running` → `completed` | `failed`; PhaseResult adds `skipped`
+- [ ] WorkflowExecution `status` takes only the states, and moves only by the transitions, of [`patterns/workflow`](../patterns/workflow.md#workflow-state-machine); PhaseResult `status` adds `skipped` ([PhaseResult](#phaseresult))
 - [ ] TaskRequest requires every field [TaskRequest](#taskrequest) marks required, and TaskResult `status` is one of the values [TaskResult](#taskresult) lists
 - [ ] AgentMessage `signature` covers what [AgentMessage](#agentmessage) says it covers, canonicalized per RFC 8785
 - [ ] Finding carries every field [Finding](#finding) marks required

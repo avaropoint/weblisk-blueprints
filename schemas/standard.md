@@ -250,6 +250,9 @@ ISO 27001 A.5.15 and NIST AC-2 overlap; they are not identical. A mapping says
 the other*. Treating it as the second is how an organisation comes to believe it
 holds an accreditation it has never been assessed for.
 
+Each entry names a standard the corpus carries. A mapping to a standard nobody
+can open is a claim nobody can check.
+
 ---
 
 ## Adopting a standard
@@ -566,7 +569,7 @@ same way: the project's link reads `behind`, and the project takes it.
 - [ ] Every `control.id` is unique within its standard ([Controls](#controls), [`schemas/kinds`](kinds.md#naming-a-targets-kind))
 - [ ] `category`, `status` and `priority` carry only the values [Required fields](#required-fields) and [Controls](#controls) declare
 - [ ] A standard declaring `supersedes` names the prior edition in prose, and does not claim an `id` this corpus carries ([Optional fields](#optional-fields))
-- [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries ([Controls](#controls))
+- [ ] Every `mapped_controls` entry is `<standard>:<control>` and names a standard the corpus carries ([Controls](#controls), [`mapped_controls` is an equivalence claim](#mapped_controls-is-an-equivalence-claim-and-it-is-directional-in-practice))
 - [ ] No standard in this corpus records an organisation's adoption, score or evidence ([What a standard is, and is not](#what-a-standard-is-and-is-not), [It never records adoption](#it-never-records-adoption))
 - [ ] `weblisk_framework` is generated from `schemas/` and never edited by hand — see [`../standards/README.md`](../standards/README.md#one-is-generated-and-is-here)
 - [ ] Every standard carries `applies_in` — optional in the schema so a customer's file still loads, filled in everywhere here ([Absent means nobody has said](#absent-means-nobody-has-said-and-nothing-more))

@@ -1123,7 +1123,8 @@ security:
     - rule: Retention and jurisdiction travel with the payload
       mechanism: Carried in the envelope, so a recipient cannot claim it was not
         told
-    - rule: Key rotation preserves identity continuity without granting a window
+    - rule: Key rotation preserves identity continuity, and the only window it
+        grants is the bounded grace period of Key Rotation, in which both keys verify
       mechanism: A rotation announcement is signed by both the retiring and the
         new key; one proves continuity, the other possession
     - rule: A revoked peer is refused at its next request
