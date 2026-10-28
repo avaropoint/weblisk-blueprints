@@ -272,7 +272,7 @@ bypasses.
 
 ```
 1. TLS TERMINATION
-   ├── HTTPS required in production (HTTP redirected to HTTPS)
+   ├── HTTPS required in production (HTTP redirected to HTTPS → 301)
    ├── TLS 1.2+ only (1.3 preferred)
    ├── HSTS header on every response
    └── Certificate validation
@@ -966,8 +966,10 @@ security:
   specific admin routes (e.g. `/api/admin/*` for a customer's CMS)
   are normal application routes and are fine on this gateway.
 - The gateway MUST NOT accept `X-Operator-*` headers from any source.
-  If present, they MUST be stripped before forwarding. Only the admin
-  gateway may inject operator context headers.
+  If present, they MUST be stripped before forwarding. No gateway
+  injects operator context headers, the admin gateway included: who acted
+  is read from the token or pass a request carries
+  ([`architecture/admin`](admin.md#implementation-notes)).
 - The gateway emits structured logs and traces following the
   observability blueprint, with the external request context (client IP,
   user agent, geolocation if available) in a `LogEntry`'s `details` and as
