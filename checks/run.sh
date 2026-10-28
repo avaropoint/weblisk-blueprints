@@ -915,6 +915,42 @@ PY
 expect 1 "checklist-cites control: a known entry that finds nothing fails" python3 checks/checklist-cites.py --known "$tmp/cc-known.json"
 grep -q "^known finding gone (0 of 1 remain)" "$tmp/out" || { echo "FAIL checklist-cites control: the stale entry was not what was reported"; fails=$((fails + 1)); }
 
+# Every Resources block against schemas/resource.md, whose rules, shape and
+# vocabularies the check reads and keeps no copy of: the corpus's blocks and
+# the valid vector give no finding, and the invalid vector gives exactly one
+# finding per rule. A copy of the expected findings missing one entry must be
+# reported; a copy of resource.md without the instant presentation must turn
+# every instant field in the corpus into a finding, and only those; and a
+# rule added to resource.md with no vector must be reported unexercised.
+expect 0 "resources: every Resources block in the corpus is well formed" python3 checks/resources.py
+expect 0 "resources: the valid vector gives no finding" python3 checks/resources.py --file vectors/resources/valid.md
+expect 0 "resources: the invalid vector gives exactly its findings, every rule exercised" python3 checks/resources.py --file vectors/resources/invalid.md --expect vectors/resources/invalid.expected.json
+python3 -c 'import json,sys; d=json.load(open("vectors/resources/invalid.expected.json")); d["findings"]=[f for f in d["findings"] if f["rule"]!="resource-events"]; json.dump(d,open(sys.argv[1],"w"))' "$tmp/res-expect.json"
+expect 1 "resources control: expected findings missing one entry fail" python3 checks/resources.py --file vectors/resources/invalid.md --expect "$tmp/res-expect.json"
+grep -q '^unexpected: register: resource-events$' "$tmp/out" && grep -q '^unexercised: rule resource-events has no expected finding$' "$tmp/out" \
+	&& echo "ok   resources control: the dropped entry is what was reported" \
+	|| { echo "FAIL resources control: the dropped entry was not what was reported"; sed 's/^/     /' "$tmp/out"; fails=$((fails + 1)); }
+mkdir -p "$tmp/res" && cp -R agents architecture patterns protocol schemas "$tmp/res/"
+grep -v '^  instant: ' schemas/resource.md >"$tmp/res/schemas/resource.md"
+expect 1 "resources control: a resource.md without the instant presentation fails" python3 checks/resources.py --root "$tmp/res"
+if grep -q 'is presented instant, which is no presentation$' "$tmp/out" && ! grep -v 'is presented instant, which is no presentation$' "$tmp/out" | grep -q .; then
+	echo "ok   resources control: only the instant fields were reported"
+else
+	echo "FAIL resources control: want only the instant fields reported"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/res2" && cp -R agents architecture patterns protocol schemas "$tmp/res2/"
+sed 's/^  - id: resource-unavailable$/  - id: resource-unvectored\n    rule: a rule no vector exercises\n  - id: resource-unavailable/' schemas/resource.md >"$tmp/res2/schemas/resource.md"
+expect 1 "resources control: a rule with no vector fails" python3 checks/resources.py --root "$tmp/res2" --file vectors/resources/invalid.md --expect vectors/resources/invalid.expected.json
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^unexercised: rule resource-unvectored has no expected finding$' "$tmp/out"; then
+	echo "ok   resources control: exactly one finding, the unvectored rule"
+else
+	echo "FAIL resources control: want exactly one finding, the unvectored rule"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
