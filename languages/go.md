@@ -287,7 +287,7 @@ runtime:
 ## Go-Specific Requirements
 
 ### Dependencies
-- Standard library only, except the two modules in the Primitive Mapping table
+- Standard library only, except the modules in the Primitive Mapping table: the two it marks **required**, and those it marks for a choice only where that choice was made
 - The signature algorithm comes from `github.com/cloudflare/circl/sign/mldsa/mldsa65`
 - The key-derivation function comes from `golang.org/x/crypto/argon2`
 - `crypto/rand` for secure random generation  
@@ -365,7 +365,7 @@ which ones a deployment has is decided by adopting their blueprints.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `WL_PORT` | no | `9800` | Listen port |
+| `WL_PORT` | no | the component's own, from [`schemas/config`](../schemas/config.md#port-conventions) (`9800` for the orchestrator, `9802` for the content service) | Listen port |
 | `WL_ORCH_URL` | for an agent, where an orchestrator is named or running | — | Orchestrator URL for agent registration; the CLI sets it, with `--orch`, only where an orchestrator is named or running ([A component starts with a clean environment](../architecture/cli.md#a-component-starts-with-a-clean-environment)) |
 | `WL_DEV` | no | `0` | Set to `1` for in-memory storage mode |
 
@@ -386,12 +386,21 @@ go test -race -count=1 ./...
 ## Go Module File
 
 ```
-module weblisk-server
+module <tenant>
 
 go 1.27
+
+require (
+    github.com/cloudflare/circl <version>
+    golang.org/x/crypto <version>
+)
 ```
 
-No `require` statements needed — stdlib only.
+The module is the tenant's ([One module, one definition of everything](#one-module-one-definition-of-everything)).
+It requires the two modules the [Primitive Mapping](#primitive-mapping) marks
+**required**, and adds `golang.org/x/term` only where the implementation
+prompts, and a storage driver only where a backend other than the default was
+chosen. Nothing else.
 
 ---
 
@@ -604,13 +613,14 @@ func (l *ConcurrencyLimiter) Release() {
 Apply in execute/message handlers:
 ```go
 if !limiter.Acquire() {
+    // A header set after the status is written is never sent.
+    w.Header().Set("Retry-After", "5")
     writeError(w, 429, ErrorResponse{
         Error:     "agent at capacity",
         Code:      "RATE_LIMITED",
         Category:  "transient",
         Retryable: true,
     })
-    w.Header().Set("Retry-After", "5")
     return
 }
 defer limiter.Release()
