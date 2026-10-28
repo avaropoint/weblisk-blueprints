@@ -594,21 +594,21 @@ types:
 
 ## Verification Checklist
 
-- [ ] Only declared commands can be executed
-- [ ] Undeclared command keys are rejected
-- [ ] Argument validation enforces allowed patterns
-- [ ] Shell metacharacters in arguments are rejected
-- [ ] Commands are executed directly, never through shell interpreter
-- [ ] Working directory is isolated per-execution
-- [ ] Environment variables are controlled (no host inheritance)
-- [ ] Secrets are injected as environment variables when configured
-- [ ] Timeout is enforced with SIGTERM → SIGKILL escalation
-- [ ] stdout and stderr are captured with size limits
-- [ ] Truncation is indicated in the result
-- [ ] Sensitive output is not logged
-- [ ] Every execution is audit-logged
-- [ ] Resource limits (memory, disk, processes) are enforced
-- [ ] Remote execution validates host against declared hosts
-- [ ] Remote execution uses SSH key authentication only
-- [ ] Disabling command execution via configuration prevents all command execution
-- [ ] Failed argument validation is logged as command.rejected
+- [ ] Only declared commands can be executed — [Design Principles](#design-principles), [Command Declaration](#command-declaration)
+- [ ] Undeclared command keys are rejected — [Design Principles](#design-principles), [Command Declaration](#command-declaration)
+- [ ] Argument validation enforces allowed patterns — [Validation Rules](#validation-rules)
+- [ ] Shell metacharacters in arguments are rejected — [Validation Rules](#validation-rules)
+- [ ] Commands are executed directly, never through shell interpreter — [Shell Injection Prevention](#shell-injection-prevention)
+- [ ] Working directory is isolated per-execution — [Environment](#environment), [Implementation Notes](#implementation-notes)
+- [ ] Environment variables are controlled (no host inheritance) — [Environment](#environment)
+- [ ] Secrets are injected as environment variables when configured — [Environment](#environment)
+- [ ] Timeout is enforced with the escalation [Timeout Enforcement](#timeout-enforcement) states
+- [ ] stdout and stderr are captured with size limits — [Capture](#capture)
+- [ ] Truncation is indicated in the result — [Capture](#capture), [CommandResult](#commandresult-1)
+- [ ] Sensitive output is not logged — [Sensitive Output](#sensitive-output)
+- [ ] Every execution is audit-logged — [Audit Trail](#audit-trail)
+- [ ] Resource limits (memory, disk, processes) are enforced — [Resource Limits](#resource-limits)
+- [ ] Remote execution validates host against declared hosts — [Remote Security Rules](#remote-security-rules)
+- [ ] Remote execution uses SSH key authentication only — [Remote Security Rules](#remote-security-rules)
+- [ ] Disabling command execution via configuration prevents all command execution — [Disabling Command Execution](#disabling-command-execution)
+- [ ] Failed argument validation is logged as command.rejected — [Audit Trail](#audit-trail)

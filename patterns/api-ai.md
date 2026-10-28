@@ -893,31 +893,31 @@ than the one first chosen, the response's `provider` says so.
 
 ## Verification Checklist
 
-- [ ] POST `/ai/chat` returns valid `ChatResponse` with usage data
-- [ ] POST `/ai/complete` returns completion text with `finish_reason`
-- [ ] POST `/ai/extract` returns JSON matching the provided schema
-- [ ] POST `/ai/extract` retries once on schema validation failure
-- [ ] POST `/ai/embed` returns embeddings with correct dimensions
-- [ ] GET `/ai/models` lists all configured providers and models
-- [ ] GET `/ai/health` reports per-provider status and latency
-- [ ] A request naming a model no provider's list holds is refused with 404 and a helpful error, and runs no other model
+- [ ] POST `/ai/chat` returns valid `ChatResponse` with usage data — [POST /ai/chat](#post-aichat), [ChatResponse](#chatresponse)
+- [ ] POST `/ai/complete` returns completion text with `finish_reason` — [POST /ai/complete](#post-aicomplete)
+- [ ] POST `/ai/extract` returns JSON matching the provided schema — [POST /ai/extract](#post-aiextract)
+- [ ] POST `/ai/extract` retries once on schema validation failure — [POST /ai/extract](#post-aiextract), [Implementation Notes](#implementation-notes)
+- [ ] POST `/ai/embed` returns embeddings with correct dimensions — [POST /ai/embed](#post-aiembed), [EmbedRequest](#embedrequest)
+- [ ] GET `/ai/models` lists all configured providers and models — [GET /ai/models](#get-aimodels)
+- [ ] GET `/ai/health` reports per-provider status and latency — [GET /ai/health](#get-aihealth)
+- [ ] A request naming a model no provider's list holds is refused with 404 and a helpful error, and runs no other model — [Resolution Order](#resolution-order)
 - [ ] Provider failover goes only to a provider whose own list holds the same model under the same name and whose ceiling covers the request's `scope`, is refused with `MODEL_UNAVAILABLE` where no other provider lists the model and with `SCOPE_CEILING_EXCEEDED` where every one that does is below the request's `scope`, and the response's `provider` names the provider that ran it
-- [ ] A request that names no model where `defaults.model` is absent is gated at `internal`, even where the provider's first loaded model is one a current agreement lists, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A request that names no model runs `defaults.model`, and where nobody chose one, a local model server's first loaded model; a provider that runs nothing unless a model is named refuses it
-- [ ] Every response's `model` is the model the provider's answer names, absent where it names none, and never the name the request or the configuration gave where the provider reports another
-- [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider
-- [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, a failover and a request-level `provider` and `model` override alike
-- [ ] A request-level override naming a provider a current agreement lists at `confidential` and a model that agreement does not list is gated at `internal`, the ceiling `GET /v1/model/ceiling?backend=<key>&model=<model>` answers, so a `confidential` request is refused with `SCOPE_CEILING_EXCEEDED` and sent nowhere else
-- [ ] Token usage is tracked per calling agent
-- [ ] Streaming responses use SSE format
-- [ ] Streaming request to a non-streaming model returns 406 Not Acceptable
-- [ ] Request body is capped at 1 MB
-- [ ] Rate limiting returns 429 with Retry-After header
+- [ ] A request that names no model where `defaults.model` is absent is gated at `internal`, even where the provider's first loaded model is one a current agreement lists, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` — [Destination Ceilings](#destination-ceilings)
+- [ ] A request that names no model runs `defaults.model`, and where nobody chose one, a local model server's first loaded model; a provider that runs nothing unless a model is named refuses it — [Resolution Order](#resolution-order), [Blueprint Format](#blueprint-format)
+- [ ] Every response's `model` is the model the provider's answer names, absent where it names none, and never the name the request or the configuration gave where the provider reports another — [ChatResponse](#chatresponse), [Implementation Notes](#implementation-notes)
+- [ ] A request with no `scope` is refused with `SCOPE_MISSING`, and one at `restricted` with `SCOPE_CEILING_EXCEEDED`, whatever any provider's ceiling, and neither reaches a provider — [Destination Ceilings](#destination-ceilings)
+- [ ] A provider key that no current agreement lists, whether or not the tenant's model configuration names it, gets the ceiling `internal` from `GET /v1/model/ceiling?backend=<key>`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED` — [Destination Ceilings](#destination-ceilings)
+- [ ] A request whose `scope` is `confidential` goes only to a provider and a model a current agreement lists both of at `confidential`, through resolution, a failover and a request-level `provider` and `model` override alike — [Destination Ceilings](#destination-ceilings)
+- [ ] A request-level override naming a provider a current agreement lists at `confidential` and a model that agreement does not list is gated at `internal`, the ceiling `GET /v1/model/ceiling?backend=<key>&model=<model>` answers, so a `confidential` request is refused with `SCOPE_CEILING_EXCEEDED` and sent nowhere else — [Request-Level Override](#request-level-override), [Destination Ceilings](#destination-ceilings)
+- [ ] Token usage is tracked per calling agent — [Implementation Notes](#implementation-notes)
+- [ ] Streaming responses use SSE format — [Implementation Notes](#implementation-notes)
+- [ ] Streaming request to a non-streaming model returns 406 Not Acceptable — [Implementation Notes](#implementation-notes)
+- [ ] Request body is capped at the input limit of [Implementation Notes](#implementation-notes)
+- [ ] Rate limiting returns 429 with Retry-After header — [`patterns/rate-limiting`](rate-limiting.md#429-too-many-requests), [`patterns/rate-limiting`](rate-limiting.md#response-headers)
 - [ ] All responses include `latency_ms` for observability
-- [ ] Tool calling works across providers that support it
-- [ ] Provider-specific formats are fully normalised
-- [ ] A model the default provider does not list runs on another provider whose list holds the same name, and never as another model
+- [ ] Tool calling works across providers that support it — [Provider Abstraction](#provider-abstraction), [POST /ai/chat](#post-aichat)
+- [ ] Provider-specific formats are fully normalised — [Provider Abstraction](#provider-abstraction)
+- [ ] A model the default provider does not list runs on another provider whose list holds the same name, and never as another model — [Resolution Order](#resolution-order), [Implementation Notes](#implementation-notes)
 - [ ] A request for a model whose provider is unhealthy runs on another provider that lists the same model, or is refused with 503 `MODEL_UNAVAILABLE`, and never runs another model
-- [ ] Request-level provider override bypasses routing
-- [ ] Token budget enforcement works in `block` and `alert` modes, and neither runs a model other than the one asked for
+- [ ] Request-level provider override bypasses routing — [Request-Level Override](#request-level-override)
+- [ ] Token budget enforcement works in `block` and `alert` modes, and neither runs a model other than the one asked for — [Token Budget Routing](#token-budget-routing)

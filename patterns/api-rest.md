@@ -371,15 +371,15 @@ types:
 
 ## Verification Checklist
 
-- [ ] All 5 CRUD endpoints are generated for each model
-- [ ] List endpoint supports `limit` and `cursor` pagination
-- [ ] List endpoint supports field-level filtering
-- [ ] List endpoint supports `sort` parameter with asc/desc
-- [ ] Create endpoint returns 201 with the created resource
-- [ ] Create validates required fields and constraints
-- [ ] Read returns 404 for unknown IDs
-- [ ] Update replaces the full resource (not partial)
-- [ ] Delete returns 204 with empty body
-- [ ] Error responses follow the standard shape
-- [ ] Auto fields (uuid, timestamp) are set server-side
-- [ ] Unknown filter/sort keys are handled gracefully
+- [ ] Every endpoint of [Generated Endpoints (per model)](#generated-endpoints-per-model) is generated for each model
+- [ ] List endpoint supports `limit` and `cursor` pagination — [Pagination](#pagination)
+- [ ] List endpoint supports field-level filtering — [Filtering](#filtering)
+- [ ] List endpoint supports `sort` parameter with asc/desc — [Sorting](#sorting)
+- [ ] Create endpoint returns 201 with the created resource — [Request/Response Shapes](#requestresponse-shapes)
+- [ ] Create validates required fields and constraints — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes)
+- [ ] Read returns 404 for unknown IDs — [Error Responses](#error-responses)
+- [ ] Update replaces the full resource (not partial) — [Request/Response Shapes](#requestresponse-shapes)
+- [ ] Delete returns 204 with empty body — [Request/Response Shapes](#requestresponse-shapes)
+- [ ] Error responses follow the standard shape — [Error Responses](#error-responses), [ErrorResponse (API Pattern)](#errorresponse-api-pattern)
+- [ ] Auto fields (uuid, timestamp) are set server-side — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes)
+- [ ] Unknown filter/sort keys are handled gracefully — [Filtering](#filtering), [Sorting](#sorting)

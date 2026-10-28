@@ -1400,30 +1400,30 @@ All errors use the standard `ErrorResponse` format from
 
 ## Verification Checklist
 
-- [ ] `require_approval` decisions from safety produce an ApprovalRequest
-- [ ] `escalate` decisions from safety produce an ApprovalRequest
-- [ ] Routing matrix maps scope × operation to correct authority level
-- [ ] Environment amplification increases authority for production system/critical resources
-- [ ] Cross-domain operations amplify authority by one level
-- [ ] Self-approval is rejected — requester cannot approve own request
-- [ ] No approval request is decided by its requester on the strength of a content repository's `self_decision_ceiling`
-- [ ] Domain controllers cannot approve cross-domain changes from their own domain
-- [ ] Auto-approval matches only explicitly configured low-risk rules
-- [ ] Auto-approvals are audited identically to human approvals
-- [ ] Escalation fires after configured timeout per authority level
-- [ ] Escalation promotes to next authority level in chain
-- [ ] Maximum escalations result in denial and expiration event
-- [ ] Multi-party approval requires N-of-M acceptances
-- [ ] Multi-party pool excludes the requester
-- [ ] Multi-party rejection is detected when approval becomes mathematically impossible
-- [ ] Emergency override requires MFA
-- [ ] Emergency override notifies all operators and admins
-- [ ] Emergency override creates mandatory review obligation
-- [ ] Override review deadline triggers recurring alerts if overdue
-- [ ] All approval events are emitted to the event bus
-- [ ] Audit records are append-only and classified at confidential minimum
-- [ ] Override audit records are classified at critical scope
-- [ ] Approval state persists across hub restarts
-- [ ] Expired requests are automatically denied
-- [ ] Delegated requests transfer to same-or-higher authority
-- [ ] Conditions on accept decisions are re-validated at execution time
+- [ ] `require_approval` decisions from safety produce an ApprovalRequest — [Safety (`patterns/safety`)](#safety-patternssafety), [MUST](#must)
+- [ ] `escalate` decisions from safety produce an ApprovalRequest — [Safety (`patterns/safety`)](#safety-patternssafety), [MUST](#must)
+- [ ] Routing matrix maps scope × operation to correct authority level — [Base Authority by Scope × Operation](#base-authority-by-scope--operation), [Routing Algorithm](#routing-algorithm)
+- [ ] Environment amplification increases authority for production system/critical resources — [Environment Amplification](#environment-amplification)
+- [ ] Cross-domain operations amplify authority by one level — [Cross-Domain Amplification](#cross-domain-amplification)
+- [ ] Self-approval is rejected — requester cannot approve own request — [Rules](#rules), [Enforcement Logic](#enforcement-logic)
+- [ ] No approval request is decided by its requester on the strength of a content repository's `self_decision_ceiling` — [The one exception](#the-one-exception)
+- [ ] Domain controllers cannot approve cross-domain changes from their own domain — [Rules](#rules), [Enforcement Logic](#enforcement-logic)
+- [ ] Auto-approval matches only explicitly configured low-risk rules — [Auto-Approval](#auto-approval)
+- [ ] Auto-approvals are audited identically to human approvals — [Auto-Approval](#auto-approval)
+- [ ] Escalation fires after configured timeout per authority level — [Escalation Rules](#escalation-rules), [Escalation Flow](#escalation-flow)
+- [ ] Escalation promotes to next authority level in chain — [Escalation Chain](#escalation-chain), [Escalation Flow](#escalation-flow)
+- [ ] Maximum escalations result in denial and expiration event — [Escalation Flow](#escalation-flow)
+- [ ] Multi-party approval requires N-of-M acceptances — [Multi-Party Requirement](#multi-party-requirement)
+- [ ] Multi-party pool excludes the requester — [Multi-Party Requirement](#multi-party-requirement), [Rules](#rules)
+- [ ] Multi-party rejection is detected when approval becomes mathematically impossible — [Multi-Party Requirement](#multi-party-requirement), [Multi-Party Decision Logic](#multi-party-decision-logic)
+- [ ] Emergency override requires MFA — [Emergency Override](#emergency-override), [Override Constraints](#override-constraints)
+- [ ] Emergency override notifies all operators and admins — [Emergency Override](#emergency-override), [Override Flow](#override-flow)
+- [ ] Emergency override creates mandatory review obligation — [Emergency Override](#emergency-override), [Override Flow](#override-flow)
+- [ ] Override review deadline triggers recurring alerts if overdue — [Override Constraints](#override-constraints)
+- [ ] All approval events are emitted to the event bus — [Implementation Notes](#implementation-notes)
+- [ ] Audit records are append-only and classified at confidential minimum — [Audit Retention](#audit-retention)
+- [ ] Override audit records are classified at critical scope — [Audit Retention](#audit-retention)
+- [ ] Approval state persists across hub restarts — [Implementation Notes](#implementation-notes)
+- [ ] Expired requests are automatically denied — [Escalation Flow](#escalation-flow), [Error Handling](#error-handling)
+- [ ] Delegated requests transfer to same-or-higher authority — [Approval Decision](#approval-decision), [Decision Structure](#decision-structure)
+- [ ] Conditions on accept decisions are re-validated at execution time — [Decision Structure](#decision-structure)
