@@ -419,20 +419,20 @@ counts would make a report of substance indistinguishable from a broken file.
 
 ### The declaration half
 
-- [ ] Every entry has an `id`, a `name`, a `description` and at least one keyword
+- [ ] Every entry has an `id`, a `name`, a `description` and at least one keyword ([The declaration half](#the-declaration-half--policy-domainscataloguejson))
 - [ ] No two entries in the catalogue share an `id`
-- [ ] The embedded copy in a consumer is byte-identical to this one, and a guard says so
-- [ ] A domain added here has a `policy-domains/<id>.md` beside it, or is knowingly left `undescribed`
+- [ ] The embedded copy in a consumer is byte-identical to this one, and a guard says so ([How it reaches an installation](#how-it-reaches-an-installation))
+- [ ] A domain added here has a `policy-domains/<id>.md` beside it, or is knowingly left `undescribed` ([What is reported rather than refused](#what-is-reported-rather-than-refused))
 
 ### The commentary half
 
-- [ ] The filename, without `.md`, equals the declared `id`
-- [ ] The `id` is a domain the policy-domain catalogue declares
-- [ ] Every `requires` entry is one of the seven closed values
-- [ ] Every `boundaries` key is a declared domain id, and is not this domain
-- [ ] Every boundary is declared on both sides
-- [ ] Every `##` heading is one of the three above, spelled exactly
-- [ ] At least one recognised section has content
-- [ ] No artifact id and no register path appears anywhere in the body
-- [ ] No `name`, `description`, `category`, `keywords`, `programmes` or `standards` field
+- [ ] The filename, without `.md`, equals the declared `id` ([The commentary half — format](#the-commentary-half--format))
+- [ ] The `id` is a domain the policy-domain catalogue declares ([Frontmatter](#frontmatter))
+- [ ] Every `requires` entry is one of the closed values [`requires` — a closed vocabulary](#requires--a-closed-vocabulary) lists
+- [ ] Every `boundaries` key is a declared domain id, and is not this domain ([Frontmatter](#frontmatter))
+- [ ] Every boundary is declared on both sides ([`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal))
+- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
+- [ ] At least one recognised section has content ([Body — a closed set of headings](#body--a-closed-set-of-headings))
+- [ ] No artifact id and no register path appears anywhere in the body ([A domain may not restate derived fact](#a-domain-may-not-restate-derived-fact))
+- [ ] None of the fields [Frontmatter](#frontmatter) says the commentary half deliberately has no: `name`, `description`, `category`, `keywords`, `programmes` or `standards`
 - [ ] No individual is named, and no tenant, customer or project is named
