@@ -494,7 +494,7 @@ is inherited and extends the agent-specific verification checklist.
 ### Transport
 
 - [ ] The minimum TLS version is enforced in production environments — [TLS Requirements](#tls-requirements), [Certificate Management](#certificate-management)
-- [ ] Non-TLS requests rejected in production (except `/livez` and `/readyz`)
+- [ ] Non-TLS requests rejected in production — [Request Verification Chain](#request-verification-chain), [TLS Requirements](#tls-requirements), [`protocol/spec`](../protocol/spec.md#security)
 - [ ] Certificate validation enabled for outbound HTTPS requests — [Inter-Agent TLS](#inter-agent-tls)
 
 ### Input
@@ -530,7 +530,7 @@ is inherited and extends the agent-specific verification checklist.
 - [ ] Token expiry checked on every request — [Request Verification Chain](#request-verification-chain)
 - [ ] Message signatures verified when sender public key is known — [Request Verification Chain](#request-verification-chain)
 - [ ] Governance directive signatures verified against orchestrator key — [Request Verification Chain](#request-verification-chain)
-- [ ] New deployments default to ML-DSA-65 (FIPS 204) for post-quantum resistance
+- [ ] Every deployment signs with the one algorithm [`protocol/identity`](../protocol/identity.md#conventions) allows, and no other
 
 ### Monitoring
 
@@ -544,4 +544,4 @@ is inherited and extends the agent-specific verification checklist.
 - [ ] No new dependencies added without `weblisk deps audit` review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification)
 - [ ] `weblisk validate --deps` passes (no known vulnerabilities) — [Lockfile Verification](#lockfile-verification)
 - [ ] Client-side framework has zero external runtime dependencies — [Client-Side Policy](#client-side-policy)
-- [ ] Critical CVEs patched or mitigated within 24 hours
+- [ ] Critical CVEs are handled within the deadline and by the action [Vulnerability Response](#vulnerability-response) gives

@@ -452,11 +452,11 @@ for each phase in current level (concurrent):
          (the event envelope carries the trace:
           protocol/spec#trace-propagation)
 
-  d. Workflow Agent waits for corresponding task.complete or
+  d. Workflow Agent waits for corresponding task.completed or
      task.failed event (matched by workflow_id + phase name)
 ```
 
-The Workflow Agent subscribes to `task.complete` and `task.failed`
+The Workflow Agent subscribes to `task.completed` and `task.failed`
 (scope: `self`). When a task completion event arrives:
 
 ```
@@ -515,7 +515,9 @@ Each phase declares its own error strategy via `on_error`:
 
 When a phase fails with `on_error: fail`:
 1. Cancel all in-flight tasks at the same level
-   (publish `task.cancel` for pending tasks)
+   (publish `task.cancel`, the request the task agent subscribes to, for
+   pending tasks; the task agent answers each with `task.cancelled`, as
+   `patterns/task-dispatch` declares)
 2. Skip all downstream phases
 3. Set workflow status to `failed`
 4. Publish `workflow.failed` (scope: invoker)

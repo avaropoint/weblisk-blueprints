@@ -209,7 +209,7 @@ rate_limiting:
   algorithm: token_bucket    # token_bucket | sliding_window | fixed_window
   storage: memory            # memory | agent_store
 
-  # Default limits (applied to all routes unless overridden)
+  # Default limits (applied to every route, alongside any route's own; see Priority Order)
   defaults:
     per_ip:
       requests: 100
@@ -224,7 +224,7 @@ rate_limiting:
       window: 60
       burst: 100
 
-  # Per-route overrides
+  # Per-route limits (checked alongside the defaults; the most restrictive wins)
   routes:
     - match: /v1/auth/login
       per_ip:
@@ -460,7 +460,7 @@ each `ADMIN_GROUP_UNAVAILABLE`
 - [ ] `Retry-After` header present on 429 responses — [Response Headers](#response-headers)
 - [ ] Token bucket allows burst up to capacity — [Token Bucket (Default)](#token-bucket-default)
 - [ ] Sliding window correctly weights previous window — [Sliding Window](#sliding-window)
-- [ ] Per-route overrides take precedence over defaults
+- [ ] Per-route limits are checked alongside the global ones, and the most restrictive limit wins — [Priority Order](#priority-order)
 - [ ] Rate limit configuration hot-reloads without restart — [Admin Operations](#admin-operations), [Implementation Notes](#implementation-notes)
 - [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes` — [Admin Operations](#admin-operations)
 - [ ] Metrics emit for allowed and rejected requests — [Observability](#observability)

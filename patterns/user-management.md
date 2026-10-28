@@ -227,7 +227,7 @@ config:
 
 ```yaml
 types:
-  Endpoints:
+  User:
     fields:
       id:
         name: ID

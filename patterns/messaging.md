@@ -237,7 +237,7 @@ Examples:
 - `workflow.trigger` — request to start a workflow
 - `workflow.phase.complete` — a workflow phase finished
 - `task.submit` — new task submitted for dispatch
-- `task.complete` — task execution finished
+- `task.completed` — task execution finished
 - `lifecycle.recommendation.created` — new recommendation proposed
 - `health.agent.state_change` — agent health state changed
 - `seo.audit.result` — SEO domain audit result callback
@@ -426,7 +426,7 @@ group (round-robin load balancing). Different groups each receive
 every event (fan-out).
 
 ```
-Topic: task.complete, scope: "workflow"
+Topic: task.completed, scope: "workflow"
 
 Group "workflow":
   Workflow Instance 1 ← receives event A, C  (load-balanced)
@@ -515,7 +515,7 @@ results return to the correct invoker:
 2. Workflow Agent → task.submit   (scope: "task")
    Task Agent records: requester = "workflow"
 
-3. Task Agent → task.complete     (scope: "workflow")
+3. Task Agent → task.completed     (scope: "workflow")
    Addressed back to Workflow Agent
 
 4. Workflow Agent → workflow.completed (scope: "seo")

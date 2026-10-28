@@ -534,7 +534,7 @@ types:
 - [ ] Migrations have both up and down sections — [Migration Actions](#migration-actions)
 - [ ] Migrations are versioned and applied in order — [Migration Actions](#migration-actions)
 - [ ] Retention rules configured for time-series data — [Retention](#retention)
-- [ ] Storage engine declared in agent config
+- [ ] Agent config declares its storage requirements and names no engine — [Storage Configuration](#storage-configuration)
 - [ ] Schema version interface exposes GetSchemaVersion, RecordMigration, ValidateSchema — [Schema Version Interface](#schema-version-interface)
 - [ ] schema_migrations table tracks all applied migrations — [Migration Actions](#migration-actions), [Schema Version Interface](#schema-version-interface)
 - [ ] Data migrations follow the governance pipeline — [Schema Version Interface](#schema-version-interface), [`patterns/migration`](migration.md#migration-lifecycle-state-machine)

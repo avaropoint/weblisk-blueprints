@@ -1512,5 +1512,5 @@ same operator approval mechanism.
 - [ ] Intent decisions expire after the configured validity window — [Intent Decision](#intent-decision), [Implementation Notes](#implementation-notes)
 - [ ] All safety errors use standard ErrorResponse format with appropriate codes — [Safety-Related Errors](#safety-related-errors)
 - [ ] Development environment is permissive — most operations allowed, destructive audited — [Environment Enforcement Profiles](#environment-enforcement-profiles)
-- [ ] Staging environment is moderate — destructive operations require approval or are denied
+- [ ] Staging environment is moderate — destructive operations on application resources and above require approval or are denied, as the staging matrix gives — [Staging Environment (moderate)](#staging-environment-moderate), [Environment Enforcement Profiles](#environment-enforcement-profiles)
 - [ ] Production environment is strict — all delete/destroy operations gated — [Production Environment (strict)](#production-environment-strict), [Environment Enforcement Profiles](#environment-enforcement-profiles)

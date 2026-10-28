@@ -196,7 +196,7 @@ the server sends on a 429 or 503 is a floor on the delay, as that rule says.
 ```
 CLOSED → (failures exceed threshold) → OPEN
 OPEN → (recovery timeout expires) → HALF_OPEN
-HALF_OPEN → (probe succeeds) → CLOSED
+HALF_OPEN → (success_threshold probes succeed) → CLOSED
 HALF_OPEN → (probe fails) → OPEN
 ```
 
@@ -204,7 +204,7 @@ HALF_OPEN → (probe fails) → OPEN
 |-------|----------|
 | CLOSED | Normal operation. Requests pass through. Failures are counted. |
 | OPEN | All requests fail immediately without attempting. Returns cached error. |
-| HALF_OPEN | One probe request is allowed through. If it succeeds, circuit closes. If it fails, circuit opens again. |
+| HALF_OPEN | Probe requests are allowed through one at a time, up to `success_threshold`. When that many succeed in a row, circuit closes. If any fails, circuit opens again. |
 
 ### Default Configuration
 
@@ -386,7 +386,7 @@ it overrides the category-based default.
 - [ ] No retry on a 429 comes before its Retry-After — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
 - [ ] Circuit breaker trips after consecutive failure threshold — [States](#states), [Default Configuration](#default-configuration)
 - [ ] Circuit breaker enters HALF_OPEN after recovery timeout — [States](#states), [Default Configuration](#default-configuration)
-- [ ] Successful probe in HALF_OPEN closes circuit
+- [ ] `success_threshold` consecutive successful probes in HALF_OPEN close the circuit — [Contracts](#contracts), [States](#states)
 - [ ] Failed probe in HALF_OPEN reopens circuit — [States](#states)
 - [ ] Per-target circuits isolate failures — [Per-Target Circuits](#per-target-circuits)
 - [ ] Circuit breaker state changes emit events to alerting — [Circuit Breaker Events](#circuit-breaker-events)
