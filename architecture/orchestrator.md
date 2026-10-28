@@ -947,9 +947,11 @@ in. A backend is available only where all three of these hold:
   yet gives the model gateway another place to take one from. A backend that
   needs a key is listed, and is not available.
 - **It only answers.** A coding agent's command-line tool reads files and runs
-  commands as well as answering. Run by the gateway, it would act beside the
-  hub's keys with nothing to confine it, so it is listed, and is not
-  available.
+  commands as well as answering. Run by the gateway as it is, it would act
+  beside the hub's keys with nothing to confine it. One is available only where
+  the gateway runs it answer-only and its own help advertises every flag that
+  relies on ([Running a tool answer-only](#running-a-tool-answer-only)); any
+  other is listed, and is not available.
 
 `PUT /v1/admin/model` accepts only a backend this route would report
 available, and `POST /v1/admin/complete` runs only one.
@@ -1005,9 +1007,7 @@ for as the one that ran.
 > - `PUT /v1/admin/model` takes any `provider`, any `model` and an
 >   `api_key_env`, asks no backend anything, and records nothing;
 > - `GET /v1/admin/model/providers` gives each backend at most one model, from
->   a table the CLI wrote, asks no backend for its list, and reports available
->   a backend whose key is in the hub's environment and a coding agent's tool
->   that is installed;
+>   a table the CLI wrote, and asks no backend for its list;
 > - `POST /v1/admin/complete` is judged on `admin:read`, takes `model` from the
 >   request, and where neither the request nor the configuration names one
 >   asks for a model from that table, or for an empty name; it reports the
@@ -1040,6 +1040,83 @@ for as the one that ran.
 > Closing it is the CLI's: serve all nine routes as this document specifies
 > them, and record through `POST /v1/admin/model/audit` once the orchestrator
 > serves it.
+
+### Running a tool answer-only
+
+A coding agent's command-line tool is a backend only as the model gateway runs
+it here: **answer-only**, so that what runs takes a prompt and gives an answer,
+and the tool's own flags have taken away everything else it could do. For each
+completion the gateway:
+
+1. **Runs it once, non-interactively**, in its print mode, which answers and
+   exits.
+2. **Takes away every tool**: its built-in tools are an empty list, and a tool
+   it would still ask permission for is refused, never waited on.
+3. **Loads no MCP server**: only those its command line names, and it names
+   none.
+4. **Loads nothing a person or a project configured**: no settings file, hook,
+   plugin, skill, slash command, custom agent or instruction file, from any
+   user, project or local location. Any of them could give a tool back, or act
+   in the tool's name.
+5. **Keeps no session**: nothing is written that could be resumed.
+6. **Runs it in an empty directory outside the tenant**, made for that
+   completion, outside the hub's root, and removed when it ends.
+7. **Gives it an environment of its own**, holding only what the tool needs to
+   find its own sign-in: the home directory, the user's name, a temporary
+   directory, and a search path naming the tool's own directory and the
+   system's. Nothing else comes from the hub's environment: no `WL_` variable,
+   no key, and no variable naming one.
+8. **Sends the prompt on standard input**, the system prompt with it, and never
+   as an argument, which every process on the host can read.
+9. **Bounds it.** It reads at most a fixed amount of output, and refuses an
+   answer longer than that rather than cutting it short. At the completion's
+   deadline it kills the tool and every process the tool started, as one
+   process group.
+
+**Proved before it is offered.** A tool is available only where the gateway
+has read its own `--help`, run as in 6 and 7 and bounded as in 9, and that help
+advertises every flag 1 to 5 rely on, with the words a flag's meaning rests on
+where it rests on a value: that `--tools ""` disables every tool, for one. A
+tool whose help lacks any of them is listed, and is not available, its
+`detail` naming what is missing. The proof is read again whenever the program
+at that path changes. A host where the gateway cannot give the tool a process
+group of its own cannot meet 9, and the tool is not available there.
+
+**Signed in as itself.** The tool authenticates with its own sign-in on this
+host, a person's subscription held where the tool keeps it. No key enters the
+tenant: the gateway passes none and reads none, and a tool that would answer
+only with a key in its environment needs a key, so is not available. Each
+completion is spent against, and attributed by the vendor to, whoever signed
+the tool in.
+
+| Kind | Run answer-only | The flags it relies on |
+|---|---|---|
+| `claude-code` | Where its help advertises each flag | `--print`, `--output-format json`, `--tools ""`, `--strict-mcp-config`, `--safe-mode`, `--restricted`, `--disable-slash-commands`, `--no-session-persistence`, `--permission-mode dontAsk`, and `--model` where a model is named |
+| `grok` | No: it ignores an empty `--tools`, measured, and no flag it offers is known to leave it none | |
+| `codex` | No: no flag removes its tools, and `--sandbox read-only` still lets it read | |
+| `opencode` | No: no flag removes its tools | |
+| `local-cli` | No: it names no one tool | |
+
+The gateway's proof decides, not this table: a row here is what the gateway
+asks a tool's help for, and the gateway is held to it.
+
+**What answer-only does not protect against.** It is a property of how the
+tool is run, and no more than that:
+
+- **The vendor sees the prompt and the answer**, as it does for any hosted
+  model. The tool is a destination like any other, and the gate applies to
+  it ([A model is a destination](#a-model-is-a-destination)).
+- **It rests on the tool honouring flags it advertises.** Help proves that a
+  flag is offered, not that it works, and one tool has been measured ignoring
+  a flag it offers. It is not an operating-system sandbox: the tool runs as
+  the hub's user, and a tool that ignored its flags could read and do what
+  that user can.
+- **Settings an administrator manages for the host still apply**, because the
+  tool loads them whatever it is told.
+- **The tool may update itself and send its own telemetry.** Neither is the
+  gateway's to stop.
+- **The sign-in is a person's.** A completion spends their subscription and is
+  theirs to the vendor, not the tenant's.
 
 ### Recording what the model routes do
 
@@ -2224,7 +2301,9 @@ agents hold, which is theirs.
 - [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none ([The tenant's model](#the-tenants-model))
 - [ ] `PUT /v1/admin/model` naming a backend `GET /v1/admin/model/providers` reports unavailable is refused with `MODEL_BACKEND_UNAVAILABLE`, one naming a `model` or a `roles` model the backend's own list does not hold with `MODEL_NOT_LISTED`, and one carrying `api_key_env` with `INVALID_REQUEST`; none of them changes `.weblisk/model.json` or appends a `model_set` entry ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do))
 - [ ] An accepted `PUT /v1/admin/model` appends a `model_set` entry naming the configuration before and after before it writes anything, answers `config` and `withdrawn`, and changes nothing, answering `MODEL_UNRECORDED`, where `POST /v1/admin/model/audit` does not answer `201` ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do))
-- [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool ([The tenant's model](#the-tenants-model))
+- [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool the gateway does not run answer-only ([The tenant's model](#the-tenants-model), [Running a tool answer-only](#running-a-tool-answer-only))
+- [ ] A coding agent's command-line tool whose own `--help` does not advertise every flag answer-only relies on is reported `available` false with a `detail` naming what is missing, and `PUT /v1/admin/model` naming it is refused with `MODEL_BACKEND_UNAVAILABLE` ([Running a tool answer-only](#running-a-tool-answer-only), [The tenant's model](#the-tenants-model))
+- [ ] A completion on a coding agent's command-line tool runs it with every flag answer-only relies on and no prompt among its arguments, the prompt on its standard input, in a new empty directory outside the hub's root that is gone when it ends, with no `WL_` variable and no key in its environment, and kills it with every process it started at its deadline ([Running a tool answer-only](#running-a-tool-answer-only))
 - [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none ([The tenant's model](#the-tenants-model))
 - [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing ([A model is a destination](#a-model-is-a-destination))
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing ([The tenant's model](#the-tenants-model))
