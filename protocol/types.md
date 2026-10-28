@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.0.0
+version: 6.1.0
 requires: []
 platform: any
 tier: free
@@ -405,7 +405,7 @@ refused ([`protocol/spec`](spec.md#post-v1register)).
 **Standard capabilities:**
 - `file:read` (enforcement) — read files (resources: glob patterns)
 - `file:write` (enforcement) — write/modify files
-- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
+- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. A registered component needs it, declared on its own manifest, to ask the tenant's model at `POST /v1/model/complete`, the model service's route ([`architecture/model-service`](../architecture/model-service.md#who-may-ask)). It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
 - `agent:message` (orchestrator) — communicate with other agents
 - `workflow:execute` (domain) — execute multi-agent workflows (domain controllers)
 - `http:get` (enforcement) — make external HTTP requests
@@ -448,7 +448,7 @@ which also says whom the two grants separate today).
 
 **Model capabilities:**
 - `model:attest` (orchestrator) — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
-- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
+- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` and `POST /v1/model/complete` are served by the model gateway in the orchestrator's own process and by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
 
 `model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
 external boundary tells the model route from a call made around it. It
@@ -2851,6 +2851,8 @@ probes are, and which say nothing a version could change ([Health](#health)).
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 | `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
+| `/v1/model/complete` | POST | yes | orchestrator | A completion on the tenant's model for a registered component holding `llm:chat`, on its own registration token. Platform-provided, the model service's (architecture/model-service) |
+| `/v1/model/audit` | POST | yes | orchestrator | Append a registered component's completion's entry to the audit log, for the model gateway inside the orchestrator's process alone (architecture/orchestrator) |
 
 ---
 
@@ -2934,6 +2936,11 @@ error_codes:
     category: transient
     retryable: true
     description: The model a request names is on an unhealthy provider and no other provider lists it under the same name. No other model runs instead (patterns/api-ai, Provider Health-Aware Routing)
+  - code: MODEL_BACKEND_LIMITED
+    status: 429
+    category: transient
+    retryable: true
+    description: The tenant's model backend refused a completion under its own rate or quota limit, and nothing ran. retry_after is the seconds until the backend said its window resets, and is absent where it said nothing; the model service sets no limit of its own (architecture/model-service, Limits)
   - code: UNSUPPORTED_VERSION
     status: 400
     category: permanent

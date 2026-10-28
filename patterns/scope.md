@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -450,18 +450,20 @@ has with nothing demonstrated or attested.
 **Where the tenant applies it.**
 
 - A model is reached only through the tenant's **model route**: the endpoints
-  of [`patterns/api-ai`](api-ai.md#destination-ceilings), and
+  of [`patterns/api-ai`](api-ai.md#destination-ceilings),
   `POST /v1/admin/complete`
-  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)).
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)),
+  and `POST /v1/model/complete`, where a registered component asks the
+  tenant's model ([`architecture/model-service`](../architecture/model-service.md#who-may-ask)).
   Each applies the gate itself before it sends. A component serving
   api-ai's endpoints declares `model:route`
   ([`protocol/types`](../protocol/types.md)), which is how a boundary tells it
-  from anything else. `POST /v1/admin/complete` is the orchestrator's own
-  route, served by the model gateway the CLI installs in it, and neither
-  registers a manifest: the external boundary wraps an agent's outbound
-  calls, and the orchestrator is not an agent, so `model:route` is not how
-  that route is told apart, and what holds there is the gate it applies
-  itself. A model backend that runs as a program on the tenant's host makes
+  from anything else. `POST /v1/admin/complete` and `POST /v1/model/complete`
+  are the orchestrator's own routes, served by the model gateway the CLI
+  installs in it, and neither the orchestrator nor the gateway registers a
+  manifest: the external boundary wraps an agent's outbound calls, and the
+  orchestrator is not an agent, so `model:route` is not how those routes are
+  told apart, and what holds there is the gate they apply themselves. A model backend that runs as a program on the tenant's host makes
   no outbound call a boundary can see.
 - A component's outbound call to a model provider's endpoint also passes the
   external boundary of
