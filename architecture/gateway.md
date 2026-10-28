@@ -1144,21 +1144,21 @@ place — and it does not put two versions in service at once.
 
 ## Verification Checklist
 
-- [ ] Gateway registers with orchestrator as an infrastructure agent with its own ML-DSA-65 identity
-- [ ] HTTP requests in production redirect to HTTPS (301) and every response includes HSTS header
-- [ ] Path blocking rejects requests to /.weblisk/, any dotfile/dotfolder, and path traversal sequences before any other processing
-- [ ] Rate limits enforce per-IP (100/min), per-session (300/min), and auth endpoint (10/min) thresholds with 429 on breach
-- [ ] Session token is validated on every request: ML-DSA-65 signature, expiry, client binding, and server-side state lookup
-- [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE)
-- [ ] ABAC policy engine evaluates subject, resource, and context attributes with deny-by-default resolution
-- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, traceparent, and Authorization headers
-- [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser
-- [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP
-- [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway)
-- [ ] Agent failover returns 503 with Retry-After when the agent's lease reads `unknown` or `not_ready`; session remains valid without re-authentication
-- [ ] Session store encryption uses AES-256-GCM with key derived from gateway's signing private key via HKDF
-- [ ] Every served route appears in the declared route map with a route, methods, target, component and operation; a route absent from the map answers 404 and no internal target is derived from the request path
-- [ ] The external route carries no version and the internal target does; repointing a route's target changes no URL a caller uses
-- [ ] Every response carries `X-Weblisk-Target` naming the resolved internal path, and it survives response sanitization
-- [ ] Every request log entry and span records route, target and component, so a trace names which version served it
-- [ ] The gauge `gateway_route_target` reports the application API versions the map currently targets, and `GET /livez` and `GET /readyz` answer `live` or `ready` alone
+- [ ] Gateway registers with orchestrator as an infrastructure agent with its own ML-DSA-65 identity ([Gateway Identity](#gateway-identity))
+- [ ] HTTP requests in production redirect to HTTPS (301) and every response includes HSTS header ([Request Lifecycle](#request-lifecycle) step 1)
+- [ ] Path blocking rejects requests to /.weblisk/, any dotfile/dotfolder, and path traversal sequences before any other processing ([Request Lifecycle](#request-lifecycle) step 2)
+- [ ] Rate limits enforce the per-IP, per-session and auth endpoint thresholds [Gateway Config](#gateway-config) gives, with 429 on breach ([Request Lifecycle](#request-lifecycle) step 3)
+- [ ] Session token is validated on every request: ML-DSA-65 signature, expiry, client binding, and server-side state lookup ([Request Lifecycle](#request-lifecycle) step 5)
+- [ ] CSRF validation via X-CSRF-Token header is enforced on all state-changing requests (POST, PUT, DELETE) ([Request Lifecycle](#request-lifecycle) step 6)
+- [ ] ABAC policy engine evaluates subject, resource, and context attributes with deny-by-default resolution ([Attributes](#attributes), [Policy Evaluation](#policy-evaluation))
+- [ ] Request mediation injects X-Gateway-Session, X-Gateway-User, X-Gateway-Roles, traceparent, and Authorization headers ([Internal Headers](#internal-headers))
+- [ ] Response sanitization strips X-Gateway-*, X-Agent-*, Server, and X-Powered-By headers before reaching the browser ([Response Sanitization](#response-sanitization))
+- [ ] Security headers set on every response: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, CSP, Referrer-Policy, COOP ([Request Lifecycle](#request-lifecycle) step 10)
+- [ ] Requests to /v1/admin/* return 404 (platform admin routes are never served by the application gateway) ([Route Definition](#route-definition), [Implementation Notes](#implementation-notes))
+- [ ] Agent failover returns 503 with Retry-After when the agent's lease reads `unknown` or `not_ready`; session remains valid without re-authentication ([How It Works](#how-it-works), [What the Browser Sees](#what-the-browser-sees))
+- [ ] Session store encryption uses AES-256-GCM with key derived from gateway's signing private key via HKDF ([Implementation Notes](#implementation-notes))
+- [ ] Every served route appears in the declared route map with a route, methods, target, component and operation; a route absent from the map answers 404 and no internal target is derived from the request path ([The map is declared, not inferred](#the-map-is-declared-not-inferred))
+- [ ] The external route carries no version and the internal target does; repointing a route's target changes no URL a caller uses ([Two things that must not be one thing](#two-things-that-must-not-be-one-thing), [Shifting traffic between versions](#shifting-traffic-between-versions))
+- [ ] Every response carries `X-Weblisk-Target` naming the resolved internal path, and it survives response sanitization ([Which version answered MUST be observable](#which-version-answered-must-be-observable))
+- [ ] Every request log entry and span records route, target and component, so a trace names which version served it ([Which version answered MUST be observable](#which-version-answered-must-be-observable))
+- [ ] The gauge `gateway_route_target` reports the application API versions the map currently targets, and `GET /livez` and `GET /readyz` answer `live` or `ready` alone ([Which version answered MUST be observable](#which-version-answered-must-be-observable), [`protocol/types`](../protocol/types.md#health))

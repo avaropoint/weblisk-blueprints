@@ -1260,25 +1260,25 @@ security:
 
 ## Verification Checklist
 
-- [ ] Browser session token uses WLS type (distinct from WLT), signed by gateway's ML-DSA-65 key, with all required claims (sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren)
-- [ ] Native client token uses WLC type with required claims (sub, iss, iat, exp, cid, roles, bind, cap, sec) and is stored in platform secure storage
-- [ ] Client type detection follows the defined precedence (mTLS → X-Client-Type → cookie → Bearer → reject)
-- [ ] Browser binding hash is SHA-256 of concatenated UA + Accept-Language + IP/24 + TLS session hash
-- [ ] Native client binding hash is SHA-256 of device ID + app signature hash
-- [ ] Binding mismatch in strict mode (browser) returns 401 and invalidates session immediately
-- [ ] Native client binding mismatch immediately invalidates session (device binding is immutable)
-- [ ] CSRF protection applies only to browser clients; CSRF token is HMAC-SHA256(csrf_secret, session_id + user_id)
-- [ ] Session renewal issues a new token with same sid/cid, updated timestamps — old token blacklisted
-- [ ] Browser cookie is set with HttpOnly, Secure, SameSite=Strict, Path=/, scoped to application domain
-- [ ] New session ID generated on every authentication event (login, MFA, level upgrade) to prevent fixation
-- [ ] Security level transitions: standard → elevated (MFA), elevated → critical (re-auth + MFA, 15-min TTL)
-- [ ] Per-request HMAC confirmation required for critical-level destructive operations (all client types)
-- [ ] Password change or admin deactivation revokes ALL sessions across ALL client types for that user
-- [ ] Anomaly detection thresholds enforce MFA step-up (browser/native) or immediate revocation (IoT) on binding anomalies
-- [ ] Concurrent browser island requests are safe: last_active debounced, CSRF per-session, 5-second renewal grace
-- [ ] Sessions stored encrypted at rest (AES-256-GCM, HKDF-derived key, per-session salt)
-- [ ] Data boundary filtering strips response fields that exceed the client's trust level and scope permissions
-- [ ] Outbound responses carry X-Data-Scope, X-Data-TTL, and X-Data-Offline headers for client-side enforcement
-- [ ] API server (mTLS) has no session token — certificate IS the identity; revocation via CRL/OCSP
-- [ ] IoT devices receive only explicitly permitted fields with aggressive TTL (default: session duration)
-- [ ] No client type in this document's taxonomy addresses a component directly; a caller that does is governed by `architecture/orchestrator`, and this document contains no second rule for `address_provenance`
+- [ ] Browser session token uses WLS type (distinct from WLT), signed by gateway's ML-DSA-65 key, with all required claims (sub, iss, iat, exp, sid, roles, bind, csrf, sec, mfa, ren) ([Browser Sessions (WLS)](#browser-sessions-wls), [Claim Definitions](#claim-definitions))
+- [ ] Native client token uses WLC type with required claims (sub, iss, iat, exp, cid, roles, bind, cap, sec) and is stored in platform secure storage ([WLC Claim Definitions](#wlc-claim-definitions), [WLC Token Lifecycle](#wlc-token-lifecycle))
+- [ ] Client type detection follows the defined precedence (mTLS → X-Client-Type → cookie → Bearer → reject) ([Detection Logic](#detection-logic))
+- [ ] Browser binding hash is SHA-256 of concatenated UA + Accept-Language + IP/24 + TLS session hash ([Browser Binding Computation](#browser-binding-computation))
+- [ ] Native client binding hash is SHA-256 of device ID + app signature hash ([Native Client Binding Computation](#native-client-binding-computation))
+- [ ] Binding mismatch in strict mode (browser) returns 401 and invalidates session immediately ([Binding Validation](#binding-validation))
+- [ ] Native client binding mismatch immediately invalidates session (device binding is immutable) ([Binding Validation](#binding-validation))
+- [ ] CSRF protection applies only to browser clients; CSRF token is HMAC-SHA256(csrf_secret, session_id + user_id) ([CSRF Protection](#csrf-protection))
+- [ ] Session renewal issues a new token with same sid/cid, updated timestamps — old token blacklisted ([Token Lifecycle](#token-lifecycle), [WLC Token Lifecycle](#wlc-token-lifecycle), [Token Replay Prevention](#token-replay-prevention))
+- [ ] Browser cookie is set with HttpOnly, Secure, SameSite=Strict, Path=/, scoped to application domain ([Cookie Requirements](#cookie-requirements))
+- [ ] New session ID generated on every authentication event (login, MFA, level upgrade) to prevent fixation ([Session Fixation Prevention](#session-fixation-prevention))
+- [ ] Security level transitions: standard → elevated (MFA), elevated → critical (re-auth + MFA, for the short TTL [Level Transitions](#level-transitions) gives)
+- [ ] Per-request HMAC confirmation required for critical-level destructive operations (all client types) ([Per-Request Confirmation (Critical Level)](#per-request-confirmation-critical-level))
+- [ ] Password change or admin deactivation revokes ALL sessions across ALL client types for that user ([Forced Invalidation Triggers](#forced-invalidation-triggers))
+- [ ] Anomaly detection thresholds enforce MFA step-up (browser/native) or immediate revocation (IoT) on binding anomalies ([Binding Validation](#binding-validation), [Anomaly Detection](#anomaly-detection))
+- [ ] Concurrent browser island requests are safe: last_active debounced, CSRF per-session, and the renewal grace period honoured ([Concurrent Safety](#concurrent-safety), [Token Replay Prevention](#token-replay-prevention))
+- [ ] Sessions stored encrypted at rest (AES-256-GCM, HKDF-derived key, per-session salt) ([Session Storage](#session-storage))
+- [ ] Data boundary filtering strips response fields that exceed the client's trust level and scope permissions ([Outbound Response Filtering](#outbound-response-filtering))
+- [ ] Outbound responses carry X-Data-Scope, X-Data-TTL, and X-Data-Offline headers for client-side enforcement ([Outbound Response Filtering](#outbound-response-filtering))
+- [ ] API server (mTLS) has no session token — certificate IS the identity; revocation via CRL/OCSP ([API Server Sessions (mTLS)](#api-server-sessions-mtls))
+- [ ] IoT devices receive only explicitly permitted fields with the aggressive default TTL [IoT Device Sessions](#iot-device-sessions) gives
+- [ ] No client type in this document's taxonomy addresses a component directly; a caller that does is governed by `architecture/orchestrator`, and this document contains no second rule for `address_provenance` ([Clients that address a component directly](#clients-that-address-a-component-directly))
