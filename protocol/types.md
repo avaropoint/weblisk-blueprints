@@ -2929,6 +2929,11 @@ error_codes:
     category: transient
     retryable: true
     description: Target agent did not respond within timeout
+  - code: MODEL_UNAVAILABLE
+    status: 503
+    category: transient
+    retryable: true
+    description: The model a request names is on an unhealthy provider and no other provider lists it under the same name. No other model runs instead (patterns/api-ai, Provider Health-Aware Routing)
   - code: UNSUPPORTED_VERSION
     status: 400
     category: permanent
