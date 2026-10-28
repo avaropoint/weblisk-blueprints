@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.2.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -145,6 +145,9 @@ Not capabilities — values a kind declares.
 | `workflow` | — | namespace + path | authored | — | versioned, has-custody |
 | `programme` | — | namespace + path | published | — | versioned |
 | `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |
+| `programme-adoption` | — | installation id | observed | — | *(none)* |
+| `installed-item` | — | installed item id | derived | — | *(none)* |
+| `occurrence` | — | obligation + occurrence key | derived | — | *(none)* |
 
 ### What the table says, in words
 
@@ -194,6 +197,16 @@ by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
+
+**`programme-adoption`, `installed-item` and `occurrence` are what the
+programme service holds or derives, and govern nothing.** An adoption is the
+record of one programme installed at one organisation, and an installed item
+is one operation, workflow or notice under it; each is named by an id the
+service mints, because a programme's `id` and an item's `id` are names a map
+may change. An occurrence is one period, subject or record an obligation owes,
+named by its obligation and its key; it is derived on every read and never
+stored, and is neither versioned nor evidence: the record that discharges it
+is ([`architecture/programme-service`](../architecture/programme-service.md#what-is-due)).
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
@@ -438,6 +451,8 @@ relation.
 | `copied_from` | policy, procedure, sop, standard, guideline, reference, document | the same kind | adoption |
 | `satisfies` | `specification` | `control` | declared |
 | `conforms_to` | `programme` | `standard` | declared |
+| `installed_under` | `installed-item` | `programme-adoption` | programme |
+| `occurrence_of` | `occurrence` | `obligation` | programme |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
 
 `implements` accepting `control` as a target is what allows an author to state

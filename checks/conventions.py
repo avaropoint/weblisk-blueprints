@@ -8,7 +8,8 @@ Usage: conventions.py vectors|time-fields|sites [--control] [--root DIR]
              typed timestamp. An instant is a field named as one (*_at,
              timestamp, since, until, last_seen ...) or described by an epoch,
              Unix time, RFC 3339 or ISO 8601; a field whose description cites
-             an RFC 7519 NumericDate keeps the form that RFC fixes. Fields are
+             an RFC 7519 NumericDate keeps the form that RFC fixes, and one described
+             as a time of day is not an instant. Fields are
              read in every shape the corpus writes one: name: {type: X}, a
              type: key under the name, name: X  # description, an inline
              {name: X} signature, a Go-style (name X) parameter list and a
@@ -125,7 +126,7 @@ SEEDED = {"uuid": "id = UUID v4", "backoff": "delay = base × 2^attempt", "retri
 
 INSTANT_NAME = re.compile(r"(?:^|_)(?:at|timestamp)$|^(?:ts|time|since|until|deadline|expiry|expires|not_after|not_before|iat|exp|created|updated|start|end|last_updated)$|^(?:last|next|first)_(?:seen|check|active|verified|refreshed|retry|fire|attempt|updated|rotated|renewal)$")
 INSTANT_DESC = re.compile(r"(?i)\bepoch\b|\bunix\b|RFC ?3339|ISO ?8601|\btimestamp\b")
-NOT_INSTANT = re.compile(r"(?i)\bseq\b|\bcount\b|ISO 8601 date\b|\bcursor\b|version vector|\bnumber of\b|NumericDate|\bthe column\b|and when it leaves\b")
+NOT_INSTANT = re.compile(r"(?i)\bseq\b|\bcount\b|ISO 8601 date\b|\bcursor\b|version vector|\bnumber of\b|NumericDate|\bthe column\b|and when it leaves\b|\btime of day\b")
 TYPE_ROWS = {"timestamp", "iso8601"}  # a type-mapping table's row names a type, not a field
 SCALARS = {"int64", "integer", "int", "int32", "number", "datetime", "string", "*int64", "timestamp", "time.Time"}
 NOT_INSTANT_NAMES = {"last_error", "next_cursor", "depends_on", "updated", "broken_at", "terminates_at"}

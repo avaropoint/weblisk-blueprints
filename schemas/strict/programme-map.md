@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.1.0
 kind: programme
 noun: programme
 capabilities: [author, versioned, depends, publishable, adoptable]
@@ -46,6 +46,7 @@ header:
       notices:         {type: array, items: {type: object}}
       skills:          {type: array, items: {type: object}}
       domain_services: {type: array, items: {type: object}}
+      depends_on:      {type: array, items: {$ref: "#/$defs/dependency"}}
       order:           {type: integer}
       overview:        {type: string}
   uses:
@@ -58,6 +59,7 @@ header:
     notices:         {use: declares, send: always}
     skills:          {use: declares, send: always}
     domain_services: {use: declares, send: always}
+    depends_on:      {use: depends, send: always}
     overview:        {use: navigates, send: always}
   legacy:
     id: refuse
@@ -92,4 +94,11 @@ defs:
     properties:
       id:   {type: string, minLength: 1}
       tier: {type: string}
+  dependency:
+    type: object
+    required: [agent, why]
+    unevaluatedProperties: false
+    properties:
+      agent: {type: string, minLength: 1}
+      why:   {type: string, minLength: 1}
 ```

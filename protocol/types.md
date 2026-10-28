@@ -200,6 +200,13 @@ authorisation at `POST /v1/token/work`, and answered in
 | `WORK_AUTHORISATION_EXPIRED` | 403 | permanent | The work authorisation is past its `not_after`. Nothing is minted until a person renews it |
 | `WORK_OWNER_UNREGISTERED` | 409 | transient | The work authorisation's owner is not registered now under the identity id it names. Nothing is minted |
 
+**Programme service codes** (produced by the programme service,
+[`architecture/programme-service`](../architecture/programme-service.md#error-handling)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `PROGRAMME_NOT_ADOPTED` | 404 | permanent | An installation named a programme the organisation holds no `adoption.md` for in any of its repositories. Nothing is installed; a person adopts it first |
+
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
 
@@ -404,9 +411,9 @@ examples, such as `inventory:check`, are listings and are not listed here. An ow
 `content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
 `architecture/` blueprint). `programme` is
 [`architecture/programme-service`](../architecture/programme-service.md), which
-no component blueprint implements yet. Two owners have no blueprint in this
+no tenant runs yet. Two owners have no blueprint in this
 corpus yet: `integrations` and `telemetry`. The names of these three guard no
-running route until a component implements their owner's blueprint. Five names have a nominated owner
+running route until a component built from their owner's blueprint runs. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
 Those five are judged by no rule until their owner's blueprint states one. All
@@ -500,15 +507,15 @@ for every person-only capability. `fabric:produce` and `fabric:observe` are a
 producer's, which is a registered component.
 
 **Programme capabilities:**
-- `programme:read` (programme) — read a programme's installed operations and what they have produced
+- `programme:read` (programme) — read a programme's installations and installed items and what they have produced, and what is due: obligations in force, their occurrences, the due list and readiness
 - `programme:install` (programme) — install a programme's operations at a scope
-- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
-- `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
+- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation or workflow
+- `programme:switch` (programme) — decide whether an installed item's runs and advances reach people: mute and unmute. Who hears an item is not switched by it: that is the positions the map names and who holds them, each changed where it is held ([`architecture/programme-service`](../architecture/programme-service.md#rescheduling)). *Person only*
 
 Which route needs which is
 [`architecture/programme-service`](../architecture/programme-service.md#endpoints)'s.
-No component implements that document yet, so these names guard no running
-route. The programme
+No tenant runs a component built from that document yet, so these names guard
+no running route. The programme
 service is to declare the first three, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own

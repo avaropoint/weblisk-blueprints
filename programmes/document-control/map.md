@@ -1,6 +1,6 @@
 ---
 id: document-control
-version: 1.0.1
+version: 1.1.0
 title: Document Control Programme
 order: 10
 domains: [governance]
@@ -34,6 +34,45 @@ tiers:
       The organisation checks itself on a cycle and keeps the record of having
       done so, which is what a certifying body asks for first and what nobody
       can reconstruct after the fact.
+
+# The standing work adopting it takes on, and who is told when it slips. The
+# services these need, and the build plan adopting emits, are derived from
+# them (../../schemas/programme.md, "What a programme runs on").
+operations:
+  - id: due-sweep
+    title: What is due
+    does: due-sweep
+    schedule: {cadence: daily, at: "07:00"}
+    why: >
+      Three obligations, two of them yearly and one per controlled document,
+      and a review is owed on the day it lapses whether or not anybody opens
+      the register. Daily, at the start of an office day, so that a review
+      coming due is told to the document controller once, when it advances,
+      and an overdue one again only when it escalates. It never remediates.
+  - id: programme-readiness
+    title: Programme readiness
+    does: programme-readiness
+    schedule: {cadence: monthly, at: "07:00", day: 1}
+    why: >
+      Whether the four documents exist and are cited, and whether their
+      obligations are producing attested records. Monthly, because document
+      control does not move week to week. It reports and drafts nothing.
+
+notices:
+  - id: review-overdue
+    on: [obligation.overdue]
+    to: [senior-management]
+    says: >
+      A document-control review is overdue: say which review it was, whose it
+      was, and how late it is.
+    why: >
+      None of this programme's obligations declares an escalation, and each
+      is owed once a year or once per document, so the first lapse is the one
+      to hear about. An organisation whose controlled documents are past
+      review cannot say which version governs, and senior management own the
+      management system it undermines; they are told once, when it falls
+      overdue, and the document controller it belongs to is told by the
+      obligation itself.
 
 artifacts:
   - {id: document-control.policy, tier: essential}

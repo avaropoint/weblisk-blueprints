@@ -176,8 +176,8 @@ table is what the judgement is made against.
 
 | class | edits |
 |---|---|
-| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · an operation's `agent:` changed · a workflow's `schedule`, `on`, `when`, `for` or `start` changed · a step's `agent:`, `after` or `escalate` changed · a `notices` entry removed or its `on` or `to` changed · a `skills` entry removed or its `file` changed · a `domain_services` entry removed or its `blueprint` changed |
-| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a skill's `for` changed · a new `domain_services` entry · a new `domains` or `conforms_to` entry |
+| **MAJOR** | `id` changed · a tier removed or renamed · **any change to which artifacts a tier contains**, including moving one between tiers · an artifact dropped from the map · an `operations` entry removed or its `does` changed · a `workflows` entry removed, or a step added, removed or reordered, or a step's `task`, `approval`, `does` or `needs` changed · an operation's `agent:` changed · a workflow's `schedule`, `on`, `when`, `for` or `start` changed · a step's `agent:`, `after` or `escalate` changed · a `notices` entry removed or its `on` or `to` changed · a `skills` entry removed or its `file` changed · a `domain_services` entry removed or its `blueprint` changed · a `depends_on` entry removed |
+| **MINOR** | a new tier **above** the current top · an artifact placed at an existing tier · a new operation · a new workflow, notice or skill · a skill's `for` changed · a new `domain_services` or `depends_on` entry · a new `domains` or `conforms_to` entry |
 | **PATCH** | `title` · `rationale` · the overview body · `order` · a `why` · a notice's `says` · the bytes of a skill file the map brings |
 
 **A domain service's blueprint is versioned on its own.** It is a `type: domain`
@@ -366,7 +366,7 @@ One file per programme: `map.md`, at the programme's own root.
 | `version` | string | no | `MAJOR.MINOR.PATCH` — the author's compatibility claim, and what a tenant's adoption pins a range against. Absent means **unversioned**, never `1.0.0`; present and unparseable is refused. See [Versioning](#versioning) |
 | `title` | string | no | display name. Defaults to `id` |
 | `domains` | string[] | no | the policy domains this programme operates in — the same catalogue the classifier uses, so a programme is measurable through machinery that already exists. Each one is defined in [`../policy-domains/`](../policy-domains/README.md), which also states **what claiming it requires**; a claim on a domain nothing declares is reported, and so is a claim nothing answers. A subject area only: a domain **service** the programme asks to have built is [`domain_services`](#domain_services--a-domain-service-the-programme-asks-to-have-built) |
-| `conforms_to` | string[] | no | the standard `id`s this programme is built to answer. **Context, not a constraint**: a programme with no framework at all is valid |
+| `conforms_to` | string[] | no | the standard `id`s this programme is built to answer. **Context, not a constraint**: a programme with no framework at all is valid. Adopting the programme [proposes each](#conforms_to-is-proposed-at-adoption) the organisation has not adopted |
 | `tiers` | array | no | the progression, below |
 | `artifacts` | array | no | `{id, tier}` placements, below |
 | `operations` | array | no | the standing machine work adopting it takes on — [below](#operations--the-standing-work-a-programme-installs) |
@@ -374,6 +374,7 @@ One file per programme: `map.md`, at the programme's own root.
 | `notices` | array | no | who is told what, by position — [below](#notices--who-is-told-what) |
 | `skills` | array | no | skill files the programme brings — [below](#skills--files-the-programme-brings) |
 | `domain_services` | array | no | domain controllers the programme asks to have built — [below](#domain_services--a-domain-service-the-programme-asks-to-have-built) |
+| `depends_on` | array | no | published [`agents/`](../agents/README.md) components the programme relies on being run — [below](#depends_on--published-agents-a-programme-relies-on) |
 | `order` | int | no | display position in the catalogue. A catalogue that reorders itself between runs of the same binary is one nobody can document |
 | *body* | prose | no | the `overview` — what this programme is and why it is drawn this way |
 
@@ -1366,11 +1367,14 @@ alternatives**, at the point of install — never silently skipped, because a
 skipped operation presents as a programme that installed and produced less
 standing work than it declared, with nothing anywhere saying so.
 
-At the time of writing the engine runs `due-sweep`, `compliance-scan`,
-`coverage-analysis`, `impact-analysis`, `gap-analysis`, `evidence-scan`,
-`validate-blueprints`, `generate-policies`, `standards-drift`,
-`standards-verify`, `programme-readiness` and `drift-prepare`. Ask the
-installation (`GET /api/jobs/actions`) rather than trusting that sentence.
+In a tenant the list is the programme service's: its blueprint declares
+`due-sweep` and `programme-readiness`, and nothing else
+([`architecture/programme-service`](../architecture/programme-service.md#the-does-actions)),
+and a running service answers its own list at `GET /v1/programme/actions`. Ask
+the tenant rather than trusting that sentence. A client that runs actions of
+its own, such as Weblisk Studio's engine, runs them for itself and not as the
+tenant: its list is not the tenant's, and an operation that names one of its
+actions is reported at install in the tenant like any other unknown name.
 
 ### `needs` is a ceiling on an agent, and is refused beside `does`
 
@@ -1427,6 +1431,16 @@ The allow-list is `obligation.due_soon`, `obligation.overdue`,
 `obligation.escalated` and `attestation`. It is an allow-list rather than a free
 string because dispatching an agent emits events of its own: a job triggered on
 machine chatter re-triggers itself, forever, spending money each time.
+
+**Who publishes each, and on what topic, is the programme service's** — one
+table, [Events it publishes](../architecture/programme-service.md#events-it-publishes),
+which also says when each fires. The words here are what an author writes;
+`attestation` is published as `obligation.attested`, an occurrence's record
+first standing attested, and `adopted` as `programme.adopted`. Every other word
+is its own topic. The programme service also decides every start on a fact —
+an `on:`, a `when:`, a `for:` and `adopted` — and asks execution to run the
+item, so execution keeps only the clocks
+([Starting on a fact](../architecture/programme-service.md#starting-on-a-fact)).
 
 `register.row_added` is **not** in it, and may only be *counted* — see `when:`.
 It fires once for each row a save adds to a document whose frontmatter says
@@ -1711,7 +1725,7 @@ form, installed by the programme service as one `WorkflowDefinition`:
 
 | a programme workflow | a `patterns/workflow` declaration |
 |---|---|
-| `id` | the workflow's name |
+| `id` | the workflow's name is the installed item's `uid`, which the item carries beside its `id` ([`architecture/programme-service`](../architecture/programme-service.md#execution)) |
 | `title`, `why` | `description` |
 | `schedule`, `on`, `when`, `for` | `trigger` — the action the programme service invokes when the start fires |
 | a step | a phase |
@@ -1831,10 +1845,126 @@ notice declares that instead.
 | a skill whose `id` is `map`, whose `file` is not under `skills/`, is named `map.md` or does not exist, or which names an artifact id or a register path | — |
 | a domain service whose `id` breaks the name rule or is `map`, whose `blueprint` is not `domains/<id>.md` or does not exist, or with no `why` | a domain service whose `depends_on` names an agent neither the corpus's `agents/` publishes nor the tenant runs |
 | — | a domain service whose `port` is taken by another agent or domain the tenant runs, or by another domain service the same adoption requests — [`domain.md`](domain.md) requires a port unique across all agents and domains |
+| a `depends_on` entry with no `agent` or no `why`, or two naming one agent | a `depends_on` entry naming an agent the corpus's `agents/` does not publish |
 | an `agents:` block | — |
 
 `responsible`, `approvers`, `to` and `escalate.to` name positions everywhere
 here, as they do on an obligation.
+
+---
+
+## What a programme runs on
+
+A programme is documents and standing work, and the standing work runs on
+tenant services. **Which services a programme needs is derived from its
+blocks, never listed beside them**, for the reason the need for a due sweep is
+derived ([`operations`](#what-is-declared-here-and-what-is-deliberately-not)):
+a second list would disagree with the blocks the first time either changed.
+What a programme does declare is what derivation cannot see — the published
+agents it relies on, and the standards it answers.
+
+### Each block, the service that runs it, and its blueprint
+
+The [package table](#the-package--what-a-programme-brings-besides-its-documents)
+says who owns each block. This table says what each block needs to be running
+in the tenant, and which blueprint that service is built from:
+
+| a programme that has | needs | built from |
+|---|---|---|
+| any file at all: specs, forms, registers, `skills` | content | [`architecture/content`](../architecture/content.md) |
+| a `declares.obligation`, an `operations`, `workflows` or `notices` entry | the programme service, which answers what is due — occurrences, escalation, readiness — publishes the facts `on:`, `when:` and `for:` name, and runs every `does:` | [`architecture/programme-service`](../architecture/programme-service.md) |
+| an `operations` or `workflows` entry | execution, which fires the clocks and holds the runs, waits and timers | `architecture/execution` |
+| a `notices` entry; an obligation with a `responsible` or an `escalate.to`; a workflow step with a `task` or an `approval` | notification, which tells each position's holders their own way | `architecture/notification` |
+| an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | `architecture/prompt-worker`, `architecture/model-service` |
+| a `domain_services` entry | that domain controller | the programme's `domains/<id>.md`, under [`architecture/domain`](../architecture/domain.md) |
+| a `depends_on` entry | that published agent | `agents/<agent>.md` ([below](#depends_on--published-agents-a-programme-relies-on)) |
+| a position named anywhere — `approved_by`, `responsible`, `approvers`, `escalate.to`, a notice's `to` | the register of who holds each position, in content | [`schemas/position`](position.md) |
+
+And every tenant runs the orchestrator and the admin gateway, which every
+other service registers with and every person's request arrives through.
+
+### The services, in the order they are built
+
+One table, the one home of each service's name, its blueprint and what it
+needs running first. A build plan is ordered by it.
+
+| order | service | blueprint | needs running first |
+|---|---|---|---|
+| 1 | `orchestrator` | [`architecture/orchestrator`](../architecture/orchestrator.md) | — |
+| 2 | `admin` | [`architecture/admin`](../architecture/admin.md) | `orchestrator` |
+| 3 | `content` | [`architecture/content`](../architecture/content.md) | `orchestrator` |
+| 4 | `execution` | `architecture/execution` | `orchestrator` |
+| 5 | `notification` | `architecture/notification` | `orchestrator`, `content` |
+| 6 | `model-service` | `architecture/model-service` | `orchestrator` |
+| 7 | `prompt-worker` | `architecture/prompt-worker` | `execution`, `model-service`, `content` |
+| 8 | `programme-service` | [`architecture/programme-service`](../architecture/programme-service.md) | `content`, `execution`, `notification` |
+| — | a domain service | the programme's `domains/<id>.md` | `execution`, and every agent its blueprint names in `depends_on` |
+| — | a published agent | `agents/<agent>.md` | every agent its blueprint names in `depends_on` |
+
+**A service is named as it registers.** The name in the second column is the
+name a component built from that blueprint registers under, and is what a
+build plan reads in the tenant's service directory. A service whose blueprint
+the corpus a tenant builds from does not hold is still named, and is planned as
+`unspecified` rather than left out: a plan that omitted it would report a
+programme as buildable that is not.
+
+### `depends_on` — published agents a programme relies on
+
+| field | type | required | means |
+|---|---|---|---|
+| `agent` | string | **yes** | the `name` of an agent blueprint the corpus publishes in [`agents/`](../agents/README.md) |
+| `why` | string | **yes** | what about this programme needs that agent running, in terms a person deciding whether to run it can weigh |
+
+Some of what a programme needs is a component the corpus already publishes: a
+notice whose statutory clock is measured in hours reaches a person who is not
+at a console only if the tenant runs [`email-send`](../agents/email-send.md).
+`depends_on` names such a component, so that adoption can say it is needed and
+not running.
+
+**It is not an `agents:` block.** It brings nothing: no blueprint, no
+instruction and no authority. It names a component the corpus publishes,
+which a person builds, if they choose to, from that component's own blueprint,
+and which registers and is granted like any other. A programme still never
+asks for an agent to be generated for it
+([Agents are instructions, never components](#agents-are-instructions-never-components)),
+and an `agents:` block is still refused.
+
+An entry naming an agent the corpus does not publish is reported at adoption,
+naming it. Un-adopting a programme never retires an agent it named.
+
+### `conforms_to` is proposed at adoption
+
+Adopting a programme **proposes** each standard in its `conforms_to` that the
+organisation has not adopted, for adoption by the same person, as
+[`standard.md`](standard.md#adopting-a-standard) adopts one. A proposal is
+not an adoption: a person accepts or declines each, and adopting the programme
+does not wait on the answer, because `conforms_to` is context and never a
+constraint. A standard whose record says it is `superseded` is never proposed;
+the adoption names it, and the standards that replace it where the record says.
+An id the corpus publishes no standard for is reported, never proposed.
+
+### Adoption emits a build plan
+
+Every adoption answers, beside what it wrote and what it handed over, a
+**build plan**: the services the programme needs, by the first table above,
+less the services the tenant runs, by its service directory, each with its
+blueprint and the blocks that need it, in the order of the second table. A
+service is run when the directory lists a component registered under its name
+whose lease is live.
+
+- **It is a plan, not a build.** Adopting a programme builds nothing, and
+  starts no build. Each service in it is built by a person, through the CLI,
+  on the tenant's change cycle, as a domain service is
+  ([`domain_services`](#domain_services--a-domain-service-the-programme-asks-to-have-built)).
+- **It is complete or it says what it lacks.** Every block that needs a
+  service the tenant does not run is in it, and every service with no
+  blueprint is in it as `unspecified`. An empty plan means the tenant runs
+  everything the programme needs, and nothing else.
+- **It is computed by whatever adopts**, from the adopted map and the tenant's
+  service directory, because the first plan is needed before the programme
+  service runs. Once it does, it answers the same plan with each installation
+  ([`architecture/programme-service`](../architecture/programme-service.md#installing)),
+  as the tenant stands then.
 
 ---
 
@@ -2054,15 +2184,23 @@ no clock at all, correctly reported as undeclarable three layers from the cause.
 are declared here, each with its owning service. No loader reads them, no
 validator checks them, and no tenant runs the programme service, execution or
 notification that would receive them
-([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)),
-so no shipped map declares one yet. **Who
+([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)).
+`construction-ohs-ca` and `document-control` declare the first, so that the
+first tenant to run those services has work to receive; until something reads
+them, whatever adopts reports each as not installed. **Who
 holds a position** belongs to the customer rather than to a programme: a
 `pii` register in the scope's records repository, which no spec declares yet
 ([`position.md`, Known gaps](position.md#known-gaps)).
 
-**No content entry records the run that wrote it**, so the chain
-[`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any
-specified service yet.
+**The run a row was written by is asserted where it was not carried on a
+work pass.** The chain [`for`](#for--one-run-per-record) relies on to stop a
+loop is read from the change that wrote the row: it names the proposal it
+applied, and the proposal names its `run`
+([`architecture/content`](../architecture/content.md#who-a-change-was-for);
+[Hearing a row](../architecture/programme-service.md#hearing-a-row)). A
+proposal made on a work pass is recorded with that pass's run, which the
+orchestrator signed; one a client sends under its own identity carries a `run`
+nobody checked. A row whose writer cannot be read starts nothing.
 
 **No workflow with a person's step is installable yet.** An `approval` naming
 positions and a `task` have no field in `patterns/workflow`
@@ -2175,6 +2313,7 @@ than naming a statute that does not exist.
 - [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates ([Records about a person](#records-about-a-person), [A form's `frontmatter:`](#a-forms-frontmatter))
 - [ ] Every `creates` names a form in the programme's `templates/` and a relative `path` carrying `{key}` where its obligation has `per:` or `for:` and `{date}` where it has a `cadence` — and no shipped spec declares one until the programme loader places it ([`creates`](#creates--a-document-per-occurrence-not-a-row), [Known gaps](#known-gaps))
 - [ ] No map declares `agents:`; every agent is an `agent:` instruction on an operation or a workflow step, with its `needs:` ([Agents are instructions, never components](#agents-are-instructions-never-components))
+- [ ] Every `depends_on` entry names an `agent` the corpus's `agents/` publishes, once, and says `why` ([`depends_on`](#depends_on--published-agents-a-programme-relies-on), [The package's refusals](#the-packages-refusals))
 - [ ] Every workflow has an `id`, at least one of `schedule`, `on:`, `when:` and `for`, and at least one step; every step has an `id` and exactly one of `task`, `approval`, `does` and `agent`; every `after` names a declared step and no steps form a cycle ([`workflows`](#workflows--multi-step-work-with-waits-and-approvals), [The package's refusals](#the-packages-refusals))
 - [ ] Every `task` names an `activity`, a `responsible` position and a `due` of `<n><h|d|w>`; every `approval` names positions; no machine step approves, signs or closes anything ([`workflows`](#workflows--multi-step-work-with-waits-and-approvals))
 - [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel ([`notices`](#notices--who-is-told-what))
@@ -2184,7 +2323,7 @@ than naming a statute that does not exist.
 - [ ] Every workflow starts on `schedule`, `on` or `when`, or on `for` alone; `adopted` appears only on a workflow's `on:`; and every step `patterns/workflow` cannot yet carry is reported at adoption rather than dropped ([What starts a run](#what-starts-a-run), [How a workflow maps onto `patterns/workflow`](#how-a-workflow-maps-onto-patternsworkflow))
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both ([`operations`](#operations--the-standing-work-a-programme-installs), [The refusals](#the-refusals))
 - [ ] Every operation has a `schedule`, an `on:` or a `when:`, and every `cadence`, `weekday` and `at` is in the declared vocabulary ([The refusals](#the-refusals), [`schedule`](#schedule--a-small-closed-vocabulary-and-not-the-obligations))
-- [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
+- [ ] Every `does:` names an action the target tenant's programme service actually runs — ask it, at `GET /v1/programme/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
 - [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
 - [ ] Every operation that runs a model states what it may touch, even when that is only `read` ([What is declared here](#what-is-declared-here-and-what-is-deliberately-not))
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning ([`operations`](#operations--the-standing-work-a-programme-installs))
@@ -2212,5 +2351,7 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] Every file an adoption writes goes under `programmes/<id>/` with the template's bytes and path, nothing already at a path is overwritten — a file there is reported *already there* or *edited* — and `adoption.md` is written after them in the same sitting, carrying every field [The adoption record](#the-adoption-record) requires, `programme` the template's id unchanged, and a `resolved` entry for every file written ([What is written](#what-is-written))
 - [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one into another directory or repository is refused, naming the adoption that exists; one under another id is recognised only through `formerly` ([Adopting twice creates nothing](#adopting-twice-creates-nothing))
 - [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped ([The package](#the-package--what-a-programme-brings-besides-its-documents))
+- [ ] An adoption answers a build plan: every service the programme's blocks need that the tenant's service directory does not list with a live lease, each with its blueprint and the blocks that need it, in the order the services are built, a service whose blueprint the corpus does not hold planned as `unspecified` ([Adoption emits a build plan](#adoption-emits-a-build-plan), [The services, in the order they are built](#the-services-in-the-order-they-are-built))
+- [ ] Adopting proposes each `conforms_to` standard the organisation has not adopted, never a `superseded` one, and adopts the programme without waiting on the answer ([`conforms_to` is proposed at adoption](#conforms_to-is-proposed-at-adoption))
 - [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored ([Updates arrive as proposals](#updates-arrive-as-proposals), [The tenant's copy is the tenant's](#the-tenants-copy-is-the-tenants))
 - [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service ([Un-adopting](#un-adopting))
