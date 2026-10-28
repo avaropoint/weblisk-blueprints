@@ -643,6 +643,9 @@ When multiple `--template` flags are specified, files are merged — client
 templates provide pages and islands, server templates provide hub
 configuration and agent specs.
 
+The name given replaces the template's project name everywhere the template
+carries it, in file contents and file names alike.
+
 **Security:** Every scaffolded project MUST include a `.gitignore` with
 entries for `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token`,
 `.env`, and `.env.*`. This is non-configurable and always generated.
@@ -726,7 +729,8 @@ Checks performed:
 | Secret declarations complete | warn | Declared secrets should have values in `.weblisk/secrets/` |
 | File permissions | warn | `.weblisk/secrets/` files should be 0600, directories 0700 |
 
-Exit codes: 0 = all pass, 1 = errors found, 2 = warnings only.
+Exit codes, from the ones [Exit Codes](#exit-codes) declares: 0 = all pass,
+or warnings only, which are printed; 1 = errors found.
 
 ### `weblisk secret`
 
@@ -1495,6 +1499,23 @@ that omits the door means.
 - **Named, not skipped.** A declared component that has not been generated is
   reported with the command that generates it, the rest start, and the command
   exits non-zero. A tenant running less than it declares is not started.
+- **Passphrase.** A component whose section names `key_passphrase`
+  ([`schemas/config`](../schemas/config.md#service-key-passphrases)) is given
+  its key's passphrase on its standard input when it starts, as one line ended
+  by a line feed, and its standard input is then closed. The CLI gets it from
+  the named source with `get` — `field: "passphrase"` where the source lists
+  `named_fields`, and no field otherwise
+  ([`protocol/secret-source`](../protocol/secret-source.md#actions)) — once for
+  each distinct reference, before anything starts, so a source that asks a
+  person asks once. It is never placed in an argument, an environment variable
+  or a file, and is zeroised once every component that needed it has read it
+  ([`protocol/identity`](../protocol/identity.md#key-categories) rules 4, 9 and
+  10). A source that does not answer refuses the start whole, as above,
+  reported as [`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)
+  says; nothing is started with a passphrase missing. A component with no
+  `key_passphrase` is given nothing on its standard input. The same holds for
+  every start of a component this document lists under
+  [A component starts with a clean environment](#a-component-starts-with-a-clean-environment). <!-- wl:id start-injects-passphrase -->
 - **Clean.** Each component, the orchestrator first among them, starts with
   the environment [A component starts with a clean
   environment](#a-component-starts-with-a-clean-environment) gives it and
@@ -1812,7 +1833,9 @@ This is how a console reads what a
 - **Only the repository's own files are findings.** The project around it, a
   configured source and the cache are never validated in its place. Were they, a
   blueprint deleted from the repository would still be found in the cache, and
-  the report would describe a union nobody holds.
+  the report would describe a union nobody holds. A file the repository holds
+  is the one checked even when it does not parse, its failure to parse the
+  finding: another source's file of the same name is never read in its place.
 - **A corpus is checked on its own.** A repository that
   [step 0](#where-blueprints-come-from) would recognise as a corpus is checked
   against its own schemas, and a reference to a document it lacks is a finding.
@@ -2597,7 +2620,8 @@ Rotation pending at 1 hub. The old key is kept until it finishes:
   removal ([A credential for each hub](#a-credential-for-each-hub)). Any
   other refusal, and a hub that cannot be reached or answers another
   `hub_id`, leaves it `pending`, reported with its code or as
-  `unreachable`.
+  `unreachable`. A run that leaves any hub `pending` exits non-zero and names
+  each one.
 - **Never with nowhere to send.** With no registrations, or while the
   identity holds a credential kept under a `hub_id` it has no registration
   for, `rotate` is refused and names each such `hub_id`. An identity that
@@ -2701,6 +2725,8 @@ Objectives: unavailable — no provider here serves them (ADMIN_GROUP_UNAVAILABL
   that way is shown as unavailable with its code, never as zero, and until
   a provider's blueprint specifies its group on a pass every group but the
   orchestrator's is shown that way
+- Shows no health score: the overview carries none, and one number would
+  stand in for figures that may be unavailable
 - `--json` for machine-readable output
 - `--watch` to refresh every 5 seconds (like `watch`)
 
@@ -3796,28 +3822,29 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value ([`weblisk secret`](#weblisk-secret))
 
 ### Server & Code Generation
-- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address ([Server Commands](#server-commands), `weblisk tenant create` and `weblisk server provision`) <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
-- [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name ([Server Commands](#server-commands), `weblisk tenant create`, [`architecture/admin`](admin.md#registration-lease-and-identity)) <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
-- [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address ([Server Commands](#server-commands), `weblisk server provision`, [Configuration](#configuration)) <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
-- [ ] `weblisk tenant create` writes the `.gitignore` `weblisk new` writes ([Server Commands](#server-commands), `weblisk tenant create`), so the directory it just put a private key in is not one `git init` from committing it
-- [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once ([Server Commands](#server-commands), `weblisk tenant create`)
-- [ ] `weblisk tenant create` generates the orchestrator and the admin gateway only; every other component is added afterwards, and the command does not claim otherwise ([Server Commands](#server-commands), `weblisk tenant create`)
+- [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`weblisk server provision`](#weblisk-server-provision)) <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
+- [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`architecture/admin`](admin.md#registration-lease-and-identity)) <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
+- [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address ([`weblisk server provision`](#weblisk-server-provision), [Configuration](#configuration)) <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
+- [ ] `weblisk tenant create` writes the `.gitignore` `weblisk new` writes ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)), so the directory it just put a private key in is not one `git init` from committing it
+- [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
+- [ ] `weblisk tenant create` generates the orchestrator and the admin gateway only; every other component is added afterwards, and the command does not claim otherwise ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant ([`weblisk tenant accept`](#weblisk-tenant-accept))
 - [ ] `weblisk tenant accept` probes `GET /v1/admin/overview` at the admin gateway's origin with no token and passes on `401`; against a gateway whose certificate does not match the pin it fails, sending nothing over that connection ([`weblisk tenant accept`](#weblisk-tenant-accept)) <!-- wl:check cli-accept-gateway covers cli-accept-through-gateway -->
-- [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present ([Server Commands](#server-commands), `weblisk tenant create`)
-- [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port ([Server Commands](#server-commands), `weblisk tenant create`)
-- [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration ([Server Commands](#server-commands), `weblisk tenant create`)
-- [ ] `weblisk tenant create` writes no token to a file and prints none without `--json`; the `--json` result is the only place a token may go, and while `create` makes no address to connect to, it carries none ([Server Commands](#server-commands), `weblisk tenant create`)
-- [ ] `weblisk tenant create --json`'s result carries `model` only where `--model` named one ([Server Commands](#server-commands), `weblisk tenant create`)
+- [ ] `weblisk tenant create` asks no model provider anything until the orchestrator's blueprint resolves, the resolved corpus parses and the platform's toolchain is present ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
+- [ ] `weblisk tenant create --port 0` starts the orchestrator on a free port chosen when it is started, and the result reports that port ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
+- [ ] `weblisk tenant create` declares the port it started the orchestrator on nowhere in the tenant's configuration ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
+- [ ] `weblisk tenant create` writes no token to a file and prints none without `--json`; the `--json` result is the only place a token may go, and while `create` makes no address to connect to, it carries none ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
+- [ ] `weblisk tenant create --json`'s result carries `model` only where `--model` named one ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
 - [ ] `weblisk providers --json` marks at most one backend `default`, the one the CLI's own model would start with, and marks none when there would be nothing to start with ([`weblisk providers`](#weblisk-providers))
 - [ ] `weblisk providers --json` says `local` only for a model server on this machine's loopback address, judged from the address's host — never for a coding-agent CLI, a `WL_AI_COMMAND` tool, or a server at another host ([`weblisk providers`](#weblisk-providers))
-- [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone ([Server Commands](#server-commands), `weblisk component <name> init`)
-- [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree ([Server Commands](#server-commands), `weblisk component <name> init`, [`architecture/generation`](generation.md#a-repair-round-is-a-transaction))
+- [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone ([`weblisk component <name> init`](#weblisk-component-name-init))
+- [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree ([`weblisk component <name> init`](#weblisk-component-name-init), [`architecture/generation`](generation.md#a-repair-round-is-a-transaction))
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation ([`weblisk server init`](#weblisk-server-init))
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components ([`weblisk server start`](#weblisk-server-start))
+- [ ] A component whose section names `key_passphrase` receives the passphrase the named source returns as one line on its standard input, and in no argument, environment variable or file; one reference is asked once for every component naming it; a source that does not answer starts nothing; a component with no `key_passphrase` receives nothing on its standard input ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check start-passphrase-stdin covers start-injects-passphrase -->
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything ([`weblisk server start`](#weblisk-server-start))
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last ([`weblisk server start`](#weblisk-server-start))
-- [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready ([Server Commands](#server-commands), `weblisk component <name> start`)
+- [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs))
 - [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment))
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment))
@@ -3833,7 +3860,7 @@ security:
 - [ ] No started component's environment holds `SSL_CERT_FILE`, `SSL_CERT_DIR`, `NODE_EXTRA_CA_CERTS` or a proxy variable, in either case, that the CLI's environment holds, unless that component's own declaration names it ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment))
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included ([Security](#security))
-- [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init` ([Server Commands](#server-commands), `weblisk tenant create`)
+- [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init` ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
 - [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from `GET /v1/admin/agents` on the operator's token, says the lease states were not read when it holds no token the admin API accepts, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify ([`weblisk server verify`](#weblisk-server-verify))
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch ([`weblisk agent create`](#weblisk-agent-create), [`weblisk server init`](#weblisk-server-init))
 - [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags ([`weblisk agent start`](#weblisk-agent-start))
@@ -3853,11 +3880,11 @@ security:
 - [ ] A command other than `weblisk blueprint update` holds its refresh while the directory it works in has generated work banked ([Where blueprints come from](#where-blueprints-come-from))
 - [ ] `weblisk blueprint sources --json` lists every source in precedence order with `kind`, `from`, `dir`, `revision`, and for a clone `origin`, `present`, `fetched_at` and `stale` — and clones and fetches nothing ([`weblisk blueprint sources`](#weblisk-blueprint-sources))
 - [ ] A failed refresh of a clone is not tried again for a day by any command but `weblisk blueprint update`, which does not wait, and a refresh that fails, `weblisk blueprint update`'s included, leaves the clone's `fetched_at`, and the age a build prints for it, at the last refresh that worked ([Where blueprints come from](#where-blueprints-come-from), [`weblisk blueprint sources`](#weblisk-blueprint-sources))
-- [ ] `weblisk validate <dir>` reports only that directory's files as findings, and a corpus directory is checked against nothing but itself ([`weblisk validate`](#weblisk-validate))
-- [ ] A file the repository holds is the copy `weblisk validate <dir>` checks, even when it does not parse: another source's file of the same name is never read in its place ([`weblisk validate`](#weblisk-validate))
-- [ ] `weblisk blueprint sources` and `weblisk validate <dir>` read a working tree's revision without writing to it or taking its index lock ([`weblisk blueprint sources`](#weblisk-blueprint-sources), [`weblisk validate`](#weblisk-validate))
-- [ ] `weblisk validate <dir>` reports every family the schemas declare that the directory holds, with how many of its files were checked, and a directory holding none says so ([`weblisk validate`](#weblisk-validate))
-- [ ] `weblisk validate <dir>` checks programmes for each rule [`weblisk validate`](#weblisk-validate) lists for them, a fault wherever one fails; warns of a placed artifact that no spec in the repository defines; and checks programmes for nothing else
+- [ ] `weblisk validate <dir>` reports only that directory's files as findings, and a corpus directory is checked against nothing but itself ([`weblisk validate <dir>`](#one-repository-weblisk-validate-dir))
+- [ ] A file the repository holds is the copy `weblisk validate <dir>` checks, even when it does not parse: another source's file of the same name is never read in its place ([`weblisk validate <dir>`](#one-repository-weblisk-validate-dir))
+- [ ] `weblisk blueprint sources` and `weblisk validate <dir>` read a working tree's revision without writing to it or taking its index lock ([`weblisk blueprint sources`](#weblisk-blueprint-sources), [`weblisk validate <dir>`](#one-repository-weblisk-validate-dir))
+- [ ] `weblisk validate <dir>` reports every family the schemas declare that the directory holds, with how many of its files were checked, and a directory holding none says so ([`weblisk validate <dir>`](#one-repository-weblisk-validate-dir))
+- [ ] `weblisk validate <dir>` checks programmes for each rule [`weblisk validate <dir>`](#one-repository-weblisk-validate-dir) lists for them, a fault wherever one fails; warns of a placed artifact that no spec in the repository defines; and checks programmes for nothing else
 - [ ] `weblisk validate --json` without a directory is refused, and with one prints the report and exits non-zero when there is a fault ([`weblisk validate`](#weblisk-validate))
 
 ### Identity & Operations
@@ -3918,22 +3945,22 @@ security:
 - [ ] While an encrypted-file rotation is pending, a signature the identity makes verifies under `operator.pub` and was made with `operator.key.next`, and `weblisk operator path` names `operator.key.next` as the key that signs ([`weblisk operator rotate`](#weblisk-operator-rotate), [`weblisk operator path`](#weblisk-operator-path))
 - [ ] For an identity held by a source that signs and withholds `private_key`, `weblisk operator rotate` without `--new-holder` is refused and says why; with `--new-holder <source>:<reference>` it maps that key only once a signature through it verifies, and never asks the source to create one ([`weblisk operator rotate`](#weblisk-operator-rotate))
 - [ ] For an identity held whole by a source, `rotate` stores the new key in that source with `store`, and on finishing points `holder.json` at it and `erase`s the old reference, reporting a source that does not list `erase` ([`weblisk operator rotate`](#weblisk-operator-rotate))
-- [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only) ([Operator Commands](#operator-commands), `weblisk operators revoke`)
-- [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin ([Operator Commands](#operator-commands), `weblisk operators revoke`)
+- [ ] `weblisk operators revoke` invalidates target operator's public key and tokens (admin only) ([`weblisk operators revoke <name>`](#weblisk-operators-revoke-name))
+- [ ] `weblisk operators revoke` prevents self-revocation and revoking the last admin ([`weblisk operators revoke <name>`](#weblisk-operators-revoke-name))
 - [ ] `weblisk operators list` shows all registered operators with name, role, status, and registration date ([`weblisk operators list`](#weblisk-operators-list))
-- [ ] `weblisk operators describe` shows full detail for a single operator ([Operator Commands](#operator-commands), `weblisk operators describe`)
-- [ ] `weblisk operators role` changes operator role (admin only, cannot demote self) ([Operator Commands](#operator-commands), `weblisk operators role`)
-- [ ] `weblisk operators approve <name>` sends `POST /v1/admin/operators/{name}/approve` to the hub's admin gateway, reports success for an operator already approved, and prints and writes no token ([Operator Commands](#operator-commands), `weblisk operators approve`) <!-- wl:check cli-operators-approve covers cli-operators-approve-no-token -->
+- [ ] `weblisk operators describe` shows full detail for a single operator ([`weblisk operators describe <name>`](#weblisk-operators-describe-name))
+- [ ] `weblisk operators role` changes operator role (admin only, cannot demote self) ([`weblisk operators role <name> <role>`](#weblisk-operators-role-name-role))
+- [ ] `weblisk operators approve <name>` sends `POST /v1/admin/operators/{name}/approve` to the hub's admin gateway, reports success for an operator already approved, and prints and writes no token ([`weblisk operators approve <name>`](#weblisk-operators-approve-name)) <!-- wl:check cli-operators-approve covers cli-operators-approve-no-token -->
 - [ ] All commands output human-readable tables by default and structured JSON with --json flag ([Design Principles](#design-principles) 3)
 - [ ] Destructive commands (agents deregister, federations revoke) require --confirm or interactive name-confirmation ([Design Principles](#design-principles) 2)
-- [ ] `weblisk approvals reject` requires a --reason argument for every rejection ([Approval Commands](#approval-commands))
+- [ ] `weblisk approvals reject` requires a --reason argument for every rejection ([`weblisk approvals reject`](#weblisk-approvals-accept-id--weblisk-approvals-reject-id---reason-reason))
 - [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, reports the inbox unavailable and exits 1 when the gateway answers `ADMIN_GROUP_UNAVAILABLE`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is, and shows each owner's non-zero `withheld` count; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists ([Approval Commands](#approval-commands), [The Command Surface](#the-command-surface))
 - [ ] `weblisk objectives list`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway ([Data Flow](#data-flow), [`weblisk operator token`](#weblisk-operator-token))
 - [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and objectives, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score ([`weblisk status`](#weblisk-status))
-- [ ] Exit codes are 0=success, 1=general error, 2=auth error, 3=connection error, 4=not found, 5=permission denied
+- [ ] Every command exits with a code [Exit Codes](#exit-codes) declares, in the meaning it gives that code, and `weblisk doctor` exits as [`weblisk doctor`](#weblisk-doctor) says
 - [ ] Config resolution follows the precedence [Configuration](#configuration) gives
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable ([Design Principles](#design-principles) 4)
-- [ ] Authentication flow retries once on 401 by refreshing the token, except on `STEP_UP_REQUIRED`, which it never answers with a refresh; prints re-register message if refresh also fails
+- [ ] Authentication flow retries once on 401 by refreshing the token, except on `STEP_UP_REQUIRED`, which it never answers with a refresh; when the hub refused the credential it tells the person to attest a new one with `weblisk operator connect` ([Authentication Flow](#authentication-flow) steps 5–7)
 - [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` ([Authentication Flow](#authentication-flow)) <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms cli-step-up-token-held -->
 - [ ] A destructive command run with `--step-up` reads the identity's passphrase from stdin and sends its first request on a token carrying `step_up_at`; without `--step-up` and with no terminal, it fails on `STEP_UP_REQUIRED`; and a holder that releases the identity without asking anybody is never used to re-confirm ([Authentication Flow](#authentication-flow)) <!-- wl:check cli-step-up-script covers cli-step-up-scripted -->
 
@@ -3963,14 +3990,14 @@ security:
 - [ ] Once the programme service's blueprint specifies the route, `weblisk objectives describe` shows one objective with its targets and what has been measured against them ([Objective Commands](#objective-commands))
 
 ### Federation
-- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics ([Federation Commands](#federation-commands))
+- [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics ([`weblisk federations describe <name>`](#weblisk-federations-describe-name))
 - [ ] Once the federation layer's blueprint specifies the route, `weblisk federations contracts` lists all active data contracts across peers ([`weblisk federations contracts`](#weblisk-federations-contracts))
 
 ### Marketplace
-- [ ] `weblisk marketplace search` queries the marketplace with text search ([Marketplace Commands](#marketplace-commands))
-- [ ] `weblisk marketplace describe` shows full listing detail including data contract ([Marketplace Commands](#marketplace-commands))
-- [ ] `weblisk marketplace buy` purchases a listing (interactive contract/pricing review by default) ([Marketplace Commands](#marketplace-commands))
-- [ ] `weblisk marketplace install` downloads and places installable asset blueprints ([Marketplace Commands](#marketplace-commands))
+- [ ] `weblisk marketplace search` queries the marketplace with text search ([`weblisk marketplace search <query>`](#weblisk-marketplace-search-query))
+- [ ] `weblisk marketplace describe` shows full listing detail including data contract ([`weblisk marketplace describe <id>`](#weblisk-marketplace-describe-id))
+- [ ] `weblisk marketplace buy` purchases a listing (interactive contract/pricing review by default) ([`weblisk marketplace buy <id>`](#weblisk-marketplace-buy-id))
+- [ ] `weblisk marketplace install` downloads and places installable asset blueprints ([`weblisk marketplace install <id>`](#weblisk-marketplace-install-id))
 - [ ] `weblisk marketplace publish` publishes a capability or asset with listing config ([`weblisk marketplace publish`](#weblisk-marketplace-publish))
 - [ ] `weblisk marketplace list` shows active purchases and subscriptions ([`weblisk marketplace list`](#weblisk-marketplace-list))
-- [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period ([Marketplace Commands](#marketplace-commands))
+- [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period ([`weblisk marketplace terminate <id>`](#weblisk-marketplace-terminate-id))

@@ -45,8 +45,14 @@ REGISTRY_HEADING = re.compile(r"error|codes", re.I)
 
 
 def slug(title):
-    """The anchor a GitHub-style renderer gives a heading."""
-    t = re.sub(r"<[^>]+>", "", title)
+    """The anchor a GitHub-style renderer gives a heading.
+
+    An HTML tag is dropped, but text inside backticks is code, not markup, so
+    `<name>` there keeps `name`: ``### `weblisk tenant create <name>` `` slugs
+    to `weblisk-tenant-create-name`, as GitHub gives it.
+    """
+    parts = re.split(r"(`+[^`]*`+)", title)
+    t = "".join(p if p.startswith("`") else re.sub(r"<[^>]+>", "", p) for p in parts)
     t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
     t = t.strip().lower()
     t = re.sub(r"[^\w\- ]", "", t)

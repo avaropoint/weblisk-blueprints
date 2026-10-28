@@ -936,7 +936,7 @@ security:
 ## Verification Checklist
 
 - [ ] Domain registers with `type: "domain"` and `publishes` namespace in manifest ([Domain Manifest](#domain-manifest), [Domain-Specific Manifest Fields](#domain-specific-manifest-fields))
-- [ ] Orchestrator tracks domain status based on required_agents availability
+- [ ] A domain reads each required agent's `lease_state` in the directory and renews its own lease ready only when all read ready, its checks naming each that does not; the orchestrator holds no domain status of its own ([Registration and Dependency Verification](#registration-and-dependency-verification))
 - [ ] Domain publishes `workflow.trigger` event for matched task actions ([Workflow Execution Flow](#workflow-execution-flow))
 - [ ] Domain subscribes to `workflow.completed` and `workflow.failed` (scope: self) ([Domain Manifest](#domain-manifest))
 - [ ] Domain responds to `get_workflow` with a specific workflow definition ([get_workflow](#get_workflow))

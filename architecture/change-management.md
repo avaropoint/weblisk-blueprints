@@ -775,6 +775,11 @@ Phase 5 — Retire or Rollback
     Reconciliation result: "failed" with {rollback_applied: true}
 ```
 
+A rollback starts and builds nothing: vN never stopped, because it retires
+only once cutover is validated. Steps 1 to 4 are a directory and subscription
+revert, so vN is serving again within seconds of the failure, before any
+reverse migration in step 5 runs.
+
 ### Cutover Strategies
 
 ```yaml
@@ -884,14 +889,18 @@ inter_agent:
         POST /v1/message addressed to agent name. Orchestrator
         or bus routes to an instance whose lease is ready.
 
-    - rule: Agents MUST NOT discover or cache other agents' addresses
+    - rule: Agents address one another only from the service directory
+            they hold, and never from an address kept apart from it
       reason: >
         Instance addresses change during scaling and blue-green
-        deploys. Only the orchestrator and bus know current routing.
-      exception: >
-        Agents cache the service directory for target validation
-        (e.g. cron checks if target_agent exists). But they never
-        use cached addresses for direct communication.
+        deploys. The signed directory the orchestrator pushes, and
+        each agent re-reads periodically, is the current routing
+        (protocol/spec, POST /v1/services and POST /v1/message).
+      enforcement: >
+        An agent resolves a peer's address from the directory it
+        holds when it sends, takes each new directory as it arrives,
+        and never hard-codes an address or keeps one from a directory
+        it has replaced.
 
   during_blue_green:
     - rule: During cutover, the bus routes to the designated version
@@ -1575,12 +1584,12 @@ security:
 - [ ] Reconciliation deadline enforced with timeout events ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking), [Constraints](#constraints))
 - [ ] Blue-green: new version starts alongside old version ([Deployment Phases](#deployment-phases))
 - [ ] Blue-green: shadow mode validates without side effects ([Deployment Phases](#deployment-phases))
-- [ ] Blue-green: cutover shifts traffic atomically
-- [ ] Blue-green: rollback restores previous version within seconds
+- [ ] Blue-green: cutover follows the deployment's cutover strategy, shifting all traffic at once only under `immediate` ([Cutover Strategies](#cutover-strategies))
+- [ ] Blue-green: rollback restores previous version within seconds ([Deployment Phases](#deployment-phases), Phase 5)
 - [ ] Blue-green: destructive migrations deferred until cutover confirmed ([Deployment Phases](#deployment-phases), [Constraints](#constraints))
 - [ ] Scaling: inter-agent communication is message-bus-only ([Inter-Agent Communication](#inter-agent-communication))
 - [ ] Scaling: intra-agent coordination via shared storage + leader election ([Intra-Agent Coordination](#intra-agent-coordination))
-- [ ] Scaling: message routing by agent name, never by instance address ([Inter-Agent Communication](#inter-agent-communication))
+- [ ] Scaling: an agent addresses a peer by name, resolved from the service directory it holds, never by a hard-coded address or one from a directory it has replaced ([Inter-Agent Communication](#inter-agent-communication), [`protocol/spec`](../protocol/spec.md#post-v1services))
 - [ ] Scaling: during blue-green, bus routes shadow traffic correctly ([Message Routing During Versioning](#message-routing-during-versioning))
 - [ ] All events published with correct topics and payloads ([Events](#events))
 - [ ] Change records, assessments, and results persisted with relationships ([Storage](#storage))

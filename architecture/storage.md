@@ -319,9 +319,9 @@ contracts:
         - Every entry MUST be stored as its RFC 8785 canonical bytes and one line feed, and MUST NOT be re-serialised
         - seq MUST start at 1 and rise by one. previous_digest MUST be the SHA-256 of the previous stored line without its line feed, and 64 zeros on the first entry
         - Checkpoints MUST be signed by a log key, an ML-DSA-65 key held in memory only, whose key entry, signed by the log's authority, is in the log before the log key signs
-        - Once weblisk/log-key/v2, weblisk/log-checkpoint/v2 and weblisk/log-succession/v1 have test vectors (protocol/identity, Fixed-Form Statements), the owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry. Until those vectors are published the owner mints no log key, so no log key is available and nothing is sealed (Sealing a Chained Log, The log key)
+        - The owner MUST mint a log key when its process starts, and MUST mint the next and append its key entry to each log before the current log key's not_after passes. Sealing then pauses only while the long-lived key cannot sign that key entry (Sealing a Chained Log, The log key)
         - While a log key is available, and whenever the tip has moved since the last checkpoint, a checkpoint MUST be issued at each checkpoint_interval, at clean shutdown, and on request. A checkpoint entry does not move the tip
-        - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry, and until weblisk/log-key/v2, weblisk/log-checkpoint/v2 and weblisk/log-succession/v1 have test vectors no log has a key entry
+        - A change of the owner's long-lived key MUST be recorded in each log that has an authority by a succession entry both keys sign, before the incoming key signs anything in that log, wherever the owner still holds the outgoing key. A log with no key entry has no authority and takes no succession entry
         - An unavailable log key MUST stop sealing and MUST NOT stop appending. Unsealed entries MUST be counted wherever the log is reported
         - A key entry MUST NOT be removed or replaced. A checkpoint is judged against the key and succession entries before it
         - The owner MUST verify its log from the latest checkpoint to the tip before its first append after it starts and before each checkpoint. It MUST NOT append to or seal a log that fails, and MUST go on serving reads of it
@@ -969,6 +969,9 @@ comparison against the stored hash.
 | DeleteUserSessions | `(userID string) → (int, error)` | Invalidate all sessions for a user (logout everywhere) |
 | CleanExpired | `() → (int, error)` | Remove all expired sessions, return count |
 
+GetSession MUST NOT return a record whose `expires_at` has passed. It answers
+as it does for an unknown session ID, whether or not CleanExpired has run.
+
 ### SessionRecord
 
 ```yaml
@@ -1496,8 +1499,8 @@ security:
 - [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component ([A Component Implements Only the Stores It Owns](#a-component-implements-only-the-stores-it-owns))
 - [ ] Every store operation exists under exactly the name in the store summary table — not shortened, requalified or renamed ([Interfaces](#interfaces))
 - [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent ([Store: Namespace Registry](#store-namespace-registry))
-- [ ] A freshly started orchestrator owns the `system` namespace and reports `namespaces: ok`
-- [ ] All stores survive process restart
+- [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness))
+- [ ] Every store whose section says it MUST survive restarts survives a restart of its process, and only Channels, and Sessions in development, may be in-memory ([Contracts](#contracts), `durable-records`; [Store: Channels](#store-channels); [Store: Sessions](#store-sessions))
 - [ ] Observations are retained for at least the period [Store: Observations](#store-observations) gives
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives
 - [ ] Audit log is append-only with hash chain integrity ([Hash Chain Integrity](#hash-chain-integrity))
@@ -1508,15 +1511,15 @@ security:
 - [ ] Workflow executions support resumption after restart ([Store: Workflow Executions](#store-workflow-executions))
 - [ ] No external database server required for default operation ([Design Principles](#design-principles) 5, [What a Backend Must Be](#what-a-backend-must-be))
 - [ ] User passwords are hashed as [Store: Users](#store-users) requires of credential storage; raw passwords are never stored
-- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records
+- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records ([Store: Sessions](#store-sessions))
 - [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere) ([Store: Sessions](#store-sessions))
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain, its first entry included, as [Hash Chain Integrity](#hash-chain-integrity) says
 - [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it ([What a sealed log holds](#what-a-sealed-log-holds))
-- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v2` statement rebuilt from `seq`, `tip` and `issued_at` ([Verifying a sealed log](#verifying-a-sealed-log))
-- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file ([The log key](#the-log-key))
-- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing ([The log key](#the-log-key))
-- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log that has an authority before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation ([A change of long-lived key](#a-change-of-long-lived-key))
-- [ ] Once `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` and `weblisk/log-succession/v1` have test vectors, a key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes ([A change of long-lived key](#a-change-of-long-lived-key), [Verifying a sealed log](#verifying-a-sealed-log))
+- [ ] A checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v2` statement rebuilt from `seq`, `tip` and `issued_at` ([Verifying a sealed log](#verifying-a-sealed-log))
+- [ ] A key entry signed by the log's authority precedes every checkpoint its log key signs, and the log key is found in no file ([The log key](#the-log-key))
+- [ ] A process that runs past its log key's `not_after` has appended the next key entry before it, and goes on sealing ([The log key](#the-log-key))
+- [ ] Rotating the owner's long-lived key appends a succession entry, signed by both keys, to each log that has an authority before the new key signs anything there, and a verifier that has only the new key's fingerprint verifies checkpoints sealed before the rotation ([A change of long-lived key](#a-change-of-long-lived-key))
+- [ ] A key entry signed by a key that is not the authority, with no succession entry before it, makes a verifier that lacks that key's fingerprint report `unvouched`, and no checkpoint under it passes ([A change of long-lived key](#a-change-of-long-lived-key), [Verifying a sealed log](#verifying-a-sealed-log))
 - [ ] An owner whose log fails its check from the latest checkpoint appends nothing and seals nothing, still serves reads of the log, and reports where it fails ([An owner checks its own log](#an-owner-checks-its-own-log))
 - [ ] Every checkpoint is reported `uncountersigned` ([Verifying a sealed log](#verifying-a-sealed-log))
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises ([The checkpoint](#the-checkpoint))

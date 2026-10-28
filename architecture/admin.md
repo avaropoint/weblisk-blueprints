@@ -788,7 +788,15 @@ gateway. The command that stands the gateway up makes the key, on the
 gateway's host, before the orchestrator first starts, keeps it at
 `.weblisk/keys/admin-gateway.key`, and writes its fingerprint
 ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) to
-`orchestrator.admin_gateway_identity`. The key is still the gateway's own, as
+`orchestrator.admin_gateway_identity`. Where `admin_gateway.key_passphrase`
+is set ([`schemas/config`](../schemas/config.md#service-key-passphrases)),
+the key is written `kdf = argon2id` under the passphrase that source returns,
+and the command refuses, writing no key, where the source does not answer: a
+key it fell back to writing `kdf = none` would be one production may not run
+([`protocol/identity`](../protocol/identity.md#key-categories) rules 2 and 3).
+Unset, it is written `kdf = none`. Either way the public key is written beside
+it as `.weblisk/keys/admin-gateway.pub`, which holds nothing secret, so the
+fingerprint is read again without the passphrase. <!-- wl:id gateway-key-encrypted-when-declared --> The key is still the gateway's own, as
 [`protocol/identity`](../protocol/identity.md)'s trust model asks: it is made
 where the gateway runs and leaves nowhere. It is made by the command and not
 the process so that it can be declared before the orchestrator starts. The
@@ -1156,7 +1164,7 @@ contracts:
         # <!-- wl:id credential-lifetime -->
         - Its not_after MUST be in the future and no more than 90 days after the hub receives it, or it is refused with CREDENTIAL_LIFETIME_INVALID
         # <!-- wl:id credential-previously-revoked -->
-        - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED
+        - A key that was ever revoked at this hub MUST be refused with CREDENTIAL_PREVIOUSLY_REVOKED. A key another operator holds or held is judged by credential-key-bound first, and refused with CREDENTIAL_KEY_BOUND, so this rule answers only a key the attesting operator held itself
         # <!-- wl:id credential-key-bound -->
         - A credential_public_key this hub holds, or ever held, as a credential of another operator, or that is another operator's identity key, current or retired, MUST be refused with CREDENTIAL_KEY_BOUND and logged as a security event. A credential's id is its key's fingerprint, so accepting it would rebind that credential, and every token minted with it, to the operator who attested it. A key is bound to the first operator this hub recorded it for, and to no other, ever
         # <!-- wl:id credential-reattest -->
@@ -1173,13 +1181,13 @@ contracts:
         # <!-- wl:id credential-routes-no-token -->
         - The routes `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` MUST require no bearer token — they are what issue them
         # <!-- wl:id challenge-refusals -->
-        - A challenge for a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one for a sign-records credential with CREDENTIAL_PURPOSE_REFUSED, before any nonce is issued. Its purpose is not a secret its key protects, and a key that signs records never signs a proof of a session. For any authenticate credential it does hold, whatever its status, it MUST answer with a nonce of at least 128 bits from a cryptographically secure random source, single-use, bound to that cid, expiring within 300 seconds, and this hub's hub_id
+        - A challenge for a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one for a sign-records or a step-up credential with CREDENTIAL_PURPOSE_REFUSED, before any nonce is issued. Its purpose is not a secret its key protects, and a key that signs records never signs a proof of a session. For any authenticate credential it does hold, whatever its status, it MUST answer with a nonce of at least 128 bits from a cryptographically secure random source, single-use, bound to that cid, expiring within 300 seconds, and this hub's hub_id
         # <!-- wl:id credential-answer-bytes -->
         - The token request MUST carry cid, nonce and signature, and the signature MUST verify under the credential's STORED algorithm and public key over exactly these bytes, and never over the nonce alone. The UTF-8 bytes of weblisk/credential-auth/v1, one 0x00 byte, the 64 lowercase hexadecimal characters of hub_id as ASCII, one 0x00 byte, and the nonce's base64url text exactly as the challenge returned it, as ASCII. The nonce is signed as text, never as the bytes it decodes to
         # <!-- wl:id nonce-spent -->
         - The nonce MUST be one this hub issued for that cid, unexpired and unused, and the attempt MUST spend it whether or not the signature verifies. Otherwise CREDENTIAL_CHALLENGE_INVALID
         # <!-- wl:id token-request-unknown-cid -->
-        - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one naming a sign-records credential with CREDENTIAL_PURPOSE_REFUSED
+        - A token request naming a cid this hub holds no credential for MUST be refused with CREDENTIAL_UNKNOWN, and one naming a sign-records or a step-up credential with CREDENTIAL_PURPOSE_REFUSED
         # <!-- wl:id credential-status-after-signature -->
         - Only once the signature has verified may the hub disclose the credential's status or its operator's. The credential MUST be active (else CREDENTIAL_REVOKED) and its attestation's not_after in the future (else CREDENTIAL_EXPIRED), and its operator MUST be approved (else OPERATOR_NOT_APPROVED, or OPERATOR_REVOKED for a removed one)
         - The token request MAY carry cap, a list of capability names. The token then carries each capability the operator's role carries that cap names, and no other. A name the role does not carry is left out, never refused, so cap only ever narrows a token, and a cap that names nothing the role carries gives a token whose cap is empty. With no cap in the request, the token carries every capability the role carries
@@ -3167,12 +3175,16 @@ and a pass carries every capability its request requires and nothing more
 ### Role Hierarchy
 
 ```
-admin > operator > auditor > viewer
+admin > operator > viewer
+admin > auditor  > viewer
 ```
 
-An admin can do everything an operator can do, and so on. The `auditor`
-role is a special branch — it has viewer permissions plus full audit
-log access, but cannot decide or manage anything.
+An admin can do everything an operator can do, and an operator everything a
+viewer can. The `auditor` role is a branch beside `operator`, not a rank below
+it — it has viewer permissions plus full audit log access, but cannot decide
+or manage anything, and an operator does not hold its audit access. Every
+endpoint is authorised by the capability its minimum stands for
+([Auth Middleware](#auth-middleware)), never by a rank.
 
 ### Audit Trail
 
@@ -3287,7 +3299,7 @@ The rest SHOULD be:
 - [ ] `POST /v1/admin/operators/token` never issues an operator token, whatever its request carries ([The identity signs only to attest](#the-identity-signs-only-to-attest)) <!-- wl:check no-operator-token-from-identity covers client-uses-credential-routes -->
 - [ ] A hub that rotates its orchestrator key answers every challenge with the `hub_id` it had before, and, once `weblisk/credential-auth/v1` has test vectors, every credential attested for that `hub_id` still mints ([The identity signs only to attest](#the-identity-signs-only-to-attest))
 - [ ] A nonce from `POST /v1/admin/credentials/challenge` is spent by the first token request that presents it, whether or not the signature verifies, and a revoked or expired credential's status is disclosed only after its signature verifies ([Contracts](#contracts), `operator-token-issuance`) <!-- wl:check nonce-spent-once covers nonce-spent credential-status-after-signature -->
-- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is not an ML-DSA-65 key, whose credential key is the identity key, whose `not_after` has passed or is more than 90 days away, or whose key was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED` <!-- wl:check attestation-refusals covers credential-not-identity-key credential-lifetime credential-previously-revoked revoked-credential-kept -->
+- [ ] An attestation whose `hub_id` is not this hub's, whose credential key is neither an ML-DSA-65 key nor, under `purpose` `step-up`, a passkey's COSE key, whose credential key is the identity key, whose `not_after` is outside the cap, or whose key this operator held and was revoked here before is refused with `CREDENTIAL_FOREIGN_HUB`, `CREDENTIAL_FORM_UNSUPPORTED`, `CREDENTIAL_IS_IDENTITY_KEY`, `CREDENTIAL_LIFETIME_INVALID` or `CREDENTIAL_PREVIOUSLY_REVOKED` ([Contracts](#contracts), `attestation-names-identity`, `attestation-key-form`, `credential-not-identity-key`, `credential-lifetime`, `credential-previously-revoked`) <!-- wl:check attestation-refusals covers credential-not-identity-key credential-lifetime credential-previously-revoked revoked-credential-kept -->
 - [ ] An attestation with `purpose` `sign-records` is recorded under the same checks and 90-day cap as any other, appears in the operator's credential list, and can be revoked; a challenge or token request for its key is refused with `CREDENTIAL_PURPOSE_REFUSED` and no nonce is issued ([Contracts](#contracts), `operator-credential-attestation`, `operator-token-issuance`) <!-- wl:check sign-records-attested covers challenge-refusals token-request-unknown-cid -->
 - [ ] An attestation naming one purpose for a key this hub holds, or held and revoked, under the other is refused with `CREDENTIAL_PURPOSE_REFUSED` ([Contracts](#contracts), `operator-credential-attestation`) <!-- wl:check purpose-refused covers credential-one-purpose -->
 - [ ] An operator attesting a key that is another operator's active, expired or revoked credential, or another operator's identity key, is refused with `CREDENTIAL_KEY_BOUND`; the other operator's credential keeps its operator and its attestation, and, once `weblisk/credential-auth/v1` has test vectors, their next token is minted for them <!-- wl:check key-bound-refused covers credential-key-bound -->
@@ -3331,7 +3343,7 @@ The rest SHOULD be:
 - [ ] Two registrations presenting the bootstrap secret at once admit exactly one admin, and a restart before the claim replaces the emitted secret ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-claimed-once covers bootstrap-claim-atomic bootstrap-secret-replaced -->
 - [ ] Admin tokens are WLTs with a one-hour TTL, and a console ends a person's tokens when that person's session with it goes idle ([Admin Session Model](#admin-session-model); [Contracts](#contracts), `console-credential-use`) <!-- wl:check tokens-one-hour covers console-discards-tokens -->
 - [ ] Two factors are required with no exception, where each key is opened: an identity key signs only once its passphrase or its secret source opens it, and a client keeps a credential key only where [Where the second factor is](#where-the-second-factor-is) lets it, never in the clear. No gateway checks a factor claim in a token <!-- wl:check two-factors covers credential-key-behind-act no-factor-claim -->
-- [ ] Role hierarchy admin > operator > auditor > viewer is enforced server-side on every /v1/admin/* endpoint <!-- wl:check role-hierarchy covers approve-admin-only -->
+- [ ] Every /v1/admin/* endpoint is authorised server-side by the capability its declared minimum stands for, so an `auditor` is admitted to the audit routes an `operator` is refused, and neither outranks the other ([Auth Middleware](#auth-middleware), [Role Hierarchy](#role-hierarchy), [Operator Roles](#operator-roles)) <!-- wl:check role-hierarchy covers approve-admin-only -->
 - [ ] Each act `destructive-action-step-up` names is refused `401` `STEP_UP_REQUIRED`, changing nothing, on a token whose `step_up_at` is absent or more than 300 seconds old, with `detail.control` naming the act and a `WWW-Authenticate` header carrying `insufficient_user_authentication` and `max_age=300`; on a token whose `step_up_at` is 300 seconds old or less it is admitted, and no other person is asked ([Contracts](#contracts), `destructive-action-step-up`; [Re-confirming for a destructive act](#re-confirming-for-a-destructive-act)) <!-- wl:check step-up-refuses-stale covers destructive-acts step-up-required step-up-challenge no-second-person -->
 - [ ] A token minted without `step_up`, however recent, carries no `step_up_at`; one minted with a `step_up` of form `identity` whose signature verifies over `weblisk/step-up/v1`, the `hub_id`, the request's nonce and its control carries `step_up_at` equal to its `iat`; and a `step_up` whose signature does not verify, or was made over another nonce, `hub_id` or control, is refused `INVALID_SIGNATURE`, issues no token and spends the nonce ([Contracts](#contracts), `operator-token-issuance`) <!-- wl:check step-up-minted-only-on-proof covers step-up-request step-up-identity-form step-up-refused step-up-sets-claim step-up-is-the-claim -->
 - [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/step-up/v1`, the hub, which verifies a step-up and does not sign one, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a verifier <!-- wl:check step-up-vectors covers step-up-identity-form -->
@@ -3410,6 +3422,7 @@ The rest SHOULD be:
 - [ ] Started with its registration key or its TLS key readable or writable by its group or by other accounts, the admin gateway refuses to run and names the file, for a key the operator supplied as for one the CLI made ([Registration, lease and identity](#registration-lease-and-identity)) <!-- wl:check gateway-open-key-refused covers gateway-refuses-open-key -->
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake ([Certificate](#certificate); [Two listeners](#two-listeners)) <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
+- [ ] With `admin_gateway.key_passphrase` set, `weblisk component admin init` writes the registration key `kdf = argon2id` under the passphrase the source returns and `admin-gateway.pub` beside it, and with a source that does not answer writes no key; unset, it writes `kdf = none`; either way the fingerprint written to `orchestrator.admin_gateway_identity` is the `.pub`'s ([Registration, lease and identity](#registration-lease-and-identity), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check gateway-key-encrypted covers gateway-key-encrypted-when-declared -->
 - [ ] `weblisk tenant create` and `weblisk component admin init` leave `.weblisk/keys/` mode 0700 and `admin-gateway.key` and `admin-gateway-tls.key` mode 0600, with the tenant's `.gitignore` excluding `.weblisk/keys/`; run in a tenant whose `.gitignore` lacks that entry they add it before writing either key, and given a `tls_key` inside the tenant's tree that no `.gitignore` entry excludes they refuse, writing neither key ([Registration, lease and identity](#registration-lease-and-identity)) <!-- wl:check gateway-keys-mode covers gateway-keys-kept -->
 - [ ] With `admin_gateway.tls_cert` and `tls_key` set, the CLI makes, renews and replaces no certificate or key: `weblisk server start` serves the configured certificate with fewer than 30 days left unchanged, and a missing configured file is reported, not made ([Certificate](#certificate)) <!-- wl:check given-certificate-kept covers given-certificate-served -->
 - [ ] The admin gateway registers with the key whose fingerprint is `orchestrator.admin_gateway_identity`; started with any other key, its registration is refused `CAPABILITY_GATEWAY_ONLY`, as [`protocol/types`](../protocol/types.md#capability) refuses a capability it marks admin gateway only, and it exchanges nothing <!-- wl:check gateway-declared-key covers gateway-registers-declared-key -->

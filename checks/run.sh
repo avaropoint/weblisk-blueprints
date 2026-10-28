@@ -229,13 +229,15 @@ cp templates/architecture.md "$tmp/template.md" && printf '\n' >>"$tmp/template.
 expect 1 "vectors control: a copy one byte longer than its template fails" cmp templates/architecture.md "$tmp/template.md"
 
 # The share of architecture's bytes no slot declares, against the 53% its older
-# schema left undeclared, measured at corpus 3fc8d6a before any family existed:
-# a family or a walker that reads the files differently lands far from it. A
+# schema left undeclared, measured at corpus 3fc8d6a before any family existed,
+# and 51% once the checklist sweep and its rulings had grown the Verification
+# Checklists (a slot) by their citations: a family or a walker that reads the
+# files differently lands far from it. A
 # copy of the declaration without its Dependencies slot must, and a
 # declaration with no sections cannot be measured at all.
-expect 0 "coverage: architecture's bytes in no slot are within 2 points of 53%" python3 checks/coverage.py schemas/architecture --expect 53 --within 2
+expect 0 "coverage: architecture's bytes in no slot are within 2 points of 51%" python3 checks/coverage.py schemas/architecture --expect 51 --within 2
 awk '/slot: dependencies,/ { skip = 2 } skip-- > 0 { next } 1' schemas/architecture.md >"$tmp/architecture.md"
-expect 1 "coverage control: a declaration without its Dependencies slot fails" python3 checks/coverage.py schemas/architecture --decl "$tmp/architecture.md" --expect 53 --within 2
+expect 1 "coverage control: a declaration without its Dependencies slot fails" python3 checks/coverage.py schemas/architecture --decl "$tmp/architecture.md" --expect 51 --within 2
 grep -q '% in no slot' "$tmp/out" && grep -q '^dependencies ' "$tmp/out" && { echo "FAIL coverage control: the Dependencies slot was not what was removed"; fails=$((fails + 1)); }
 expect 1 "coverage control: a declaration with no sections fails" python3 checks/coverage.py schemas/architecture --decl schemas/names.md
 grep -q 'declares no sections' "$tmp/out" || { echo "FAIL coverage control: the missing sections were not what was reported"; fails=$((fails + 1)); }
@@ -868,24 +870,36 @@ A bad request is refused with 409 `X_CONFLICT`.
 
 A removed thing is answered `X_GONE`.
 
+### `x create <name>`
+
+Creating a name already held is refused with 409 `X_CONFLICT`.
+
 ## Verification Checklist
 
 - [ ] A bad request is refused with 409 `X_CONFLICT` ([Refusing](#refusing))
 - [ ] A removed thing is answered `X_GONE`
+- [ ] A held name is refused ([`x create <name>`](#x-create-name))
 MD
 sed 's/^- \[ \] A bad request is refused with 409 `X_CONFLICT` (\[Refusing\](#refusing))$/- [ ] A bad request is refused with 409 `X_GONE` ([Refusing](#refusing))/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-cited/architecture/x.md"
 sed 's/^- \[ \] A removed thing is answered `X_GONE`$/- [ ] A removed thing is answered `X_VANISHED`/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-orphan/architecture/x.md"
 expect 0 "checklist-cites control: a clean fixture passes" python3 checks/checklist-cites.py --root "$tmp/cc-clean" --known "$tmp/none.json"
 expect 1 "checklist-cites control: a cited section without the line's code fails" python3 checks/checklist-cites.py --root "$tmp/cc-cited" --known "$tmp/none.json"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:18: names X_GONE, which no section it cites (#refusing) names$' "$tmp/out"; then
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:22: names X_GONE, which no section it cites (#refusing) names$' "$tmp/out"; then
 	echo "ok   checklist-cites control: exactly one finding, X_GONE against #refusing"
 else
 	echo "FAIL checklist-cites control: want exactly one finding, X_GONE against #refusing"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# A heading's slug keeps the text inside backticks, as GitHub's does: the
+# clean fixture cites #x-create-name, and the slug that drops <name> as a tag
+# names no heading.
+mkdir -p "$tmp/cc-slug/architecture"
+sed 's/(#x-create-name)/(#x-create-)/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-slug/architecture/x.md"
+expect 1 "checklist-cites control: a slug that drops backticked <name> fails" python3 checks/checklist-cites.py --root "$tmp/cc-slug" --known "$tmp/none.json"
+grep -q '^architecture/x.md:[0-9]*: links #x-create-, whose anchor no heading of architecture/x.md gives$' "$tmp/out" || { echo "FAIL checklist-cites control: the dropped-<name> slug was not what was reported"; fails=$((fails + 1)); }
 expect 1 "checklist-cites control: an uncited unregistered code fails" python3 checks/checklist-cites.py --root "$tmp/cc-orphan" --known "$tmp/none.json"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:19: names X_VANISHED, which no registry declares and which cites nothing$' "$tmp/out"; then
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:23: names X_VANISHED, which no registry declares and which cites nothing$' "$tmp/out"; then
 	echo "ok   checklist-cites control: exactly one finding, the orphan X_VANISHED"
 else
 	echo "FAIL checklist-cites control: want exactly one finding, the orphan X_VANISHED"

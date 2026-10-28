@@ -226,6 +226,10 @@ generated. It MUST be rejected, with what is missing, when:
 Rejection returns the specific gap and asks for a revised plan. This costs one
 call and saves generating a structure that could never satisfy the blueprints.
 
+Every rule is judged against the target the CALLER asked for, never against the
+`target:` the plan itself declares: a model that names another target in its
+output has not changed what was asked for.
+
 Rule 6 exists because a tenant root is the module root, so every component a
 tenant grows is planned into the same tree. Asked for a content service, a
 planner given only the blueprints planned `module weblisk-tenant` over a module
@@ -720,8 +724,10 @@ derived from them.
 
 It carries a cost that is worth stating. Exported names belong in the invariant
 prefix, so a run pays for them once rather than per file; and the PLAN's cache
-key must be derived from the tenant's shape — module, package directories,
-owners — and not from the export text, or every component in a tenant re-plans
+key must be derived from the tenant's shape — package directories, their names,
+owners, and never the module path
+([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
+— and not from the export text, or every component in a tenant re-plans
 whenever any other one gains a constant.
 
 A component MUST NOT be shown its own previous output as existing state. That
@@ -1712,7 +1718,7 @@ and "nothing contradicted it".
 - [ ] The per-file record carries the digest of each blueprint the file was generated from, not one digest over the whole prompt ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
 - [ ] An implementation that regenerates on any blueprint change does not describe itself as incremental ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
 - [ ] A plan naming another component's module file, entry point or owned file is rejected, and the rejection names the owning component ([Validating a plan](#validating-a-plan) rule 6)
-- [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output
+- [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output ([Validating a plan](#validating-a-plan))
 - [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained ([Reconciling a target](#reconciling-a-target))
 - [ ] A file a previous run wrote and this plan genuinely dropped is removed ([Reconciling a target](#reconciling-a-target))
 - [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record ([Reconciling a target](#reconciling-a-target))
@@ -1738,7 +1744,7 @@ and "nothing contradicted it".
 - [ ] Layer 1 rejects a method named in receiver notation but declared on another type ([Layer 1 — Structure](#layer-1--structure))
 - [ ] Layer 2 detects a symbol declared in two files, and a call site disagreeing with its declaration ([Layer 2 — Coherence](#layer-2--coherence))
 - [ ] Layer 2 does NOT report two methods of the same name on different receivers as a collision ([Layer 2 — Coherence](#layer-2--coherence))
-- [ ] A plan naming a struct field in `declares` is corrected by the planning instructions rather than tolerated by the checker
+- [ ] The planning instructions forbid struct fields in `declares` ([What a plan declares](#what-a-plan-declares))
 - [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked ([Layer 3 — Properties](#layer-3--properties))
 - [ ] The checklist is gathered from exactly the blueprint set the target was generated from ([Layer 3 — Properties](#layer-3--properties))
 - [ ] Five outcomes are reported: `verified`, `failed`, `necessary`, `not-applicable`, `unchecked` — `necessary` and `not-applicable` are folded into none of the others ([Five outcomes, never three](#five-outcomes-never-three))
