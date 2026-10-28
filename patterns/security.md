@@ -493,55 +493,55 @@ is inherited and extends the agent-specific verification checklist.
 
 ### Transport
 
-- [ ] TLS 1.2+ enforced in production environments
+- [ ] The minimum TLS version is enforced in production environments — [TLS Requirements](#tls-requirements), [Certificate Management](#certificate-management)
 - [ ] Non-TLS requests rejected in production (except `/livez` and `/readyz`)
-- [ ] Certificate validation enabled for outbound HTTPS requests
+- [ ] Certificate validation enabled for outbound HTTPS requests — [Inter-Agent TLS](#inter-agent-tls)
 
 ### Input
 
-- [ ] Request body size limits enforced (1 MB default)
-- [ ] Content-Type validated as application/json
-- [ ] All required fields validated before processing
-- [ ] String length limits enforced
-- [ ] Array size limits enforced
-- [ ] JSON nesting depth limited to 20 levels
-- [ ] File paths validated against traversal attacks
-- [ ] URLs validated (http/https scheme only)
+- [ ] Request body size limits enforced — [Validation Rules](#validation-rules)
+- [ ] Content-Type validated as application/json — [Validation Rules](#validation-rules)
+- [ ] All required fields validated before processing — [Validation Rules](#validation-rules), [Validation Flow](#validation-flow)
+- [ ] String length limits enforced — [Validation Rules](#validation-rules)
+- [ ] Array size limits enforced — [Validation Rules](#validation-rules)
+- [ ] JSON nesting depth limited — [Validation Rules](#validation-rules)
+- [ ] File paths validated against traversal attacks — [Validation Rules](#validation-rules)
+- [ ] URLs validated (http/https scheme only) — [Validation Rules](#validation-rules)
 
 ### Output
 
-- [ ] Stack traces never included in production responses
-- [ ] Absolute paths stripped from responses
-- [ ] Secrets never appear in response bodies
-- [ ] Error messages are generic (detailed errors logged server-side)
+- [ ] Stack traces never included in production responses — [Sanitization Rules](#sanitization-rules)
+- [ ] Absolute paths stripped from responses — [Sanitization Rules](#sanitization-rules), [Response Filtering](#response-filtering)
+- [ ] Secrets never appear in response bodies — [Sanitization Rules](#sanitization-rules)
+- [ ] Error messages are generic (detailed errors logged server-side) — [Sanitization Rules](#sanitization-rules)
 
 ### Headers
 
-- [ ] X-Content-Type-Options: nosniff on all responses
-- [ ] X-Frame-Options: DENY on all responses
-- [ ] X-Request-ID on all responses
-- [ ] HSTS header in production
-- [ ] Cache-Control: no-store on all API responses
+- [ ] X-Content-Type-Options: nosniff on all responses — [Required Headers](#required-headers)
+- [ ] X-Frame-Options: DENY on all responses — [Required Headers](#required-headers)
+- [ ] X-Request-ID on all responses — [Required Headers](#required-headers)
+- [ ] HSTS header in production — [Required Headers](#required-headers)
+- [ ] Cache-Control: no-store on all API responses — [Required Headers](#required-headers)
 
 ### Identity
 
-- [ ] Token signature verified on all protected endpoints (ML-DSA-65)
-- [ ] Token `alg` field checked against allowlist (ML-DSA-65) — reject unknown algorithms
-- [ ] Token expiry checked on every request
-- [ ] Message signatures verified when sender public key is known
-- [ ] Governance directive signatures verified against orchestrator key
+- [ ] Token signature verified on all protected endpoints — [Request Verification Chain](#request-verification-chain), [`protocol/identity`](../protocol/identity.md#conventions)
+- [ ] Token `alg` field checked against the one allowed algorithm — reject unknown algorithms — [`protocol/identity`](../protocol/identity.md#conventions), [Header](../protocol/identity.md#header)
+- [ ] Token expiry checked on every request — [Request Verification Chain](#request-verification-chain)
+- [ ] Message signatures verified when sender public key is known — [Request Verification Chain](#request-verification-chain)
+- [ ] Governance directive signatures verified against orchestrator key — [Request Verification Chain](#request-verification-chain)
 - [ ] New deployments default to ML-DSA-65 (FIPS 204) for post-quantum resistance
 
 ### Monitoring
 
-- [ ] Security events emitted for all threat classifications
-- [ ] Critical security events trigger immediate alerts
-- [ ] Failed auth attempts logged with source information
+- [ ] Security events emitted for all threat classifications — [Standard Security Events](#standard-security-events), [Implementation Notes](#implementation-notes)
+- [ ] Critical security events trigger immediate alerts — [Threat Levels](#threat-levels)
+- [ ] Failed auth attempts logged with source information — [Standard Security Events](#standard-security-events), [Security Event Format](#security-event-format)
 
 ### Supply Chain
 
-- [ ] All dependencies pinned to exact versions in lockfile
-- [ ] No new dependencies added without `weblisk deps audit` review
-- [ ] `weblisk validate --deps` passes (no known vulnerabilities)
-- [ ] Client-side framework has zero external runtime dependencies
+- [ ] All dependencies pinned to exact versions in lockfile — [Dependency Rules](#dependency-rules)
+- [ ] No new dependencies added without `weblisk deps audit` review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification)
+- [ ] `weblisk validate --deps` passes (no known vulnerabilities) — [Lockfile Verification](#lockfile-verification)
+- [ ] Client-side framework has zero external runtime dependencies — [Client-Side Policy](#client-side-policy)
 - [ ] Critical CVEs patched or mitigated within 24 hours

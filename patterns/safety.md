@@ -1490,27 +1490,27 @@ same operator approval mechanism.
 
 ## Verification Checklist
 
-- [ ] Every side-effecting operation files an OperationIntent before execution
-- [ ] Read operations (ordinal 0) are exempt from intent filing
-- [ ] Intent evaluation is fail-closed — missing context produces deny
-- [ ] Protection gate matrix is configured for all three environments (dev, staging, production)
-- [ ] Scope amplification shifts gates toward more restrictive outcomes
-- [ ] Policy decisions compose with gate results using most-restrictive-wins
-- [ ] Kill switch stops new task acceptance immediately on trigger
-- [ ] Kill switch allows in-flight tasks to complete within drain timeout
-- [ ] Kill switch transitions agent to quarantine after drain completes
-- [ ] `safety.kill_switch` event emitted on every kill switch activation
-- [ ] Quarantined agents cannot send messages, execute tasks, or access storage
-- [ ] Quarantine state persists across hub restarts
-- [ ] Quarantine exit requires operator review, remediation, and explicit approval
-- [ ] `safety.quarantine` event emitted on quarantine entry
-- [ ] `safety.quarantine_exit` event emitted on quarantine exit
-- [ ] Admin override requires admin role + MFA + justification + audit
-- [ ] Destroy on system/critical resources in production is denied without exception
-- [ ] Safety violations are accumulated in a rolling window per agent
-- [ ] Accumulated violations beyond threshold trigger automatic quarantine
-- [ ] Intent decisions expire after configured validity window (default 300s)
-- [ ] All safety errors use standard ErrorResponse format with appropriate codes
-- [ ] Development environment is permissive — most operations allowed, destructive audited
+- [ ] Every side-effecting operation files an OperationIntent before execution — [MUST](#must)
+- [ ] Read operations (ordinal 0) are exempt from intent filing — [Implementation Notes](#implementation-notes)
+- [ ] Intent evaluation is fail-closed — missing context produces deny — [MUST](#must), [Intent Evaluation Flow](#intent-evaluation-flow)
+- [ ] Protection gate matrix is configured for all three environments (dev, staging, production) — [Gate Configuration (YAML)](#gate-configuration-yaml)
+- [ ] Scope amplification shifts gates toward more restrictive outcomes — [Scope Amplification](#scope-amplification)
+- [ ] Policy decisions compose with gate results using most-restrictive-wins — [MUST](#must), [Policy (`patterns/policy`)](#policy-patternspolicy)
+- [ ] Kill switch stops new task acceptance immediately on trigger — [Kill Switch Behavior](#kill-switch-behavior)
+- [ ] Kill switch allows in-flight tasks to complete within drain timeout — [MUST](#must), [Implementation Notes](#implementation-notes)
+- [ ] Kill switch transitions agent to quarantine after drain completes — [Kill Switch Behavior](#kill-switch-behavior)
+- [ ] `safety.kill_switch` event emitted on every kill switch activation — [Kill Switch Behavior](#kill-switch-behavior), [MUST](#must)
+- [ ] Quarantined agents cannot send messages, execute tasks, or access storage — [Quarantine Effects](#quarantine-effects)
+- [ ] Quarantine state persists across hub restarts — [Implementation Notes](#implementation-notes)
+- [ ] Quarantine exit requires operator review, remediation, and explicit approval — [Quarantine Exit](#quarantine-exit)
+- [ ] `safety.quarantine` event emitted on quarantine entry — [Contracts](#contracts)
+- [ ] `safety.quarantine_exit` event emitted on quarantine exit — [Contracts](#contracts)
+- [ ] Admin override requires admin role + MFA + justification + audit — [Admin Override](#admin-override), [MUST](#must)
+- [ ] Destroy on system/critical resources in production is denied without exception — [Admin Override](#admin-override), [MUST](#must)
+- [ ] Safety violations are accumulated in a rolling window per agent — [Implementation Notes](#implementation-notes)
+- [ ] Accumulated violations beyond threshold trigger automatic quarantine — [Quarantine Entry](#quarantine-entry)
+- [ ] Intent decisions expire after the configured validity window — [Intent Decision](#intent-decision), [Implementation Notes](#implementation-notes)
+- [ ] All safety errors use standard ErrorResponse format with appropriate codes — [Safety-Related Errors](#safety-related-errors)
+- [ ] Development environment is permissive — most operations allowed, destructive audited — [Environment Enforcement Profiles](#environment-enforcement-profiles)
 - [ ] Staging environment is moderate — destructive operations require approval or are denied
-- [ ] Production environment is strict — all delete/destroy operations gated
+- [ ] Production environment is strict — all delete/destroy operations gated — [Production Environment (strict)](#production-environment-strict), [Environment Enforcement Profiles](#environment-enforcement-profiles)

@@ -1157,61 +1157,61 @@ Errors follow the protocol/spec `ErrorResponse` structure:
 
 ### Envelope & Transfer
 
-- [ ] All sync operations use the SyncEnvelope format — no raw change records on the wire
-- [ ] Delta batches carry a unique `batch_id` and are de-duplicated on the server
-- [ ] Applying the same DeltaBatch twice produces identical state (idempotency)
-- [ ] Envelope `direction` field is set correctly for push and pull operations
-- [ ] Batch `record_count` matches the actual length of the `records` array
-- [ ] Payloads exceeding `max_payload_size` are rejected with `SYNC_PAYLOAD_TOO_LARGE`
-- [ ] Batches exceeding `batch_size` are rejected with `SYNC_BATCH_TOO_LARGE`
+- [ ] All sync operations use the SyncEnvelope format — no raw change records on the wire — [SyncEnvelope](#syncenvelope), [Implementation Notes](#implementation-notes)
+- [ ] Delta batches carry a unique `batch_id` and are de-duplicated on the server — [DeltaBatch](#deltabatch), [Implementation Notes](#implementation-notes)
+- [ ] Applying the same DeltaBatch twice produces identical state (idempotency) — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] Envelope `direction` field is set correctly for push and pull operations — [SyncEnvelope](#syncenvelope)
+- [ ] Batch `record_count` matches the actual length of the `records` array — [DeltaBatch](#deltabatch)
+- [ ] Payloads exceeding `max_payload_size` are rejected with `SYNC_PAYLOAD_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration)
+- [ ] Batches exceeding `batch_size` are rejected with `SYNC_BATCH_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration)
 
 ### Conflict Resolution
 
-- [ ] Every sync declares a `conflict_strategy` — no implicit default at the wire level
-- [ ] Conflicts are detected when server version diverges from client's base version
-- [ ] `last-write-wins` selects the record with the higher timestamp
-- [ ] `merge` combines non-overlapping fields and applies LWW to overlapping fields
-- [ ] `manual-review` flags the conflict without applying either version
-- [ ] `server-wins` and `client-wins` deterministically select the correct side
-- [ ] All conflict resolutions are logged with full audit trail (ConflictResolution type)
+- [ ] Every sync declares a `conflict_strategy` — no implicit default at the wire level — [SyncEnvelope](#syncenvelope), [Design Principles](#design-principles)
+- [ ] Conflicts are detected when server version diverges from client's base version — [Sync State Machine](#sync-state-machine)
+- [ ] `last-write-wins` selects the record with the higher timestamp — [ConflictStrategy](#conflictstrategy)
+- [ ] `merge` combines non-overlapping fields and applies LWW to overlapping fields — [ConflictStrategy](#conflictstrategy), [Implementation Notes](#implementation-notes)
+- [ ] `manual-review` flags the conflict without applying either version — [ConflictStrategy](#conflictstrategy)
+- [ ] `server-wins` and `client-wins` deterministically select the correct side — [ConflictStrategy](#conflictstrategy)
+- [ ] All conflict resolutions are logged with full audit trail (ConflictResolution type) — [ConflictResolution](#conflictresolution), [Design Principles](#design-principles)
 
 ### Cursors & Versioning
 
-- [ ] Clients treat SyncCursor values as opaque — no client-side parsing
-- [ ] Expired cursors return `SYNC_CURSOR_EXPIRED` and require full re-sync
+- [ ] Clients treat SyncCursor values as opaque — no client-side parsing — [SyncCursor](#synccursor), [Implementation Notes](#implementation-notes)
+- [ ] Expired cursors return `SYNC_CURSOR_EXPIRED` and require full re-sync — [SyncCursor](#synccursor), [Error Codes](#error-codes)
 - [ ] Pull responses return changes in causal order relative to the cursor
 - [ ] Cursor advances atomically with batch application
 
 ### Offline Queue
 
-- [ ] Offline queue persists across app restarts
+- [ ] Offline queue persists across app restarts — [Implementation Notes](#implementation-notes)
 - [ ] Queue entries are flushed in the declared order (oldest-first by default)
-- [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity
-- [ ] Failed flush attempts increment `attempts` on the queue entry
+- [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity — [Error Codes](#error-codes), [Configuration](#configuration)
+- [ ] Failed flush attempts increment `attempts` on the queue entry — [OfflineQueueEntry](#offlinequeueentry)
 
 ### State Machine
 
-- [ ] Sync operations follow the declared state machine transitions
-- [ ] Events are emitted at each state transition (push/pull started, completed, failed)
-- [ ] `sync.conflict.detected` fires for each conflict before resolution
+- [ ] Sync operations follow the declared state machine transitions — [Sync State Machine](#sync-state-machine)
+- [ ] Events are emitted at each state transition (push/pull started, completed, failed) — [Sync State Machine](#sync-state-machine)
+- [ ] `sync.conflict.detected` fires for each conflict before resolution — [Sync State Machine](#sync-state-machine)
 
 ### Data Sovereignty & Persistence
 
-- [ ] Offline data carries scope classification, encryption level, and TTL from the server
-- [ ] Browser clients use IndexedDB only — no localStorage or sessionStorage for offline data
-- [ ] Native clients use encrypted SQLite with platform Keychain/Keystore-derived keys
-- [ ] IoT devices do NOT persist data offline (memory-only during session)
-- [ ] Public-scope data may be stored in cleartext; internal+ requires AES-256-GCM minimum
-- [ ] Confidential-scope data on native clients uses hardware-backed key storage where available
-- [ ] Restricted-scope data is NOT stored offline except with elevated session + secure enclave
-- [ ] TTL is enforced on every app launch/foreground: expired records are securely deleted
-- [ ] Data minimization is applied server-side before including records in pull responses
+- [ ] Offline data carries scope classification, encryption level, and TTL from the server — [OfflineDataRecord](#offlinedatarecord), [Design Principles](#design-principles)
+- [ ] Browser clients use IndexedDB only — no localStorage or sessionStorage for offline data — [Storage Engines by Client Type](#storage-engines-by-client-type)
+- [ ] Native clients use encrypted SQLite with platform Keychain/Keystore-derived keys — [Storage Engines by Client Type](#storage-engines-by-client-type), [Key Derivation for Client-Side Encryption](#key-derivation-for-client-side-encryption)
+- [ ] IoT devices do NOT persist data offline (memory-only during session) — [Storage Engines by Client Type](#storage-engines-by-client-type)
+- [ ] Public-scope data may be stored in cleartext; internal+ requires AES-256-GCM minimum — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
+- [ ] Confidential-scope data on native clients uses hardware-backed key storage where available — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
+- [ ] Restricted-scope data is NOT stored offline except with elevated session + secure enclave — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
+- [ ] TTL is enforced on every app launch/foreground: expired records are securely deleted — [TTL Enforcement](#ttl-enforcement)
+- [ ] Data minimization is applied server-side before including records in pull responses — [Data Minimization](#data-minimization)
 
 ### Revocation & Compliance
 
-- [ ] RevocationDirectives in pull responses are processed before sync is marked complete
-- [ ] `purge` directives securely delete the targeted offline records
-- [ ] `reclassify` directives re-encrypt or purge records that exceed the new scope's client capability
-- [ ] `re-encrypt` directives upgrade encryption on targeted records
-- [ ] Clients confirm revocation completion to the server on next sync (offline.revocation.completed event)
-- [ ] Unconfirmed revocations past the deadline trigger `OFFLINE_REVOCATION_OVERDUE` and block further pulls
+- [ ] RevocationDirectives in pull responses are processed before sync is marked complete — [Implementation Notes](#implementation-notes)
+- [ ] `purge` directives securely delete the targeted offline records — [RevocationDirective](#revocationdirective), [TTL Enforcement](#ttl-enforcement)
+- [ ] `reclassify` directives re-encrypt or purge records that exceed the new scope's client capability — [Implementation Notes](#implementation-notes)
+- [ ] `re-encrypt` directives upgrade encryption on targeted records — [RevocationDirective](#revocationdirective)
+- [ ] Clients confirm revocation completion to the server on next sync (offline.revocation.completed event) — [TTL Enforcement](#ttl-enforcement)
+- [ ] Unconfirmed revocations past the deadline trigger `OFFLINE_REVOCATION_OVERDUE` and block further pulls — [Error Codes](#error-codes), [Implementation Notes](#implementation-notes)

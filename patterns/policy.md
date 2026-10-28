@@ -987,18 +987,18 @@ All error responses follow the standard `ErrorResponse` format from
 
 ## Verification Checklist
 
-- [ ] PolicyDefinition schema validates all required fields (name, description, scope, target, rules, enforcement, state)
-- [ ] Evaluation is fail-closed — missing context, errors, and timeouts produce deny
-- [ ] Multiple policies on the same target compose using most-restrictive-wins
-- [ ] Lower-precedence policies do not override higher-precedence decisions
-- [ ] Every evaluation emits a `policy.evaluated` event with full context
-- [ ] `enforce` blocks on deny; `audit` logs but allows; `escalate` pauses and requests approval
-- [ ] Lifecycle transitions follow the permitted transition table (draft→active→deprecated→archived)
-- [ ] Archived policies are immutable — updates are rejected with POLICY_LIFECYCLE_INVALID
-- [ ] Custom rules execute in a sandbox with read-only context and no I/O
-- [ ] Policy cache invalidates on `policy.updated` events
-- [ ] Evaluation completes within the configured timeout (default 500ms total)
-- [ ] Error responses use standard ErrorResponse format with appropriate POLICY_* codes
-- [ ] Policy version history retains at least 10 previous versions
-- [ ] All 12 rule types evaluate correctly against their documented parameters
-- [ ] Policy YAML that does not conform to PolicyDefinition schema is rejected with POLICY_INVALID_DEFINITION
+- [ ] PolicyDefinition schema validates all required fields — [PolicyDefinition](#policydefinition)
+- [ ] Evaluation is fail-closed — missing context, errors, and timeouts produce deny — [MUST](#must)
+- [ ] Multiple policies on the same target compose using most-restrictive-wins — [MUST](#must), [Composition Rules](#composition-rules)
+- [ ] Lower-precedence policies do not override higher-precedence decisions — [MUST](#must), [Override Rules](#override-rules)
+- [ ] Every evaluation emits a `policy.evaluated` event with full context — [MUST](#must)
+- [ ] `enforce` blocks on deny; `audit` logs but allows; `escalate` pauses and requests approval — [MUST](#must), [EnforcementMode](#enforcementmode)
+- [ ] Lifecycle transitions follow the permitted transition table — [Permitted Transitions](#permitted-transitions)
+- [ ] Archived policies are immutable — updates are rejected with POLICY_LIFECYCLE_INVALID — [Permitted Transitions](#permitted-transitions), [Error Handling](#error-handling)
+- [ ] Custom rules execute in a sandbox with read-only context and no I/O — [Implementation Notes](#implementation-notes)
+- [ ] Policy cache invalidates on `policy.updated` events — [Implementation Notes](#implementation-notes)
+- [ ] Evaluation completes within the configured timeout — [Implementation Notes](#implementation-notes)
+- [ ] Error responses use standard ErrorResponse format with appropriate POLICY_* codes — [Error Handling](#error-handling)
+- [ ] Policy version history retains the versions it is required to — [Version Management](#version-management)
+- [ ] Every rule type evaluates correctly against its documented parameters — [Rule Type Reference](#rule-type-reference), [Rule Evaluation Semantics](#rule-evaluation-semantics)
+- [ ] Policy YAML that does not conform to PolicyDefinition schema is rejected with POLICY_INVALID_DEFINITION — [Error Handling](#error-handling), [MUST](#must)

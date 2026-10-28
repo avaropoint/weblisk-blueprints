@@ -569,26 +569,26 @@ types:
 
 ### Inbound
 
-- [ ] Webhook endpoint receives POST and validates signature
-- [ ] HMAC comparison uses constant-time algorithm
-- [ ] Secrets are read from environment variables, not hardcoded
-- [ ] Unknown sources return 404
-- [ ] Invalid signatures return 401 and log as rejected
-- [ ] Filtered events return 200 and log as filtered
-- [ ] Delivery log records metadata (not full payloads)
-- [ ] Event filtering works per source configuration
-- [ ] Raw body is preserved for signature verification
-- [ ] Payload size limit is enforced (413 if exceeded)
+- [ ] Webhook endpoint receives POST and validates signature — [Reception Flow](#reception-flow)
+- [ ] HMAC comparison uses constant-time algorithm — [Security Requirements](#security-requirements)
+- [ ] Secrets are read from environment variables, not hardcoded — [Security Requirements](#security-requirements)
+- [ ] Unknown sources return 404 — [Reception Flow](#reception-flow), [Error Handling](#error-handling)
+- [ ] Invalid signatures return 401 and log as rejected — [Reception Flow](#reception-flow), [Error Handling](#error-handling)
+- [ ] Filtered events return 200 and log as filtered — [Event Filtering](#event-filtering), [Error Handling](#error-handling)
+- [ ] Delivery log records metadata (not full payloads) — [Log Entry](#log-entry)
+- [ ] Event filtering works per source configuration — [Event Filtering](#event-filtering)
+- [ ] Raw body is preserved for signature verification — [Reception Flow](#reception-flow), [Implementation Notes](#implementation-notes)
+- [ ] Payload size limit is enforced (413 if exceeded) — [Reception Flow](#reception-flow), [Error Handling](#error-handling)
 
 ### Outbound
 
-- [ ] Subscribers register with URL, events, and secret
-- [ ] Only HTTPS URLs accepted in production
-- [ ] Events delivered to all matching subscribers
-- [ ] Payload signed with HMAC-SHA256 using subscriber secret
-- [ ] Signature sent in X-Webhook-Signature header
-- [ ] Failed deliveries retried with exponential backoff
-- [ ] Delivery attempts logged with status and response code
-- [ ] Max retries enforced
-- [ ] Delivery timeout prevents slow subscribers from blocking
-- [ ] X-Webhook-ID enables subscriber-side deduplication
+- [ ] Subscribers register with URL, events, and secret — [Subscriber Registration (POST /webhooks/subscribers)](#subscriber-registration-post-webhookssubscribers)
+- [ ] Only HTTPS URLs accepted in production — [Subscriber Registration (POST /webhooks/subscribers)](#subscriber-registration-post-webhookssubscribers), [Implementation Notes](#implementation-notes)
+- [ ] Events delivered to all matching subscribers — [Delivery Flow](#delivery-flow)
+- [ ] Payload signed with HMAC-SHA256 using subscriber secret — [Delivery Flow](#delivery-flow)
+- [ ] Signature sent in X-Webhook-Signature header — [Header Format](#header-format), [Delivery Flow](#delivery-flow)
+- [ ] Failed deliveries retried with exponential backoff — [Retry Strategy](#retry-strategy)
+- [ ] Delivery attempts logged with status and response code — [Delivery Flow](#delivery-flow)
+- [ ] Max retries enforced — [Retry Strategy](#retry-strategy)
+- [ ] Delivery timeout prevents slow subscribers from blocking — [Implementation Notes](#implementation-notes)
+- [ ] X-Webhook-ID enables subscriber-side deduplication — [Implementation Notes](#implementation-notes)

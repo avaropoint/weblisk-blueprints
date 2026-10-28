@@ -1541,40 +1541,40 @@ a destination carries a `DestinationRefusal` as its detail.
 
 ## Verification Checklist
 
-- [ ] Every entity type (data field, operation, message, agent, resource) can declare a scope level
-- [ ] Scope levels form a strict ordinal hierarchy: public < internal < confidential < restricted < critical
-- [ ] Undeclared entities receive the configured default scope level with a logged warning
-- [ ] Scope metadata propagates across agent-to-agent transfers via message/event envelopes
-- [ ] Scope metadata propagates across hub-to-hub transfers via federation envelopes
-- [ ] Receiving components validate incoming scope against their operational scope
-- [ ] Components reject entities that exceed their operational scope with `SCOPE_EXCEEDED` error
-- [ ] Composite entities escalate to the highest scope of any non-fixed component
-- [ ] Escalation emits a `scope.escalation` event with the escalation source
-- [ ] Fixed propagation rule (`propagation_rule: fixed`) excludes a component from escalation
-- [ ] Environment profiles modify enforcement without changing classification
-- [ ] Development environment permits audit-only enforcement for restricted scope
-- [ ] Production environment enforces all scope levels at maximum strictness
-- [ ] Critical scope is enforced (not just audited) in ALL environments including development
-- [ ] A declaration whose level is a custom label, or anything but one of the five built-in levels, is refused with `SCOPE_INVALID_LEVEL`
-- [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit
-- [ ] Bytes a component did not write, carrying a registered label whose `maps_to` is `restricted` beside `scope: internal` or beside no level, are classified `restricted` wherever the component records, copies or sends them
-- [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included
-- [ ] `scope.violation` events are emitted on every scope boundary violation
-- [ ] `scope.override` events are emitted when environment profiles modify enforcement
-- [ ] Both `scope` (string) and `scope_metadata` (object) fields present on all envelopes
-- [ ] Scope-related errors use standard ErrorResponse format with appropriate codes
-- [ ] Federation transfers preserve scope and apply receiving hub's enforcement policies
-- [ ] Nothing undeclared is sent to a destination, whatever `reject_unscoped` says, and the refusal is `SCOPE_MISSING`
-- [ ] A sender refuses content above a destination's ceiling, naming the destination, its ceiling and each item above it, and sends nothing: it never drops, masks or redacts part of the content to send the rest
-- [ ] A client takes the scope of what it would send, and a destination's ceiling, from the tenant; a level it cannot learn is undeclared, and a ceiling it cannot learn is the one the destination has with nothing attested
-- [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only
-- [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal`
+- [ ] Every entity type (data field, operation, message, agent, resource) can declare a scope level — [Design Principles](#design-principles), [Scope Application Examples](#scope-application-examples)
+- [ ] Scope levels form a strict ordinal hierarchy — [Level Hierarchy](#level-hierarchy)
+- [ ] Undeclared entities receive the configured default scope level with a logged warning — [Implementation Notes](#implementation-notes), [Configuration](#configuration)
+- [ ] Scope metadata propagates across agent-to-agent transfers via message/event envelopes — [Propagation Rules](#propagation-rules), [Propagation in Message Envelopes](#propagation-in-message-envelopes)
+- [ ] Scope metadata propagates across hub-to-hub transfers via federation envelopes — [Scope in Federation](#scope-in-federation)
+- [ ] Receiving components validate incoming scope against their operational scope — [Propagation Rules](#propagation-rules)
+- [ ] Components reject entities that exceed their operational scope with `SCOPE_EXCEEDED` error — [Propagation Rules](#propagation-rules), [Scope-Related Errors](#scope-related-errors)
+- [ ] Composite entities escalate to the highest scope of any non-fixed component — [Escalation Algorithm](#escalation-algorithm)
+- [ ] Escalation emits a `scope.escalation` event with the escalation source — [Escalation Algorithm](#escalation-algorithm), [Contracts](#contracts)
+- [ ] Fixed propagation rule (`propagation_rule: fixed`) excludes a component from escalation — [Escalation Algorithm](#escalation-algorithm)
+- [ ] Environment profiles modify enforcement without changing classification — [Key Distinction: Classification vs Enforcement](#key-distinction-classification-vs-enforcement), [Environment Profiles](#environment-profiles)
+- [ ] Development environment permits audit-only enforcement for restricted scope — [Built-in Profiles](#built-in-profiles)
+- [ ] Production environment enforces all scope levels at maximum strictness — [Built-in Profiles](#built-in-profiles), [Enforcement Resolution](#enforcement-resolution)
+- [ ] Critical scope is enforced (not just audited) in ALL environments including development — [Built-in Profiles](#built-in-profiles), [Evaluation Algorithm](#evaluation-algorithm)
+- [ ] A declaration whose level is a custom label, or anything but one of the five built-in levels, is refused with `SCOPE_INVALID_LEVEL` — [A label and its level](#a-label-and-its-level)
+- [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit — [A label and its level](#a-label-and-its-level)
+- [ ] Bytes a component did not write, carrying a registered label whose `maps_to` is `restricted` beside `scope: internal` or beside no level, are classified `restricted` wherever the component records, copies or sends them — [A label and its level](#a-label-and-its-level)
+- [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included — [Label Resolution](#label-resolution), [Federation Scope Rules](#federation-scope-rules)
+- [ ] `scope.violation` events are emitted on every scope boundary violation — [Propagation Rules](#propagation-rules), [The gate](#the-gate)
+- [ ] `scope.override` events are emitted when environment profiles modify enforcement — [Contracts](#contracts)
+- [ ] Both `scope` (string) and `scope_metadata` (object) fields present on all envelopes — [Propagation in Message Envelopes](#propagation-in-message-envelopes), [Implementation Notes](#implementation-notes)
+- [ ] Scope-related errors use standard ErrorResponse format with appropriate codes — [Scope-Related Errors](#scope-related-errors)
+- [ ] Federation transfers preserve scope and apply receiving hub's enforcement policies — [Federation Scope Rules](#federation-scope-rules)
+- [ ] Nothing undeclared is sent to a destination, whatever `reject_unscoped` says, and the refusal is `SCOPE_MISSING` — [The gate](#the-gate)
+- [ ] A sender refuses content above a destination's ceiling, naming the destination, its ceiling and each item above it, and sends nothing: it never drops, masks or redacts part of the content to send the rest — [The gate](#the-gate)
+- [ ] A client takes the scope of what it would send, and a destination's ceiling, from the tenant; a level it cannot learn is undeclared, and a ceiling it cannot learn is the one the destination has with nothing attested — [The gate](#the-gate)
+- [ ] The destination gate denies in every environment profile, `development` included, and no profile makes it audit-only — [The gate](#the-gate), [Enforcement Resolution](#enforcement-resolution)
+- [ ] A model provider with no current agreement attestation has the ceiling `internal`, and a `confidential` request to it is refused with `SCOPE_CEILING_EXCEEDED` — [Model providers](#model-providers), [The gate](#the-gate)
+- [ ] A `ProviderAgreement` is recorded, or withdrawn by `DELETE /v1/admin/model/agreements/{id}`, only on a person's operator token holding `model:attest`; a token holding `admin:*` and not `model:attest` is refused at both routes; one naming a level above `confidential`, or a `not_after` more than 90 days ahead, is refused; and after `not_after` or withdrawal the provider's ceiling is `internal` — [Model providers](#model-providers), [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
 - [ ] A `PUT /v1/admin/model` withdraws exactly what [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination) says it withdraws, and the ceiling routes then answer each name it withdrew `internal`
-- [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal`
-- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route or a caller's override
-- [ ] A request that names no model has the ceiling `internal`, even where the backend is a local model server whose first loaded model a current agreement lists, and a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`
-- [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model
-- [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included
-- [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING`
-- [ ] Resolution, failover and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, never send to a lower-ceiling destination transparently, and never change which model a request runs
+- [ ] A backend is found by the name the tenant's model configuration spells, and a name no current agreement lists has the ceiling `internal` — [Model providers](#model-providers)
+- [ ] An agreement listing the backend `gateway` and the model `vendor-a/model-x` at `confidential` gives that name `confidential` for `vendor-a/model-x` alone: the ceiling routes answer `internal` for `gateway` asked for `vendor-b/model-y`, or asked for no model, and a `confidential` request for either is refused with `SCOPE_CEILING_EXCEEDED`, whether its model came from `PUT /v1/admin/model`, a route or a caller's override — [Model providers](#model-providers), [The gate](#the-gate)
+- [ ] A request that names no model has the ceiling `internal`, even where the backend is a local model server whose first loaded model a current agreement lists, and a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` — [Model providers](#model-providers), [The gate](#the-gate)
+- [ ] An agreement that lists no model is refused, and so is one listing a model at a backend a current agreement already covers for that model — [Model providers](#model-providers), [`architecture/orchestrator`](../architecture/orchestrator.md#a-model-is-a-destination)
+- [ ] Nothing `restricted` or `critical` is sent to a model provider, whatever its ceiling, a model the tenant runs itself included — [Model providers](#model-providers)
+- [ ] Any part of a content entry is sent at that entry's `ContentEntry.scope`, and any part of an unclassified entry is refused with `SCOPE_MISSING` — [The gate](#the-gate)
+- [ ] Resolution, failover and a caller's override each choose only a destination whose ceiling covers what is sent, refuse when none does, never send to a lower-ceiling destination transparently, and never change which model a request runs — [The gate](#the-gate)

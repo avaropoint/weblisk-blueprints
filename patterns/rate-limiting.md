@@ -453,15 +453,15 @@ each `ADMIN_GROUP_UNAVAILABLE`
 
 ## Verification Checklist
 
-- [ ] Gateway rejects requests exceeding per-IP limits with 429
-- [ ] Gateway rejects requests exceeding per-user limits with 429
-- [ ] Gateway rejects requests exceeding per-route limits with 429
-- [ ] `X-RateLimit-*` headers present on all responses
-- [ ] `Retry-After` header present on 429 responses
-- [ ] Token bucket allows burst up to capacity
-- [ ] Sliding window correctly weights previous window
+- [ ] Gateway rejects requests exceeding per-IP limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
+- [ ] Gateway rejects requests exceeding per-user limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
+- [ ] Gateway rejects requests exceeding per-route limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
+- [ ] `X-RateLimit-*` headers present on all responses — [Response Headers](#response-headers)
+- [ ] `Retry-After` header present on 429 responses — [Response Headers](#response-headers)
+- [ ] Token bucket allows burst up to capacity — [Token Bucket (Default)](#token-bucket-default)
+- [ ] Sliding window correctly weights previous window — [Sliding Window](#sliding-window)
 - [ ] Per-route overrides take precedence over defaults
-- [ ] Rate limit configuration hot-reloads without restart
-- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes`
-- [ ] Metrics emit for allowed and rejected requests
-- [ ] Auth endpoints have stricter limits than general routes
+- [ ] Rate limit configuration hot-reloads without restart — [Admin Operations](#admin-operations), [Implementation Notes](#implementation-notes)
+- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes` — [Admin Operations](#admin-operations)
+- [ ] Metrics emit for allowed and rejected requests — [Observability](#observability)
+- [ ] Auth endpoints have stricter limits than general routes — [Gateway Rate Limit Configuration](#gateway-rate-limit-configuration)
