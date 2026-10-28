@@ -395,14 +395,14 @@ types:
 
 ## Verification Checklist
 
-- [ ] All reserved words are case-sensitive (AND/OR/NOT uppercase, true/false/null lowercase)
-- [ ] Operator precedence matches the table — parentheses override all precedence
+- [ ] All reserved words are case-sensitive, in the case [Reserved Words](#reserved-words) gives each
+- [ ] Operator precedence matches the table — parentheses override all precedence — [Grammar](#grammar), [Operator Precedence (highest to lowest)](#operator-precedence-highest-to-lowest)
 - [ ] Path resolution returns null for missing paths instead of erroring
-- [ ] Type mismatches in comparisons evaluate to false with a warning, not an exception
-- [ ] `MATCHES` uses a non-backtracking regex engine (RE2 or equivalent)
+- [ ] Type mismatches in comparisons evaluate to false with a warning, not an exception — [Type Coercion Rules](#type-coercion-rules), [Error Handling](#error-handling)
+- [ ] `MATCHES` uses a non-backtracking regex engine (RE2 or equivalent) — [Comparison Operators](#comparison-operators), [Evaluation Rules](#evaluation-rules)
 - [ ] Expression depth is bounded at 32 levels; deeper expressions are rejected
-- [ ] Array literals are bounded at 100 elements
-- [ ] Division by zero evaluates to false with a warning
-- [ ] Short-circuit evaluation: `false AND <error>` returns false without evaluating right side
-- [ ] Parse errors are caught at blueprint load time, not at runtime
-- [ ] Expressions cannot access state outside the provided context object
+- [ ] Array literals are bounded at the size [Security](#security) gives
+- [ ] Division by zero evaluates to false with a warning — [Error Handling](#error-handling)
+- [ ] Short-circuit evaluation: `false AND <error>` returns false without evaluating right side — [Logical Operators](#logical-operators), [Evaluation Rules](#evaluation-rules)
+- [ ] Parse errors are caught at blueprint load time, not at runtime — [Error Handling](#error-handling)
+- [ ] Expressions cannot access state outside the provided context object — [Security](#security)

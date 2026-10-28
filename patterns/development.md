@@ -494,24 +494,24 @@ It starts a trace for each request it serves. Its custom log types:
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Serve static files from the configured public directory
-- [ ] Inject live-reload `<script>` tag into HTML responses before `</body>`
-- [ ] Set all required security headers on every response (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, X-DNS-Prefetch-Control, COOP, CORP)
-- [ ] Set CSP header on HTML responses only
-- [ ] Block dotfile access — paths containing `/.` return 404 (not 403)
-- [ ] Block path traversal — paths containing `..` return 404
-- [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation
-- [ ] Validate blueprint paths against allowed prefixes and extensions
-- [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body
-- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else
-- [ ] Implement SSE-based live reload at `/__livereload`
-- [ ] Watch configured directories and extensions for file changes
-- [ ] Send `data: reload\n\n` SSE event on file change
-- [ ] Support configurable port via environment or CLI flag
-- [ ] Support `--port` CLI flag that overrides environment variable
-- [ ] Listen on localhost only by default (not `0.0.0.0`)
-- [ ] Set `Cache-Control: no-cache` on all responses
-- [ ] Log all requests with structured JSON logging
-- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level
-- [ ] Use native language/framework HTTP server (no cross-platform shims)
-- [ ] Work without any external tooling (no Docker, no platform CLI)
+- [ ] Serve static files from the configured public directory — [Static File Serving](#static-file-serving)
+- [ ] Inject live-reload `<script>` tag into HTML responses before `</body>` — [Static File Serving](#static-file-serving)
+- [ ] Set every header [All Responses](#all-responses) lists on every response
+- [ ] Set CSP header on HTML responses only — [HTML Responses Only](#html-responses-only)
+- [ ] Block dotfile access — paths containing `/.` return 404 (not 403) — [Static File Serving](#static-file-serving)
+- [ ] Block path traversal — paths containing `..` return 404 — [Static File Serving](#static-file-serving)
+- [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation — [Blueprint API](#blueprint-api)
+- [ ] Validate blueprint paths against allowed prefixes and extensions — [Blueprint API](#blueprint-api), [Validation Rules](#validation-rules)
+- [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body — [Validation Rules](#validation-rules), [Error Codes](#error-codes)
+- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else — [Liveness](#liveness)
+- [ ] Implement SSE-based live reload at `/__livereload` — [Live Reload](#live-reload)
+- [ ] Watch configured directories and extensions for file changes — [Live Reload](#live-reload)
+- [ ] Send `data: reload\n\n` SSE event on file change — [Live Reload](#live-reload)
+- [ ] Support configurable port via environment or CLI flag — [Configuration Properties](#configuration-properties), [Configuration Precedence](#configuration-precedence)
+- [ ] Support `--port` CLI flag that overrides environment variable — [CLI Interface](#cli-interface), [Configuration Precedence](#configuration-precedence)
+- [ ] Listen on localhost only by default (not `0.0.0.0`) — [Configuration Properties](#configuration-properties), [Implementation Notes](#implementation-notes)
+- [ ] Set `Cache-Control: no-cache` on all responses — [Static File Serving](#static-file-serving)
+- [ ] Log all requests with structured JSON logging — [Observability](#observability)
+- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level — [Observability](#observability)
+- [ ] Use native language/framework HTTP server (no cross-platform shims) — [Design Principles](#design-principles)
+- [ ] Work without any external tooling (no Docker, no platform CLI) — [Design Principles](#design-principles)
