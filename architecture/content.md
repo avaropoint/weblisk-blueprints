@@ -66,6 +66,8 @@ requires:
           fields_used: [method, path, capabilities, body]
         - name: BodyRequirement
           fields_used: [field, equals, capabilities]
+        - name: InboxRoute
+          fields_used: [query, items, withheld, decide_method, decide_path]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, via, action, target, status]
         - name: ProposedChange
@@ -1140,6 +1142,22 @@ body:
   - {field: disposition, equals: establish, capabilities: [content:establish]}
   - {field: scope_floor, capabilities: [content:decide]}
   - {field: self_decision_ceiling, capabilities: [content:decide]}
+```
+
+`GET /v1/content/proposals` is the route the admin gateway's decision inbox
+lists content's open proposals from, so its entry also carries an `inbox`
+([`protocol/types`](../protocol/types.md#inboxroute)):
+
+```yaml
+method: GET
+path: /v1/content/proposals
+capabilities: [content:read]
+inbox:
+  query: state=open
+  items: proposals
+  withheld: withheld
+  decide_method: POST
+  decide_path: /v1/content/proposals/{id}/decision
 ```
 
 The admin gateway carries a person's request here only on a route this list
@@ -5501,7 +5519,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded ([Who a change was for](#who-a-change-was-for))
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH` ([Who may move an entry](#who-may-move-an-entry), [The pass](../protocol/identity.md#the-pass))
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds ([Registration and Standalone Operation](#registration-and-standalone-operation))
-- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`, and `GET /v1/content/proposals` with the `inbox` that section shows; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded ([Declaration Flow](#declaration-flow) step 4)
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry` ([Decision Flow](#decision-flow) step 2)
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED` ([Separation of duties](#separation-of-duties))

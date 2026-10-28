@@ -153,9 +153,13 @@ requires:
         - name: ServiceEntry
           fields_used: [name, url, public_key, address_provenance, pass_routes]
         - name: PassRoute
-          fields_used: [method, path, capabilities, body]
+          fields_used: [method, path, capabilities, body, inbox]
         - name: BodyRequirement
           fields_used: [field, equals, capabilities]
+        # How the decision inbox reads each owner's list and where an item is
+        # decided
+        - name: InboxRoute
+          fields_used: [query, items, withheld, decide_method, decide_path]
         # The gateway's own manifest, which declares none of these routes
         - name: AgentManifest
           fields_used: [name, type, version, description, url, capabilities, public_key, publishes, subscriptions, pass_routes]
@@ -360,7 +364,7 @@ component declares it as a pass route.
 | Method | Path | Operation | Listener | Auth | Purpose |
 |--------|------|-----------|----------|------|---------|
 | GET | /v1/admin/overview | Overview | admin | yes | The System overview, composed from the orchestrator's and reporting every other group unavailable |
-| GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, answered `ADMIN_GROUP_UNAVAILABLE` while no pass route can name its group |
+| GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, composed from each owner's inbox route, and answered `ADMIN_GROUP_UNAVAILABLE` while no directory entry declares one |
 | POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered as `admin-gateway-authorization` says of this route |
 | GET | /v1/admin/resources | ResourceCatalogue | admin | carried | The catalogue of every kind the tenant declares, composed as [The catalogue](#the-catalogue) says |
 | GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, carried to its owner ([The uniform address](#the-uniform-address)) |
@@ -1283,10 +1287,10 @@ contracts:
         - The gateway MUST read the service directory only by GET /v1/services, on its registration token, at the orchestrator address it was configured with to register, which is its anchor (architecture/orchestrator, Presenting a credential to a component), over a connection it opened - when it starts, again after each POST /v1/services it receives, again whenever the exchange answers 404 for an audience its directory names, and at least once every 60 seconds besides, with no more than one such read in flight. That bound is this gateway's own - protocol/spec's Implementation Notes require every agent to refresh periodically and only recommend 60 seconds. The orchestrator's pushes are best effort, so without the periodic read a failed push could leave the gateway sending a pass to an address a component has left, until the next push. It MUST NOT take a pushed body as the directory, signed or not, and MUST NOT let anything in one choose a provider, an audience, a url, an address_provenance or a pass route. A signed push proves only that the orchestrator once published that directory (protocol/spec, POST /v1/services, the signed push), and any party that reaches this listener can replay one the orchestrator has since replaced, naming an address a component has given up, and so choose where a person's pass is sent and replay the pass at its real audience within its lifetime. A read at the anchor answers the directory as it is now. So everything that decides where a pass goes arrives from the orchestrator, by that read
         # <!-- wl:id provider-accepts-pass -->
         - A provider other than the orchestrator MUST, on every request for an administrative route, accept a person's request only on a pass addressed to it, as protocol/identity's The pass requires, and refuse with FORBIDDEN a pass whose cap does not name every capability the request requires and any token that is neither a pass nor an operator token. It MUST record who acted as The pass requires, by the pass's identity_id with the gateway's act.identity_id beside it, never by sub or by a header
-        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/programme-service, Known Gaps, how execution proves it is firing an owner's definition), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, on no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
+        - Work a request starts at a provider runs while that request is answered, on the pass that carried it. Work that outlives the request, executing an approved decision included, needs an authority on the approver's behalf that no blueprint specifies yet (architecture/execution, Unattended authority, whose service pass is not yet specified), so no provider performs any on a person's behalf after the request the gateway carried on a pass is answered. Work a provider performs as its own, on no approver's authority, rests on no pass and on no approval the gateway carried, which is that gap
         # <!-- wl:id overview-composed -->
         - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
-        - The decision inbox, GET /v1/admin/approvals, is composed by the gateway from each owner's own open decisions, each asked of its owner on a pass addressed to it as the rules above carry any request, once a pass route can name the inbox group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no owner, hard-codes no owner's route, and MUST answer the inbox ADMIN_GROUP_UNAVAILABLE, never an empty list. It serves no route that decides <!-- wl:id inbox-composed-by-pass-route -->
+        - The decision inbox, GET /v1/admin/approvals, is composed by the gateway from each owner's own open decisions. An owner is a directory entry whose pass_routes declare a route carrying an inbox (protocol/types, InboxRoute), and the gateway learns each from the directory alone and hard-codes no owner's route. It MUST ask each such route, with the inbox's query, on a pass addressed to that entry naming the route's capabilities, as the rules above carry any request, and page through it; list each record under the inbox's items member unchanged, with that entry as its owner and as decide the inbox's decide_method and its decide_path with the record's id in its one {name} segment; carry the owner's count under the inbox's withheld member, where it names one; and name in unavailable each owner it could not ask, could not page to the end, or whose inbox names a decide route the same entry does not declare among its pass_routes, with the code it would answer that owner's route with. While no directory entry declares an inbox route it MUST answer the inbox ADMIN_GROUP_UNAVAILABLE, never an empty list. It serves no route that decides <!-- wl:id inbox-composed-by-pass-route -->
         # <!-- wl:id gateway-unknown-route-unavailable -->
         - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's, is not the decision inbox the rule above governs, is not a route of the resource API (resource-api, resource-feed), and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
 
@@ -1463,7 +1467,7 @@ contracts:
         # <!-- wl:id operator-role-admin-family -->
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
         # <!-- wl:id capability-roles-table -->
-        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:` and `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         # <!-- wl:id admin-wildcard-excludes -->
         - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit`, which are outside the `admin` family
         # <!-- wl:id every-capability-held -->
@@ -1899,6 +1903,7 @@ POST /v1/admin/credentials/token
                    "content:propose", "content:decide", "content:reconcile",
                    "programme:read", "programme:install",
                    "programme:operate", "programme:switch",
+                   "execution:read", "execution:operate", "execution:decide",
                    "integration:read", "fabric:read", "fabric:attest"],
   "not_after": "2024-05-03T16:00:00.000Z"
 }
@@ -2240,10 +2245,10 @@ a failed registration. <!-- wl:id operators-list-pending -->
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, and admit a component's operational scope. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes, and confirm or reject relationships |
-| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything |
-| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only plus full audit log access with export capability |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, and admit a component's operational scope. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes, cancel and retry runs, decide a workflow's waiting steps, and confirm or reject relationships |
+| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read` | Read-only plus full audit log access with export capability |
 
 A role is held by an operator, and an operator is always a person
 ([`protocol/types`](../protocol/types.md#operator)), so a role may carry a
@@ -2266,6 +2271,13 @@ which spends what the tenant pays for its model and sends what it carries to
 a model provider. Nothing yet limits what one person's completions may use,
 so `admin` carries it and no other role does, and a role that reads
 everything through `admin:read` asks the model nothing.
+
+`execution:decide` closes a person's step in a workflow, so it is person
+only, and `operator` carries it as it carries `content:decide`; holding it
+decides nothing that names a position the person does not hold
+([`architecture/execution`](execution.md#who-holds-a-position)).
+`execution:register` is a component's, for its own starts, and no role
+carries it.
 
 `programme:switch` decides whether a programme's operations reach people, so
 it is person only; `operator` carries it with the rest of the `programme:`
@@ -2322,7 +2334,8 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
           "content:read", "content:describe", "content:write",
           "content:propose", "content:decide", "content:reconcile",
           "programme:read", "programme:install", "programme:operate",
-          "programme:switch", "integration:read",
+          "programme:switch", "execution:read", "execution:operate",
+          "execution:decide", "integration:read",
           "fabric:read", "fabric:attest"],
   "cid": "<id of the credential that obtained it>",
   "identity_id": "<alice's identity id at this hub>",
@@ -2485,10 +2498,10 @@ presents a token it received
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
 | Resources: `/v1/admin/resources`, `/v1/admin/r/…` and `/v1/admin/ws` | composed by the admin gateway from each owner's declared kinds; each kind is served by its owner ([Resources: one API for every kind](#resources-one-api-for-every-kind)) | always, each declared kind reported `available` or `declared-unavailable` with its reason |
-| Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a `PassRoute` can name the inbox group a route answers, with an owner that cannot be asked reported absent. None can yet, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
+| Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a deployed owner declares an inbox route ([`protocol/types`](../protocol/types.md#inboxroute)), with an owner that cannot be asked reported absent: content's open proposals and execution's open waits ([`architecture/execution`](execution.md#endpoints)). With none deployed, the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 | Health | the orchestrator's leases, in the agent list and the overview; and telemetry's SLO status, which no blueprint specifies yet: telemetry's is written in the second step of the tenant service plan | the leases always; SLO status once a telemetry component's blueprint specifies it on a pass |
 | Domains | Domain controllers | a domain controller is deployed |
-| Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/{id}` | Execution, which holds every run, a programme's and a domain's ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies both routes and a pass for them is deployed. No blueprint does yet |
+| Workflow runs: `/v1/admin/workflows` and `/v1/admin/workflows/{id}` | Execution, which holds every run, a programme's and a domain's ([`architecture/execution`](execution.md#endpoints)) | an execution component is deployed. [`architecture/execution`](execution.md) specifies both routes, on a pass carrying `admin:read` |
 | Programme objectives | The programme service ([`architecture/programme-service`](programme-service.md)), whose objectives retire strategies | a programme service whose blueprint specifies its objectives and a pass for them is deployed. None does yet |
 | Federation | Federation layer | the deployment federates |
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
@@ -2505,13 +2518,12 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 > No blueprint specifies the administrative routes of the Domains,
 > Programme objectives or Federation groups, telemetry's SLO status, or
 > `/v1/admin/metrics` and `/v1/admin/agents/{name}/metrics`.
-> [`architecture/programme-service`](programme-service.md#execution) names
-> execution as the provider of the two workflow routes, on a pass carrying
-> `admin:read`, and no execution blueprint specifies them yet. Of the owners
-> whose decisions the inbox would list, content alone specifies a list a pass
-> may reach, and no `PassRoute` can yet name the inbox group that list answers
-> ([`protocol/types`](../protocol/types.md#passroute)), so the inbox is
-> answered `ADMIN_GROUP_UNAVAILABLE` until one can. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
+> [`architecture/execution`](execution.md#endpoints) specifies the two
+> workflow routes on a pass carrying `admin:read`, and is the provider once
+> deployed. The inbox lists the owners that declare an inbox route
+> ([`protocol/types`](../protocol/types.md#inboxroute)): content and
+> execution specify one; the change service and a `patterns/safety` gate,
+> whose `ApprovalRequest`s it would also list, specify none yet. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
 > route. Three blueprints do specify routes under `/v1/admin/` that another
 > component serves: `GET /v1/admin/alerts`, `/v1/admin/alerts/{id}` and
 > `/v1/admin/alerts/stats` in [`agents/alerting`](../agents/alerting.md), the
@@ -2551,6 +2563,10 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 > ([`architecture/orchestrator`](orchestrator.md#what-the-directory-attests-and-what-it-does-not),
 > the gap there), so the squatter must listen on the orchestrator's host: the
 > same-host position the threat model records as residual, and no wider.
+> A registrant can likewise declare an inbox route
+> ([`protocol/types`](../protocol/types.md#inboxroute)) and have decisions of
+> its own listed in the inbox; each names it as owner, and a decision on one
+> reaches that registrant alone, on a pass addressed to it.
 > Binding each route to the one component the tenant declares for it closes
 > this, and waits on the tenant being able to declare its components.
 > Refusing the second declaration at registration would only move the denial
@@ -2621,14 +2637,15 @@ which route lists an owner's open decisions from the service directory alone,
 as it learns every route it carries (`admin-gateway-authorization`), and asks
 each owner on a pass, as it would ask for an overview figure: content's open
 proposals at `GET /v1/content/proposals` on a pass naming `content:read`, and
-execution's waiting steps once its blueprint specifies them. That needs a
-`PassRoute` that can name the inbox group a route answers, and none can yet
-([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
-asks no owner and answers the inbox `ADMIN_GROUP_UNAVAILABLE` (the gap under
-[The admin API is an aggregate](#the-admin-api-is-an-aggregate)). Once one can,
-the answer carries `items`, each with its `owner`, `record`, the record the
+execution's open waits at `GET /v1/execution/waits` on a pass naming
+`execution:read` ([`architecture/execution`](execution.md#endpoints)). Each
+owner says which of its routes is that list, how to read it and where each
+item is decided, by an `inbox` on the route's `PassRoute`
+([`protocol/types`](../protocol/types.md#inboxroute)); while no deployed owner
+declares one, a conforming gateway asks no owner and answers the inbox
+`ADMIN_GROUP_UNAVAILABLE`. The answer carries `items`, each with its `owner`, `record`, the record the
 owner returned for that decision, unchanged (for content a `ContentProposal`
-without bytes), and `decide`, the method and route at which it is decided;
+without bytes, for execution a `Wait`), and `decide`, the method and route at which it is decided;
 `withheld`, each owner's own count of the decisions it omitted because this
 person may not read them (content's `ProposalPage.withheld`); and
 `unavailable`, naming each owner the gateway could not ask with the code it
@@ -2641,11 +2658,13 @@ complete. <!-- wl:id inbox-never-quietly-empty -->
 **A decision is made at its owner, never here.** The gateway MUST serve no
 route that decides. <!-- wl:id inbox-decides-nothing --> A person decides on their own
 pass at the route `decide` names, such as content's
-`POST /v1/content/proposals/{id}/decision` with `content:decide`, and the
-owner records it. The shape of a decision is
+`POST /v1/content/proposals/{id}/decision` with `content:decide`, or
+execution's `POST /v1/execution/waits/{wait}/decision` with
+`execution:decide`, and the owner records it. The shape of a decision is
 [`patterns/approval`](../patterns/approval.md)'s. Where a tenant declares that a
-decision needs more than one person, by `patterns/approval`'s multi-party or
-content's `self_decision_ceiling`, the owner holds it open until that rule is
+decision needs more than one person, by `patterns/approval`'s multi-party,
+content's `self_decision_ceiling` or an approval naming several positions
+([`patterns/workflow`](../patterns/workflow.md#a-persons-phase)), the owner holds it open until that rule is
 met, and the inbox lists it to each person who may still decide it. The
 platform asks no second person of its own.
 
@@ -2901,10 +2920,10 @@ carrying `unavailable` alone, whose value is the code the gateway would answer
 a request for that group's route with. A figure the gateway cannot report is
 never a number, so a client cannot render it as zero, and an absent provider is
 never shown as a quiet one. No blueprint yet specifies a figure for one of
-those groups on a pass, content's open proposals included, which it lists and
-never counts (the gap under
+those groups on a pass, content's open proposals and execution's runs and
+waits included, which they list and never count (the gap under
 [The admin API is an aggregate](#the-admin-api-is-an-aggregate)), and no
-`PassRoute` can yet name the group a route answers
+`PassRoute` can yet name the overview group a route answers
 ([`protocol/types`](../protocol/types.md#passroute)), so a conforming gateway
 asks no component and answers each of them unavailable. `timestamp` is the
 gateway's own: when it composed the answer. The
@@ -3638,7 +3657,7 @@ The rest SHOULD be:
 - [ ] A client subscribed to `agent` over `GET /v1/admin/ws` receives `weblisk.agent.created` when an agent registers and `weblisk.agent.deregister` when one is force-deregistered, each with `subject` the agent's name and no `token` in `data`; reconnecting with `after` set to the first event's position receives the second again; a subscription after a position its owner no longer holds receives a `gap` frame ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-delivers covers feed-rounds-carried feed-filtered-by-read feed-replay-or-gap -->
 - [ ] The gateway holds no person's token once the connection it came on is closed; it closes the connection with `TOKEN_EXPIRED` at that token's `exp` unless a `token` frame for the same `sub` replaced it, and at once on a `token` frame for another `sub`; an operator whose credential is revoked stops receiving within one round, and their other subscriptions are each closed with an `error` frame naming the code ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-token-bound covers feed-on-operator-token feed-closed-at-expiry feed-subscription-error -->
 - [ ] The admin gateway serves no page, script or static file of its own, and keeps no session or cookie: a person reaches it through the CLI or a console holding their credential ([Admin Session Model](#admin-session-model); [Separate access points, shared services](#separate-access-points-shared-services))
-- [ ] While no `PassRoute` can name the inbox group a route answers, `GET /v1/admin/approvals` at the admin gateway is answered 503 `ADMIN_GROUP_UNAVAILABLE` with content registered or not, the gateway asks no owner and sends nothing, and it is never answered as an empty list; the gateway serves no route that decides, and a decision reaches its owner only at the owner's own route ([Contracts](#contracts), `admin-gateway-authorization`; [Decision Inbox](#decision-inbox); [Error Handling](#error-handling)) <!-- wl:check inbox-composed covers inbox-composed-by-pass-route inbox-never-quietly-empty inbox-decides-nothing -->
+- [ ] While no directory entry declares a pass route carrying an `inbox`, `GET /v1/admin/approvals` at the admin gateway is answered 503 `ADMIN_GROUP_UNAVAILABLE`, the gateway sends nothing, and it is never answered as an empty list; with one declared, the gateway asks that route with the inbox's `query` on a pass naming its `capabilities`, lists each record unchanged with its `owner` and its `decide` built from `decide_method` and `decide_path`, and names in `unavailable` an owner it could not ask; the gateway serves no route that decides, and a decision reaches its owner only at the owner's own route ([Contracts](#contracts), `admin-gateway-authorization`; [Decision Inbox](#decision-inbox); [Error Handling](#error-handling)) <!-- wl:check inbox-composed covers inbox-composed-by-pass-route inbox-never-quietly-empty inbox-decides-nothing -->
 - [ ] A registration missing `name`, `public_key`, `role`, `timestamp` or `signature`, or whose signature does not verify under the `public_key` it submits, is refused and writes no record; one outside the replay window, or seen before, is refused; and every registration, admitted or refused, is audited ([Contracts](#contracts), `operator-registration`) <!-- wl:check registration-checked covers registration-fields registration-verifies-submitted-key registration-replay registration-audited -->
 - [ ] A registration verifies only over the input [The registration signing input](#the-registration-signing-input) states, with the timestamp it sent; one whose signature is over the token request's payload, or that leaves out its key or role, is refused ([Contracts](#contracts), `registration-signing-input`) <!-- wl:check registration-input-exact covers registration-signed-payload registration-payload-distinct registration-signs-key registration-signs-role registration-timestamp-signed registration-input-stated-exactly timestamp-sent-is-signed -->
 - [ ] An orchestrator with an empty operator store emits one bootstrap secret of at least 256 random bits, and compares a presented secret in constant time ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-secret-strong covers bootstrap-secret-generated bootstrap-secret-presented -->

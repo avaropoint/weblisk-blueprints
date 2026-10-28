@@ -222,6 +222,16 @@ Every owner of a kind answers them with these statuses and no other.
 | `RESOURCE_IF_MATCH_REQUIRED` | 428 | permanent | An `update`, a `delete` or a verb arrived with no `If-Match`. A write with no precondition acts on something its sender has not seen |
 | `RESOURCE_PRECONDITION_FAILED` | 412 | permanent | `If-Match` does not equal the item's ETag now. Nothing changes. The answer carries the current ETag; the client reads the item again |
 
+**Execution codes** (produced by [`architecture/execution`](../architecture/execution.md#error-handling)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `EXECUTION_NOT_A_HOLDER` | 403 | permanent | The person deciding a wait does not hold the position the decision names, or that position is not one the wait still awaits. Nothing is decided |
+| `EXECUTION_DECISION_OUT_OF_ORDER` | 409 | permanent | A sequential approval decided as a position whose turn has not come. Nothing is decided |
+| `EXECUTION_POSITION_UNRESOLVED` | 503 | transient | Who holds the positions a wait names cannot be read, so no decider can be shown to hold one. Nothing is decided |
+| `EXECUTION_MUTED` | 409 | permanent | A decision on a wait of a muted run, which reaches nobody |
+| `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A step must be dispatched on a service pass for its definition's owner and none can be obtained. The step is not dispatched |
+
 **Identity error codes** (produced by `protocol/identity`):
 
 | Code | HTTP | Category | Description |
@@ -252,7 +262,7 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, operator token, resource, destination, identity, and common codes are
+  safety, operator token, resource, destination, execution, identity, and common codes are
   registered in this central table. These codes may appear in any
   component.
 - Agent-local codes (specific to a single agent's domain logic) are
@@ -409,7 +419,7 @@ publishes it and is not part of it, so `architecture/hub`'s federation
 examples, such as `inventory:check`, are listings and are not listed here. An owner is named as a unit: `orchestrator`
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
-`content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
+`content`, `fabric`, `enforcement`, `gateway`, `domain` and `execution` (each its
 `architecture/` blueprint). `programme` is
 [`architecture/programme-service`](../architecture/programme-service.md), which
 no component blueprint implements yet. Two owners have no blueprint in this
@@ -521,6 +531,18 @@ service is to declare the first three, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own
 person-only capabilities.
+
+**Execution capabilities:**
+- `execution:read` (execution) — read runs, their steps, waits and timers, registered starts, and the definitions execution fetched
+- `execution:operate` (execution) — cancel a run, and retry a failed one. A registration token reaches only runs of definitions its own identity owns
+- `execution:register` (execution) — register, change, pause, resume, run now and withdraw the caller's own starts. A component's, on its registration token; no role carries it
+- `execution:decide` (execution) — decide a wait: complete or decline a person's task, accept or reject an approval, as a holder of a position the wait awaits. *Person only*
+
+Which route needs which is [`architecture/execution`](../architecture/execution.md#endpoints)'s.
+`execution:decide` is person only for the reason `content:decide` is: a
+machine that could hold it could close a person's step. Holding it is not
+enough to decide a wait that names a position; the decider must also hold
+the position ([`architecture/execution`](../architecture/execution.md#who-holds-a-position)).
 
 **Integration capabilities:**
 - `integration:read` (integrations) — read the tenant's integrations: provider, account, method, scopes, owner, purposes, expiry and status, and never a secret
@@ -663,6 +685,11 @@ types:
         type: "[]BodyRequirement"
         required: false
         description: "Each capability the route requires because of what a request's body carries, beside `capabilities`"
+      inbox:
+        name: Inbox
+        type: InboxRoute
+        required: false
+        description: "Present only on the one `GET` route that lists this component's open decisions for the admin gateway's decision inbox. See [InboxRoute](#inboxroute)"
 ```
 
 ### BodyRequirement
@@ -717,6 +744,51 @@ that the gateway never sends a person's request to a route two entries
 declare, to a route of the orchestrator's own, or to an address
 `architecture/orchestrator`'s Presenting a credential to a component does not
 allow.
+
+### InboxRoute
+
+How the admin gateway composes its decision inbox from an owner's own list,
+without a line of code for that owner
+([`architecture/admin`](../architecture/admin.md#decision-inbox)). An owner
+declares it on the `PassRoute` of the one route that lists its open
+decisions, and declares the decision route it names as a pass route too.
+
+```yaml
+types:
+  InboxRoute:
+    fields:
+      query:
+        name: Query
+        type: string
+        required: false
+        description: "The query string the gateway sends with the list request, without its `?`, such as `state=open`. Absent: none"
+      items:
+        name: Items
+        type: string
+        required: true
+        description: "The top-level member of the list's answer that holds the records, each an object carrying `id`. The gateway returns each record unchanged"
+      withheld:
+        name: Withheld
+        type: string
+        required: false
+        description: "The top-level member holding the owner's count of open decisions it omitted because the person may not read them. Absent: the owner omits none"
+      decide_method:
+        name: DecideMethod
+        type: string
+        required: true
+        description: "The method of the route a record is decided at, in upper case"
+      decide_path:
+        name: DecidePath
+        type: string
+        required: true
+        description: "The path of that route, with exactly one `{name}` segment, which the gateway fills with the record's `id`. The same manifest MUST declare it among its `pass_routes`"
+```
+
+A manifest declares `inbox` on at most one route, and only on a `GET` route.
+The gateway asks that route on a pass naming its `capabilities`, and pages
+through it by the answer's `next_cursor` where it carries one. A record whose
+`id` is missing is not listed, and the owner's answer is then reported
+incomplete, never quietly shortened.
 
 ### IOSpec
 
@@ -801,13 +873,33 @@ types:
       agent:
         name: Agent
         type: string
-        required: true
-        description: "Target agent name"
+        required: false
+        description: "Target agent name. Required on a machine phase; absent on a person's ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase))"
       action:
         name: Action
         type: string
-        required: true
-        description: "`HandleMessage` action to invoke"
+        required: false
+        description: "`HandleMessage` action to invoke. Required with `agent`"
+      task:
+        name: Task
+        type: WorkflowTask
+        required: false
+        description: "A person's work, by position. Exclusive with `agent` and `approvers`"
+      approvers:
+        name: Approvers
+        type: "[]string"
+        required: false
+        description: "Positions whose holders must each accept. Exclusive with `task`; beside `agent` only with `approval: required`"
+      approval_order:
+        name: ApprovalOrder
+        type: string
+        required: false
+        description: "`sequential`, or absent for any order. Only with `approvers`"
+      escalate:
+        name: Escalate
+        type: WorkflowEscalation
+        required: false
+        description: "Only on a phase with `task` or `approvers`"
       input:
         name: Input
         type: map
@@ -873,18 +965,18 @@ types:
       domain_name:
         name: DomainName
         type: string
-        required: true
-        description: "Executing domain controller"
+        required: false
+        description: "The domain controller whose definition ran. Absent on a run whose definition another owner declares, such as the programme service"
       task_id:
         name: TaskID
         type: string
-        required: true
-        description: "Originating task ID"
+        required: false
+        description: "Originating task ID. Absent on a run no task started, such as one a start fired"
       status:
         name: Status
         type: string
         required: true
-        description: "A state of patterns/workflow's Workflow State Machine: `pending`, `running`, `pending_approval`, `completed`, `failed`"
+        description: "A state of patterns/workflow's Workflow State Machine: `pending`, `running`, `waiting`, `completed`, `failed`, `cancelled`, `withheld`"
       phases:
         name: Phases
         type: "[]PhaseResult"
@@ -922,7 +1014,7 @@ types:
         name: Status
         type: string
         required: true
-        description: "`pending`, `running`, `completed`, `failed`, `skipped`"
+        description: "`pending`, `running`, `waiting`, `completed`, `failed`, `skipped`"
       output:
         name: Output
         type: map
@@ -946,6 +1038,51 @@ types:
         type: int
         required: false
         description: "Number of retry attempts"
+```
+
+### WorkflowTask
+
+A person's work on a phase ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase)).
+
+```yaml
+types:
+  WorkflowTask:
+    fields:
+      activity:
+        name: Activity
+        type: string
+        required: true
+        description: "What the person does, in the author's words"
+      responsible:
+        name: Responsible
+        type: string
+        required: true
+        description: "The position whose holder does it. Never a person"
+      due:
+        name: Due
+        type: string
+        required: false
+        description: "`<n><h|d|w>` from the moment the wait opens"
+```
+
+### WorkflowEscalation
+
+Where a person's phase left open goes ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase)).
+
+```yaml
+types:
+  WorkflowEscalation:
+    fields:
+      after:
+        name: After
+        type: string
+        required: true
+        description: "`<n><h|d|w>` past a task's due, or past an approval's opening"
+      to:
+        name: To
+        type: string
+        required: true
+        description: "The position it then also belongs to. Never a person"
 ```
 
 ---
@@ -1386,9 +1523,8 @@ every tool call each step made, with the model each step ran, what the backend
 reported it used and cost, the decisions it recorded and the approvals it
 waited on. The kinds are `run`, `run-step` and `tool-call`
 ([`schemas/kinds`](../schemas/kinds.md#declared-kinds)); how a person reads
-and stops one is their Resources block, held in
-[`architecture/programme-service`](../architecture/programme-service.md#resources)
-until execution's blueprint is written.
+and stops one is their Resources block, in
+[`architecture/execution`](../architecture/execution.md#resources).
 
 A run's record holds what its steps said. It is classified at the scope of the
 work it ran on, and is answered only to a request that may receive that scope
@@ -1422,7 +1558,37 @@ types:
         name: Agent
         type: string
         required: false
-        description: "The agent that ran it: a work agent, or the prompt worker for an `agent:` instruction. Absent while queued"
+        description: "The agent that ran it: a work agent, or the prompt worker for an `agent:` instruction. Absent while queued, and on a workflow run"
+      owner:
+        name: Owner
+        type: string
+        required: false
+        description: "The identity id of the component whose definition it ran: a domain controller or the programme service"
+      organisation:
+        name: Organisation
+        type: string
+        required: false
+        description: "The organisation the run's work belongs to"
+      project:
+        name: Project
+        type: string
+        required: false
+        description: "The project, where the work belongs to one"
+      schedule:
+        name: Schedule
+        type: string
+        required: false
+        description: "The uid of the registered start that fired it, where one did"
+      chain:
+        name: Chain
+        type: "[]string"
+        required: false
+        description: "The runs that, through a `for` start, started it, oldest first. A row a run writes carries it, so that no run starts itself round a loop"
+      muted:
+        name: Muted
+        type: bool
+        required: false
+        description: "True when the start that fired it was muted: what it produces reaches nobody"
       parent:
         name: Parent
         type: string
@@ -1444,7 +1610,7 @@ types:
         type: string
         required: true
         description: "A state of the run's state machine"
-        enum: [queued, running, waiting, completed, failed, cancelled]
+        enum: [queued, running, waiting, completed, failed, cancelled, withheld]
       queued_at:
         name: QueuedAt
         type: timestamp
@@ -1508,7 +1674,7 @@ types:
         type: string
         required: true
         description: "What sort of stage it is"
-        enum: [phase, model-turn, decision, approval]
+        enum: [phase, model-turn, decision, approval, task]
       name:
         name: Name
         type: string
@@ -1556,7 +1722,12 @@ types:
         name: Approval
         type: string
         required: false
-        description: "For an approval: the id of the ApprovalRequest it waits on"
+        description: "For an approval gated by an `ApprovalRequest`: its id"
+      wait:
+        name: Wait
+        type: string
+        required: false
+        description: "For a `task` or `approval` step held for a person: the uid of the wait execution holds ([`architecture/execution`](../architecture/execution.md#a-persons-phase))"
       error:
         name: Error
         type: ErrorResponse
