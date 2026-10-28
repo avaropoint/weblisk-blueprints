@@ -1366,8 +1366,8 @@ scaling:
 - [ ] Agent metrics updated after every workflow completion ([Execute Workflow](#execute-workflow) Phase 4)
 - [ ] Strategy progress recalculated from latest observations ([Execute Workflow](#execute-workflow) Phase 5)
 - [ ] Entity context stored and retrievable via set_context/get_context ([set_context / get_context](#set_context--get_context))
-- [ ] All data persisted to flat-file JSONL storage
-- [ ] Lifecycle events published for every state transition
+- [ ] All data is persisted to the stores [Storage](#storage) declares and survives a restart
+- [ ] Each event [Events](#events) lists under Published is published when the change it names happens; only those transitions publish an event
 - [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
 - [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
 - [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))

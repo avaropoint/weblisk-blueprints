@@ -1158,6 +1158,10 @@ If the alert was throttled:
 
 ```yaml
 events_published:
+  - topic: alert.fired
+    payload: AlertEvent (patterns/alerting)
+    when: New alert passes schema validation. The event patterns/alerting declares, which this agent inherits; incident-response binds it
+
   - topic: alerting.alert.received
     payload: {alert_id, severity, source_name, title}
     when: New alert passes schema validation
@@ -1185,6 +1189,7 @@ events_published:
 events_subscribed:
   - topic: alert.*
     payload: {alert_id, severity, source, title, message, context, timestamp}
+    filter: topic != alert.fired (this agent's own event is never routed again)
     action: Process alert through routing engine
 
   - topic: system.agent.registered

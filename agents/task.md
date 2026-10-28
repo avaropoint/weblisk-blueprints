@@ -15,7 +15,7 @@ tier: free
 
 Infrastructure agent that owns task dispatch and tracking. Receives
 `task.submit` events, dispatches work to target agents via
-`POST /v1/execute`, tracks completion, and publishes `task.complete`
+`POST /v1/execute`, tracks completion, and publishes `task.completed`
 or `task.failed` back to the requester.
 
 The Task Agent is the single dispatch point for all agent execution.
@@ -28,7 +28,7 @@ enforcement, and dead-letter tracking for failed dispatches.
 
 The task agent is a tenant's **single dispatch point for agent execution**. It
 receives `task.submit`, sends the work to the target agent's `POST /v1/execute`,
-tracks completion, and publishes `task.complete` or `task.failed` back to
+tracks completion, and publishes `task.completed` or `task.failed` back to
 whoever asked.
 
 Everything that runs work runs it through here. That is what makes execution
@@ -262,7 +262,7 @@ types:
 |-------|-------|---------|------|
 | `task.accepted` | requester | `{task_id, position}` | Task queued |
 | `task.dispatched` | requester | `{task_id, target_agent}` | HTTP call sent |
-| `task.complete` | requester | `{task_id, workflow_id, phase, result}` | Agent returned success |
+| `task.completed` | requester | `{task_id, workflow_id, phase, result}` | Agent returned success |
 | `task.failed` | requester | `{task_id, workflow_id, phase, error}` | Agent returned failure or unreachable |
 | `task.timeout` | requester | `{task_id, timeout_seconds}` | Task exceeded timeout |
 | `task.cancelled` | requester | `{task_id, reason}` | Task cancelled by requester |
@@ -332,7 +332,7 @@ types:
 
 6. Handle response:
    2xx + status "success":
-     Publish: task.complete (scope: event.source)
+     Publish: task.completed (scope: event.source)
        payload: { task_id, workflow_id, phase, result: response }
    2xx + status "failed":
      Publish: task.failed (scope: event.source)
@@ -699,7 +699,7 @@ triggers:
 7. Update in-flight tracking, dispatch next queued if capacity freed
 ```
 
-**Output:** Events: `task.accepted`, then `task.complete` or `task.failed` or `task.timeout`
+**Output:** Events: `task.accepted`, then `task.completed` or `task.failed` or `task.timeout`
 
 **Errors:** `TARGET_NOT_FOUND` (permanent), `DISPATCH_TIMEOUT` (transient), `DISPATCH_ERROR` (transient)
 
@@ -756,7 +756,7 @@ Phase 3 — HTTP Dispatch
 Phase 4 — Response Handling
   2xx + success:
     TaskRecord state: dispatched → completed
-    Publish: task.complete (scope: requester)
+    Publish: task.completed (scope: requester)
   2xx + failed:
     TaskRecord state: dispatched → failed
     Publish: task.failed (scope: requester)
@@ -845,7 +845,7 @@ events_published:
     scope: requester
     when: HTTP call sent to target agent
 
-  - topic: task.complete
+  - topic: task.completed
     payload: {task_id, workflow_id, phase, result}
     scope: requester
     when: Target agent returned success
@@ -1100,7 +1100,7 @@ tests:
     expected:
       - task.accepted published
       - POST /v1/execute sent to seo-analyzer
-      - task.complete published on success
+      - task.completed published on success
     validates:
       - "TaskRecord created with status: dispatched"
       - "TaskRecord updated to status: completed"
@@ -1203,8 +1203,10 @@ scaling:
     routing: by agent name via service directory
     reason: >
       Task dispatch requires synchronous HTTP to track success/failure.
-      This is the ONLY synchronous call in the Weblisk architecture.
-      All other communication is event-driven via the message bus.
+      It is this agent's only synchronous call; its other communication
+      is event-driven via the message bus. Elsewhere, synchronous
+      request/response uses POST /v1/message through the orchestrator's
+      routing (architecture/change-management).
 
   intra_agent:
     coordination: shared-storage
@@ -1272,7 +1274,7 @@ scaling:
 
 - [ ] Subscribes to task.submit (scope: self) and dispatches to target agents ([Subscribed](#subscribed), [HandleEvent: task.submit](#handleevent-tasksubmit))
 - [ ] Dispatches via POST /v1/execute with TaskRequest ([HandleEvent: task.submit](#handleevent-tasksubmit) step 5, [`protocol/spec`](../protocol/spec.md#post-v1execute))
-- [ ] Publishes task.complete on successful execution ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
+- [ ] Publishes task.completed on successful execution ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
 - [ ] Publishes task.failed on execution failure or unreachable agent ([HandleEvent: task.submit](#handleevent-tasksubmit) steps 2 and 6)
 - [ ] Publishes task.timeout when task exceeds timeout ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
 - [ ] Handles 429 from agents with re-queue and Retry-After ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6, [Implementation Notes](#implementation-notes))
@@ -1282,7 +1284,7 @@ scaling:
 - [ ] task.cancel removes from queue or cancels in-flight ([HandleEvent: task.cancel](#handleevent-taskcancel))
 - [ ] Agent capacity updated from system.agent.registered events ([HandleEvent: system.agent.registered](#handleevent-systemagentregistered))
 - [ ] Agent deregistration fails all in-flight and queued tasks for that agent ([HandleEvent: system.agent.deregistered](#handleevent-systemagentderegistered))
-- [ ] Task records persisted to flat-file storage
+- [ ] Task records are persisted to the stores [Storage](#storage) declares and survive a restart
 - [ ] Dispatched tasks carry the trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Implementation Notes](#implementation-notes))
 - [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
 - [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))

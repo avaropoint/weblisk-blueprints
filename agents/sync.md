@@ -271,6 +271,12 @@ types:
         description: "Whether this is a deletion"
 ```
 
+A deletion is a soft delete. The server keeps a tombstone for the record (its
+`table` and `id`, `deleted: true` and the deleting `version`) instead of
+removing it, and a pull from an earlier version returns that tombstone as a
+ChangeRecord with `deleted: true` and no `data`. A tombstone is kept for as
+long as a client checkpoint in `sync_versions` can still precede it.
+
 ### SyncResult
 
 ```yaml
@@ -590,7 +596,7 @@ Final:  Log process.version_updated {from, to}
   Reject batches exceeding `batch_size`.
 - **Version vectors**: Use logical timestamps or version vectors rather
   than wall-clock time for conflict detection where possible.
-- **Atomic writes**: All changes in a batch SHOULD be applied
+- **Atomic writes**: All changes in a batch MUST be applied
   atomically (transaction). If any fails, roll back the entire batch.
 - **Real-time push**: After processing a sync, publish changes to the
   `sync/*` real-time channel so other connected clients update.
@@ -676,10 +682,10 @@ errors:
   - code: PAYLOAD_TOO_LARGE
     condition: Total payload > config.max_payload_size
     retryable: false
-  - code: INVALID_CHANGE
+  - code: INVALID_CHANGE_RECORD
     condition: ChangeRecord missing required fields
     retryable: false
-  - code: STORAGE_ERROR
+  - code: STORAGE_WRITE_FAILED
     condition: Database write failure
     retryable: true
 ```
@@ -751,7 +757,7 @@ Manually resolve a sync conflict.
 
 **Output:** `{resolved: true, conflict_id}`
 
-**Errors:** `NOT_FOUND`, `INVALID_INPUT`, `STORAGE_ERROR`
+**Errors:** `NOT_FOUND`, `INVALID_INPUT`, `STORAGE_WRITE_FAILED`
 
 **Manual Override:** Operator-only action.
 
@@ -962,7 +968,7 @@ tests:
   - name: Invalid change record
     action: sync_push
     input: {changes: [{id: "no-table"}], last_sync_version: "v1"}
-    expected_error: INVALID_CHANGE
+    expected_error: INVALID_CHANGE_RECORD
     validates: ChangeRecord schema validated
 
   - name: Resolve non-existent conflict
@@ -1093,7 +1099,7 @@ errors:
     - code: BATCH_TOO_LARGE
       description: The batch exceeds the configured maximum
     - code: INVALID_CHANGE_RECORD
-      description: A change record is malformed. The individual record is rejected and the rest of the batch continues
+      description: A change record is malformed. The whole batch is rejected, naming the record, because no batch is applied in part (Constraints)
 
   transient:
     - code: STORAGE_WRITE_FAILED
@@ -1110,7 +1116,7 @@ errors:
       fallback: Log a warning. The sync still succeeds and the client pulls on next connect
 ```
 
-`BATCH_TOO_LARGE` includes the configured `max_batch_size` in its response, so a
+`BATCH_TOO_LARGE` includes the configured `batch_size` in its response, so a
 client can correct the batch rather than bisect it.
 ## Verification Checklist
 
@@ -1122,7 +1128,7 @@ client can correct the batch rather than bisect it.
 - [ ] Version checkpoint advances after sync ([sync_push](#sync_push-1) step 6)
 - [ ] Batch size limit is enforced (rejects oversized batches) ([sync_push](#sync_push-1) step 1, [Implementation Notes](#implementation-notes))
 - [ ] Duplicate pushes are idempotent ([sync_push](#sync_push-1), [Implementation Notes](#implementation-notes))
-- [ ] Deletions are handled correctly (soft delete with tombstone)
+- [ ] Deletions are soft deletes with a tombstone, and a pull returns the tombstone ([ChangeRecord](#changerecord))
 - [ ] Real-time notification is sent after sync ([sync_push](#sync_push-1) step 8, [Implementation Notes](#implementation-notes))
 - [ ] Manual conflicts include both versions for resolution ([Execute Workflow](#execute-workflow) Phase 4, [ConflictRecord](#conflictrecord))
 - [ ] Atomic transaction rolls back on partial failure ([sync_push](#sync_push-1) step 5, [Constraints](#constraints))

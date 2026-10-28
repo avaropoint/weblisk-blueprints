@@ -304,7 +304,7 @@ types:
 }
 ```
 
-`event:observe` is required to receive `task.complete` events scoped
+`event:observe` is required to receive `task.completed` events scoped
 to any workflow execution (not just self-initiated ones).
 
 ## Events
@@ -328,7 +328,7 @@ to any workflow execution (not just self-initiated ones).
 |---------|-------|-------|---------|
 | `workflow.trigger` | `self` | `workflow` | Receive workflow requests |
 | `workflow.approval.decision` | `self` | `workflow` | Receive approval decisions |
-| `task.complete` | `self` | `workflow` | Phase completion tracking |
+| `task.completed` | `self` | `workflow` | Phase completion tracking |
 | `task.failed` | `self` | `workflow` | Phase failure tracking |
 | `system.agent.registered` | `self` | `workflow` | Cache invalidation |
 
@@ -352,7 +352,7 @@ to any workflow execution (not just self-initiated ones).
   "subscriptions": [
     {"pattern": "workflow.trigger", "scope": "self", "group": "workflow", "max_concurrent": 10},
     {"pattern": "workflow.approval.decision", "scope": "self", "group": "workflow"},
-    {"pattern": "task.complete", "scope": "self", "group": "workflow", "max_concurrent": 20},
+    {"pattern": "task.completed", "scope": "self", "group": "workflow", "max_concurrent": 20},
     {"pattern": "task.failed", "scope": "self", "group": "workflow"},
     {"pattern": "system.agent.registered", "scope": "self"}
   ]
@@ -412,25 +412,24 @@ Resolve input references:
   $config.* → from trigger config
 
 If phase.agent == "self":
-  POST /v1/message to invoker domain:
-    action: phase.action
-    payload: resolved_input
-  Store result as phase output
-  Advance DAG
+  target = the invoker domain (dispatched through the task agent,
+           as every phase is; see Constraints)
 Else:
-  Generate task_id
-  Publish: task.submit (scope: "task")
-    payload: {
-      task_id, workflow_id, phase: phase.name,
-      target_agent: phase.agent, action: phase.action,
-      input: resolved_input, timeout: phase.timeout,
-      correlation_id
-    }
-    (the event envelope carries the trace: protocol/spec#trace-propagation)
-  Track: in_flight[workflow_id][phase.name] = task_id
+  target = phase.agent
+
+Generate task_id
+Publish: task.submit (scope: "task")
+  payload: {
+    task_id, workflow_id, phase: phase.name,
+    target_agent: target, action: phase.action,
+    input: resolved_input, timeout: phase.timeout,
+    correlation_id
+  }
+  (the event envelope carries the trace: protocol/spec#trace-propagation)
+Track: in_flight[workflow_id][phase.name] = task_id
 ```
 
-### HandleEvent: task.complete
+### HandleEvent: task.completed
 
 ```
 1. Extract workflow_id and phase from payload
@@ -636,7 +635,7 @@ Step 4 — Register with Orchestrator
 
 Step 5 — Subscribe to Events
   Action:      Subscribe to: workflow.trigger, workflow.approval.decision,
-               task.complete, task.failed, system.agent.registered,
+               task.completed, task.failed, system.agent.registered,
                system.shutdown, system.blueprint.changed
   Validates:   All subscriptions acknowledged
   On Fail:     Unsubscribe partial → deregister → EXIT with SUBSCRIPTION_FAILED
@@ -669,7 +668,7 @@ Step 2 — Stop Accepting Workflows
 
 Step 3 — Cancel In-Flight Phases
   Action:      Publish task.cancel for all dispatched phases
-  Wait:        Up to 60s for task.complete/failed events
+  Wait:        Up to 60s for task.completed/failed events
   On Timeout:  Mark remaining phases as failed
 
 Step 4 — Fail Active Workflows
@@ -700,7 +699,7 @@ health:
   ready:
     conditions:
       - workflow.trigger subscription active
-      - task.complete/failed subscriptions active
+      - task.completed/failed subscriptions active
       - storage writable
       - in_flight < 80% of config.max_concurrent
     checks:
@@ -746,7 +745,7 @@ triggers:
 
   - name: task_complete
     type: event
-    topic: task.complete
+    topic: task.completed
     description: Phase completed successfully
 
   - name: task_failed
@@ -867,12 +866,12 @@ Phase 4 — Level Dispatch
   For each phase in current level:
     a. Evaluate condition (if set) → skip if falsy
     b. Resolve input references ($task.payload.*, $phases.<name>.output, etc.)
-    c. If phase.agent == "self" → POST /v1/message to invoker domain
-    d. Else → publish task.submit (scope: "task")
-  Wait for task.complete/task.failed events for all phases in level
+    c. Target: the invoker domain if phase.agent == "self", else phase.agent
+    d. Publish task.submit (scope: "task") to that target
+  Wait for task.completed/task.failed events for all phases in level
 
 Phase 5 — Result Processing (per phase)
-  On task.complete:
+  On task.completed:
     Store PhaseResult
     If approval = required → pause, publish workflow.approval.required
     If level complete → advance to next level (back to Phase 4)
@@ -990,7 +989,7 @@ events_subscribed:
     scope: self
     action: Process approval accept/reject for gated phase
 
-  - topic: task.complete
+  - topic: task.completed
     scope: self
     action: Track phase completion, advance DAG
 
@@ -1164,7 +1163,7 @@ security:
   permissions:
     - capability: event:observe
       resources: ["*"]
-      description: Observe task.complete/failed for any workflow execution
+      description: Observe task.completed/failed for any workflow execution
 
     - capability: agent:message
       resources: ["*"]
@@ -1365,7 +1364,7 @@ scaling:
     description: >
       Bus delivers each workflow.trigger event to ONE instance in
       the "workflow" consumer group. Leader handles execution.
-      task.complete/failed events are also delivered one-per-group
+      task.completed/failed events are also delivered one-per-group
       to prevent duplicate phase tracking.
 
   blue_green:
@@ -1409,9 +1408,10 @@ scaling:
 - **Timeout enforcement**: The workflow agent tracks a deadline per
   execution (started_at + config.workflow_timeout). On expiry, all
   in-flight phases are cancelled via task.cancel events.
-- **Self-dispatch**: When `phase.agent == "self"`, the workflow agent
-  sends a direct message to the invoker domain instead of going through
-  the task agent. The response is treated as the phase output.
+- **Self-dispatch**: When `phase.agent == "self"`, the phase's target is
+  the invoker domain, and it is dispatched through the task agent like
+  every other phase (Constraints). Its `task.completed` result is the
+  phase output.
 
 ---
 
@@ -1422,12 +1422,12 @@ scaling:
 - [ ] Caches definitions, invalidates on system.agent.registered ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2, [Implementation Notes](#implementation-notes))
 - [ ] Topological sort with cycle detection ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 5, [Execute Workflow](#execute-workflow) Phase 3)
 - [ ] Phases dispatched concurrently within a level via task.submit events ([Phase Dispatch](#phase-dispatch), [Implementation Notes](#implementation-notes))
-- [ ] Phase results tracked from task.complete/task.failed events ([HandleEvent: task.complete](#handleevent-taskcomplete), [HandleEvent: task.failed](#handleevent-taskfailed))
+- [ ] Phase results tracked from task.completed/task.failed events ([HandleEvent: task.completed](#handleevent-taskcompleted), [HandleEvent: task.failed](#handleevent-taskfailed))
 - [ ] on_error strategies applied as [HandleEvent: task.failed](#handleevent-taskfailed) step 3 says
-- [ ] Approval gates pause execution until workflow.approval.decision ([HandleEvent: task.complete](#handleevent-taskcomplete) step 5, [HandleEvent: workflow.approval.decision](#handleevent-workflowapprovaldecision))
+- [ ] Approval gates pause execution until workflow.approval.decision ([HandleEvent: task.completed](#handleevent-taskcompleted) step 5, [HandleEvent: workflow.approval.decision](#handleevent-workflowapprovaldecision))
 - [ ] workflow.completed published with scope = invoker ([Workflow Completion](#workflow-completion) step 3)
 - [ ] callback_topic receives result if specified ([Workflow Completion](#workflow-completion) step 4)
-- [ ] WorkflowExecution persisted to flat-file storage
+- [ ] WorkflowExecution is persisted to the stores [Storage](#storage) declares and survives a restart
 - [ ] Workflow-level timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine))
 - [ ] Every event carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Phase Dispatch](#phase-dispatch))
 - [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
@@ -1436,11 +1436,10 @@ scaling:
 - [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
 - [ ] Shutdown cancels in-flight phases and fails active workflows ([Shutdown Sequence](#shutdown-sequence))
 - [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
-- [ ] Scaling: inter-agent communication via message bus (except definition fetch)
+- [ ] Scaling: inter-agent communication via message bus (except definition fetch) ([Scaling](#scaling), [Constraints](#constraints))
 - [ ] Scaling: leader election prevents duplicate workflow execution ([Scaling](#scaling))
 - [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
 - [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
 - [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass ([Constraints](#constraints))
 - [ ] Security: all endpoints require valid token ([Security](#security))
-- [ ] Self-dispatch handles phase.agent == "self" correctly
-- [ ] Workflow timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine))
+- [ ] A phase whose agent is `self` is dispatched to the invoker domain through the task agent, never by a direct message ([Phase Dispatch](#phase-dispatch), [Constraints](#constraints), [Implementation Notes](#implementation-notes))
