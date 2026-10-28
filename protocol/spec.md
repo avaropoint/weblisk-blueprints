@@ -1305,7 +1305,7 @@ security:
   input_validation:
     - Request body size limits enforced (1 MB default, 10 MB for task execution)
     - All IDs validated as 32-character hex strings
-    - All timestamps validated as positive integers within replay window
+    - All timestamps validated in the Instant form of protocol/conventions, and within the replay window where one applies
     - Unknown JSON fields ignored (forward compatibility)
   replay_protection:
     window: 300 seconds

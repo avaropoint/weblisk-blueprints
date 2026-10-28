@@ -416,7 +416,7 @@ Agents declare subscriptions in their manifest at registration:
 | pattern | string | yes | — | Topic or wildcard pattern |
 | group | string | no | agent name | Consumer group for load balancing |
 | scope | string | no | `"self"` | Scope filter (see Event Scoping below) |
-| max_concurrent | int | no | 5 | Max parallel event processing |
+| max_concurrent | int | no | 1 ([`protocol/types`](../protocol/types.md#subscription)) | Max parallel event processing |
 
 ### Consumer Groups
 
