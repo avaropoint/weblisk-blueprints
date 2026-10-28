@@ -63,7 +63,8 @@ gives for routes: each group is served by the component that owns the state.
 kind's owner and no blueprint specifies that owner, the kind is declared in the
 blueprint that is the declared home of the contract that owner is handed — as
 [`architecture/programme-service`](../architecture/programme-service.md#the-services-it-hands-work-to)
-is execution's today — with `owner` naming the unwritten component and
+was execution's until [`architecture/execution`](../architecture/execution.md)
+was written — with `owner` naming the unwritten component and
 `unavailable` naming the reason. It is `declared-unavailable` in every tenant
 until the owner's blueprint is written, which **moves** the block into that
 blueprint and never copies it.
@@ -381,7 +382,7 @@ rules:
 
 [`architecture/orchestrator`](../architecture/orchestrator.md#declaration)
 declares `agent` and `lease`;
-[`architecture/programme-service`](../architecture/programme-service.md#resources)
-holds `run`, `run-step` and `tool-call` for execution until execution's
-blueprint is written. They are the worked examples; this file keeps none of its
+[`architecture/execution`](../architecture/execution.md#resources) declares
+`run`, `run-step`, `tool-call`, `wait`, `timer`, `schedule` and
+`workflow-definition`. They are the worked examples; this file keeps none of its
 own, so that no example here can drift from the declarations it describes.

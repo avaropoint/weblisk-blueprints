@@ -148,6 +148,10 @@ Not capabilities — values a kind declares.
 | `lease` | — | tenant + agent name | observed | — | *(none)* |
 | `run-step` | — | step id | observed | — | *(none)* |
 | `tool-call` | — | call id | observed | — | *(none)* |
+| `wait` | — | wait id | observed | — | *(none)* |
+| `timer` | — | timer id | observed | — | *(none)* |
+| `schedule` | — | schedule id | observed | — | *(none)* |
+| `workflow-definition` | — | definition id | observed | — | *(none)* |
 
 ### What the table says, in words
 
@@ -197,6 +201,14 @@ by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
+
+**`wait`, `timer`, `schedule` and `workflow-definition` are execution's
+records too.** A wait is a step held for a person, a timer an instant
+something is owed, a schedule a start an owner registered, and a
+workflow-definition the copy of a definition execution fetched and ran, kept
+with its digest. Each is named by an id execution mints; none governs
+anything. A `workflow-definition` is not a `workflow`: the file is the
+owner's, and this is the record of what was run.
 
 **`lease`, `run-step` and `tool-call` are records of something running, and
 govern nothing.** A lease is the presence a registered agent holds, one at a
@@ -454,14 +466,19 @@ relation.
 | `spawned_by` | `run` | `run` | execution |
 | `part_of` | `run-step` | `run` | execution |
 | `part_of` | `tool-call` | `run-step` | execution |
+| `part_of` | `wait` | `run-step` | execution |
+| `fired_by` | `run` | `schedule` | execution |
+| `owed_by` | `timer` | `run`, `wait`, `schedule` | execution |
+| `starts` | `schedule` | `workflow-definition` | execution |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
 
 `held_by`, `run_by`, `spawned_by` and `part_of` are what a run's record and a
-lease say of themselves: the owner of the record asserts them when it writes it,
+lease say of themselves, as `fired_by`, `owed_by` and `starts` say of execution's
+other records: the owner of the record asserts them when it writes it,
 and a client reads them as a resource's relations
 ([`resource.md`](resource.md#relations)). `execution` is the tenant's run
-ledger ([`architecture/programme-service`](../architecture/programme-service.md#execution)),
-whose blueprint is not written yet, so nothing asserts the last four today.
+ledger ([`architecture/execution`](../architecture/execution.md)), which no
+tenant runs yet, so nothing asserts the execution rows today.
 
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.

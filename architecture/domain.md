@@ -42,13 +42,14 @@ service directory, below.
 
 **Execution replaces the Workflow and Task agents.** The tenant service
 architecture the owner approved on 2026-10-05 — recorded in Weblisk Studio's
-`TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet — merges cron,
+`TENANT_RUNTIME_MAP.md`, and stated in this corpus by [`architecture/execution`](execution.md) — merges cron,
 task and workflow into one execution service,
 which runs every declared definition on a pass minted for the definition's
-owner. Execution's blueprint is not yet written. Until it is,
-[`agents/workflow.md`](../agents/workflow.md) and
-[`agents/task.md`](../agents/task.md) are the description of the runner, and
-the contract below — `workflow.trigger` out, `workflow.completed` or
+owner. Execution's blueprint is
+[`architecture/execution`](execution.md), which states what it requires of
+that pass; [`agents/workflow.md`](../agents/workflow.md) and
+[`agents/task.md`](../agents/task.md) are kept as the interim description of
+the runner. The contract below — `workflow.trigger` out, `workflow.completed` or
 `workflow.failed` back — is the one execution consumes and answers. Nothing in
 it changes when the runner does.
 
@@ -145,7 +146,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       patterns:
         - behavior: workflow-declaration

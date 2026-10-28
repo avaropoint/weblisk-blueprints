@@ -142,7 +142,7 @@ requires:
 ### Does NOT Own
 
 - Orchestrator registration logic (the orchestrator decides acceptance)
-- Workflow execution or task dispatch (owned by Workflow Agent and Task Agent)
+- Workflow execution or task dispatch (owned by [`architecture/execution`](execution.md); the Workflow and Task agents describe it in the interim)
 - Domain-level business rules (owned by domain controllers)
 - Storage persistence (agents use platform-specific storage independently)
 - Session management (owned by `architecture/client`)
@@ -574,7 +574,7 @@ The `type` field in the manifest distinguishes three kinds of agents:
 | Kind | Manifest Type | Purpose | Dispatched By |
 |------|--------------|---------|---------------|
 | Domain controller | `"domain"` | Directs a business function, declares workflows | Gateway or CLI (via POST /v1/execute) |
-| Work agent | `"agent"` | Performs specific tasks | Task Agent (via POST /v1/execute) |
+| Work agent | `"agent"` | Performs specific tasks | Execution (via POST /v1/execute) |
 | Infrastructure agent | `"infrastructure"` | System-level utilities (workflow, task, lifecycle, cron, sync, etc.) | Any authenticated agent |
 
 See [Domain Architecture](domain.md) for the full domain controller spec.
@@ -583,8 +583,8 @@ See [Domain Architecture](domain.md) for the full domain controller spec.
 `required_agents` and `workflows`. They receive business-level tasks
 and decompose them into multi-agent workflows.
 
-**Work agents** perform the actual work. They are dispatched by the
-Task Agent via `POST /v1/execute`. They register with the orchestrator
+**Work agents** perform the actual work. They are dispatched by
+execution ([`architecture/execution`](execution.md)) via `POST /v1/execute`. They register with the orchestrator
 but business tasks should route through their owning domain.
 
 **Infrastructure agents** (sync, cron, webhook, email) provide
@@ -655,7 +655,7 @@ this:
   presence or readiness, and the agent's own lease renewal stays the
   only presence fact ([`architecture/orchestrator`](orchestrator.md#presence)
   §Presence).
-- **Timeout tolerance** — the Task Agent SHOULD use the agent's
+- **Timeout tolerance** — execution SHOULD use the agent's
   declared `timeout` from its manifest rather than a global default.
   Serverless agents MAY declare longer timeouts.
 
