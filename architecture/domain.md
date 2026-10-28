@@ -44,8 +44,12 @@ service directory, below.
 architecture the owner approved on 2026-10-05 — recorded in Weblisk Studio's
 `TENANT_RUNTIME_MAP.md`; no document in this corpus states it yet — merges cron,
 task and workflow into one execution service,
-which runs every declared definition on a pass minted for the definition's
-owner. Execution's blueprint is not yet written. Until it is,
+which runs every declared definition on its owner's authority, carrying each
+request of a run on a work pass minted under a work authorisation a person
+made for that definition
+([`protocol/identity`](../protocol/identity.md#the-work-pass)). A domain's
+definition with no live authorisation is not run, and is reported as not
+authorised. Execution's blueprint is not yet written. Until it is,
 [`agents/workflow.md`](../agents/workflow.md) and
 [`agents/task.md`](../agents/task.md) are the description of the runner, and
 the contract below — `workflow.trigger` out, `workflow.completed` or

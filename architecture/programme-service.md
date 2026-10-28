@@ -61,7 +61,7 @@ requires:
         - name: ErrorResponse
           fields_used: [code, error, category, retryable]
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, via, action, target, status]
+          fields_used: [id, timestamp, actor, via, authorisation, run, action, target, status]
         # pass_routes is how the admin gateway learns which of these routes a
         # person's request may reach, and what each needs. See Who May Do What
         - name: AgentManifest
@@ -278,8 +278,11 @@ a person-only capability.
 
 ## Interfaces
 
-**Actions it answers** on [`POST /v1/message`](../protocol/spec.md#post-v1message)
-(`agent:message`), from execution alone:
+**Actions it answers** on [`POST /v1/message`](../protocol/spec.md#post-v1message),
+from execution alone, on a work pass whose `identity_id` is this service's own
+and whose `definition` names an item installed here now. Any other token, and
+a work pass naming no such item, is refused, the second with `NOT_FOUND`
+([`protocol/identity`](../protocol/identity.md#the-work-pass) rule 11):
 
 | action | answers |
 |---|---|
@@ -327,7 +330,13 @@ does not call itself complete
    says, and every one is muted.
 4. It hands each schedule and definition to execution. It answers every block
    it could not hand to an owner, by name, with the missing service.
-5. Nothing reaches a person until somebody holding `programme:switch` unmutes
+5. The same person's client asks the orchestrator, on the person's own token,
+   for a work authorisation for each operation and workflow installed, each
+   with the capabilities its `needs:` ceiling comes to and the actors that run
+   it ([`architecture/admin`](admin.md#work-authorisations)). An item with no
+   live authorisation installs and does not run, and this service reports it
+   as not authorised, never as running.
+6. Nothing reaches a person until somebody holding `programme:switch` unmutes
    an item, on their own pass.
 
 ### Firing
@@ -357,7 +366,10 @@ When a person un-adopts
 ([`schemas/programme.md`](../schemas/programme.md#un-adopting)), their client
 sends `DELETE /v1/programme/installations/{programme}?organisation=…` on
 their pass. Every item installed under the programme at that organisation
-stops, the withdrawal is recorded, and
+stops, the withdrawal is recorded, the service revokes every work
+authorisation that names one of those items as its owner's definition
+(`DELETE /v1/work/authorisations/{id}`,
+[`protocol/identity`](../protocol/identity.md#the-work-pass) rule 4), and
 `get_workflow` answers `NOT_FOUND` for each of its definitions. Runs already
 in execution's ledger stay there.
 
@@ -389,7 +401,13 @@ they are not restated here.
    firing runs under the programme service's manifest. A `needs:` ceiling
    narrows an agent's authority and never widens it. Neither inherits the
    authority of the person who installed or unmuted the item. That person is
-   recorded as who switched it on, not as who ran it.
+   recorded as who switched it on, not as who ran it. Each request a firing
+   makes of a component is carried on a **work pass**: this service is its
+   owner, the component doing the work is its actor, and it rests on a work
+   authorisation a person made for that one item, whose capabilities bound
+   every pass under it ([`protocol/identity`](../protocol/identity.md#the-work-pass)).
+   The person who made the authorisation is recorded as who allowed the
+   work, never as who ran it.
 5. **No machine step decides.** No action, `needs` capability or worker
    approves, rejects, closes, attests or signs
    ([`schemas/programme.md`](../schemas/programme.md#workflows--multi-step-work-with-waits-and-approvals)).
@@ -429,7 +447,12 @@ Notification tells a person once, in their own way. From the programme
 service it accepts a **notify by position**: the notice's `id`, its `says`,
 its `to` positions and the fact it is about. It finds who holds each
 position, words the message from `says`, and delivers by each holder's own
-preference. [`patterns/notification`](../patterns/notification.md)
+preference. Nobody is present when a notice advances, so whatever
+notification reads to tell a notice, the holders of its positions among
+it, it reads on work passes under the notice's own work authorisation, which
+names notification as an actor
+([`protocol/identity`](../protocol/identity.md#the-work-pass)).
+[`patterns/notification`](../patterns/notification.md)
 describes channels and delivery, and
 [`agents/email-send`](../agents/email-send.md) is its email adapter.
 
@@ -447,7 +470,11 @@ Execution dispatches an `agent:` phase to it, with the instruction and the
 `needs:` ceiling as the phase's `input`. The worker:
 
 - runs with the intersection of the ceiling, its own manifest's declaration
-  and the identity under the run, and never more;
+  and the identity under the run, and never more. The identity under the run
+  is the item's owner, this service, narrowed by the work authorisation a
+  person made for the item; the worker is its actor, and reaches content and
+  the model service only on work passes minted under that authorisation
+  ([`protocol/identity`](../protocol/identity.md#the-work-pass));
 - asks the tenant's model service for each completion, and reaches no model
   any other way;
 - writes only through an owner's API, as a proposal where that owner requires
@@ -486,11 +513,17 @@ so.
 them requires this document, so `/v1/admin/workflows` stays
 `ADMIN_GROUP_UNAVAILABLE`.
 
-**How execution proves it is firing an owner's definition is not settled.**
-[`architecture/domain`](domain.md) says a definition runs "on a pass minted
-for the definition's owner". [`protocol/identity`](../protocol/identity.md#the-pass)
-mints a pass only from a person's operator token. For unattended work, no
-token satisfies both statements yet.
+**How a `needs:` ceiling becomes capability names is not stated.** A work
+authorisation's ceiling is capability names from
+[`protocol/types`](../protocol/types.md#capability), and a `needs:` ceiling
+is the closed set `read`, `write`, `delete`, `integrations` and `dispatch`
+([`schemas/programme.md`](../schemas/programme.md#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does)).
+Which names each word comes to is this service's to state, and is not
+stated yet, so the client asking for an item's authorisation
+([Installing](#installing), step 5) has no declared answer to show the
+person. A `does:` operation needs none: its work is this service's own, and a
+work pass addressed here carries no capability
+([`protocol/identity`](../protocol/identity.md#the-work-pass) rule 11).
 
 **A person's step has nowhere to be decided.** `patterns/workflow` has no
 phase for a person's task or for approvers named by position
@@ -619,7 +652,11 @@ security:
     - boundary: Programme Service → Content. Reads the adopted map. Writes
         nothing as a person
     - boundary: Execution → Programme Service. get_workflow, and the
-        actions an operation or a phase names in does, from execution alone
+        actions an operation or a phase names in does, from execution alone,
+        on a work pass naming an item installed here
+    - boundary: Every component a firing reaches. Only on a work pass, under
+        a work authorisation a person made for the item, within its
+        capabilities
     - boundary: Programme Service → Notification. Positions and a message.
         Never a person or a channel
 
@@ -673,3 +710,6 @@ security:
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
 - [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run ([Known Gaps](#known-gaps))
+- [ ] An installed item with no live work authorisation is reported as not authorised and never run ([Installing](#installing))
+- [ ] `get_workflow` and a `does:` action are answered only on a work pass whose `identity_id` is this service's and whose `definition` names an item installed here, and one naming no such item is refused with `NOT_FOUND` ([Interfaces](#interfaces))
+- [ ] Withdrawing a programme revokes every work authorisation naming one of its items ([Withdrawing](#withdrawing))
