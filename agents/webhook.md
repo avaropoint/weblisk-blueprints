@@ -1326,13 +1326,13 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Inbound webhooks are verified with HMAC signature
-- [ ] Rejected webhooks are logged with status "rejected"
-- [ ] Filtered events return 200 and are logged
-- [ ] Outbound events fan out to all matching subscribers
-- [ ] Outbound deliveries include HMAC signature headers
-- [ ] Failed deliveries are retried with exponential backoff
-- [ ] Retry sweep processes pending retries on schedule
-- [ ] Delivery tracking records all attempts
-- [ ] Max retries exhausted marks delivery as failed
-- [ ] Subscriber registration validates HTTPS URLs
+- [ ] Inbound webhooks are verified with HMAC signature ([Inbound Flow](#inbound-flow) Phase 2, [process_inbound](#process_inbound-1))
+- [ ] Rejected webhooks are logged with status "rejected" ([process_inbound](#process_inbound-1), [Storage](#storage))
+- [ ] Filtered events return 200 and are logged ([Inbound Flow](#inbound-flow) Phase 3)
+- [ ] Outbound events fan out to all matching subscribers ([Outbound Flow](#outbound-flow) Phase 2, [send_event](#send_event-1))
+- [ ] Outbound deliveries include HMAC signature headers ([Outbound Flow](#outbound-flow) Phase 3)
+- [ ] Failed deliveries are retried with the backoff [Configuration](#configuration) and [OutboundConfig](#outboundconfig) name ([Outbound Flow](#outbound-flow) Phase 4)
+- [ ] Retry sweep processes pending retries on schedule ([Retry Sweep (scheduled)](#retry-sweep-scheduled))
+- [ ] Delivery tracking records all attempts ([Outbound Flow](#outbound-flow) Phases 3 and 5, [Storage](#storage))
+- [ ] Max retries exhausted marks delivery as failed ([Outbound Flow](#outbound-flow) Phase 4, [Retry Sweep (scheduled)](#retry-sweep-scheduled))
+- [ ] Subscriber registration validates HTTPS URLs ([register_subscriber](#register_subscriber-1) step 1)

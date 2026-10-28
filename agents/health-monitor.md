@@ -1401,16 +1401,16 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Agent responds to POST /v1/describe with valid AgentManifest
+- [ ] Agent responds to POST /v1/describe with valid AgentManifest ([`protocol/spec`](../protocol/spec.md#post-v1describe))
 - [ ] check-all probes all registered agents, domains, storage, and gateway
 - [ ] Component state transitions follow the defined state machine
 - [ ] Consecutive failure counter resets on successful probe
-- [ ] Hub health score reflects weighted component formula
+- [ ] Hub health score reflects weighted component formula ([Hub Health Score](#hub-health-score))
 - [ ] Alerts fire on state changes (degraded, offline, recovery)
-- [ ] Health map is queryable via get-health-map action
-- [ ] Health history returns snapshots within requested time range
-- [ ] Federation advertisement includes hub health summary
-- [ ] Health-monitor continues operating when alerting agent is down
+- [ ] Health map is queryable via get-health-map action ([get-health-map](#get-health-map), [Health Map](#health-map))
+- [ ] Health history returns snapshots within requested time range ([get-health-history](#get-health-history))
+- [ ] Federation advertisement includes hub health summary ([Federation Health Advertisement](#federation-health-advertisement))
+- [ ] Health-monitor continues operating when alerting agent is down ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes))
 - [ ] Probes use /v1/describe — no additional endpoints required
-- [ ] Default thresholds are applied; custom thresholds are respected
-- [ ] Metrics emit for all probes and state changes
+- [ ] Default thresholds are applied; custom thresholds are respected ([Default Thresholds](#default-thresholds), [configure](#configure))
+- [ ] Metrics emit for all probes and state changes ([Observability](#observability))

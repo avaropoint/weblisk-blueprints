@@ -1375,14 +1375,14 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Emails can be queued via the send action
-- [ ] Templates are rendered with variable substitution
-- [ ] SMTP delivery works with TLS
-- [ ] At least one API provider is supported
-- [ ] Failed deliveries are retried with backoff
-- [ ] Max retries is enforced
-- [ ] Queue is processed in batches
-- [ ] Rate limit is respected
-- [ ] Delivery status is tracked and queryable
-- [ ] Credentials are read from environment variables
-- [ ] Templates are versioned and stored persistently
+- [ ] Emails can be queued via the send action ([send](#send-1))
+- [ ] Templates are rendered with variable substitution ([Template System](#template-system))
+- [ ] SMTP delivery works with TLS ([Execute Workflow](#execute-workflow) Phase 3, [Implementation Notes](#implementation-notes))
+- [ ] At least one API provider is supported ([Configuration](#configuration), [Execute Workflow](#execute-workflow) Phase 3)
+- [ ] Failed deliveries are retried with backoff ([Execute Workflow](#execute-workflow) Phase 4, [Implementation Notes](#implementation-notes))
+- [ ] Max retries is enforced ([Configuration](#configuration) `max_attempts`, [EmailConfig](#emailconfig))
+- [ ] Queue is processed in batches ([Execute Workflow](#execute-workflow) Phase 5)
+- [ ] Rate limit is respected ([Execute Workflow](#execute-workflow) Phase 5, [Implementation Notes](#implementation-notes))
+- [ ] Delivery status is tracked and queryable ([status](#status-1))
+- [ ] Credentials are read from environment variables ([Implementation Notes](#implementation-notes), [Security](#security))
+- [ ] Templates are versioned and stored persistently ([Template System](#template-system), [register_template](#register_template-1))

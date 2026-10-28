@@ -1737,43 +1737,43 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Tasks registered with cron expressions — CronTask created, constraints validated
-- [ ] Tasks registered as one-time — ck_once_needs_fire_at enforced
-- [ ] Cron expression validation — malformed → INVALID_SCHEDULE
-- [ ] ck_single_target — exactly one of target_agent or target_url
-- [ ] uq_task_natural_key — duplicate name+target updates instead of inserting
-- [ ] target_agent validated against service directory
-- [ ] One-time tasks fire at specified timestamp
-- [ ] Recurring tasks compute correct next_fire
-- [ ] Dispatch via POST /v1/message to target_agent
-- [ ] config.max_concurrent enforced per tick
-- [ ] Excess tasks queued for next tick
-- [ ] Failed tasks retried with patterns/retry backoff
-- [ ] CronTask.max_attempts enforced — state transition active → failed
-- [ ] cron.task.failed event published when retries exhausted
-- [ ] CronExecution records created with valid task_executions FK
-- [ ] History purged per config.history_retention
-- [ ] task_executions cascade — deleting task deletes all executions
-- [ ] No orphaned cron_executions after purge_completed
-- [ ] Pause/resume state transitions validated by state machine
-- [ ] Cancel works with in-flight execution (drain then cancel)
-- [ ] Distributed lock prevents duplicate tick evaluation
-- [ ] Lock expires after config.lock_ttl if holder crashes
-- [ ] Graceful shutdown drains in-flight per shutdown sequence
-- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
-- [ ] Self-update triggers on system.blueprint.changed
-- [ ] All events published to bus with correct topic names
-- [ ] Backup/restore preserves relationship integrity
-- [ ] Override audit records who, what, when, why
-- [ ] Startup sequence validation gates — each step has pre-check/validates/on-fail
-- [ ] Startup backout — failed step reverses prior steps correctly
-- [ ] Dependency contracts declare version ranges and specific bindings
-- [ ] on_change rules defined for all dependencies (compatible/breaking/removed)
-- [ ] system.change.assessment triggers self-governance reconciliation
-- [ ] Blue-green: shadow phase validates events without side effects
-- [ ] Blue-green: cutover shifts traffic via message bus, not direct HTTP
-- [ ] Blue-green: rollback restores previous version within watch period
-- [ ] Scaling: inter-agent communication via message bus only
-- [ ] Scaling: leader election via cron_locks prevents duplicate ticks
-- [ ] Scaling: consumer group ensures one-per-event delivery
-- [ ] Scaling: vN and vN+1 share database during blue-green
+- [ ] Tasks registered with cron expressions — CronTask created, constraints validated ([register](#register), [Types](#types))
+- [ ] Tasks registered as one-time — ck_once_needs_fire_at enforced ([register](#register) step 1c, [Types](#types))
+- [ ] Cron expression validation — malformed → INVALID_SCHEDULE ([register](#register), [Cron Expression Format](#cron-expression-format))
+- [ ] ck_single_target holds ([Types](#types), [register](#register) step 1d)
+- [ ] uq_task_natural_key — duplicate name+target updates instead of inserting ([register](#register) step 2)
+- [ ] target_agent validated against service directory ([register](#register) step 1f)
+- [ ] One-time tasks fire at specified timestamp ([Execute Workflow](#execute-workflow) Phase 2)
+- [ ] Recurring tasks compute correct next_fire ([Execute Workflow](#execute-workflow) Phase 6, [Cron Expression Format](#cron-expression-format))
+- [ ] Dispatch via POST /v1/message to target_agent ([Execute Workflow](#execute-workflow) Phase 3, [`architecture/change-management`](../architecture/change-management.md#inter-agent-communication))
+- [ ] config.max_concurrent enforced per tick ([Configuration](#configuration), [Execute Workflow](#execute-workflow) Phase 3)
+- [ ] Excess tasks queued for next tick ([Implementation Notes](#implementation-notes))
+- [ ] Failed tasks retried with the backoff [Execute Workflow](#execute-workflow) Phase 5 and [Configuration](#configuration) `retry_backoff` name
+- [ ] CronTask.max_attempts enforced — state transition active → failed ([State Machine](#state-machine), [Execute Workflow](#execute-workflow) Phase 5)
+- [ ] cron.task.failed event published when retries exhausted ([Collaboration](#collaboration), [Execute Workflow](#execute-workflow) Phase 5)
+- [ ] CronExecution records created with valid task_executions FK ([Execute Workflow](#execute-workflow) Phase 3, [Storage](#storage))
+- [ ] History purged per config.history_retention ([Storage](#storage) retention, [Execute Workflow](#execute-workflow) Phase 7)
+- [ ] task_executions cascade — deleting task deletes all executions ([Storage](#storage))
+- [ ] No orphaned cron_executions after purge_completed ([purge_completed](#purge_completed), [Implementation Notes](#implementation-notes))
+- [ ] Pause/resume state transitions validated by state machine ([State Machine](#state-machine), [pause](#pause), [resume](#resume))
+- [ ] Cancel works with in-flight execution (drain then cancel) ([cancel](#cancel) step 3)
+- [ ] Distributed lock prevents duplicate tick evaluation ([Execute Workflow](#execute-workflow) Phase 1, [Implementation Notes](#implementation-notes))
+- [ ] Lock expires after config.lock_ttl if holder crashes ([Implementation Notes](#implementation-notes))
+- [ ] Graceful shutdown drains in-flight per [Shutdown Sequence](#shutdown-sequence)
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
+- [ ] Self-update triggers on system.blueprint.changed ([Self-Update](#self-update))
+- [ ] All events published to bus with the topic names [Collaboration](#collaboration) declares
+- [ ] Backup/restore preserves relationship integrity ([Restore Procedure](#restore-procedure))
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
+- [ ] Startup sequence validation gates — each step has pre-check/validates/on-fail ([Startup Sequence](#startup-sequence))
+- [ ] Startup backout — failed step reverses prior steps correctly ([Startup Sequence](#startup-sequence))
+- [ ] Dependency contracts declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] system.change.assessment triggers self-governance reconciliation ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#phase-3--reconciliation))
+- [ ] Blue-green: shadow phase validates events without side effects ([`architecture/change-management`](../architecture/change-management.md#deployment-phases) Phase 3)
+- [ ] Blue-green: cutover shifts traffic via message bus, not direct HTTP ([`architecture/change-management`](../architecture/change-management.md#deployment-phases) Phase 4, [Scaling](#scaling))
+- [ ] Blue-green: rollback restores previous version within watch period ([`architecture/change-management`](../architecture/change-management.md#deployment-phases) Phases 4–5, [Scaling](#scaling) `cutover_watch_period`)
+- [ ] Scaling: inter-agent communication via message bus only ([Scaling](#scaling), [`architecture/change-management`](../architecture/change-management.md#inter-agent-communication))
+- [ ] Scaling: leader election via cron_locks prevents duplicate ticks ([Scaling](#scaling))
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
+- [ ] Scaling: vN and vN+1 share database during blue-green ([Scaling](#scaling))

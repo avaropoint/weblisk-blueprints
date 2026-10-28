@@ -3721,33 +3721,33 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Agent responds to POST /v1/describe with valid AgentManifest
-- [ ] Listings are signature-verified before indexing (no exceptions)
-- [ ] A listing is indexed only under a namespace its signer holds, or was granted publish under, at the public namespace registry; otherwise NAMESPACE_NOT_PUBLISHER
-- [ ] Invalid signatures are rejected and logged
-- [ ] Crawl discovers and indexes all provider listings
-- [ ] Stale listings are pruned after grace period
-- [ ] Full-text search returns ranked, paginated results with facets
-- [ ] Search cache invalidated on index changes
-- [ ] Availability probes run on schedule for all active listings
-- [ ] Rolling aggregates computed correctly for all windows (1h, 24h, 7d, 30d)
-- [ ] SLA breach detection triggers alerts within one probe cycle
-- [ ] ML-DSA-65 signatures verified for listings, manifests, and key rotations
-- [ ] Key rotation requires valid dual-signature proof
-- [ ] Behavioral fingerprints sampled on schedule with change classification
-- [ ] CRITICAL changes trigger immediate listing suspension
-- [ ] Behavioral change notifications reach all active collaborators
-- [ ] Deduplication prevents repeated alerts within suppression window
-- [ ] Muted listings suppress non-CRITICAL alerts
-- [ ] CRITICAL alerts bypass mute suppression
-- [ ] Cross-hub notifications use federation protocol with ML-DSA-65 signatures
-- [ ] Revoked keys are rejected immediately
-- [ ] Dependency contracts declare version ranges and specific bindings
-- [ ] State machine validates all entity transitions
+- [ ] Agent responds to POST /v1/describe with valid AgentManifest ([`protocol/spec`](../protocol/spec.md#post-v1describe))
+- [ ] Listings are signature-verified before indexing (no exceptions) ([index-listing](#index-listing) step 1, [Constraints](#constraints))
+- [ ] A listing is indexed only under a namespace its signer holds, or was granted publish under, at the public namespace registry; otherwise NAMESPACE_NOT_PUBLISHER ([index-listing](#index-listing) step 3)
+- [ ] Invalid signatures are rejected and logged ([index-listing](#index-listing) step 1, [Error Handling](#error-handling))
+- [ ] Crawl discovers and indexes all provider listings ([crawl-all](#crawl-all), [crawl-provider](#crawl-provider))
+- [ ] Stale listings are pruned after grace period ([prune-stale](#prune-stale), [Indexing Subsystem](#indexing-subsystem) `stale_grace_period`)
+- [ ] Full-text search returns ranked, paginated results with facets ([search](#search))
+- [ ] Search cache invalidated on index changes ([index-listing](#index-listing) step 7, [Task Router](#task-router) Phase 3)
+- [ ] Availability probes run on schedule for all active listings ([probe-all](#probe-all), [Probe Cycle (every 5 minutes)](#probe-cycle-every-5-minutes))
+- [ ] Rolling aggregates computed correctly for every window [Metrics Types](#metrics-types) declares ([Aggregation Cycle (hourly)](#aggregation-cycle-hourly))
+- [ ] SLA breach detection triggers alerts within one probe cycle ([Probe Cycle (every 5 minutes)](#probe-cycle-every-5-minutes) Phase 5, [notify-sla-breach](#notify-sla-breach))
+- [ ] ML-DSA-65 signatures verified for listings, manifests, and key rotations ([verify-listing](#verify-listing), [verify-manifest](#verify-manifest), [verify-key-rotation](#verify-key-rotation))
+- [ ] Key rotation requires valid dual-signature proof ([verify-key-rotation](#verify-key-rotation), [Constraints](#constraints))
+- [ ] Behavioral fingerprints sampled on schedule with change classification ([Fingerprint Cycle (every 4 hours)](#fingerprint-cycle-every-4-hours), [classify-change](#classify-change))
+- [ ] CRITICAL changes trigger immediate listing suspension ([Error Handling](#error-handling), [Manual Overrides](#manual-overrides) `automatic_suspension`)
+- [ ] Behavioral change notifications reach all active collaborators ([notify-behavioral-change](#notify-behavioral-change))
+- [ ] Deduplication prevents repeated alerts within suppression window ([notify-behavioral-change](#notify-behavioral-change) step 3)
+- [ ] Muted listings suppress non-CRITICAL alerts ([notify-behavioral-change](#notify-behavioral-change) step 4)
+- [ ] CRITICAL alerts bypass mute suppression ([notify-behavioral-change](#notify-behavioral-change) step 4)
+- [ ] Cross-hub notifications use federation protocol with ML-DSA-65 signatures ([notify-behavioral-change](#notify-behavioral-change) step 9, [Constraints](#constraints))
+- [ ] Revoked keys are rejected immediately ([verify-listing](#verify-listing) step 1)
+- [ ] Dependency contracts declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] State machine validates all entity transitions ([State Machine](#state-machine))
 - [ ] Startup sequence initializes all 5 subsystems with pre-check/validates/on-fail
-- [ ] Shutdown drains all in-flight operations before exit
-- [ ] Configuration values validated against declared constraints
-- [ ] Override audit records who, what, when, why
-- [ ] Scaling: operation locks prevent duplicate scheduled cycles
-- [ ] Scaling: consumer group ensures one-per-event delivery
-- [ ] Blue-green: shadow phase validates events without side effects
+- [ ] Shutdown drains all in-flight operations before exit ([Shutdown Sequence](#shutdown-sequence))
+- [ ] Configuration values validated against declared constraints ([Configuration](#configuration), [Startup Sequence](#startup-sequence) step 1)
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
+- [ ] Scaling: operation locks prevent duplicate scheduled cycles ([Scaling](#scaling))
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
+- [ ] Blue-green: shadow phase validates events without side effects ([`architecture/change-management`](../architecture/change-management.md#deployment-phases) Phase 3)

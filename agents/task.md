@@ -1270,30 +1270,30 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Subscribes to task.submit (scope: self) and dispatches to target agents
-- [ ] Dispatches via POST /v1/execute with TaskRequest
-- [ ] Publishes task.complete on successful execution
-- [ ] Publishes task.failed on execution failure or unreachable agent
-- [ ] Publishes task.timeout when task exceeds timeout
-- [ ] Handles 429 from agents with re-queue and Retry-After
-- [ ] Priority queue dispatches critical > high > normal > low
-- [ ] Concurrency control respects agent max_concurrent
-- [ ] Queued tasks dispatch when capacity frees up
-- [ ] task.cancel removes from queue or cancels in-flight
-- [ ] Agent capacity updated from system.agent.registered events
-- [ ] Agent deregistration fails all in-flight and queued tasks for that agent
+- [ ] Subscribes to task.submit (scope: self) and dispatches to target agents ([Subscribed](#subscribed), [HandleEvent: task.submit](#handleevent-tasksubmit))
+- [ ] Dispatches via POST /v1/execute with TaskRequest ([HandleEvent: task.submit](#handleevent-tasksubmit) step 5, [`protocol/spec`](../protocol/spec.md#post-v1execute))
+- [ ] Publishes task.complete on successful execution ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
+- [ ] Publishes task.failed on execution failure or unreachable agent ([HandleEvent: task.submit](#handleevent-tasksubmit) steps 2 and 6)
+- [ ] Publishes task.timeout when task exceeds timeout ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
+- [ ] Handles 429 from agents with re-queue and Retry-After ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6, [Implementation Notes](#implementation-notes))
+- [ ] Priority queue dispatches in the order [Priority Queue](#priority-queue) declares
+- [ ] Concurrency control respects agent max_concurrent ([Concurrency Control](#concurrency-control))
+- [ ] Queued tasks dispatch when capacity frees up ([Concurrency Control](#concurrency-control), [Execute Workflow](#execute-workflow) Phase 5)
+- [ ] task.cancel removes from queue or cancels in-flight ([HandleEvent: task.cancel](#handleevent-taskcancel))
+- [ ] Agent capacity updated from system.agent.registered events ([HandleEvent: system.agent.registered](#handleevent-systemagentregistered))
+- [ ] Agent deregistration fails all in-flight and queued tasks for that agent ([HandleEvent: system.agent.deregistered](#handleevent-systemagentderegistered))
 - [ ] Task records persisted to flat-file storage
-- [ ] Dispatched tasks carry the trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
-- [ ] Dependencies declare version ranges and specific bindings
-- [ ] on_change rules defined for all dependencies
-- [ ] State machine transitions validated — no implicit states
-- [ ] Startup sequence validation gates — each step has validates/on-fail
-- [ ] Shutdown drains in-flight tasks before exit
-- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
-- [ ] Scaling: inter-agent communication via message bus (except /v1/execute)
-- [ ] Scaling: leader election prevents duplicate dispatch
-- [ ] Scaling: consumer group ensures one-per-event delivery
-- [ ] Override audit records who, what, when, why
-- [ ] Constraints enforced — max_queue_depth, max_concurrent
-- [ ] Security: all endpoints require valid token
-- [ ] Dead-letter tasks persisted for analysis
+- [ ] Dispatched tasks carry the trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Implementation Notes](#implementation-notes))
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
+- [ ] Shutdown drains in-flight tasks before exit ([Shutdown Sequence](#shutdown-sequence))
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
+- [ ] Scaling: inter-agent communication via message bus (except /v1/execute) ([Scaling](#scaling))
+- [ ] Scaling: leader election prevents duplicate dispatch ([Scaling](#scaling))
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
+- [ ] Constraints enforced — max_queue_depth, max_concurrent ([Constraints](#constraints))
+- [ ] Security: all endpoints require valid token ([Security](#security))
+- [ ] Dead-letter tasks persisted for analysis ([Implementation Notes](#implementation-notes))

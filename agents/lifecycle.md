@@ -1354,30 +1354,30 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Subscribes to workflow.completed (scope: "*") and extracts observations + recommendations
-- [ ] Subscribes to workflow.failed (scope: "*") and records failure observations
-- [ ] Strategies created via create_strategy message action
-- [ ] Strategy decomposition maps targets to domains and publishes workflow.trigger
-- [ ] Observations stored with measurements, findings, and strategy links
-- [ ] Recommendations created with priority, impact, and pending status
-- [ ] Auto-approval applied when domain approval is "auto" and priority != "critical"
-- [ ] Human approval via approve_recommendation message action
-- [ ] Accepted recommendations trigger workflow.approval.decision for paused workflows
-- [ ] Agent metrics updated after every workflow completion
-- [ ] Strategy progress recalculated from latest observations
-- [ ] Entity context stored and retrievable via set_context/get_context
+- [ ] Subscribes to workflow.completed (scope: "*") and extracts observations + recommendations ([Subscribed](#subscribed), [HandleEvent: workflow.completed](#handleevent-workflowcompleted))
+- [ ] Subscribes to workflow.failed (scope: "*") and records failure observations ([Subscribed](#subscribed), [HandleEvent: workflow.failed](#handleevent-workflowfailed))
+- [ ] Strategies created via create_strategy message action ([create_strategy](#create_strategy))
+- [ ] Strategy decomposition maps targets to domains and publishes workflow.trigger ([create_strategy](#create_strategy) steps 4–5)
+- [ ] Observations stored with measurements, findings, and strategy links ([Execute Workflow](#execute-workflow) Phase 2, [`protocol/types`](../protocol/types.md#observation))
+- [ ] Recommendations created with priority, impact, and pending status ([Execute Workflow](#execute-workflow) Phase 3, [`protocol/types`](../protocol/types.md#recommendation))
+- [ ] Auto-approval applied as [HandleEvent: workflow.completed](#handleevent-workflowcompleted) step 3 and [State Machine](#state-machine) `auto_approval` say
+- [ ] Human approval via approve_recommendation message action ([approve_recommendation](#approve_recommendation))
+- [ ] Accepted recommendations trigger workflow.approval.decision for paused workflows ([approve_recommendation](#approve_recommendation) step 6)
+- [ ] Agent metrics updated after every workflow completion ([Execute Workflow](#execute-workflow) Phase 4)
+- [ ] Strategy progress recalculated from latest observations ([Execute Workflow](#execute-workflow) Phase 5)
+- [ ] Entity context stored and retrievable via set_context/get_context ([set_context / get_context](#set_context--get_context))
 - [ ] All data persisted to flat-file JSONL storage
 - [ ] Lifecycle events published for every state transition
-- [ ] Dependencies declare version ranges and specific bindings
-- [ ] on_change rules defined for all dependencies
-- [ ] State machine transitions validated — no implicit states
-- [ ] Startup sequence validation gates — each step has validates/on-fail
-- [ ] Shutdown drains in-flight events before exit
-- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
-- [ ] Scaling: inter-agent communication via message bus only
-- [ ] Scaling: leader election prevents duplicate event processing
-- [ ] Scaling: consumer group ensures one-per-event delivery
-- [ ] Override audit records who, what, when, why
-- [ ] Constraints enforced — append-only data, no auto-approve critical
-- [ ] Security: all endpoints require valid token
-- [ ] Retention cleanup runs for observations and recommendations
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
+- [ ] Shutdown drains in-flight events before exit ([Shutdown Sequence](#shutdown-sequence))
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
+- [ ] Scaling: inter-agent communication via message bus only ([Scaling](#scaling), [`architecture/change-management`](../architecture/change-management.md#inter-agent-communication))
+- [ ] Scaling: leader election prevents duplicate event processing ([Scaling](#scaling))
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
+- [ ] Constraints enforced — append-only data, no auto-approve critical ([Constraints](#constraints), [Implementation Notes](#implementation-notes))
+- [ ] Security: all endpoints require valid token ([Security](#security))
+- [ ] Retention cleanup runs for observations and recommendations ([Implementation Notes](#implementation-notes), [Configuration](#configuration))
