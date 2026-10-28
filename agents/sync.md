@@ -1114,19 +1114,19 @@ errors:
 client can correct the batch rather than bisect it.
 ## Verification Checklist
 
-- [ ] Agent registers with orchestrator and receives WLT token
-- [ ] Client can push a batch of changes
-- [ ] Server detects conflicts correctly
-- [ ] Conflict resolution strategy is applied per configuration
-- [ ] Client receives server-side changes in response
-- [ ] Version checkpoint advances after sync
-- [ ] Batch size limit is enforced (rejects oversized batches)
-- [ ] Duplicate pushes are idempotent
+- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse))
+- [ ] Client can push a batch of changes ([sync_push](#sync_push-1))
+- [ ] Server detects conflicts as [Execute Workflow](#execute-workflow) Phase 3 says
+- [ ] Conflict resolution strategy is applied per configuration ([Conflict Resolution Strategies](#conflict-resolution-strategies), [sync_push](#sync_push-1) step 4)
+- [ ] Client receives server-side changes in response ([sync_push](#sync_push-1) step 7)
+- [ ] Version checkpoint advances after sync ([sync_push](#sync_push-1) step 6)
+- [ ] Batch size limit is enforced (rejects oversized batches) ([sync_push](#sync_push-1) step 1, [Implementation Notes](#implementation-notes))
+- [ ] Duplicate pushes are idempotent ([sync_push](#sync_push-1), [Implementation Notes](#implementation-notes))
 - [ ] Deletions are handled correctly (soft delete with tombstone)
-- [ ] Real-time notification is sent after sync
-- [ ] Manual conflicts include both versions for resolution
-- [ ] Atomic transaction rolls back on partial failure
-- [ ] Metrics emit for all sync operations
-- [ ] `GET /livez` answers live or not live and nothing else; every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric, never on the lease or `/readyz`
+- [ ] Real-time notification is sent after sync ([sync_push](#sync_push-1) step 8, [Implementation Notes](#implementation-notes))
+- [ ] Manual conflicts include both versions for resolution ([Execute Workflow](#execute-workflow) Phase 4, [ConflictRecord](#conflictrecord))
+- [ ] Atomic transaction rolls back on partial failure ([sync_push](#sync_push-1) step 5, [Constraints](#constraints))
+- [ ] Metrics emit for all sync operations ([Observability](#observability))
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)); every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric ([Observability](#observability)), never on the lease or `/readyz`
 
 Port: 9751

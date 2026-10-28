@@ -1417,30 +1417,30 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Subscribes to workflow.trigger (scope: self) and dispatches DAG
-- [ ] Fetches workflow definitions from source domains via get_workflow message
-- [ ] Caches definitions, invalidates on system.agent.registered
-- [ ] Topological sort with cycle detection
-- [ ] Phases dispatched concurrently within a level via task.submit events
-- [ ] Phase results tracked from task.complete/task.failed events
-- [ ] on_error strategies applied: fail, skip, retry
-- [ ] Approval gates pause execution until workflow.approval.decision
-- [ ] workflow.completed published with scope = invoker
-- [ ] callback_topic receives result if specified
+- [ ] Subscribes to workflow.trigger (scope: self) and dispatches DAG ([Subscribed](#subscribed), [HandleEvent: workflow.trigger](#handleevent-workflowtrigger))
+- [ ] Fetches workflow definitions from source domains via get_workflow message ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2)
+- [ ] Caches definitions, invalidates on system.agent.registered ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2, [Implementation Notes](#implementation-notes))
+- [ ] Topological sort with cycle detection ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 5, [Execute Workflow](#execute-workflow) Phase 3)
+- [ ] Phases dispatched concurrently within a level via task.submit events ([Phase Dispatch](#phase-dispatch), [Implementation Notes](#implementation-notes))
+- [ ] Phase results tracked from task.complete/task.failed events ([HandleEvent: task.complete](#handleevent-taskcomplete), [HandleEvent: task.failed](#handleevent-taskfailed))
+- [ ] on_error strategies applied as [HandleEvent: task.failed](#handleevent-taskfailed) step 3 says
+- [ ] Approval gates pause execution until workflow.approval.decision ([HandleEvent: task.complete](#handleevent-taskcomplete) step 5, [HandleEvent: workflow.approval.decision](#handleevent-workflowapprovaldecision))
+- [ ] workflow.completed published with scope = invoker ([Workflow Completion](#workflow-completion) step 3)
+- [ ] callback_topic receives result if specified ([Workflow Completion](#workflow-completion) step 4)
 - [ ] WorkflowExecution persisted to flat-file storage
-- [ ] Workflow-level timeout cancels all in-flight phases
-- [ ] Every event carries its trace as `protocol/spec`'s Trace Propagation says, and the correlation_id
-- [ ] Dependencies declare version ranges and specific bindings
-- [ ] on_change rules defined for all dependencies
-- [ ] State machine transitions validated — no implicit states
-- [ ] Startup sequence validation gates — each step has validates/on-fail
-- [ ] Shutdown cancels in-flight phases and fails active workflows
-- [ ] `GET /livez` answers live or not live and nothing else, and every lease renewal carries the readiness declared under Health, with `checks` naming each subsystem `not_ready`
+- [ ] Workflow-level timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine))
+- [ ] Every event carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Phase Dispatch](#phase-dispatch))
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
+- [ ] Shutdown cancels in-flight phases and fails active workflows ([Shutdown Sequence](#shutdown-sequence))
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
 - [ ] Scaling: inter-agent communication via message bus (except definition fetch)
-- [ ] Scaling: leader election prevents duplicate workflow execution
-- [ ] Scaling: consumer group ensures one-per-event delivery
-- [ ] Override audit records who, what, when, why
-- [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass
-- [ ] Security: all endpoints require valid token
+- [ ] Scaling: leader election prevents duplicate workflow execution ([Scaling](#scaling))
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
+- [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass ([Constraints](#constraints))
+- [ ] Security: all endpoints require valid token ([Security](#security))
 - [ ] Self-dispatch handles phase.agent == "self" correctly
-- [ ] Workflow timeout cancels all in-flight phases
+- [ ] Workflow timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine))
