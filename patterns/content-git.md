@@ -745,10 +745,10 @@ from the line's, returning both of those digests.
 - [ ] A write racing a person's commit that changed the same path is refused with `CONTENT_PRECONDITION_FAILED`, and the line keeps the person's commit
 - [ ] Adopting a subdirectory of a git repository is refused with `CONTENT_PLACEMENT_PARTIAL`, and so is adopting a store that uses alternates or is shallow
 - [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason
-- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED`
+- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED` ([`architecture/content`](../architecture/content.md#declaration-flow), step 6)
 - [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
 - [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, the service's lease `checks` name `line-rewritten` `not_ready`, and nothing in the store is changed by the service
-- [ ] A path inside a nested repository, and a path the line records as a symbolic link, are refused with `CONTENT_RESERVED_PATH`
+- [ ] A path inside a nested repository, and a path the line records as a symbolic link, are reserved ([Contracts](#contracts), `git-reserved-paths`) and refused with `CONTENT_RESERVED_PATH` ([`architecture/content`](../architecture/content.md#error-handling))
 - [ ] With git below 2.38.0 on the host, the service starts, its lease `checks` name the backend `not_ready`, and reads of its repositories answer `CONTENT_UNREADABLE`
 - [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
 - [ ] A remote on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs

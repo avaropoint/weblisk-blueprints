@@ -1376,8 +1376,8 @@ security:
 - [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized)
 - [ ] Orchestrator `POST /v1/register` enforces replay protection (300s window)
 - [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403)
-- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability [`protocol/types`](types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY`, and issues no token
-- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names a capability [`protocol/types`](types.md#capability) marks admin gateway only, from a key whose fingerprint is not the one the tenant declared as its admin gateway's, with 403 `CAPABILITY_GATEWAY_ONLY`, and records and issues nothing; it admits the same manifest from the declared key
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability [`protocol/types`](types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY` ([Error Handling](types.md#error-handling)), and issues no token
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names a capability [`protocol/types`](types.md#capability) marks admin gateway only, from a key whose fingerprint is not the one the tenant declared as its admin gateway's, with 403 `CAPABILITY_GATEWAY_ONLY` ([Error Handling](types.md#error-handling)), and records and issues nothing; it admits the same manifest from the declared key
 - [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request
 - [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key`
 - [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries
@@ -1389,7 +1389,7 @@ security:
 - [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent
 - [ ] Orchestrator broadcasts updated service directory on registration changes
 - [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with carries a `signature` that verifies, under `orchestrator.public_key`, over `weblisk/directory/v2`, its `updated_at` and its digest; each directory that differs from the last carries a greater `updated_at`, and so does the first it signs after a restart with its clock set back <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
-- [ ] Orchestrator rejects unsupported protocol_version with `UNSUPPORTED_VERSION`
+- [ ] Orchestrator rejects an unsupported `protocol_version` with `UNSUPPORTED_VERSION`, as [`protocol/types`](types.md#orchestratorinfo)'s version negotiation says
 - [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease`
 
 ### Cross-Cutting

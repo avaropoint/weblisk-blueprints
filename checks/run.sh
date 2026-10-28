@@ -845,6 +845,62 @@ sed 's/^  - {noun: doctor, verb: "", executor: local}$/  - {noun: doctor, verb: 
 expect 1 "command-surface control: an undeclared executor fails" python3 checks/command-surface.py --root "$tmp/cs"
 grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL command-surface control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
 
+# Every checklist line against the rule it cites, or, citing nothing, against
+# the registries and its own file; the findings are the measured list. Three
+# fixtures: a cited section that lacks the line's code, and a line naming a
+# code nothing registers, must each be reported exactly once; a clean one, and
+# the corpus with a known entry that finds nothing, are told apart.
+expect 0 "checklist-cites: the findings are the measured list" python3 checks/checklist-cites.py
+mkdir -p "$tmp/cc-cited/architecture" "$tmp/cc-orphan/architecture" "$tmp/cc-clean/architecture"
+cat >"$tmp/cc-clean/architecture/x.md" <<'MD'
+# X
+
+## Refusing
+
+A bad request is refused with 409 `X_CONFLICT`.
+
+## Error Handling
+
+| Code | HTTP | Description |
+|---|---|---|
+| `X_CONFLICT` | 409 | The request conflicts |
+| `X_GONE` | 410 | The thing was removed |
+
+A removed thing is answered `X_GONE`.
+
+## Verification Checklist
+
+- [ ] A bad request is refused with 409 `X_CONFLICT` ([Refusing](#refusing))
+- [ ] A removed thing is answered `X_GONE`
+MD
+sed 's/^- \[ \] A bad request is refused with 409 `X_CONFLICT` (\[Refusing\](#refusing))$/- [ ] A bad request is refused with 409 `X_GONE` ([Refusing](#refusing))/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-cited/architecture/x.md"
+sed 's/^- \[ \] A removed thing is answered `X_GONE`$/- [ ] A removed thing is answered `X_VANISHED`/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-orphan/architecture/x.md"
+expect 0 "checklist-cites control: a clean fixture passes" python3 checks/checklist-cites.py --root "$tmp/cc-clean" --known "$tmp/none.json"
+expect 1 "checklist-cites control: a cited section without the line's code fails" python3 checks/checklist-cites.py --root "$tmp/cc-cited" --known "$tmp/none.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:18: names X_GONE, which no section it cites (#refusing) names$' "$tmp/out"; then
+	echo "ok   checklist-cites control: exactly one finding, X_GONE against #refusing"
+else
+	echo "FAIL checklist-cites control: want exactly one finding, X_GONE against #refusing"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "checklist-cites control: an uncited unregistered code fails" python3 checks/checklist-cites.py --root "$tmp/cc-orphan" --known "$tmp/none.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:19: names X_VANISHED, which no registry declares and which cites nothing$' "$tmp/out"; then
+	echo "ok   checklist-cites control: exactly one finding, the orphan X_VANISHED"
+else
+	echo "FAIL checklist-cites control: want exactly one finding, the orphan X_VANISHED"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+python3 - "$tmp/cc-known.json" <<'PY'
+import json, sys
+d = json.load(open("checks/checklist-cites.json", encoding="utf-8"))
+d["known"].append({"finding": "architecture/orchestrator.md: names NOT_A_CODE, which no registry declares and which cites nothing", "why": "control"})
+json.dump(d, open(sys.argv[1], "w"))
+PY
+expect 1 "checklist-cites control: a known entry that finds nothing fails" python3 checks/checklist-cites.py --known "$tmp/cc-known.json"
+grep -q "^known finding gone (0 of 1 remain)" "$tmp/out" || { echo "FAIL checklist-cites control: the stale entry was not what was reported"; fails=$((fails + 1)); }
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
