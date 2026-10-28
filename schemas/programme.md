@@ -1551,8 +1551,9 @@ These are the tenant services of the tenant service architecture the owner appro
 specifies the part these blocks reach: the programme service's routes and
 capabilities, who may do what and on which token, what it hands execution,
 notification and the prompt worker, and how a decision reaches the admin
-gateway's one inbox. **No component blueprint implements any of them, and
-the model service is not specified**
+gateway's one inbox, and [`architecture/execution`](../architecture/execution.md)
+specifies execution. **No tenant runs either yet, and notification, the
+prompt worker and the model service are not specified**
 ([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
 runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
@@ -1719,24 +1720,17 @@ form, installed by the programme service as one `WorkflowDefinition`:
 | `after` (absent: the step before) | `depends_on` (absent: none) — written out in full at install |
 | `does:` | a phase whose `agent` is the programme service and whose `action` is the named action |
 | `agent:` with `needs:` | a phase whose `agent` is the prompt worker, its `input` the instruction and the ceiling |
-| `approval` | a phase with `approval: required` |
+| `approval` | a phase with `approvers` and, where given, `approval_order` — a person's phase |
+| `task` | a phase with `task: {activity, responsible, due}` — a person's phase |
+| `escalate` | the phase's `escalate`, as written |
 
-Three things a programme workflow says have **no field in `patterns/workflow`
-yet**, and are gaps in the pattern rather than licence for a second format:
-
-- **`approval.approvers` and `approval_order`.** The pattern's approval gate
-  waits for one decision event and does not say whose; the positions that must
-  decide, and their order, have nowhere to go.
-- **`task`, and its `due`.** The pattern has no phase that is a person's work:
-  every phase names an agent and an action. A task step needs a phase that waits
-  for a person and a deadline measured from when it opened, which a phase
-  `timeout` in seconds does not express.
-- **`escalate`.** The pattern fails a phase on timeout; it does not hand it to
-  another position.
-
-Until the pattern carries them, a workflow with a `task`, an `approval` naming
-positions, or an `escalate` is reported at adoption as not installable, naming
-the step — never installed with the step dropped.
+A `task` or `approval` step becomes a phase that is
+[a person's](../patterns/workflow.md#a-persons-phase): it names no agent,
+execution holds it as a wait, and only a person holding a position it names
+decides it, at execution
+([`architecture/execution`](../architecture/execution.md#deciding)). Its
+`due` and `escalate` are measured as that section says, never as a phase
+`timeout`.
 
 ### `notices` — who is told what
 
@@ -1821,7 +1815,7 @@ notice declares that instead.
 |---|---|
 | a workflow, notice, skill or domain service with no `id`, or two of one block sharing one | a workflow step's `does:` this build does not have |
 | a workflow with no `steps`, or with none of `schedule`, `on`, `when` and `for` | an `on:` or `when.event` outside the allow-list |
-| a workflow with `for` beside `schedule`, `on` or `when`; a `for` with no `records`; `adopted` on anything but a workflow's `on:` | a workflow step `patterns/workflow` cannot yet carry — a `task`, an `approval` naming positions, an `escalate` |
+| a workflow with `for` beside `schedule`, `on` or `when`; a `for` with no `records`; `adopted` on anything but a workflow's `on:` | — |
 | a step with none, or more than one, of `task`, `approval`, `does` and `agent` | a block whose owning service the tenant does not run |
 | a step `after` a step the workflow does not declare, or steps in a cycle | a domain service whose blueprint fails [`domain.md`](domain.md) |
 | a `task` with no `activity` or `responsible`, or a `due` outside `<n><h\|d\|w>` | — |
@@ -2064,11 +2058,14 @@ holds a position** belongs to the customer rather than to a programme: a
 [`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any
 specified service yet.
 
-**No workflow with a person's step is installable yet.** An `approval` naming
-positions and a `task` have no field in `patterns/workflow`
-([How a workflow maps](#how-a-workflow-maps-onto-patternsworkflow)), so a
-workflow with either is reported at adoption as not installable — which today
-is every workflow a person takes part in.
+**A workflow with a person's step installs, and its step cannot yet be
+decided.** [`patterns/workflow`](../patterns/workflow.md#a-persons-phase)
+carries `task`, approvers by position and `escalate`, and
+[`architecture/execution`](../architecture/execution.md#who-holds-a-position)
+holds each as a wait listed in the decision inbox. Until the register of who
+holds a position is declared ([`position.md`, Known gaps](position.md#known-gaps)),
+nobody can be shown to hold one, so every such wait is listed and refused,
+never decided by capability alone.
 
 **`weblisk domain create` takes no blueprint path.** It is given a domain's
 name and resolves the spec itself
