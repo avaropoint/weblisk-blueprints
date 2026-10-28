@@ -236,7 +236,7 @@ server/
   src/
     index.js           # Worker entry point — router + handlers
     protocol.js        # Protocol types and validation
-    identity.js        # ML-DSA-65 via @noble/post-quantum
+    identity.js        # ML-DSA-65 via the vendored implementation (UNFILLED)
     orchestrator.js    # Registration, routing, channel brokering
   package.json         # No runtime deps — devDependencies only for wrangler
 ```
@@ -469,7 +469,7 @@ cd agents/<component> && wrangler deploy
 |--------|-----------|------------|
 | Runtime | Go binary | V8 isolate |
 | State | In-memory maps | Durable Objects + KV |
-| Crypto | circl (ML-DSA-65) | @noble/post-quantum (ML-DSA-65) |
+| Crypto | circl (ML-DSA-65) | a vendored pure-JavaScript ML-DSA-65 (UNFILLED) |
 | HTTP | net/http | fetch API |
 | Persistence | Memory (lost on restart) | Durable Objects (persisted) |
 | Deployment | Local process | Edge (200+ locations) |
