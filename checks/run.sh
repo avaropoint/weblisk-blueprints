@@ -868,24 +868,36 @@ A bad request is refused with 409 `X_CONFLICT`.
 
 A removed thing is answered `X_GONE`.
 
+### `x create <name>`
+
+Creating a name already held is refused with 409 `X_CONFLICT`.
+
 ## Verification Checklist
 
 - [ ] A bad request is refused with 409 `X_CONFLICT` ([Refusing](#refusing))
 - [ ] A removed thing is answered `X_GONE`
+- [ ] A held name is refused ([`x create <name>`](#x-create-name))
 MD
 sed 's/^- \[ \] A bad request is refused with 409 `X_CONFLICT` (\[Refusing\](#refusing))$/- [ ] A bad request is refused with 409 `X_GONE` ([Refusing](#refusing))/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-cited/architecture/x.md"
 sed 's/^- \[ \] A removed thing is answered `X_GONE`$/- [ ] A removed thing is answered `X_VANISHED`/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-orphan/architecture/x.md"
 expect 0 "checklist-cites control: a clean fixture passes" python3 checks/checklist-cites.py --root "$tmp/cc-clean" --known "$tmp/none.json"
 expect 1 "checklist-cites control: a cited section without the line's code fails" python3 checks/checklist-cites.py --root "$tmp/cc-cited" --known "$tmp/none.json"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:18: names X_GONE, which no section it cites (#refusing) names$' "$tmp/out"; then
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:22: names X_GONE, which no section it cites (#refusing) names$' "$tmp/out"; then
 	echo "ok   checklist-cites control: exactly one finding, X_GONE against #refusing"
 else
 	echo "FAIL checklist-cites control: want exactly one finding, X_GONE against #refusing"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# A heading's slug keeps the text inside backticks, as GitHub's does: the
+# clean fixture cites #x-create-name, and the slug that drops <name> as a tag
+# names no heading.
+mkdir -p "$tmp/cc-slug/architecture"
+sed 's/(#x-create-name)/(#x-create-)/' "$tmp/cc-clean/architecture/x.md" >"$tmp/cc-slug/architecture/x.md"
+expect 1 "checklist-cites control: a slug that drops backticked <name> fails" python3 checks/checklist-cites.py --root "$tmp/cc-slug" --known "$tmp/none.json"
+grep -q '^architecture/x.md:[0-9]*: links #x-create-, whose anchor no heading of architecture/x.md gives$' "$tmp/out" || { echo "FAIL checklist-cites control: the dropped-<name> slug was not what was reported"; fails=$((fails + 1)); }
 expect 1 "checklist-cites control: an uncited unregistered code fails" python3 checks/checklist-cites.py --root "$tmp/cc-orphan" --known "$tmp/none.json"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:19: names X_VANISHED, which no registry declares and which cites nothing$' "$tmp/out"; then
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/x.md:23: names X_VANISHED, which no registry declares and which cites nothing$' "$tmp/out"; then
 	echo "ok   checklist-cites control: exactly one finding, the orphan X_VANISHED"
 else
 	echo "FAIL checklist-cites control: want exactly one finding, the orphan X_VANISHED"
