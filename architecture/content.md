@@ -1088,6 +1088,12 @@ tokens against the orchestrator's public key, and takes a person's request
 only on a pass addressed to it
 ([Who may move an entry](#who-may-move-an-entry)).
 
+As every registrant does, it serves `POST /v1/services`, which the
+orchestrator pushes the signed service directory to, exactly as
+[`protocol/spec`](../protocol/spec.md#post-v1services) specifies: it updates
+its service list from the push, or from `GET /v1/services` read on its own
+token, and refuses what that section refuses. A push is never answered `404`.
+
 Its manifest declares `protocol_version` `"1"` — the wire protocol version from
 [`protocol/types`](../protocol/types.md), **not** the component's own semver.
 Its routes are guarded by the `content:` family that document declares:
@@ -5445,6 +5451,7 @@ security:
 - [ ] A configured repository already `declared` with the same `id`, `scope_path` and `placement` is reconciled on every subsequent start — nothing is created, nothing is refused, and the lease's `checks` do not name it `not_ready` ([Configuration](#configuration))
 - [ ] A configured repository left `establishing` by a crashed boot is resumed on the next start with no operator action ([Configuration](#configuration))
 - [ ] With an orchestrator URL configured, a failed registration is fatal ([Startup Sequence](#startup-sequence))
+- [ ] A directory push to `POST /v1/services` is served as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies, updating the service's directory, and is never answered `404` ([Registration and Standalone Operation](#registration-and-standalone-operation))
 - [ ] A read, write, stat, list or proposal naming `.git`, `.GIT`, `.git.`, `git~1` or `docs/.git/config` is refused with `CONTENT_RESERVED_PATH`, and nothing is written ([Reserved Paths](#reserved-paths))
 - [ ] A path naming `.WEBLISK/keys` is refused with `CONTENT_RESERVED_PATH`, exactly as `.weblisk/keys` is ([Reserved Paths](#reserved-paths))
 - [ ] A declaration whose `placement` `locator` has a `.git` or `.weblisk` segment is refused with `CONTENT_RESERVED_PATH`, and nothing is created ([Reserved Paths](#reserved-paths), [A placement names a backend, never a location](#a-placement-names-a-backend-never-a-location))
