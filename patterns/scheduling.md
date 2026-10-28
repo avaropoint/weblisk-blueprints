@@ -715,19 +715,19 @@ dispatches a fresh execution with attempt = 1.
 
 ## Verification Checklist
 
-- [ ] Schedule registration validates cron expression syntax before persisting
+- [ ] Schedule registration validates cron expression syntax before persisting — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling)
 - [ ] Schedule registration rejects missing timezone or invalid IANA identifier
-- [ ] One-time schedules require `fire_at` and transition to `expired` after execution
-- [ ] Recurring schedules compute `next_fire` in the declared timezone, including DST transitions
-- [ ] Overlap policy `skip-if-running` prevents dispatch when a pending execution exists
-- [ ] Overlap policy `queue` respects `max_queue_depth` and rejects when full
-- [ ] Missed-tick `fire-once` dispatches exactly one catch-up execution
-- [ ] Missed-tick `fire-all` dispatches one execution per missed tick in order
-- [ ] Missed-tick `skip` discards all missed ticks without dispatch
-- [ ] Distributed lock guarantees only one executor instance dispatches per tick
-- [ ] Lock TTL exceeds tick interval to prevent mid-tick expiration
-- [ ] `schedule.fired` event emitted on every successful dispatch
-- [ ] `schedule.skipped` event emitted with reason and policy on every skip
-- [ ] `schedule.expired` event emitted when schedule reaches `expires_at`
-- [ ] Failed executions retry with backoff up to `max_attempts` before emitting `schedule.failed`
-- [ ] Schedule lifecycle transitions match the declared state machine (no illegal transitions)
+- [ ] One-time schedules require `fire_at` and transition to `expired` after execution — [One-Time Schedules](#one-time-schedules), [Schedule Lifecycle](#schedule-lifecycle)
+- [ ] Recurring schedules compute `next_fire` in the declared timezone, including DST transitions — [Timezone Evaluation](#timezone-evaluation)
+- [ ] Overlap policy `skip-if-running` prevents dispatch when a pending execution exists — [Types](#types), [Evaluation Flow](#evaluation-flow)
+- [ ] Overlap policy `queue` respects `max_queue_depth` and rejects when full — [Configuration](#configuration), [Implementation Notes](#implementation-notes)
+- [ ] Missed-tick `fire-once` dispatches exactly one catch-up execution — [Types](#types), [Evaluation Flow](#evaluation-flow)
+- [ ] Missed-tick `fire-all` dispatches one execution per missed tick in order — [Types](#types), [Evaluation Flow](#evaluation-flow)
+- [ ] Missed-tick `skip` discards all missed ticks without dispatch — [Types](#types), [Evaluation Flow](#evaluation-flow)
+- [ ] Distributed lock guarantees only one executor instance dispatches per tick — [Design Principles](#design-principles), [Evaluation Flow](#evaluation-flow)
+- [ ] Lock TTL exceeds tick interval to prevent mid-tick expiration — [Implementation Notes](#implementation-notes), [Configuration](#configuration)
+- [ ] `schedule.fired` event emitted on every successful dispatch — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow)
+- [ ] `schedule.skipped` event emitted with reason and policy on every skip — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow)
+- [ ] `schedule.expired` event emitted when schedule reaches `expires_at` — [Contracts](#contracts), [Schedule Lifecycle](#schedule-lifecycle)
+- [ ] Failed executions retry with backoff up to `max_attempts` before emitting `schedule.failed` — [Retry Strategy](#retry-strategy), [Evaluation Flow](#evaluation-flow)
+- [ ] Schedule lifecycle transitions match the declared state machine (no illegal transitions) — [Schedule Lifecycle](#schedule-lifecycle)
