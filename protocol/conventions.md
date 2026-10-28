@@ -181,11 +181,11 @@ security:
 
 ## Verification Checklist
 
-- [ ] Every `timestamp` written matches `YYYY-MM-DDTHH:MM:SS.sssZ`, and a value in any other form is refused <!-- wl:check instant-form covers instant -->
-- [ ] Every minted `uuid` is version 7 and lower case, and the UUID vectors read as `vectors/conventions.json` says <!-- wl:check uuid-v7 covers uuid -->
-- [ ] Every `duration` parses by this grammar to the vectors' milliseconds, and each invalid vector is refused <!-- wl:check duration-grammar covers duration -->
-- [ ] An `integer` outside the signed 64-bit range is refused, and none is rounded <!-- wl:check integer-range covers integer -->
-- [ ] `max_attempts: 3` makes at most three attempts, the first included <!-- wl:check attempts-total covers max-attempts -->
-- [ ] Each retry's delay is within `[0, min(base × 2^(n−1), max)]` for the vectors' `n` <!-- wl:check backoff-bounds covers backoff -->
-- [ ] Every route template names its parameters as `{name}` <!-- wl:check path-param-form covers path-param -->
-- [ ] A task with no shorter limit is ended at 300s <!-- wl:check task-timeout-default covers task-timeout -->
+- [ ] Every `timestamp` written is in the one form [Instant](#instant) gives, and a value in any other form is refused <!-- wl:check instant-form covers instant -->
+- [ ] Every minted `uuid` is the version and case [UUID](#uuid) gives, and the UUID vectors read as `vectors/conventions.json` says <!-- wl:check uuid-v7 covers uuid -->
+- [ ] Every `duration` parses by the [Duration](#duration) grammar to the vectors' milliseconds, and each invalid vector is refused <!-- wl:check duration-grammar covers duration -->
+- [ ] An `integer` outside the range [Integer](#integer) gives is refused, and none is rounded <!-- wl:check integer-range covers integer -->
+- [ ] `max_attempts: 3` makes at most three attempts, the first included ([Attempts](#attempts)) <!-- wl:check attempts-total covers max-attempts -->
+- [ ] Each retry's delay is within the bound [Backoff](#backoff) gives for the vectors' `n` <!-- wl:check backoff-bounds covers backoff -->
+- [ ] Every route template names its parameters as [Path parameters](#path-parameters) says <!-- wl:check path-param-form covers path-param -->
+- [ ] A task with no shorter limit is ended at the default [Task timeout](#task-timeout) gives <!-- wl:check task-timeout-default covers task-timeout -->
