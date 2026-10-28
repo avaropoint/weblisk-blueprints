@@ -1565,11 +1565,13 @@ These are the tenant services of the tenant service architecture the owner appro
 specifies the part these blocks reach: the programme service's routes and
 capabilities, who may do what and on which token, what it hands execution,
 notification and the prompt worker, and how a decision reaches the admin
-gateway's one inbox, and [`architecture/execution`](../architecture/execution.md)
+gateway's one inbox. [`architecture/execution`](../architecture/execution.md)
 specifies execution, [`architecture/notification`](../architecture/notification.md)
-notification and [`architecture/prompt-worker`](../architecture/prompt-worker.md)
-the prompt worker. **No tenant runs any of them yet, and the model service is
-not specified here**
+notification, [`architecture/prompt-worker`](../architecture/prompt-worker.md)
+the prompt worker and [`architecture/model-service`](../architecture/model-service.md)
+the model service the prompt worker asks. **Each has a component blueprint;
+no tenant runs any of them yet, and no hub serves the model service's route
+yet**
 ([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
 runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
@@ -1871,7 +1873,7 @@ in the tenant, and which blueprint that service is built from:
 | a `declares.obligation`, an `operations`, `workflows` or `notices` entry | the programme service, which answers what is due — occurrences, escalation, readiness — publishes the facts `on:`, `when:` and `for:` name, and runs every `does:` | [`architecture/programme-service`](../architecture/programme-service.md) |
 | an `operations` or `workflows` entry | execution, which holds and fires every start and holds the runs, waits and timers | [`architecture/execution`](../architecture/execution.md) |
 | a `notices` entry; an obligation with a `responsible` or an `escalate.to`; a workflow step with a `task` or an `approval` | notification, which tells each position's holders their own way | [`architecture/notification`](../architecture/notification.md) |
-| an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | [`architecture/prompt-worker`](../architecture/prompt-worker.md), `architecture/model-service` |
+| an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | [`architecture/prompt-worker`](../architecture/prompt-worker.md), [`architecture/model-service`](../architecture/model-service.md) |
 | a `domain_services` entry | that domain controller | the programme's `domains/<id>.md`, under [`architecture/domain`](../architecture/domain.md) |
 | a `depends_on` entry | that published agent | `agents/<agent>.md` ([below](#depends_on--published-agents-a-programme-relies-on)) |
 | a position named anywhere — `approved_by`, `responsible`, `approvers`, `escalate.to`, a notice's `to` | the register of who holds each position, in content | [`schemas/position`](position.md) |
@@ -1891,7 +1893,7 @@ needs running first. A build plan is ordered by it.
 | 3 | `content` | [`architecture/content`](../architecture/content.md) | `orchestrator` |
 | 4 | `execution` | [`architecture/execution`](../architecture/execution.md) | `orchestrator` |
 | 5 | `notification` | [`architecture/notification`](../architecture/notification.md) | `orchestrator`, `content` |
-| 6 | `model-service` | `architecture/model-service` | `orchestrator` |
+| 6 | `model-service` | [`architecture/model-service`](../architecture/model-service.md) | `orchestrator` |
 | 7 | `prompt-worker` | [`architecture/prompt-worker`](../architecture/prompt-worker.md) | `execution`, `model-service`, `content` |
 | 8 | `programme-service` | [`architecture/programme-service`](../architecture/programme-service.md) | `content`, `execution`, `notification` |
 | — | a domain service | the programme's `domains/<id>.md` | `execution`, and every agent its blueprint names in `depends_on` |
@@ -1903,6 +1905,13 @@ build plan reads in the tenant's service directory. A service whose blueprint
 the corpus a tenant builds from does not hold is still named, and is planned as
 `unspecified` rather than left out: a plan that omitted it would report a
 programme as buildable that is not.
+
+**Two rows are not read from the directory.** The orchestrator holds the
+directory. The model service is the model gateway in the orchestrator's own
+process and registers under no name of its own
+([`architecture/model-service`](../architecture/model-service.md)), so a build
+plan counts it as running where `POST /v1/model/complete` answers anything but
+`404`, and plans it otherwise.
 
 ### `depends_on` — published agents a programme relies on
 
