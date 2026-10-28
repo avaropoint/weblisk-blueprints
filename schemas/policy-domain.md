@@ -235,6 +235,9 @@ programme map's `domains:`, a control's `domains` and a classified document's
 `policy_domain` all join on, and a file whose id has drifted from its filename
 is invisible to the loader and findable by a person, which is the worst of both.
 
+**A commentary file names no one.** It is published content about the domain in
+any organisation, so it names no individual, and no tenant, customer or project.
+
 ## Frontmatter
 
 | field | type | required | means |
@@ -316,7 +319,8 @@ one is, that is exactly the thing worth saying.
 A boundary declared on one side only is how two domains both come to believe
 they own a subject. So a boundary is **reported when it is one-sided**: if
 `access_control` says where it stops relative to `hr_security`, `hr_security`
-must say where it stops relative to `access_control`.
+must say where it stops relative to `access_control`. A boundary is always with
+another domain: a key naming the file's own domain is refused.
 
 The two sentences need not agree in wording and are not checked for agreement —
 that would be a machine grading prose. They must merely both exist, so that a
@@ -429,10 +433,10 @@ counts would make a report of substance indistinguishable from a broken file.
 - [ ] The filename, without `.md`, equals the declared `id` ([The commentary half — format](#the-commentary-half--format))
 - [ ] The `id` is a domain the policy-domain catalogue declares ([Frontmatter](#frontmatter))
 - [ ] Every `requires` entry is one of the closed values [`requires` — a closed vocabulary](#requires--a-closed-vocabulary) lists
-- [ ] Every `boundaries` key is a declared domain id, and is not this domain ([Frontmatter](#frontmatter))
+- [ ] Every `boundaries` key is a declared domain id, and is not this domain ([Frontmatter](#frontmatter), [`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal))
 - [ ] Every boundary is declared on both sides ([`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal))
 - [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
 - [ ] At least one recognised section has content ([Body — a closed set of headings](#body--a-closed-set-of-headings))
 - [ ] No artifact id and no register path appears anywhere in the body ([A domain may not restate derived fact](#a-domain-may-not-restate-derived-fact))
 - [ ] None of the fields [Frontmatter](#frontmatter) says the commentary half deliberately has no: `name`, `description`, `category`, `keywords`, `programmes` or `standards`
-- [ ] No individual is named, and no tenant, customer or project is named
+- [ ] No individual is named, and no tenant, customer or project is named ([The commentary half — format](#the-commentary-half--format))

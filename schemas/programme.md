@@ -385,7 +385,7 @@ claim to have shipped with the product.
 Maps sort by `order`, then `id`. An override — a map sharing an `id` with one
 already loaded — **replaces it in place** and inherits the original's `order`
 when it states none, so correcting a programme's wording does not move it in the
-catalogue.
+catalogue. Within one pack, no two maps share an `id`.
 
 ### Tiers
 
@@ -460,7 +460,7 @@ programmes at once.
 | *body* | prose | no | the `brief` — what this document must establish for THIS organisation |
 
 `pack`, `source`, `builtin` and `derived_from` are **set by the loader and may
-not be claimed**, as on a map.
+not be claimed**, as on a map. Within one pack, no two specs share an `id`.
 
 ### `structure` need not be the same word as `kind`
 
@@ -1340,7 +1340,7 @@ adds what a programme knows and the engine cannot infer.
 | `why` | string | no | prose for whoever finds this running at three in the morning and wants to know who asked for it |
 | `start` | enum | no | `paused` (default) or `running` |
 
-An operation needs **a `schedule`, or an `on`, or both**. Both is the useful
+An operation needs **a `schedule`, an `on` or a `when`**, and may have more than one. A `schedule` beside an `on` is the useful
 combination: react when something lapses, and sweep anyway in case the event was
 missed while the server was down.
 
@@ -2175,7 +2175,7 @@ than naming a statute that does not exist.
 - [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates ([Records about a person](#records-about-a-person), [A form's `frontmatter:`](#a-forms-frontmatter))
 - [ ] Every `creates` names a form in the programme's `templates/` and a relative `path` carrying `{key}` where its obligation has `per:` or `for:` and `{date}` where it has a `cadence` — and no shipped spec declares one until the programme loader places it ([`creates`](#creates--a-document-per-occurrence-not-a-row), [Known gaps](#known-gaps))
 - [ ] No map declares `agents:`; every agent is an `agent:` instruction on an operation or a workflow step, with its `needs:` ([Agents are instructions, never components](#agents-are-instructions-never-components))
-- [ ] Every workflow has an `id`, a `schedule`, `on:` or `when:`, and at least one step; every step has an `id` and exactly one of `task`, `approval`, `does` and `agent`; every `after` names a declared step and no steps form a cycle
+- [ ] Every workflow has an `id`, at least one of `schedule`, `on:`, `when:` and `for`, and at least one step; every step has an `id` and exactly one of `task`, `approval`, `does` and `agent`; every `after` names a declared step and no steps form a cycle ([`workflows`](#workflows--multi-step-work-with-waits-and-approvals), [The package's refusals](#the-packages-refusals))
 - [ ] Every `task` names an `activity`, a `responsible` position and a `due` of `<n><h|d|w>`; every `approval` names positions; no machine step approves, signs or closes anything ([`workflows`](#workflows--multi-step-work-with-waits-and-approvals))
 - [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel ([`notices`](#notices--who-is-told-what))
 - [ ] Every skill's `file` is under the programme's `skills/` and exists, and names no artifact id or register path ([`skills`](#skills--files-the-programme-brings))
@@ -2183,7 +2183,7 @@ than naming a statute that does not exist.
 - [ ] Every agent a domain service's blueprint names in `depends_on` is published in the corpus's `agents/` or run by the tenant, and its `port` collides with no agent or domain the tenant runs and no other domain service the adoption requests ([The package's refusals](#the-packages-refusals))
 - [ ] Every workflow starts on `schedule`, `on` or `when`, or on `for` alone; `adopted` appears only on a workflow's `on:`; and every step `patterns/workflow` cannot yet carry is reported at adoption rather than dropped ([What starts a run](#what-starts-a-run), [How a workflow maps onto `patterns/workflow`](#how-a-workflow-maps-onto-patternsworkflow))
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both ([`operations`](#operations--the-standing-work-a-programme-installs), [The refusals](#the-refusals))
-- [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
+- [ ] Every operation has a `schedule`, an `on:` or a `when:`, and every `cadence`, `weekday` and `at` is in the declared vocabulary ([The refusals](#the-refusals), [`schedule`](#schedule--a-small-closed-vocabulary-and-not-the-obligations))
 - [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
 - [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
 - [ ] Every operation that runs a model states what it may touch, even when that is only `read` ([What is declared here](#what-is-declared-here-and-what-is-deliberately-not))
@@ -2205,7 +2205,7 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
 - [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
 - [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
-- [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and the floor
+- [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and its path's recorded scope, never below the floor ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
 - [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope ([What the created document carries](#what-the-created-document-carries))
 - [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))
 - [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation ([One act, by a person, at the organisation](#one-act-by-a-person-at-the-organisation))

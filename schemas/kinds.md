@@ -545,7 +545,7 @@ not, the answer is a new relation in the table above, not a spelling.
 - [ ] Every declared kind's `specializes` names a declared kind or is empty ([Data facets](#data-facets))
 - [ ] Every capability a kind declares is one this schema declares ([Capabilities](#capabilities), [Rules](#rules) 3)
 - [ ] No specialisation removes a capability its parent declares ([Rules](#rules) 4)
-- [ ] A kind without `chain-member` contributes nothing to an evidence chain and renders as unclassified ([Evidence chain layers](#evidence-chain-layers), [Rules](#rules) 6)
+- [ ] A kind without `chain-member` contributes nothing to an evidence chain and is placed at no layer ([Evidence chain layers](#evidence-chain-layers), [Rules](#rules) 6)
 - [ ] A kind without `counts-as-coverage` never raises a coverage figure ([Capabilities](#capabilities), [Rules](#rules) 6)
 - [ ] A kind without `opens-gap` never produces a finding by its absence ([Capabilities](#capabilities), [Rules](#rules) 6)
 - [ ] An undeclared kind is reported as undeclared and is granted no capability ([Rules](#rules) 2)
