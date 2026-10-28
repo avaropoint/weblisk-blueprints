@@ -1032,38 +1032,38 @@ security:
 
 ## Verification Checklist
 
-- [ ] A caller resolves a source from the registry `~/.weblisk/secret-sources.json` first, then from its built-in sources, then from `weblisk-secret-<name>` on the search path, skipping empty and relative search-path entries
-- [ ] `file` and `fd` are read by the caller itself, and a registry entry or program on the path with either name is ignored
-- [ ] A registry file, a helper program, registered or found on the search path, and a `file:` reference are each refused as `denied` unless the file and its directory are owned by the caller's user or an administrator and nobody else can write them; nothing is used in a refused program's place
-- [ ] A registered command names its program by an absolute path
-- [ ] No field of a `SecretSourceRequest` appears on a helper's command line or in its environment
-- [ ] While a source, built in or a helper, runs its store's own tool to store, read or erase a secret, no secret value, passphrase or key appears on that tool's command line or in its environment, as `ps` or the process's environment would show; the `1password` source and a keychain source included
-- [ ] A helper's environment carries no variable holding a secret the caller was given
-- [ ] A helper answers a request whose `version` it does not speak with `unsupported`
-- [ ] A valid response is the helper's answer whatever its exit status, and only a helper that wrote no valid response is reported as `unsupported`
-- [ ] A caller asks for `capabilities` before using `store`, `erase` or `sign`, and a source answers an unlisted action with `unsupported`
-- [ ] A source answers `get` of a field it lists in `withheld_fields` with `unsupported`, and a `capabilities` response missing a field is read as `named_fields` false, `sign_algs` empty and `withheld_fields` empty
-- [ ] A `holder.json` with no `version` and `kind: 1password` is read as `source: 1password` with `options.account` from `account`, and the file is not rewritten
-- [ ] A version-1 `holder.json` with any other `kind` is refused, naming the kind, and a `holder.json` with a `version` other than 2 is refused, naming the version
-- [ ] A `holds` other than absent or `["passphrase"]` is refused
-- [ ] A caller never parses a `reference` outside its source
-- [ ] A caller creates an identity, a master key or any secret in place of one it could not read only when the source answered `not_found`
-- [ ] A caller never reports an identity, a key or a secret as missing for `locked`, `denied`, `timeout`, `not_installed`, `invalid_reference` or `unsupported`
-- [ ] A report of a source failure names the source, the helper and the code, and machine-readable output carries `source` and `code` as fields
-- [ ] When a caller's deadline passes, the helper and every process it started are terminated and `timeout` is reported
-- [ ] A source that lists `sign` with `ml-dsa-65` in `sign_algs` is asked to sign and is never asked for `private_key`
-- [ ] A source that answers `sign_batch` true answers a `sign` carrying `messages` with `signatures` in the same order, asks its person at most once for the request, and answers an error and no signature when any message cannot be signed; a caller sends `messages` only to such a source, and never `messages` beside `message`
-- [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both
-- [ ] An identity created in a source is stored as the `weblisk-key-v1` envelope with `kdf = argon2id`, a generated `passphrase` of at least 256 bits from a cryptographically secure random source, and its `public_key`, never as a raw key
-- [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file
-- [ ] Once `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it
-- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and any signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent, in whatever process it is made
-- [ ] A signature made through a holder reference, probed or not, is verified against the `public_key` recorded beside the reference before it is used, and one that does not verify, as after the identity in the source was replaced, is refused, naming the reference, and never sent
-- [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it
-- [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives
-- [ ] `file:` with a relative path answers `invalid_reference`
-- [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable
-- [ ] An installation whose master key came from an environment variable reports that it did
-- [ ] A `file:` master key is outside the installation's state and outside that state's backups and replicas
-- [ ] A hub credential key the `keychain` source holds is an item of its own, never inside the item holding its identity, and is released to the CLI without a prompt while the session is unlocked and not while it is locked
-- [ ] A console never receives a value a source returned for the identity of anyone it acts for
+- [ ] A caller resolves a source from the registry `~/.weblisk/secret-sources.json` first, then from its built-in sources, then from `weblisk-secret-<name>` on the search path, skipping empty and relative search-path entries ([Discovery](#discovery))
+- [ ] `file` and `fd` are read by the caller itself, and a registry entry or program on the path with either name is ignored ([Discovery](#discovery))
+- [ ] A registry file, a helper program, registered or found on the search path, and a `file:` reference are each refused as `denied` unless the file and its directory are owned by the caller's user or an administrator and nobody else can write them; nothing is used in a refused program's place ([Discovery](#discovery), [Headless references](#headless-references-file-and-fd))
+- [ ] A registered command names its program by an absolute path ([Discovery](#discovery))
+- [ ] No field of a `SecretSourceRequest` appears on a helper's command line or in its environment ([Conventions](#conventions))
+- [ ] While a source, built in or a helper, runs its store's own tool to store, read or erase a secret, no secret value, passphrase or key appears on that tool's command line or in its environment, as `ps` or the process's environment would show; the `1password` source and a keychain source included ([The source contract](#the-source-contract))
+- [ ] A helper's environment carries no variable holding a secret the caller was given ([Security](#security))
+- [ ] A helper answers a request whose `version` it does not speak with `unsupported` ([Conventions](#conventions))
+- [ ] A valid response is the helper's answer whatever its exit status, and only a helper that wrote no valid response is reported as `unsupported` ([Conventions](#conventions), [Error Handling](#error-handling))
+- [ ] A caller asks for `capabilities` before using `store`, `erase` or `sign`, and a source answers an unlisted action with `unsupported` ([The source contract](#the-source-contract))
+- [ ] A source answers `get` of a field it lists in `withheld_fields` with `unsupported`, and a `capabilities` response missing a field is read as `named_fields` false, `sign_algs` empty and `withheld_fields` empty ([The source contract](#the-source-contract))
+- [ ] A `holder.json` with no `version` and `kind: 1password` is read as `source: 1password` with `options.account` from `account`, and the file is not rewritten ([The holder reference](#the-holder-reference))
+- [ ] A version-1 `holder.json` with any other `kind` is refused, naming the kind, and a `holder.json` with a `version` other than 2 is refused, naming the version ([The holder reference](#the-holder-reference))
+- [ ] A `holds` other than absent or `["passphrase"]` is refused ([The holder reference](#the-holder-reference))
+- [ ] A caller never parses a `reference` outside its source ([The holder reference](#the-holder-reference))
+- [ ] A caller creates an identity, a master key or any secret in place of one it could not read only when the source answered `not_found` ([Error Handling](#error-handling))
+- [ ] A caller never reports an identity, a key or a secret as missing for `locked`, `denied`, `timeout`, `not_installed`, `invalid_reference` or `unsupported` ([Reporting a source that did not answer](#reporting-a-source-that-did-not-answer), [Error Handling](#error-handling))
+- [ ] A report of a source failure names the source, the helper and the code, and machine-readable output carries `source` and `code` as fields ([Reporting a source that did not answer](#reporting-a-source-that-did-not-answer))
+- [ ] When a caller's deadline passes, the helper and every process it started are terminated and `timeout` is reported ([Security](#security))
+- [ ] A source that lists `sign` with `ml-dsa-65` in `sign_algs` is asked to sign and is never asked for `private_key` ([Signing with a held identity](#signing-with-a-held-identity))
+- [ ] A source that answers `sign_batch` true answers a `sign` carrying `messages` with `signatures` in the same order, asks its person at most once for the request, and answers an error and no signature when any message cannot be signed; a caller sends `messages` only to such a source, and never `messages` beside `message` ([Actions](#actions))
+- [ ] From a source that cannot sign, the caller gets `private_key` and `passphrase`, decrypts in memory, signs, and zeroises both ([Signing with a held identity](#signing-with-a-held-identity))
+- [ ] An identity created in a source is stored whole, as the `weblisk-key-v1` envelope with `kdf = argon2id`, the generated `passphrase` and its `public_key` that [An identity held by a source](#an-identity-held-by-a-source) gives, never as a raw key
+- [ ] A source keeps only an identity's passphrase only when the operator asked for it, and only after the caller checked that the passphrase opens the key file ([An identity held by a source](#an-identity-held-by-a-source))
+- [ ] Once `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded only after a `weblisk/holder-probe/v1` signature made through it, over a nonce the caller generated for it, verifies against the `public_key` read from it ([An identity held by a source](#an-identity-held-by-a-source))
+- [ ] Before `weblisk/holder-probe/v1` has test vectors, a holder reference is recorded with no probe and reported unproven, and any signature made through it that does not verify against the `public_key` read from it is refused, naming the reference, and never sent, in whatever process it is made ([An identity held by a source](#an-identity-held-by-a-source), [Signing with a held identity](#signing-with-a-held-identity))
+- [ ] A signature made through a holder reference, probed or not, is verified against the `public_key` recorded beside the reference before it is used, and one that does not verify, as after the identity in the source was replaced, is refused, naming the reference, and never sent ([Signing with a held identity](#signing-with-a-held-identity))
+- [ ] A caller asks a source to `sign` only a fixed-form statement `protocol/identity` registers, or a value under Sign JSON, that it built itself, and never a message another program handed it ([Actions](#actions))
+- [ ] `key_protection` is `hardware` only for a source that lists `sign` with `ml-dsa-65` and lists `private_key` in `withheld_fields`, and is never reported stronger than the Protection table gives ([Protection](#protection))
+- [ ] `file:` with a relative path answers `invalid_reference` ([Headless references](#headless-references-file-and-fd))
+- [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable ([An installation's master key](#an-installations-master-key))
+- [ ] An installation whose master key came from an environment variable reports that it did ([An installation's master key](#an-installations-master-key))
+- [ ] A `file:` master key is outside the installation's state and outside that state's backups and replicas ([An installation's master key](#an-installations-master-key))
+- [ ] A hub credential key the `keychain` source holds is an item of its own, never inside the item holding its identity, and is released to the CLI without a prompt while the session is unlocked and not while it is locked ([The built-in sources](#the-built-in-sources))
+- [ ] A console never receives a value a source returned for the identity of anyone it acts for ([A console never holds the secrets of an identity it acts for](#a-console-never-holds-the-secrets-of-an-identity-it-acts-for))

@@ -1357,41 +1357,41 @@ security:
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there
-- [ ] Reject any identity key, attestation, record signature or token using a non-ML-DSA-65 algorithm. A transport credential a blueprint specifies for a third party's protocol is that blueprint's, and signs nothing this protocol verifies
-- [ ] Generate keys with cryptographically secure random source
-- [ ] Store private keys with restricted permissions (readable only by owning process)
-- [ ] Encrypt operator private keys with Argon2id + AES-256-GCM (passphrase required, min 12 chars)
-- [ ] Every operator private key written, handed to a secret source or received from one is the `weblisk-key-v1` envelope with `kdf = argon2id` — never unencrypted, whoever holds it (rule 1)
-- [ ] Support encrypted service keys whose passphrase comes from a secret source
-- [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key (rule 9)
-- [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA
-- [ ] Every fixed-form statement an implementation signs begins with a prefix the Fixed-Form Statements registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list
-- [ ] An operator token minted on a credential's answer alone carries no `step_up_at`, and one minted on a request whose `weblisk/step-up/v1` re-confirmation verified carries its time of issue; a pass carries its person's token's `step_up_at` unchanged <!-- wl:check step-up-at-set-once covers step-up-at-only-on-reconfirmation -->
-- [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself
-- [ ] A proof of an identity to a service that is not a hub is a signature over `weblisk/auth/v1`, the service's audience and a nonce it issued, spent by its first use and expiring within 300 seconds; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
-- [ ] Parse weblisk-key-v1 format correctly (magic, algorithm=ml-dsa-65, kdf, params, ciphertext)
-- [ ] Never store passphrase on disk — only hold in memory during decrypt
+- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there ([Post-Quantum Cryptography](#post-quantum-cryptography), [Conventions](#conventions))
+- [ ] Reject any identity key, attestation, record signature or token using a non-ML-DSA-65 algorithm. A transport credential a blueprint specifies for a third party's protocol is that blueprint's, and signs nothing this protocol verifies ([Post-Quantum Cryptography](#post-quantum-cryptography))
+- [ ] Generate keys with cryptographically secure random source ([Generation](#generation))
+- [ ] Store private keys with restricted permissions (readable only by owning process) ([Storage](#storage))
+- [ ] Encrypt operator private keys as [Encryption Scheme](#encryption-scheme) says, behind a passphrase as [Key Categories](#key-categories) rule 1 requires it
+- [ ] Every operator private key written, handed to a secret source or received from one is the `weblisk-key-v1` envelope with `kdf = argon2id` — never unencrypted, whoever holds it ([Key Categories](#key-categories), rule 1)
+- [ ] Support encrypted service keys whose passphrase comes from a secret source ([Key Categories](#key-categories), rule 2)
+- [ ] Never accept a private key, other key material or a passphrase from an environment variable, except an installation's master key on a hosted deployment that protects no private key ([Service Key Protection](#service-key-protection), rule 9)
+- [ ] Sign and verify with pure ML-DSA-65 and an empty context string, never HashML-DSA ([Sign](#sign))
+- [ ] Every fixed-form statement an implementation signs begins with a prefix the [Fixed-Form Statements](#fixed-form-statements) registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list
+- [ ] An operator token minted on a credential's answer alone carries no `step_up_at`, and one minted on a request whose `weblisk/step-up/v1` re-confirmation verified carries its time of issue; a pass carries its person's token's `step_up_at` unchanged ([Payload (Claims)](#payload-claims)) <!-- wl:check step-up-at-set-once covers step-up-at-only-on-reconfirmation -->
+- [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself ([Fixed-Form Statements](#fixed-form-statements))
+- [ ] A proof of an identity to a service that is not a hub is the `weblisk/auth/v1` signature [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) gives, over a nonce spent and expiring as that section says; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one
+- [ ] Parse the weblisk-key-v1 format correctly, every field [Private Key Format](#private-key-format) gives
+- [ ] Never store passphrase on disk — only hold in memory during decrypt ([Key Categories](#key-categories), rule 4)
 - [ ] A failed passphrase terminates the operation immediately — no retry loop, no passphrase enumeration. The platform blueprint states how termination is signalled
-- [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive
-- [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values
-- [ ] Check token expiry on every verification
-- [ ] A record of who acted names the token's `identity_id`, never its `sub`
-- [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set
-- [ ] A person's operator token is presented by its holder at the tenant's admin gateway alone, and by the gateway to the orchestrator that issued it alone; every other component is sent a person's request on a pass
+- [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive ([Verify Signature](#verify-signature))
+- [ ] Verify token `alg` header is exactly `ML-DSA-65` — reject all other values ([Header](#header))
+- [ ] Check token expiry on every verification ([Token Verification](#token-verification))
+- [ ] A record of who acted names the token's `identity_id`, never its `sub` ([Payload (Claims)](#payload-claims))
+- [ ] An operator token always carries `cap`, and one whose `cap` is absent or empty is read as naming no capability, never as carrying its role's full set ([Payload (Claims)](#payload-claims))
+- [ ] A person's operator token is presented by its holder at the tenant's admin gateway alone, and by the gateway to the orchestrator that issued it alone; every other component is sent a person's request on a pass ([The pass](#the-pass))
 - [ ] A pass is minted only by the token exchange, for an operator token judged live at that moment, carries the claims [The pass](#the-pass) gives it, expires no more than 30 seconds after it was issued, and is refused as the subject of another exchange
-- [ ] A component accepts a pass only when it verifies under its own orchestrator's key and its `aud` is that component's identity id; a pass addressed to another component, or presented to the orchestrator, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event
-- [ ] Every component but the orchestrator and the admin gateway refuses an operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and logs a security event
-- [ ] The security event for a refused operator token or a foreign pass names its `type`, `sub`, `identity_id` and `cid`, and a pass's `aud` and `act.identity_id`, and holds no part of the token or the `Authorization` header
-- [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via`
-- [ ] The orchestrator never presents a token it received to any party
-- [ ] Enforce replay protection window (300 seconds) on registration
-- [ ] Validate public key size (1952 bytes) and signature size (3309 bytes)
-- [ ] Use constant-time comparison for signature verification
-- [ ] Never log or expose private keys
-- [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it
-- [ ] A rotated operator key is retired, not revoked: once no hub records it, or each hub that still does was abandoned by the person, its private half is destroyed and only its public half is kept for audit
-- [ ] Production deployments have minimum 2 registered operators for recovery
-- [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id
-- [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration
-- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm (Ed25519, ECDSA, RSA)
+- [ ] A component accepts a pass only when it verifies under its own orchestrator's key and its `aud` is that component's identity id; a pass addressed to another component, or presented to the orchestrator, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([The pass](#the-pass), rule 3)
+- [ ] Every component but the orchestrator and the admin gateway refuses an operator token on every route with `PASS_REQUIRED`, whatever its `cap`, and logs a security event ([The pass](#the-pass), rule 4)
+- [ ] The security event for a refused operator token or a foreign pass names the token by the claims [The pass](#the-pass) rule 7 gives, and holds no part of the token or the `Authorization` header
+- [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via` ([The pass](#the-pass), rule 5)
+- [ ] The orchestrator never presents a token it received to any party ([The pass](#the-pass))
+- [ ] Enforce the replay protection window on registration that [Registration Signature Flow](#registration-signature-flow) and [Security](#security) give
+- [ ] Validate public key and signature sizes as [Verify Signature](#verify-signature) does
+- [ ] Use constant-time comparison for signature verification ([Security](#security))
+- [ ] Never log or expose private keys ([Security](#security))
+- [ ] Key rotation registers new public key signed by old key and by the new key, and the hub keeps the operator's identity id across it ([Key Rotation](#key-rotation))
+- [ ] A rotated operator key is retired, not revoked: once no hub records it, or each hub that still does was abandoned by the person, its private half is destroyed and only its public half is kept for audit ([Key Rotation](#key-rotation))
+- [ ] Production deployments have the minimum number of registered operators [Recovery via Backup Operator](#recovery-via-backup-operator) requires
+- [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id ([Recovery via Backup Operator](#recovery-via-backup-operator))
+- [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration ([Recovery via Bootstrap Reset](#recovery-via-bootstrap-reset))
+- [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm ([Post-Quantum Cryptography](#post-quantum-cryptography))
