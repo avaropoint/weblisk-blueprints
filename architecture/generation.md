@@ -1002,7 +1002,7 @@ because the test observed what it observed. The build, the start and the
 conformance tests are observations, and they judge a round first.
 
 **The loop's assertions are read by a model.** The checklist is given to a model
-verbatim, with the tree's source, and each assertion comes back as one of four
+verbatim, with the tree's source, and each assertion comes back as one of five
 readings:
 
 | Reading | Meaning |
@@ -1011,11 +1011,26 @@ readings:
 | unmet | the model read the source as not meeting it |
 | unverifiable | the model answered that it could not tell from the source |
 | unanswered | the model gave the assertion no reading at all |
+| conflict | the assertion contradicts the corpus text it checks, so no source can meet both |
 
 These are not Layer 3's outcomes. Nothing mechanical settled them, and the same
 tree read twice can be read differently, so a reading MUST NOT be reported as a
-Layer 3 `verified` or `failed`. Of the four readings, only unmet drives a
-repair. The loop's rounds are driven by these readings alone: `weblisk` runs
+Layer 3 `verified` or `failed`. Of the five readings, only unmet drives a
+repair.
+
+**A conflict is asked of unmet assertions only, and proved by quotation.** The
+first reading carries no specification text. Each assertion it reads unmet that
+has governing text (the section it cites ([`schemas/common`](../schemas/common.md#a-line-cites-the-rule-it-checks)),
+or, citing none, the passages of its own document outside the checklist that
+name its error codes) is then asked, in one further reading carrying only that
+text, whether it contradicts it. A conflict names a passage of the assertion and
+a passage of its governing text; `weblisk` accepts it only where both appear,
+whitespace aside, in the corpus as written, the second in the governing text and
+not the assertion's own words. Any other answer, and a further reading that
+failed, leaves the assertion unmet. An accepted conflict is held for the rest of
+the run: it is never repaired, never asked again, counted neither satisfied,
+unmet nor unverifiable, and reported with both passages and their locations as
+a finding against the corpus. The loop's rounds are driven by these readings alone: `weblisk` runs
 its mechanical Layer 3 check of the assertions once, after the loop, and
 reports it beside the verdict as advice, so a `failed` there does not drive a
 round. A reading that failed
@@ -1033,8 +1048,8 @@ gives the value:
 | its assertions were not read (the reading failed as a whole) | `inconclusive` |
 | the component declares no assertions | `unchecked` |
 | an assertion was read unmet | `failed` (refuted) |
-| an assertion was left unanswered, or none was satisfied | `inconclusive` |
-| otherwise: at least one assertion satisfied, none unmet or unanswered | `verified` |
+| an assertion was left unanswered, or in conflict, or none was satisfied | `inconclusive` |
+| otherwise: at least one assertion satisfied, none unmet, unanswered or in conflict | `verified` |
 
 Rule 11 then applies on top of the row that matched, from the third row on (the
 tree builds and starts): a conformance test that counts against the tree makes
