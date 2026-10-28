@@ -1695,91 +1695,91 @@ and "nothing contradicted it".
 ---
 
 ## Verification Checklist
-- [ ] A transient provider failure inside a call is retried across a window measured in minutes, not seconds
-- [ ] A transient failure of the run resumes it, reusing every completed file from cache
-- [ ] A session or quota limit is never retried, and is recognised before the retryable status codes
-- [ ] A build, plan or refusal failure is returned rather than retried
-- [ ] The outer resume is bounded, and says how many attempts it made
-- [ ] An unsatisfied interface implicates the file declaring the interface and the file declaring the concrete type
-- [ ] A symbol declared twice implicates both declaring files
-- [ ] An undefined symbol implicates the file that owes it, not only the caller
-- [ ] Files implicated together are asked for in ONE response and a partial answer is rejected
-- [ ] A file the plan does not own is never implicated
-- [ ] An ordinary single-file error is repaired as a single file, not as a group
-- [ ] A file whose digest differs from the recorded digest is reported and NOT overwritten
-- [ ] A file that no longer declares its assigned symbols is regenerated even when no input changed
-- [ ] A file whose blueprints are unchanged and whose obligations are met is kept, and reported as assessed
-- [ ] The per-file record carries the digest of each blueprint the file was generated from, not one digest over the whole prompt
-- [ ] An implementation that regenerates on any blueprint change does not describe itself as incremental
-- [ ] A plan naming another component's module file, entry point or owned file is rejected, and the rejection names the owning component
+- [ ] A transient provider failure inside a call is retried across a window measured in minutes, not seconds ([Surviving a provider outage](#surviving-a-provider-outage))
+- [ ] A transient failure of the run resumes it, reusing every completed file from cache ([Surviving a provider outage](#surviving-a-provider-outage))
+- [ ] A session or quota limit is never retried, and is recognised before the retryable status codes ([Surviving a provider outage](#surviving-a-provider-outage))
+- [ ] A build, plan or refusal failure is returned rather than retried ([Surviving a provider outage](#surviving-a-provider-outage))
+- [ ] The outer resume is bounded, and says how many attempts it made ([Surviving a provider outage](#surviving-a-provider-outage))
+- [ ] An unsatisfied interface implicates the file declaring the interface and the file declaring the concrete type ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] A symbol declared twice implicates both declaring files ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] An undefined symbol implicates the file that owes it, not only the caller ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] Files implicated together are asked for in ONE response and a partial answer is rejected ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] A file the plan does not own is never implicated ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] An ordinary single-file error is repaired as a single file, not as a group ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] A file whose digest differs from the recorded digest is reported and NOT overwritten ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] A file that no longer declares its assigned symbols is regenerated even when no input changed ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] A file whose blueprints are unchanged and whose obligations are met is kept, and reported as assessed ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] The per-file record carries the digest of each blueprint the file was generated from, not one digest over the whole prompt ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] An implementation that regenerates on any blueprint change does not describe itself as incremental ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] A plan naming another component's module file, entry point or owned file is rejected, and the rejection names the owning component ([Validating a plan](#validating-a-plan) rule 6)
 - [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output
-- [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained
-- [ ] A file a previous run wrote and this plan genuinely dropped is removed
-- [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record
-- [ ] A generation prompt states the tenant's module path and the exported names of packages already present
-- [ ] A component is not shown its own previous output as existing tenant state
-- [ ] A plan is not re-made because an unrelated component gained an exported name
+- [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained ([Reconciling a target](#reconciling-a-target))
+- [ ] A file a previous run wrote and this plan genuinely dropped is removed ([Reconciling a target](#reconciling-a-target))
+- [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record ([Reconciling a target](#reconciling-a-target))
+- [ ] A generation prompt states the tenant's module path and the exported names of packages already present ([The prompt contract](#the-prompt-contract) element 9)
+- [ ] A component is not shown its own previous output as existing tenant state ([How a blueprint is read](#how-a-blueprint-is-read))
+- [ ] A plan is not re-made because an unrelated component gained an exported name ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
 - [ ] Every build receives `vectors/fixed-form-statements.json` unchanged at `testdata/weblisk-vectors/fixed-form-statements.json`, no prompt carries its content, and a component that builds or verifies a fixed-form statement the file has vectors for tests against every vector for that prefix, with the steps [Published test vectors](#published-test-vectors) gives for what the component does
 
-- [ ] A generator asks the model for a plan and does not impose a file structure
-- [ ] A plan omitting a type the protocol enumerates is rejected, naming the type
-- [ ] A plan omitting an endpoint the protocol defines is rejected, naming the endpoint
-- [ ] A plan declaring one symbol in two files is rejected
-- [ ] Files are generated in the plan's dependency order, dependencies first
-- [ ] A generator produces exactly the files the plan declares — no more, no fewer
-- [ ] A response containing prose before the file content is rejected and retried with that reason
-- [ ] A wrapping code fence is stripped; a response with prose around a fence is rejected
-- [ ] Each file's prompt includes the top-level declarations of every previously accepted file
-- [ ] Each file's prompt includes the Verification Checklist assertions of the blueprints being implemented
-- [ ] Each file's prompt forbids endpoints, configuration and dependencies not declared for it
-- [ ] No file is written to disk until every file in the target has been accepted
-- [ ] Layer 1 failure names the file and the missing symbol or endpoint
-- [ ] Layer 1 accepts a required symbol the implementation expresses as a struct field
-- [ ] Layer 1 rejects a method named in receiver notation but declared on another type
-- [ ] Layer 2 detects a symbol declared in two files, and a call site disagreeing with its declaration
-- [ ] Layer 2 does NOT report two methods of the same name on different receivers as a collision
+- [ ] A generator asks the model for a plan and does not impose a file structure ([The plan](#the-plan))
+- [ ] A plan omitting a type the protocol enumerates is rejected, naming the type ([Validating a plan](#validating-a-plan) rule 1)
+- [ ] A plan omitting an endpoint the protocol defines is rejected, naming the endpoint ([Validating a plan](#validating-a-plan) rule 2)
+- [ ] A plan declaring one symbol in two files is rejected ([Validating a plan](#validating-a-plan) rule 3)
+- [ ] Files are generated in the plan's dependency order, dependencies first ([Generation order comes from the plan](#generation-order-comes-from-the-plan))
+- [ ] A generator produces exactly the files the plan declares — no more, no fewer ([Scope discipline](#scope-discipline), [Layer 1 — Structure](#layer-1--structure))
+- [ ] A response containing prose before the file content is rejected and retried with that reason ([The prompt contract](#the-prompt-contract) element 1, [Implementation Notes](#implementation-notes))
+- [ ] A wrapping code fence is stripped; a response with prose around a fence is rejected ([Implementation Notes](#implementation-notes))
+- [ ] Each file's prompt includes the top-level declarations of every previously accepted file ([The prompt contract](#the-prompt-contract) element 3)
+- [ ] Each file's prompt includes the Verification Checklist assertions of the blueprints being implemented ([The prompt contract](#the-prompt-contract) element 6)
+- [ ] Each file's prompt forbids endpoints, configuration and dependencies not declared for it ([Scope discipline](#scope-discipline))
+- [ ] No file is written to disk until every file in the target has been accepted ([Security](#security))
+- [ ] Layer 1 failure names the file and the missing symbol or endpoint ([Layer 1 — Structure](#layer-1--structure))
+- [ ] Layer 1 accepts a required symbol the implementation expresses as a struct field ([Layer 1 — Structure](#layer-1--structure))
+- [ ] Layer 1 rejects a method named in receiver notation but declared on another type ([Layer 1 — Structure](#layer-1--structure))
+- [ ] Layer 2 detects a symbol declared in two files, and a call site disagreeing with its declaration ([Layer 2 — Coherence](#layer-2--coherence))
+- [ ] Layer 2 does NOT report two methods of the same name on different receivers as a collision ([Layer 2 — Coherence](#layer-2--coherence))
 - [ ] A plan naming a struct field in `declares` is corrected by the planning instructions rather than tolerated by the checker
-- [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked
-- [ ] The checklist is gathered from exactly the blueprint set the target was generated from
-- [ ] Five outcomes are reported: `verified`, `failed`, `necessary`, `not-applicable`, `unchecked` — `necessary` and `not-applicable` are folded into none of the others
-- [ ] A conditional assertion is evaluated only when its premise holds; an unsettled premise leaves the assertion unchecked with the premise quoted
-- [ ] Checks that compare against a table, registry or enum read it from the blueprint rather than from a transcription
-- [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way
-- [ ] An artifact that does not parse contributes no structure to any check
-- [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it
-- [ ] The loop continues while any assertion is read unmet and stops after two rounds that do not improve on the best tree reached
-- [ ] Building and conforming are ranked as separate stages; every tree that builds ranks above every tree that does not
-- [ ] Assertions rank two trees only when both trees' assertions were read; otherwise the two tie on them
-- [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree
-- [ ] A repair that returns its file unchanged is not tried, and a round with nothing to try is not measured
-- [ ] The next repair of a file is told why its last repair was not kept and what that attempt's build reported; a kept repair clears it
-- [ ] A round is worse when resolution, the build or the start stops working, a package a failing build shows has more errors, a package the earlier failing build showed is hidden on the later one, a failing build becomes one whose distance from compiling cannot be read, or a holding conformance test fails — and a worse round is undone
-- [ ] A conformance test that passed and has given no answer since is still held to passing, in the retry and in later rounds
-- [ ] A round, or a repair tried alone in the retry, that leaves any package both builds show with more errors is undone, even where the same change fixed an error in that package and the new errors stand at lines it did not alter
-- [ ] A package the earlier failing build showed and the later one hides counts as worse, never as unchanged, when a round is judged, when a repair is tried alone, and when trees are ranked, including where what hid it is an added import of a package that already failed
-- [ ] An error is charged to a change in another file only where the file holding it imports the changed file or its package, or shares its Go package, and the line uses a declaration the change removed or re-signed; a matching word charges nothing, and a language whose imports cannot be read charges nothing across files
-- [ ] A round with more assertions read unmet, and not observed worse, is undone and not retried, but only where both trees' assertions were read and no fewer conformance tests count against the tree
-- [ ] An undone round's responses are retried one repair at a time, a repair across files whole, with no new model call, each kept only if the tree it was tried on is no worse and no holding test fails
-- [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs
-- [ ] A default import is said to be missing only from an ES module with no default and no CommonJS export; a namespace import binds names, and only `require` and `import()` take the whole module
-- [ ] A package clash is asked of the two files that declare the packages, not of the importer the toolchain reports it at
-- [ ] A failing Go build is ranked by what hides what: only a parse error hides a package's type errors, a package hides its importers, packages are compared one by one, and an error at a use of a name a change removed counts against that change; a failing build in any other language is compared directory by directory, with charged diagnostics counted where the change was made
-- [ ] A failing build that is a package-loading failure (one standing under no compile header at a line the loader reads, or a positionless one under no compile header whose words say so), names no planned file, is a dependency fault, or was stopped at its timeout never ranks above a failure that can be counted
-- [ ] A tree that reads nothing left to repair but is not the best does not end the run; the best tree is put back and repaired from
-- [ ] The run ends on the best tree reached, whatever ended it; that tree is on disk, is built again once put back when the last build was of another tree, is what is recorded, and is what the verdict describes; where the rebuild disagrees, the rebuild is the answer
-- [ ] A write that fails part-way ends on the best tree or says it could not, and no file the disk holds differently from what is returned is recorded, except a prepare step's rewrite made while the disk held the tree returned
-- [ ] The record of generation's output moves only when the disk holds a tree the loop accepted
-- [ ] Only the best tree's files are banked; no repair is banked before its tree is measured
-- [ ] The run names every requirement left unrepaired, including tests that failed or passed and then went quiet, and for each discarded or refused repair, why
-- [ ] The verdict is never verified while a conformance test fails on the best tree or failed earlier and has given it no answer since
-- [ ] Build error counts are uncapped and count each diagnostic once
-- [ ] A build is stopped at its timeout with everything its line started, and stops when the CLI is interrupted
-- [ ] A failure at Layer 1 or Layer 2 prevents later layers from reporting a result; inside the repair loop a tree that builds is started and conformance-tested before its assertions are read, and a failed assertion does not void those results
-- [ ] Generated file paths are validated for containment before any write
-- [ ] The model, blueprint versions and the plan used are recorded with the output
-- [ ] Resolution makes no model call; a request of several roots gives each component its own context set, never a union, and refuses a runtime `depends_on` cycle
-- [ ] Versions are chosen by minimal version selection; a newer version than asked for is never taken, and a downgrade only on an explicit `@version`
-- [ ] Each of C1 to C8 is refused before any model call, naming the pair; C2 is reported, and refused under `--strict`
-- [ ] A breaking change outside a dependant's range plans `blocked` naming it, and a removal plans `halt`
-- [ ] A component reached through `adoption: opt-in` is a refusal naming the root; one added by a dependency is planned as such and built only on approval
-- [ ] `apply` refuses a plan whose corpus revision, lock digest or fabric tip has moved
+- [ ] Layer 3 evaluates every mechanically checkable checklist assertion and reports the rest as unchecked ([Layer 3 — Properties](#layer-3--properties))
+- [ ] The checklist is gathered from exactly the blueprint set the target was generated from ([Layer 3 — Properties](#layer-3--properties))
+- [ ] Five outcomes are reported: `verified`, `failed`, `necessary`, `not-applicable`, `unchecked` — `necessary` and `not-applicable` are folded into none of the others ([Five outcomes, never three](#five-outcomes-never-three))
+- [ ] A conditional assertion is evaluated only when its premise holds; an unsettled premise leaves the assertion unchecked with the premise quoted ([Conditional assertions](#conditional-assertions))
+- [ ] Checks that compare against a table, registry or enum read it from the blueprint rather than from a transcription ([The specification is the authority, not a copy of it](#the-specification-is-the-authority-not-a-copy-of-it))
+- [ ] Structural checks read the artifact's parse tree; substring checks are treated as one-way ([Structure, not substrings](#structure-not-substrings))
+- [ ] An artifact that does not parse contributes no structure to any check ([Structure, not substrings](#structure-not-substrings))
+- [ ] Each refuted assertion names the artifacts it is about, attributed by the check that refuted it ([A failing assertion names its file](#a-failing-assertion-names-its-file))
+- [ ] The loop continues while any assertion is read unmet and stops after two rounds that do not improve on the best tree reached ([The loop ends when verification passes](#the-loop-ends-when-verification-passes))
+- [ ] Building and conforming are ranked as separate stages; every tree that builds ranks above every tree that does not ([The loop ends when verification passes](#the-loop-ends-when-verification-passes))
+- [ ] Assertions rank two trees only when both trees' assertions were read; otherwise the two tie on them ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 7)
+- [ ] Every repair round starts from a kept copy of the tree, and every repair in it is asked for against that tree ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 1)
+- [ ] A repair that returns its file unchanged is not tried, and a round with nothing to try is not measured ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 2)
+- [ ] The next repair of a file is told why its last repair was not kept and what that attempt's build reported; a kept repair clears it ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 2)
+- [ ] A round is worse when resolution, the build or the start stops working, a package a failing build shows has more errors, a package the earlier failing build showed is hidden on the later one, a failing build becomes one whose distance from compiling cannot be read, or a holding conformance test fails — and a worse round is undone ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 3)
+- [ ] A conformance test that passed and has given no answer since is still held to passing, in the retry and in later rounds ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 3)
+- [ ] A round, or a repair tried alone in the retry, that leaves any package both builds show with more errors is undone, even where the same change fixed an error in that package and the new errors stand at lines it did not alter ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 3)
+- [ ] A package the earlier failing build showed and the later one hides counts as worse, never as unchanged, when a round is judged, when a repair is tried alone, and when trees are ranked, including where what hid it is an added import of a package that already failed ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 3)
+- [ ] An error is charged to a change in another file only where the file holding it imports the changed file or its package, or shares its Go package, and the line uses a declaration the change removed or re-signed; a matching word charges nothing, and a language whose imports cannot be read charges nothing across files ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 5)
+- [ ] A round with more assertions read unmet, and not observed worse, is undone and not retried, but only where both trees' assertions were read and no fewer conformance tests count against the tree ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 3)
+- [ ] An undone round's responses are retried one repair at a time, a repair across files whole, with no new model call, each kept only if the tree it was tried on is no worse and no holding test fails ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 4)
+- [ ] Every repair of a Go, JavaScript or TypeScript file is shown each other file's uses of the names its file declares; where the build cannot detect a broken use, a repair that removes a used export or imports a name not exported is refused before it is tried, judged alone and together with the round's earlier kept repairs ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 5)
+- [ ] A default import is said to be missing only from an ES module with no default and no CommonJS export; a namespace import binds names, and only `require` and `import()` take the whole module ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 5)
+- [ ] A package clash is asked of the two files that declare the packages, not of the importer the toolchain reports it at ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 6)
+- [ ] A failing Go build is ranked by what hides what: only a parse error hides a package's type errors, a package hides its importers, packages are compared one by one, and an error at a use of a name a change removed counts against that change; a failing build in any other language is compared directory by directory, with charged diagnostics counted where the change was made ([A repair round is a transaction](#a-repair-round-is-a-transaction) Ranking failing builds)
+- [ ] A failing build that is a package-loading failure (one standing under no compile header at a line the loader reads, or a positionless one under no compile header whose words say so), names no planned file, is a dependency fault, or was stopped at its timeout never ranks above a failure that can be counted ([A repair round is a transaction](#a-repair-round-is-a-transaction) Ranking failing builds)
+- [ ] A tree that reads nothing left to repair but is not the best does not end the run; the best tree is put back and repaired from ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 7)
+- [ ] The run ends on the best tree reached, whatever ended it; that tree is on disk, is built again once put back when the last build was of another tree, is what is recorded, and is what the verdict describes; where the rebuild disagrees, the rebuild is the answer ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 10)
+- [ ] A write that fails part-way ends on the best tree or says it could not, and no file the disk holds differently from what is returned is recorded, except a prepare step's rewrite made while the disk held the tree returned ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 10)
+- [ ] The record of generation's output moves only when the disk holds a tree the loop accepted ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 8)
+- [ ] Only the best tree's files are banked; no repair is banked before its tree is measured ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 8)
+- [ ] The run names every requirement left unrepaired, including tests that failed or passed and then went quiet, and for each discarded or refused repair, why ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 9)
+- [ ] The verdict is never verified while a conformance test fails on the best tree or failed earlier and has given it no answer since ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 11)
+- [ ] Build error counts are uncapped and count each diagnostic once ([A repair round is a transaction](#a-repair-round-is-a-transaction) The counts must be whole)
+- [ ] A build is stopped at its timeout with everything its line started, and stops when the CLI is interrupted ([A repair round is a transaction](#a-repair-round-is-a-transaction) rule 12)
+- [ ] A failure at Layer 1 or Layer 2 prevents later layers from reporting a result; inside the repair loop a tree that builds is started and conformance-tested before its assertions are read, and a failed assertion does not void those results ([The verification gate](#the-verification-gate), [What a repair round reads, and in what order](#what-a-repair-round-reads-and-in-what-order))
+- [ ] Generated file paths are validated for containment before any write ([Security](#security))
+- [ ] The model, blueprint versions and the plan used are recorded with the output ([The run statement](#the-run-statement))
+- [ ] Resolution makes no model call; a request of several roots gives each component its own context set, never a union, and refuses a runtime `depends_on` cycle ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] Versions are chosen by minimal version selection; a newer version than asked for is never taken, and a downgrade only on an explicit `@version` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] Each of C1 to C8 is refused before any model call, naming the pair; C2 is reported, and refused under `--strict` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] A breaking change outside a dependant's range plans `blocked` naming it, and a removal plans `halt` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] A component reached through `adoption: opt-in` is a refusal naming the root; one added by a dependency is planned as such and built only on approval ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] `apply` refuses a plan whose corpus revision, lock digest or fabric tip has moved ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
