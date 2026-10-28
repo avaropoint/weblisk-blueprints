@@ -1095,7 +1095,13 @@ program, as npm is, may add its own (a start through npm, below):
    says, and a conformance run of a tree alone is such a start. And, on a
    build's own runs only, `WL_DEV=1`, which starts a fresh component with no
    persistent store and has it say so. That one value is the only difference
-   between a tested start and a real one. An address is not a secret: it
+   between a tested start's environment and a real one's. A tested start
+   differs in one other thing, where it runs: a build's own runs start the
+   component in an empty working directory made for that run and removed
+   after it, never the tenant's root, so what a fresh component writes on its
+   first start — a development-only key, a development store — never lands
+   beside the tenant's own state, where a production start would find a key
+   it must refuse. An address is not a secret: it
    names where to register, and registering proves identity separately
    ([`protocol/identity`](../protocol/identity.md)). It stays one: an
    `--orch` that carries a user or a password before its host
@@ -3801,6 +3807,7 @@ security:
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
+- [ ] Each of a build's own runs of a component — the conformance run and the interoperability run, repair rounds included — starts it in an empty working directory made for that run and removed after it, never the tenant's root, and after the run the tenant's root holds nothing the run wrote
 - [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, `npm_config_userconfig` and `npm_config_globalconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME`, `npm_config_userconfig` and `npm_config_globalconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed
 - [ ] A start whose run command is npm's, and each of a build's own runs of one, has `npm_config_userconfig` and `npm_config_globalconfig` each naming an empty file under the tenant's root, so neither the starting account's `~/.npmrc` nor the global `npmrc` under Node's install prefix reaches the component as `npm_config_*` or `NODE_OPTIONS`
 - [ ] An `--orch` that carries a user or a password before its host is refused before anything is built or started
