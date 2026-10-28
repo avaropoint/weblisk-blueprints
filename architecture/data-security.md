@@ -974,6 +974,6 @@ data_security:
 - [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation ([Blueprint Manifest](#blueprint-manifest))
 - [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation ([Signed Commits (Recommended)](#signed-commits-recommended))
       — NOT MET. The flag is refused rather than reporting a verification it did not perform.
-- [ ] Agents at scope >= confidential implement storage integrity verification: record-level checksums, write provenance, and version chain integrity
-- [ ] Storage integrity anomalies (checksum mismatch, missing provenance, broken version chain, orphaned records) are detectable and reported
+- [ ] Agents at scope >= confidential implement storage integrity verification over storage under exclusive custody: record-level checksums, write provenance, and version chain integrity ([Scope](#scope), [Integrity Properties](#integrity-properties))
+- [ ] Under exclusive custody, the storage integrity anomalies [Integrity Properties](#integrity-properties) lists are detectable and reported; under shared custody, a record with no enforcement audit entry and a record count changed without a write are not reported as anomalies ([Scope](#scope))
 - [ ] Write provenance records are append-only and cross-referenceable with enforcement audit trail ([Integrity Properties](#integrity-properties))

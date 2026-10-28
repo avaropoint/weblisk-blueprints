@@ -969,6 +969,9 @@ comparison against the stored hash.
 | DeleteUserSessions | `(userID string) → (int, error)` | Invalidate all sessions for a user (logout everywhere) |
 | CleanExpired | `() → (int, error)` | Remove all expired sessions, return count |
 
+GetSession MUST NOT return a record whose `expires_at` has passed. It answers
+as it does for an unknown session ID, whether or not CleanExpired has run.
+
 ### SessionRecord
 
 ```yaml
@@ -1496,8 +1499,8 @@ security:
 - [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component ([A Component Implements Only the Stores It Owns](#a-component-implements-only-the-stores-it-owns))
 - [ ] Every store operation exists under exactly the name in the store summary table — not shortened, requalified or renamed ([Interfaces](#interfaces))
 - [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent ([Store: Namespace Registry](#store-namespace-registry))
-- [ ] A freshly started orchestrator owns the `system` namespace and reports `namespaces: ok`
-- [ ] All stores survive process restart
+- [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness))
+- [ ] Every store whose section says it MUST survive restarts survives a restart of its process, and only Channels, and Sessions in development, may be in-memory ([Contracts](#contracts), `durable-records`; [Store: Channels](#store-channels); [Store: Sessions](#store-sessions))
 - [ ] Observations are retained for at least the period [Store: Observations](#store-observations) gives
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives
 - [ ] Audit log is append-only with hash chain integrity ([Hash Chain Integrity](#hash-chain-integrity))
@@ -1508,7 +1511,7 @@ security:
 - [ ] Workflow executions support resumption after restart ([Store: Workflow Executions](#store-workflow-executions))
 - [ ] No external database server required for default operation ([Design Principles](#design-principles) 5, [What a Backend Must Be](#what-a-backend-must-be))
 - [ ] User passwords are hashed as [Store: Users](#store-users) requires of credential storage; raw passwords are never stored
-- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records
+- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records ([Store: Sessions](#store-sessions))
 - [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere) ([Store: Sessions](#store-sessions))
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain, its first entry included, as [Hash Chain Integrity](#hash-chain-integrity) says
 - [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it ([What a sealed log holds](#what-a-sealed-log-holds))
