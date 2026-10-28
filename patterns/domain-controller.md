@@ -235,7 +235,7 @@ behavior.
 |--------|--------|-------------|
 | execute_workflow | Any caller | Primary entry point via `POST /v1/execute`. Publishes `workflow.trigger` for matched action. |
 | aggregate_results | Internal | Combine outputs from multiple agent phases into a unified result. |
-| generate_recommendations | Internal | Prioritize findings into actionable items sorted by impact × priority. |
+| generate_recommendations | Internal | Prioritize findings into actionable items, sorted as the `recommendations` rule of Aggregation Rules declares (priority, then impact). |
 | record_observations | Internal | Feed results into the lifecycle store as Observation entries. |
 | compile_report | Internal | Build the domain report from aggregated results, recommendations, and observations. |
 | apply_changes | Internal | Apply approved changes to target files. Used by optimize workflows. |

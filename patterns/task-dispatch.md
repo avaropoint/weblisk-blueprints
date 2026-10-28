@@ -507,7 +507,7 @@ Each dead-letter entry preserves:
 
 ```yaml
 types:
-  States:
+  DeadLetterEntry:
     fields:
       task_id:
         type: string
@@ -816,9 +816,11 @@ to handle failures in their workflow.
   `task.submit` event's envelope. It sends `traceparent`, sets
   `context.trace_id` and `context.span_id` to the span it opened for the
   dispatch, and every event it publishes carries the same trace ([`protocol/spec`](../protocol/spec.md#trace-propagation)).
-- **No payload in events**: Task events carry metadata (IDs, status,
-  timestamps) but NOT the full input/output payload. Consumers
-  that need payloads query the task record directly.
+- **Event payloads are the declared ones**: Each task event carries the
+  payload Contracts declares for it and nothing more. `task.completed`
+  carries the result and `task.dead-letter` the original submission; the
+  others carry metadata (IDs, status, timestamps) and no input or output.
+  Consumers that need more query the task record directly.
 - **Idempotent completion**: If a `task.completed` or `task.failed`
   arrives for a task already in a terminal state, it is ignored.
   This prevents duplicate events from retry storms.
@@ -845,5 +847,5 @@ to handle failures in their workflow.
 - [ ] Queue depth limit rejects new submissions when exceeded — [Queue Depth Limits](#queue-depth-limits)
 - [ ] Duplicate `task_id` submissions are detected and rejected — [Implementation Notes](#implementation-notes)
 - [ ] All events include `trace_id` for distributed tracing — [Implementation Notes](#implementation-notes)
-- [ ] Events carry metadata only — no full payloads in event bodies
+- [ ] Each task event carries the payload [Contracts](#contracts) declares for it, and no more — [Implementation Notes](#implementation-notes)
 - [ ] Graceful shutdown drains in-flight tasks before exiting — [Implementation Notes](#implementation-notes)

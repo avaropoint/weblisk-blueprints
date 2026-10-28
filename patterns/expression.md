@@ -62,9 +62,11 @@ requires:
 3. **The language is deliberately small** — It evaluates to a boolean or a
    scalar. It has no loops, no function definition and no recursion, so
    evaluation terminates and its cost is bounded by the expression's size.
-4. **An unresolvable path is an error, not a false** — A guard whose path does
-   not resolve has not evaluated to "no"; it has failed. Treating the two alike
-   makes a typo look like a policy decision.
+4. **An unresolvable path is null, never a value** — A path that does not
+   resolve evaluates to `null`, which equals only `null` and cannot be
+   ordered, so a typo never passes a comparison as though it held a value.
+   Refusing an unresolvable path as an error belongs to a strict mode, where
+   a consumer declares one; this pattern declares none.
 5. **Types are checked before evaluation** — A comparison between incompatible
    types is refused rather than coerced, because silent coercion is how a guard
    passes for the wrong reason.
@@ -86,7 +88,7 @@ contracts:
         - name: context
           type: map
           required: true
-          description: The paths the expression may resolve against. A path outside it is unresolvable rather than empty
+          description: The paths the expression may resolve against. A path outside it resolves to null, as Evaluation Rules 4 says
       inherits: An evaluator with the grammar, operator semantics and type rules declared here
       overridable: false
       override_constraints: Not overridable — a consumer that alters the semantics creates a second dialect, which is what this pattern exists to prevent
@@ -284,8 +286,8 @@ Example: `row.priority IN ["critical", "high", "normal", "low"]`
 2. **Deterministic** — the same expression with the same context MUST
    always produce the same result
 3. **Bounded execution** — implementations MUST limit expression depth
-   (recommended: 32 levels) and path resolution depth (recommended: 16
-   segments) to prevent resource exhaustion
+   (32 levels, as [Security](#security) bounds it) and path resolution
+   depth (recommended: 16 segments) to prevent resource exhaustion
 4. **Missing paths resolve to null** — accessing a path that doesn't
    exist in the context returns `null`, not an error
 5. **Short-circuit evaluation** — `AND` and `OR` MUST short-circuit
@@ -304,14 +306,14 @@ Expression evaluation errors are categorized:
 | `EXPR_PARSE_ERROR` | Malformed expression syntax | Reject at load/validation time |
 | `EXPR_TYPE_ERROR` | Type mismatch (e.g., `"hello" > 5`) | Evaluate to `false` with warning log |
 | `EXPR_DIVIDE_ZERO` | Division or modulo by zero | Evaluate to `false` with warning log |
-| `EXPR_DEPTH_EXCEEDED` | Expression nesting exceeds limit | Evaluate to `false` with error log |
+| `EXPR_DEPTH_EXCEEDED` | Expression nesting exceeds limit | Reject at load/validation time |
 | `EXPR_REGEX_INVALID` | Invalid or unsafe regex pattern | Reject at load/validation time |
 
 **Design principle:** Runtime evaluation errors default to `false`
 (deny/skip) rather than throwing exceptions. This ensures that a
 malformed guard doesn't crash the state machine or workflow engine.
-Parse-time errors (syntax, invalid regex) MUST be caught at blueprint
-load time.
+Parse-time errors (syntax, invalid regex, depth exceeded) MUST be caught
+at blueprint load time.
 
 ---
 
@@ -397,10 +399,10 @@ types:
 
 - [ ] All reserved words are case-sensitive, in the case [Reserved Words](#reserved-words) gives each
 - [ ] Operator precedence matches the table — parentheses override all precedence — [Grammar](#grammar), [Operator Precedence (highest to lowest)](#operator-precedence-highest-to-lowest)
-- [ ] Path resolution returns null for missing paths instead of erroring
+- [ ] Path resolution returns null for missing paths instead of erroring — [Design Principles](#design-principles), [Evaluation Rules](#evaluation-rules)
 - [ ] Type mismatches in comparisons evaluate to false with a warning, not an exception — [Type Coercion Rules](#type-coercion-rules), [Error Handling](#error-handling)
 - [ ] `MATCHES` uses a non-backtracking regex engine (RE2 or equivalent) — [Comparison Operators](#comparison-operators), [Evaluation Rules](#evaluation-rules)
-- [ ] Expression depth is bounded at 32 levels; deeper expressions are rejected
+- [ ] Expression depth is bounded at the depth [Security](#security) gives; a deeper expression is rejected with `EXPR_DEPTH_EXCEEDED` — [Error Handling](#error-handling)
 - [ ] Array literals are bounded at the size [Security](#security) gives
 - [ ] Division by zero evaluates to false with a warning — [Error Handling](#error-handling)
 - [ ] Short-circuit evaluation: `false AND <error>` returns false without evaluating right side — [Logical Operators](#logical-operators), [Evaluation Rules](#evaluation-rules)

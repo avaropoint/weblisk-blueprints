@@ -950,7 +950,7 @@ and event envelopes:
 ```json
 {
   "event_id": "evt-a1b2c3d4e5f6",
-  "topic": "task.complete",
+  "topic": "task.completed",
   "source": "content-analyzer",
   "scope": "confidential",
   "scope_metadata": {

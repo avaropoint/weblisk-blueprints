@@ -2056,7 +2056,7 @@ All migration errors follow the standard `ErrorResponse` from
 - [ ] Approval routing matches the operation class × environment × data loss risk matrix — [Approval Routing](#approval-routing)
 - [ ] A destructive migration at a tenant that declares no `multi_party_rules` is approved by one person with a step-up and asks nobody else; at one that declares a rule for it, it waits for that rule's `min_approvers` as well — [Approval Routing](#approval-routing) <!-- wl:check migration-approvers-declared covers migration-second-person-declared -->
 - [ ] Approved migrations execute within the approval expiration window — [Approval Expiration](#approval-expiration), [Pre-Execution Checks](#pre-execution-checks)
-- [ ] Blast radius limits are enforced during execution — limit breach triggers rollback
+- [ ] Blast radius limits are enforced during execution wherever the environment's `blast_radius_enforcement` is `enforce`, and a limit breach there triggers rollback; in development it is logged — [Design Principles](#design-principles), [Step Execution](#step-execution), [Environment-Specific Behavior](#environment-specific-behavior)
 - [ ] Mutation contract is verified at every step — unauthorized operations are rejected — [Step Execution](#step-execution)
 - [ ] Pre-migration and post-migration integrity checkpoints are computed and compared — [Pre-Execution Checks](#pre-execution-checks), [Verification Checks](#verification-checks)
 - [ ] Row count deltas match expected values per table — [Verification Checks](#verification-checks)

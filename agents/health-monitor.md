@@ -611,6 +611,15 @@ Final:  Log process.version_updated {from, to}
 
 ## Health Check Protocol
 
+**Superseded for registered components.** No registered component is
+probed for its presence or readiness: its lease is the presence fact, and
+[`architecture/orchestrator`](../architecture/orchestrator.md#presence)
+(§Presence) makes the directory the one authority for it. The health-monitor
+reads an agent's or a domain's state from the directory's lease states
+([`protocol/types`](../protocol/types.md#leasestate)). The agent and domain
+probes below are kept only as the record of what this agent did before the
+lease, and are not implemented. This agent is declared to retire.
+
 All health checks follow the same probe pattern:
 
 ```
@@ -774,28 +783,35 @@ component via the `configure` action.
 ## Alert Integration
 
 When a component changes state, the health-monitor dispatches to the
-alerting agent:
+alerting agent's `alert` action, in the shape its
+[Alert Fields](alerting.md#alert-fields) declare:
 
 ```json
 {
-  "action": "send",
+  "action": "alert",
   "payload": {
-    "alert_type": "health_state_change",
-    "component": "agents/sync",
-    "previous_state": "online",
-    "current_state": "degraded",
-    "latency_ms": 850,
-    "consecutive_failures": 0,
-    "timestamp": "2024-04-03T16:00:00.000Z",
-    "severity": "warning",
-    "message": "Agent 'sync' degraded — latency 850ms exceeds threshold 500ms"
+    "alert_id": "health-storage-20240403T160000Z",
+    "severity": "medium",
+    "source": {"type": "agent", "name": "health-monitor"},
+    "title": "Storage degraded",
+    "message": "Storage degraded — latency 850ms exceeds threshold 500ms",
+    "context": {
+      "alert_type": "health_state_change",
+      "component": "storage",
+      "previous_state": "online",
+      "current_state": "degraded",
+      "latency_ms": 850,
+      "consecutive_failures": 0
+    },
+    "timestamp": "2024-04-03T16:00:00.000Z"
   }
 }
 ```
 
-Severity mapping:
-- `info` — recovery (offline/degraded → online)
-- `warning` — degradation (online → degraded)
+Severity mapping, onto the alerting agent's declared
+[Severity Levels](alerting.md#severity-levels):
+- `low` — recovery (offline/degraded → online)
+- `medium` — degradation (online → degraded)
 - `critical` — failure (any → offline)
 
 ## Federation Health Advertisement
@@ -898,7 +914,7 @@ triggers:
 
 Run full health sweep of all components.
 
-**Purpose:** Probe all registered agents, domains, storage, gateway, and federation peers.
+**Purpose:** Read every registered agent's and domain's lease state, and probe storage, gateway, and federation peers (Health Check Protocol).
 
 **Input:** `{}` (no parameters)
 
@@ -924,9 +940,10 @@ Run full health sweep of all components.
 
 ### check-agent
 
-Probe a specific agent.
+Report a specific agent's state.
 
-**Purpose:** On-demand health check for a named agent.
+**Purpose:** On-demand health check for a named agent. Superseded as a
+probe: it answers from the agent's lease state (Health Check Protocol).
 
 **Input:** `{agent_name: string}`
 
@@ -1001,7 +1018,7 @@ Phase 1 — Build Probe List
 
 Phase 2 — Probe Components (parallel by type)
   For each component:
-    Agents/Domains: POST /v1/describe, measure latency
+    Agents/Domains: none (superseded: lease state, see Health Check Protocol)
     Storage:        Read/write test key (_health_check)
     Gateway:        HEAD / on gateway URL
     Federation:     GET /v1/federation/status on peer URL
@@ -1015,10 +1032,10 @@ Phase 3 — Update Health Map
 
 Phase 4 — Evaluate Alerts
   For each state change:
-    If config.alert_on_degraded AND online → degraded: dispatch warning
+    If config.alert_on_degraded AND online → degraded: dispatch medium
     If config.alert_on_offline AND * → offline: dispatch critical
-    If config.alert_on_recovery AND offline/degraded → online: dispatch info
-  Dispatch via direct message to alerting agent
+    If config.alert_on_recovery AND offline/degraded → online: dispatch low
+  Dispatch via direct message to alerting agent's `alert` action
 
 Phase 5 — Compute Hub Score
   Apply weighted formula per Hub Health Score table
@@ -1195,8 +1212,8 @@ would answer for a component that had already stopped.
 - The health-monitor MUST NOT depend on any other agent to function.
   If the alerting agent is down, health-monitoring still runs — it just
   can't dispatch alerts until alerting recovers.
-- Probes use the existing `/v1/describe` endpoint that every agent
-  already implements per protocol/spec. No additional endpoints needed.
+- No registered component is probed, through `/v1/describe` or any
+  other endpoint: its presence is its lease (Health Check Protocol).
 - Storage probes use a dedicated test key (`_health_check`) with TTL
   to avoid polluting the data store.
 - The health map is kept in memory for fast access. Periodic snapshots
@@ -1402,15 +1419,15 @@ scaling:
 ## Verification Checklist
 
 - [ ] Agent responds to POST /v1/describe with valid AgentManifest ([`protocol/spec`](../protocol/spec.md#post-v1describe))
-- [ ] check-all probes all registered agents, domains, storage, and gateway
-- [ ] Component state transitions follow the defined state machine
-- [ ] Consecutive failure counter resets on successful probe
+- [ ] check-all reads every registered agent's and domain's state from its lease and probes none of them (the probes are superseded by the lease) ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
+- [ ] A probed component's state transitions follow [State Transitions](#state-transitions); a registered component's state is its lease's, never a probe's ([`architecture/orchestrator`](../architecture/orchestrator.md#presence))
+- [ ] Consecutive failure counter resets on a successful probe of a component that is still probed, never of a registered one ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
 - [ ] Hub health score reflects weighted component formula ([Hub Health Score](#hub-health-score))
-- [ ] Alerts fire on state changes (degraded, offline, recovery)
+- [ ] State changes are dispatched to the alerting agent's `alert` action with a severity it declares ([Alert Integration](#alert-integration), [`agents/alerting`](alerting.md#alert-fields))
 - [ ] Health map is queryable via get-health-map action ([get-health-map](#get-health-map), [Health Map](#health-map))
 - [ ] Health history returns snapshots within requested time range ([get-health-history](#get-health-history))
 - [ ] Federation advertisement includes hub health summary ([Federation Health Advertisement](#federation-health-advertisement))
 - [ ] Health-monitor continues operating when alerting agent is down ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes))
-- [ ] Probes use /v1/describe — no additional endpoints required
+- [ ] No registered component is probed through `/v1/describe` or any other endpoint; the `/v1/describe` probe is superseded by the lease ([Implementation Notes](#implementation-notes), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
 - [ ] Default thresholds are applied; custom thresholds are respected ([Default Thresholds](#default-thresholds), [configure](#configure))
 - [ ] Metrics emit for all probes and state changes ([Observability](#observability))

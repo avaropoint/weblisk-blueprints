@@ -132,7 +132,7 @@ contracts:
           description: Fallback target when no routing rule matches
       inherits: Routing engine, rule matching, target resolution
       overridable: true
-      override_constraints: Must evaluate rules in declared order; must always have a fallback
+      override_constraints: Must evaluate rules in declared order (`RoutingRule.priority`, lower first, then position in the list); must always have a fallback
 
     - name: deduplication
       description: Suppress duplicate alerts within a configurable time window using fingerprint hashing
@@ -741,7 +741,7 @@ config:
 
 - [ ] Alert rules are declared in YAML and evaluated by the rule engine without hardcoded logic — [Design Principles](#design-principles), [Contracts](#contracts)
 - [ ] Severity classification uses the `AlertSeverity` enum of [Types](#types) — no custom levels
-- [ ] Routing rules are evaluated in priority order with a guaranteed fallback target
+- [ ] Routing rules are evaluated in the declared order, with a guaranteed fallback target — [Contracts](#contracts), [Types](#types)
 - [ ] Deduplication suppresses repeated alerts within the configured window using fingerprint matching — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
 - [ ] Suppressed alerts increment the suppressed count and do not trigger notifications — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
 - [ ] Flapping detection enters flapping state after threshold transitions and suppresses until stable — [Implementation Notes](#implementation-notes)

@@ -475,6 +475,9 @@ consent_rules:
     description: Consent required per field and per purpose; maximum 365-day expiry; annual renewal required
 ```
 
+Consent whose `expires_at` has passed is treated exactly as revoked consent:
+it permits nothing, and processing that needs consent is denied.
+
 ---
 
 ### MaskingRule
@@ -1423,18 +1426,18 @@ lineage:
 
 ## Verification Checklist
 
-- [ ] ConsentRecord schema validates all required fields (subject_id, purpose, scope, consented_fields, granted_at, expires_at)
-- [ ] Consent is evaluated before any data access — missing or expired consent produces deny
-- [ ] Masking rules activate at the correct scope level (public=none, internal=pseudonymize, confidential=hash/redact, restricted/critical=redact)
-- [ ] MaskingStrategy parameters are validated (e.g. hash requires algorithm + salt, pattern requires regex + replacement)
+- [ ] ConsentRecord validation requires every field [ConsentRecord](#consentrecord) marks required, and `expires_at` at every level [Consent Rules](#consent-rules) requires expiry
+- [ ] Consent is evaluated before subject data is processed at every scope level that requires it — missing or expired consent produces deny — [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix), [Consent Rules](#consent-rules), [Required for Scope >= Confidential](#required-for-scope--confidential)
+- [ ] Masking activates at each scope level as [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix) gives
+- [ ] MaskingStrategy parameters are validated against the parameters [MaskingStrategy](#maskingstrategy) declares for each strategy, its required ones and its defaults
 - [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain — [Cascade Flow](#cascade-flow)
-- [ ] ErasureResult includes confirmations for every store, plus exceptions for stores that could not erase
-- [ ] Legal-hold subjects are excluded from erasure — request returns hold_active exception
+- [ ] ErasureResult accounts for every agent notified, as confirmed, pending, or an exception for an agent that could not erase — [ErasureResult](#erasureresult), [ErasureException](#erasureexception)
+- [ ] Data under a legal hold is excluded from erasure, and the result records an exception whose reason is `legal_hold` — [Legal Holds](#legal-holds), [ErasureException](#erasureexception)
 - [ ] LineageEntry records are immutable (append-only) and survive data erasure — [Lineage Retention Rules](#lineage-retention-rules), [Lineage Graph Storage](#lineage-graph-storage)
 - [ ] Lineage tracking cannot be disabled for scope >= confidential — [Contracts](#contracts), [Required for Scope >= Confidential](#required-for-scope--confidential)
 - [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries — [Contracts](#contracts), [MinimizationRule](#minimizationrule)
 - [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline — [Contracts](#contracts), [Required for All Agents](#required-for-all-agents)
-- [ ] `privacy.erasure_completed` event includes full ErasureResult with per-store outcomes
-- [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked
+- [ ] `privacy.erasure_completed` carries the payload [Contracts](#contracts) declares for it
+- [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked — [Consent Rules](#consent-rules)
 - [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another — [Required for All Agents](#required-for-all-agents), [Design Principles](#design-principles)
 - [ ] All privacy events follow the standard event envelope — [`protocol/types`](../protocol/types.md#eventenvelope)

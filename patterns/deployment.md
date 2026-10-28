@@ -275,8 +275,12 @@ lint:
 ```yaml
 build:
   - docker build -t weblisk/server:$TAG .
+  - trivy image --exit-code 1 weblisk/server:$TAG   # scan before push
   - docker push weblisk/server:$TAG
 ```
+
+An image is scanned before it is pushed, so an image that fails the scan
+never reaches the registry.
 
 ### Stage 3: Test
 
@@ -290,7 +294,6 @@ test:
     - docker compose -f docker-compose.test.yaml down
   security:
     - weblisk agents describe security-scanner    # if available
-    - trivy image weblisk/server:$TAG
 ```
 
 ### Stage 4: Deploy
@@ -344,6 +347,9 @@ jobs:
         run: |
           TAG="${{ github.sha }}"
           docker build -t registry.example.com/weblisk:$TAG .
+
+      - name: Scan image
+        run: trivy image --exit-code 1 registry.example.com/weblisk:${{ github.sha }}
 
       - name: Push image
         run: |
@@ -549,12 +555,12 @@ weblisk deploy rollback --env production --version 1.1.0
 - [ ] Dockerfile is a multi-stage build whose runtime image meets [Image Conventions](#image-conventions) — [Dockerfile (Multi-stage)](#dockerfile-multi-stage)
 - [ ] Image tag follows the format [Image Conventions](#image-conventions) gives
 - [ ] Secrets never appear in source code, config files, Docker images, build logs, or CI pipeline definitions — [Secrets](#secrets)
-- [ ] Configuration resolves in order: built-in defaults → weblisk.yaml → env-specific yaml → WL_* environment variables → secrets manager
+- [ ] Configuration resolves in the order [Configuration Hierarchy](#configuration-hierarchy) gives
 - [ ] CI pipeline executes four stages in order: lint & check → build image → test (unit + integration + security) → deploy — [Pipeline Stages](#pipeline-stages), [Stage 3: Test](#stage-3-test)
 - [ ] Rolling update waits for `GET /readyz` to answer ready on each new instance before routing traffic; an instance that never answers ready stops the rollout — [Rolling Update (Default)](#rolling-update-default), [Contracts](#contracts)
 - [ ] Automatic rollback triggers at the error-rate threshold and in the monitoring window [Automatic Rollback](#automatic-rollback) states
 - [ ] Database migrations run on server startup before accepting traffic; failed migration aborts startup — [Migration Process](#migration-process), [Implementation Notes](#implementation-notes)
 - [ ] Zero-downtime migrations are additive only — column removal uses a two-phase (or three-release) approach — [Zero-Downtime Migrations](#zero-downtime-migrations)
 - [ ] Base images are pinned to specific versions (e.g., `golang:1.27-alpine`, not `golang:latest`) — [Implementation Notes](#implementation-notes)
-- [ ] Container security scanning (Trivy or equivalent) runs in CI before image push
+- [ ] Container security scanning runs in CI before the image is pushed — [Stage 2: Build Image](#stage-2-build-image), [Implementation Notes](#implementation-notes)
 - [ ] `GET /livez` and `GET /readyz` return 200 or 503 with `live` or `ready` alone; the liveness probe reads `/livez` and the readiness and startup probes `/readyz` — [Deployment Health Check](#deployment-health-check), [Kubernetes Probes](#kubernetes-probes), [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)

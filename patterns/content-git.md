@@ -735,7 +735,7 @@ from the line's, returning both of those digests.
 
 - [ ] After `establish`, the store has an unborn line named `default_line`, no commit, and no file outside its git directory, and a census over it has `entries` 0 — [Contracts](#contracts), [Types](#types)
 - [ ] A `ContentChange` produces exactly one commit, whose tree differs from its parent's only at the change's `path` — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] The commit's author is the actor's pseudonym and its committer is the content service; neither is an identity id, a name or a real email address
+- [ ] A commit's committer is the content service, under its registered name and identity id; every other identity the commit names, its author among them, is named only by its pseudonym, never by an identity id, a name or an email address — [Contracts](#contracts) `git-commit-identity`
 - [ ] The same identity gets the same pseudonym on every commit in one repository, and a different one in another repository — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
 - [ ] The sha256 of `git cat-file blob <version>:<path>` equals the change's `after` and the commit's `Content-After` — [Commit Form](#commit-form), [Joining a Record to History](#joining-a-record-to-history)
 - [ ] A commit's `Content-After` that disagrees with the bytes at its path is reported and joined to no record — [Contracts](#contracts)

@@ -1111,7 +1111,9 @@ Errors follow the protocol/spec `ErrorResponse` structure:
   `cursor_ttl` at minimum.
 - **Atomic batch application**: All changes in a DeltaBatch SHOULD be
   applied atomically (single transaction). If any record fails, the
-  entire batch is rolled back and an error returned.
+  entire batch is rolled back and an error returned. The cursor advances
+  in the same transaction as the batch it covers, so a batch rolled back
+  leaves the cursor where it was.
 - **Field-level merge**: When using the `merge` conflict strategy,
   non-overlapping field changes are combined. Overlapping fields use
   `last-write-wins` at the field level. The merged result is logged
@@ -1179,13 +1181,13 @@ Errors follow the protocol/spec `ErrorResponse` structure:
 
 - [ ] Clients treat SyncCursor values as opaque — no client-side parsing — [SyncCursor](#synccursor), [Implementation Notes](#implementation-notes)
 - [ ] Expired cursors return `SYNC_CURSOR_EXPIRED` and require full re-sync — [SyncCursor](#synccursor), [Error Codes](#error-codes)
-- [ ] Pull responses return changes in causal order relative to the cursor
-- [ ] Cursor advances atomically with batch application
+- [ ] Pull responses return changes in causal order relative to the cursor — [Contracts](#contracts) `delta-pull`
+- [ ] Cursor advances atomically with batch application — [Implementation Notes](#implementation-notes)
 
 ### Offline Queue
 
 - [ ] Offline queue persists across app restarts — [Implementation Notes](#implementation-notes)
-- [ ] Queue entries are flushed in the declared order (oldest-first by default)
+- [ ] Queue entries are flushed in the order the queue's `flush_strategy` declares — [Contracts](#contracts), [OfflineQueueEntry](#offlinequeueentry)
 - [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity — [Error Codes](#error-codes), [Configuration](#configuration)
 - [ ] Failed flush attempts increment `attempts` on the queue entry — [OfflineQueueEntry](#offlinequeueentry)
 

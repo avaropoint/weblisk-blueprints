@@ -208,9 +208,13 @@ Response (200 OK):
   "iss": "weblisk",
   "iat": 1713264000,
   "exp": 1713264900,
-  "scopes": ["read", "write"]
+  "cap": ["read", "write"]
 }
 ```
+
+The scopes granted at the exchange travel in the `cap` claim, the name
+[`protocol/identity`](../protocol/identity.md#payload-claims) gives it and
+[AuthToken](#types-1) declares.
 
 | Claim | Description |
 |-------|-------------|
@@ -218,7 +222,7 @@ Response (200 OK):
 | `iss` | Issuer (from config) |
 | `iat` | Issued-at timestamp |
 | `exp` | Expiration timestamp |
-| `scopes` | Granted permission scopes |
+| `cap` | Granted permission scopes |
 
 ### Token Refresh (POST /auth/refresh)
 
@@ -290,7 +294,7 @@ For protected endpoints:
    a. Verify JWT signature
    b. Check exp claim (reject if expired)
    c. Check iss claim matches config
-   d. Check scopes against endpoint requirements
+   d. Check the `cap` claim against endpoint requirements
 4. If valid → attach user context to request
 5. If invalid → 401 Unauthorized
 ```

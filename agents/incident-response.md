@@ -1071,7 +1071,7 @@ events_subscribed:
 
 direct_messages:
   - target: alerting
-    action: send_notification
+    action: alert
     when: Escalation requires operator notification
     reason: Alerting owns notification routing
 ```

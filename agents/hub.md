@@ -3744,7 +3744,7 @@ scaling:
 - [ ] Revoked keys are rejected immediately ([verify-listing](#verify-listing) step 1)
 - [ ] Dependency contracts declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
 - [ ] State machine validates all entity transitions ([State Machine](#state-machine))
-- [ ] Startup sequence initializes all 5 subsystems with pre-check/validates/on-fail
+- [ ] Startup sequence initializes all 5 subsystems, each step with its validates/on-fail ([Startup Sequence](#startup-sequence))
 - [ ] Shutdown drains all in-flight operations before exit ([Shutdown Sequence](#shutdown-sequence))
 - [ ] Configuration values validated against declared constraints ([Configuration](#configuration), [Startup Sequence](#startup-sequence) step 1)
 - [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names

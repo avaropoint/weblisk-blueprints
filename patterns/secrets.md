@@ -395,6 +395,9 @@ Every secret operation is logged:
 | Unauthorized access | `secrets.denied` | warn | `{key, requesting_agent, owning_agent}` |
 | Secret expired | `secrets.expired` | warn | `{key, expired_at}` |
 
+A log line names a secret by its key and never carries its value, at any
+level, debug included.
+
 ---
 
 ## Types
@@ -585,7 +588,7 @@ types:
 - [ ] Agent startup succeeds with optional secrets missing — [Access During Startup](#access-during-startup)
 - [ ] Agents can only access their own declared secrets — [Access Rules](#access-rules), [Per-Agent Isolation](#per-agent-isolation)
 - [ ] Cross-agent secret access is rejected with a `secrets.denied` log — [Access Rules](#access-rules), [Audit Trail](#audit-trail)
-- [ ] Secret values never appear in logs (any level)
+- [ ] Secret values never appear in logs (any level) — [Audit Trail](#audit-trail)
 - [ ] Secret values never appear in event payloads — [Design Principles](#design-principles)
 - [ ] Secret values never appear in API responses — [Design Principles](#design-principles)
 - [ ] Manual rotation updates the value without agent restart — [Manual Rotation](#manual-rotation), [Design Principles](#design-principles)

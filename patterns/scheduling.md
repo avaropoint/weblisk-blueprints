@@ -96,7 +96,7 @@ requires:
 1. **Declarative Schedules** — Schedules are data, not code. Agents register YAML declarations with expressions, targets, and policies. The executor interprets them uniformly.
 2. **Single Executor** — One schedule fires once per tick, even in multi-replica deployments. Distributed locking guarantees exactly-one execution per scheduled instant.
 3. **Missed-Tick Awareness** — Every schedule declares what happens when ticks are missed (fire-once, fire-all, skip). The executor never silently drops or duplicates work.
-4. **Timezone-Explicit** — All schedules declare a timezone. No implicit UTC assumptions. The executor evaluates cron expressions in the declared timezone, including DST transitions.
+4. **Timezone-Explicit** — All schedules declare a timezone. A schedule that omits one gets the configured `default_timezone` with a validation warning, never a silent assumption. The executor evaluates cron expressions in the declared timezone, including DST transitions.
 5. **Overlap Control** — Every recurring schedule declares its concurrency policy. The executor enforces skip-if-running, queue, or allow-parallel before dispatching.
 
 ---
@@ -716,7 +716,7 @@ dispatches a fresh execution with attempt = 1.
 ## Verification Checklist
 
 - [ ] Schedule registration validates cron expression syntax before persisting — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling)
-- [ ] Schedule registration rejects missing timezone or invalid IANA identifier
+- [ ] Schedule registration rejects an invalid IANA identifier with `INVALID_TIMEZONE`, and gives a schedule that omits its timezone the configured fallback with a validation warning — [Error Handling](#error-handling), [Configuration](#configuration)
 - [ ] One-time schedules require `fire_at` and transition to `expired` after execution — [One-Time Schedules](#one-time-schedules), [Schedule Lifecycle](#schedule-lifecycle)
 - [ ] Recurring schedules compute `next_fire` in the declared timezone, including DST transitions — [Timezone Evaluation](#timezone-evaluation)
 - [ ] Overlap policy `skip-if-running` prevents dispatch when a pending execution exists — [Types](#types), [Evaluation Flow](#evaluation-flow)

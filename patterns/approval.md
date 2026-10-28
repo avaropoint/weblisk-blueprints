@@ -775,9 +775,9 @@ EscalationRule:
       type: int
       required: true
       description: >
-        Seconds to wait for a decision before escalating. Default
-        values by urgency: normal=3600 (1 hour), urgent=900 (15 min),
-        emergency=300 (5 min).
+        Seconds to wait for a decision before escalating. The default
+        for each urgency and each step of the chain is the one Default
+        Timeouts by Urgency gives.
     - name: escalate_to
       type: AuthorityLevel
       required: true
@@ -1257,6 +1257,7 @@ through this pattern when contract policy requires sign-off.
 | `APPROVAL_EXPIRED` | permanent | no | The request passed its deadline before a decision was recorded |
 | `APPROVAL_NOT_FOUND` | permanent | no | No request matches the identifier |
 | `APPROVAL_STORE_UNAVAILABLE` | transient | yes | The decision could not be persisted; the request stays pending |
+| `APPROVAL_OVERRIDE_MFA_REQUIRED` | permanent | no | An emergency override arrived without MFA confirmation. Nothing is overridden; the operator completes MFA and sends a new override |
 
 Every error uses the `ErrorResponse` shape from `protocol/types`. A pending
 request is never admitted by a timeout: expiry refuses it rather than approving
@@ -1314,7 +1315,7 @@ All errors use the standard `ErrorResponse` format from
   "error": "Emergency override requires MFA confirmation",
   "code": "APPROVAL_OVERRIDE_MFA_REQUIRED",
   "category": "permanent",
-  "retryable": true,
+  "retryable": false,
   "detail": {
     "operator": "ops-01",
     "action": "Complete MFA authentication and retry the override"
@@ -1410,7 +1411,7 @@ All errors use the standard `ErrorResponse` format from
 - [ ] Domain controllers cannot approve cross-domain changes from their own domain — [Rules](#rules), [Enforcement Logic](#enforcement-logic)
 - [ ] Auto-approval matches only explicitly configured low-risk rules — [Auto-Approval](#auto-approval)
 - [ ] Auto-approvals are audited identically to human approvals — [Auto-Approval](#auto-approval)
-- [ ] Escalation fires after configured timeout per authority level — [Escalation Rules](#escalation-rules), [Escalation Flow](#escalation-flow)
+- [ ] Escalation fires after configured timeout per authority level — [Escalation Rules](#escalation-rules), [Escalation Flow](#escalation-flow), [Default Timeouts by Urgency](#default-timeouts-by-urgency)
 - [ ] Escalation promotes to next authority level in chain — [Escalation Chain](#escalation-chain), [Escalation Flow](#escalation-flow)
 - [ ] Maximum escalations result in denial and expiration event — [Escalation Flow](#escalation-flow)
 - [ ] Multi-party approval requires N-of-M acceptances — [Multi-Party Requirement](#multi-party-requirement)

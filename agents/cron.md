@@ -1371,8 +1371,6 @@ errors:
       description: Missing required fields or constraint violation
     - code: TARGET_NOT_FOUND
       description: target_agent not in service directory
-    - code: DUPLICATE_NAME
-      description: Task name + target_agent combination exists
     - code: NOT_FOUND
       description: Referenced task_id does not exist in cron_tasks
     - code: INVALID_STATE

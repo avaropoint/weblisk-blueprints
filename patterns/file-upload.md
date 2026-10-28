@@ -222,11 +222,12 @@ types:
    c. Record original filename, size, MIME type
 
 3. Store original file
-   a. Write to storage provider at storage_key
-   b. Set appropriate permissions (public-read or private)
+   a. If an image, strip its EXIF metadata first (see EXIF Stripping)
+   b. Write to storage provider at storage_key
+   c. Set appropriate permissions (public-read or private)
 
 4. Process (if image)
-   a. Strip EXIF metadata (privacy — removes GPS, camera info)
+   a. Work from the stripped original (privacy — no GPS, camera info)
    b. Convert to target format (webp) if configured
    c. Generate thumbnails per config
    d. Store processed variants alongside original:
@@ -345,7 +346,7 @@ All uploaded images MUST have EXIF metadata stripped before storage:
 ### Format Conversion
 
 If `config.image_processing.format` is set:
-- Original file is stored as-is (preserved)
+- Original file keeps its own format (preserved, not converted), EXIF stripped
 - Processed variants are converted to the target format
 - Animated GIFs are preserved as GIF (not converted to static webp)
 
@@ -530,7 +531,7 @@ types:
 
 - File upload MUST use streaming — do NOT buffer the entire file in
   memory before writing to storage
-- EXIF stripping MUST happen before any variant is stored (privacy)
+- EXIF stripping MUST happen before the original or any variant is stored (privacy)
 - The `Content-Disposition` header should use `attachment` for
   downloads and `inline` for images displayed in the browser
 - Deletion is soft — set `deleted_at`, stop serving, and run a
@@ -545,7 +546,7 @@ types:
 - [ ] MIME type is verified from magic bytes as [MIME Type Verification](#mime-type-verification) states, not just the Content-Type header; mismatches return 415
 - [ ] Content-Length is checked against `max_file_size` before reading the body; streaming enforces the limit and aborts with 413 if exceeded — [Size Limits](#size-limits)
 - [ ] Filenames are sanitized as [Filename Sanitization](#filename-sanitization) states
-- [ ] EXIF metadata is stripped from all images before any variant is stored; orientation is applied to pixel data before stripping — [EXIF Stripping](#exif-stripping), [Implementation Notes](#implementation-notes)
+- [ ] EXIF metadata is stripped from all images before the original or any variant is stored; orientation is applied to pixel data before stripping — [EXIF Stripping](#exif-stripping), [Implementation Notes](#implementation-notes)
 - [ ] Animated GIFs are preserved as GIF and not converted to static webp — [Format Conversion](#format-conversion)
 - [ ] Thumbnails are generated per configured dimensions and fit mode (cover, inside, fill) and stored alongside the original — [Thumbnail Generation](#thumbnail-generation), [Single File Upload (POST /files/upload)](#single-file-upload-post-filesupload)
 - [ ] Batch upload accepts at most the files [Batch Upload (POST /files/upload/batch)](#batch-upload-post-filesuploadbatch) allows and returns partial-success responses (per-file status with `uploaded`/`rejected` counts)

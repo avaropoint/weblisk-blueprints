@@ -237,7 +237,7 @@ Examples:
 - `workflow.trigger` — request to start a workflow
 - `workflow.phase.complete` — a workflow phase finished
 - `task.submit` — new task submitted for dispatch
-- `task.complete` — task execution finished
+- `task.completed` — task execution finished
 - `lifecycle.recommendation.created` — new recommendation proposed
 - `health.agent.state_change` — agent health state changed
 - `seo.audit.result` — SEO domain audit result callback
@@ -325,7 +325,7 @@ publish(topic, payload, scope, options)
    If no → reject locally, log error. Event is NOT sent.
 
 2. Build EventEnvelope:
-   event_id:       UUID v7
+   event_id:       UUID v7 (the recommended format)
    topic:          provided topic
    source:         this agent's name
    scope:          provided scope
@@ -426,7 +426,7 @@ group (round-robin load balancing). Different groups each receive
 every event (fan-out).
 
 ```
-Topic: task.complete, scope: "workflow"
+Topic: task.completed, scope: "workflow"
 
 Group "workflow":
   Workflow Instance 1 ← receives event A, C  (load-balanced)
@@ -515,7 +515,7 @@ results return to the correct invoker:
 2. Workflow Agent → task.submit   (scope: "task")
    Task Agent records: requester = "workflow"
 
-3. Task Agent → task.complete     (scope: "workflow")
+3. Task Agent → task.completed     (scope: "workflow")
    Addressed back to Workflow Agent
 
 4. Workflow Agent → workflow.completed (scope: "seo")
@@ -737,7 +737,7 @@ perform the conversion.
 ## Verification Checklist
 
 - [ ] Events are published with every required field of [Envelope Fields](#envelope-fields)
-- [ ] Event IDs are globally unique (UUID v7) — [Event ID Generation](#event-id-generation), [Publish Flow](#publish-flow)
+- [ ] Event IDs are unique across the hub, in the format [Event ID Generation](#event-id-generation) recommends — [Publish Flow](#publish-flow)
 - [ ] Framework validates namespace ownership before publishing — [Namespace Ownership](#namespace-ownership), [Publish Flow](#publish-flow)
 - [ ] Framework resolves subscribers from local routing table (no orchestrator call) — [Publish Guarantees](#publish-guarantees)
 - [ ] Scope filtering applied: self-scoped subscribers only get their own events — [How Scope Works](#how-scope-works)

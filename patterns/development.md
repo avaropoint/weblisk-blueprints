@@ -420,9 +420,9 @@ ErrorResponse format:
 
 ```json
 {
+  "error": "Blueprint path must start with an allowed prefix",
   "code": "INVALID_PATH",
-  "message": "Blueprint path must start with an allowed prefix",
-  "detail": "Path 'secrets/db.yaml' does not match allowed prefixes: pages/, components/"
+  "detail": {"path": "secrets/db.yaml", "allowed_prefixes": ["pages/", "components/"]}
 }
 ```
 

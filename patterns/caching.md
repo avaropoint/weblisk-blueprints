@@ -193,7 +193,8 @@ All caches use **LRU (Least Recently Used)** eviction with TTL expiry:
    refused as protocol/spec states (unsigned, not verifying, or stale)
    changes nothing, the cache included.
 
-**Priority order:** TTL expiry > explicit invalidation > LRU eviction.
+**Priority order:** explicit invalidation > TTL expiry > LRU eviction: an
+invalidated entry is gone whatever TTL it has left (Design Principle 3).
 
 ## Cache-Aside Pattern
 
