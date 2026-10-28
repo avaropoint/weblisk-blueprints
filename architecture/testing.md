@@ -699,19 +699,19 @@ security:
   easy triage: `FAIL L1-03: agent_id must be 32 hex chars, got 28`.
 
 ## Verification Checklist
-- [ ] Conformance sign-off requires Level 4 against a real orchestrator; the mock alone is never sufficient
-- [ ] Every registering component passes L4-01: it listens, registers, renews its lease, and the orchestrator's directory lists its lease current (`ready`, or `not_ready` where its blueprint allows), never `unknown`
-- [ ] A manifest carrying an extra field still registers (L4-03)
-- [ ] Every registering component passes L4-04: it starts with no orchestrator, answers `GET /livez` live and `GET /readyz` not ready, and refuses protected endpoints with 401
+- [ ] Conformance sign-off requires Level 4 against a real orchestrator; the mock alone is never sufficient ([What the mock cannot establish](#what-the-mock-cannot-establish), [Level 4: Interoperability](#level-4-interoperability))
+- [ ] Every registering component passes L4-01: it listens, registers, renews its lease, and the orchestrator's directory lists its lease current (`ready`, or `not_ready` where its blueprint allows), never `unknown` ([L4-01: Registers With A Real Orchestrator](#l4-01-registers-with-a-real-orchestrator))
+- [ ] A manifest carrying an extra field still registers (L4-03) ([L4-03: Signature Survives A Foreign Verifier](#l4-03-signature-survives-a-foreign-verifier))
+- [ ] Every registering component passes L4-04: it starts with no orchestrator, answers `GET /livez` live and `GET /readyz` not ready, and refuses protected endpoints with 401 ([L4-04: Standalone Operation](#l4-04-standalone-operation))
 
-- [ ] All Level 1 tests pass (protocol compliance)
-- [ ] L1-01 refuses a probe body carrying any member but `live` or `ready`
-- [ ] All Level 2 tests pass (security compliance)
-- [ ] All Level 3 tests pass (lifecycle compliance)
-- [ ] Mock orchestrator can start and accept registrations
-- [ ] Mock agent can respond to execute and message
-- [ ] Test keys are deterministic and reproducible
-- [ ] Tests run against HTTP endpoints only (black-box)
+- [ ] All Level 1 tests pass (protocol compliance) ([Level 1: Protocol Compliance](#level-1-protocol-compliance))
+- [ ] L1-01 refuses a probe body carrying any member but `live` or `ready` ([L1-01: Probes](#l1-01-probes))
+- [ ] All Level 2 tests pass (security compliance) ([Level 2: Security Compliance](#level-2-security-compliance))
+- [ ] All Level 3 tests pass (lifecycle compliance) ([Level 3: Lifecycle Compliance](#level-3-lifecycle-compliance))
+- [ ] Mock orchestrator can start and accept registrations ([Mock Orchestrator](#mock-orchestrator))
+- [ ] Mock agent can respond to execute and message ([Mock Agent](#mock-agent))
+- [ ] Test keys are deterministic and reproducible ([Identity Fixtures](#identity-fixtures))
+- [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes))
 
 ### A check that cannot read the artifact MUST say so
 

@@ -950,30 +950,30 @@ data_security:
 
 ## Verification Checklist
 
-- [ ] The .weblisk/ directory is inaccessible to agents, web requests, and any non-CLI process; gateway blocks all dotfile/dotfolder paths; agents have no filesystem read access to .weblisk/
-- [ ] Static file serving excludes all dotfiles and dotfolders by default with no configuration override
-- [ ] All inter-component communication uses TLS in production; plaintext HTTP permitted only on localhost in development
-- [ ] Every agent-to-agent message is signed with the sender's ML-DSA-65 key covering {from, to, action, payload}
-- [ ] Gateway injects X-Gateway-* headers on forwarded requests and agents reject these headers from any non-gateway source
-- [ ] Orchestrator validates that only the registered gateway agent sets X-Gateway-* headers; other agents are rejected
-- [ ] Unregistered agents cannot communicate with any component in the system
-- [ ] Federation data contracts strip forbidden fields before transmission at the sending gateway
-- [ ] Receiving hub independently validates incoming federated data against its own data contract rules
-- [ ] Audit entries are stored in append-only storage with hash of previous entry for tamper detection
-- [ ] Audit trail is retained for at least 90 days and accessible only by admin and auditor roles
-- [ ] Response sanitization strips internal headers (X-Gateway-*, X-Agent-*, Server, X-Powered-By) and raw error messages before reaching the browser
-- [ ] Framework audit log records operations (registration, task dispatch, route decisions) but does NOT include request/response body content by default
-- [ ] Code generation pipeline receives only blueprint YAML as input, never .weblisk/ contents or .env files
-- [ ] Generated code references secrets exclusively via secrets.get(key), never as hardcoded string literals
-- [ ] Every project template ships with .gitignore containing .weblisk/secrets/, .weblisk/keys/, .weblisk/token
-- [ ] CLI `weblisk new` scaffolds .gitignore with required secret exclusion entries
-- [ ] CLI `weblisk doctor` validates .gitignore contains required entries and warns if missing
-- [ ] Post-generation security scan blocks file write when violations are found (injection, hardcoded creds, unsafe APIs)
-- [ ] Generated code scanner uses AST-level analysis for Go and JS/TS; regex fallback for other languages
-- [ ] Security-ignore annotations require a reason and are logged in audit trail
-- [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation
-- [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation
+- [ ] The .weblisk/ directory is inaccessible to agents, web requests, and any non-CLI process; gateway blocks all dotfile/dotfolder paths; agents have no filesystem read access to .weblisk/ ([Protection Layers](#protection-layers), [Non-Bypassable Rules](#non-bypassable-rules))
+- [ ] Static file serving excludes all dotfiles and dotfolders by default with no configuration override ([Protection Layers](#protection-layers), [Non-Bypassable Rules](#non-bypassable-rules))
+- [ ] All inter-component communication uses TLS in production; plaintext HTTP permitted only on localhost in development ([Encryption in Transit](#encryption-in-transit))
+- [ ] Every agent-to-agent message is signed with the sender's ML-DSA-65 key covering {from, to, action, payload} ([Message Integrity](#message-integrity))
+- [ ] Gateway injects X-Gateway-* headers on forwarded requests and agents reject these headers from any non-gateway source ([Internal Header Trust](#internal-header-trust))
+- [ ] Orchestrator validates that only the registered gateway agent sets X-Gateway-* headers; other agents are rejected ([Internal Header Trust](#internal-header-trust))
+- [ ] Unregistered agents cannot communicate with any component in the system ([Agent Registration](#agent-registration))
+- [ ] Federation data contracts strip forbidden fields before transmission at the sending gateway ([Cross-Boundary Rules](#cross-boundary-rules))
+- [ ] Receiving hub independently validates incoming federated data against its own data contract rules ([Cross-Boundary Rules](#cross-boundary-rules))
+- [ ] Audit entries are stored in append-only storage with hash of previous entry for tamper detection ([Audit Storage](#audit-storage))
+- [ ] Audit trail is retained for at least the period [Audit Storage](#audit-storage) gives, and is accessible only by the roles it names
+- [ ] Response sanitization strips internal headers (X-Gateway-*, X-Agent-*, Server, X-Powered-By) and raw error messages before reaching the browser ([Response Sanitization](#response-sanitization))
+- [ ] Framework audit log records operations (registration, task dispatch, route decisions) but does NOT include request/response body content by default ([What Gets Logged](#what-gets-logged), [What Does NOT Get Logged by the Framework](#what-does-not-get-logged-by-the-framework))
+- [ ] Code generation pipeline receives only blueprint YAML as input, never .weblisk/ contents or .env files ([What the LLM NEVER Sees](#what-the-llm-never-sees), [Enforcement](#enforcement))
+- [ ] Generated code references secrets exclusively via secrets.get(key), never as hardcoded string literals ([Enforcement](#enforcement), [The Isolation Chain](#the-isolation-chain))
+- [ ] Every project template ships with a .gitignore containing the [Required `.gitignore` Entries](#required-gitignore-entries) ([Enforcement](#enforcement-1) 3)
+- [ ] CLI `weblisk new` scaffolds .gitignore with required secret exclusion entries ([Enforcement](#enforcement-1) 1)
+- [ ] CLI `weblisk doctor` validates .gitignore contains required entries and warns if missing ([Enforcement](#enforcement-1) 2)
+- [ ] Post-generation security scan blocks file write when violations are found (injection, hardcoded creds, unsafe APIs) ([Validation Pipeline](#validation-pipeline), [Security Checks](#security-checks))
+- [ ] Generated code scanner uses AST-level analysis where the target language has it, and pattern matching otherwise ([Pattern Matching](#pattern-matching))
+- [ ] Security-ignore annotations require a reason and are logged in audit trail ([Override Mechanism](#override-mechanism))
+- [ ] Blueprint manifest (.weblisk/blueprint-manifest.sha256) records SHA-256 of every blueprint used in generation ([Blueprint Manifest](#blueprint-manifest))
+- [ ] `weblisk server init --verify-signatures` validates blueprint files are from signed commits before generation ([Signed Commits (Recommended)](#signed-commits-recommended))
       — NOT MET. The flag is refused rather than reporting a verification it did not perform.
 - [ ] Agents at scope >= confidential implement storage integrity verification: record-level checksums, write provenance, and version chain integrity
 - [ ] Storage integrity anomalies (checksum mismatch, missing provenance, broken version chain, orphaned records) are detectable and reported
-- [ ] Write provenance records are append-only and cross-referenceable with enforcement audit trail
+- [ ] Write provenance records are append-only and cross-referenceable with enforcement audit trail ([Integrity Properties](#integrity-properties))
