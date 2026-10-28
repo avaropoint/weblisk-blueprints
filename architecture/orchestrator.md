@@ -121,6 +121,18 @@ declaration:
             fields_used: [subject_token, audience, scope]
           - name: TokenExchangeResponse
             fields_used: [issued, code, pass, expires_at, capabilities]
+          # The work pass: a person's authorisation of unattended work, and
+          # the exchange an actor mints a work pass at (Work Exchange)
+          - name: WorkAuthorisation
+            fields_used: [id, owner, definition, actors, capabilities, authorised_by, created_at, not_after, status, revoked_at, revoked_by, reason]
+          - name: WorkAuthorisationRequest
+            fields_used: [owner, definitions, actors, not_after]
+          - name: WorkDefinitionCeiling
+            fields_used: [definition, capabilities]
+          - name: WorkExchangeRequest
+            fields_used: [authorisation, audience, scope, run]
+          - name: WorkExchangeResponse
+            fields_used: [issued, code, pass, expires_at, capabilities]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -210,6 +222,18 @@ declaration:
       operation: TokenExchange
       auth: "token"
     - method: POST
+      path: "/v1/token/work"
+      operation: WorkExchange
+      auth: "token"
+    - method: GET
+      path: "/v1/work/authorisations"
+      operation: WorkAuthorisationsHeld
+      auth: "token"
+    - method: DELETE
+      path: "/v1/work/authorisations/{id}"
+      operation: WorkAuthorisationWithdraw
+      auth: "token"
+    - method: POST
       path: "/v1/lease"
       operation: Lease
       auth: "token"
@@ -281,6 +305,22 @@ declaration:
       path: "/v1/admin/operators/{name}/role"
       operation: OperatorRole
       auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/work-authorisations"
+      operation: WorkAuthorise
+      auth: "work:authorise"
+    - method: GET
+      path: "/v1/admin/work-authorisations"
+      operation: WorkAuthorisationList
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/work-authorisations/{id}/renew"
+      operation: WorkAuthorisationRenew
+      auth: "work:authorise"
+    - method: DELETE
+      path: "/v1/admin/work-authorisations/{id}"
+      operation: WorkAuthorisationRevoke
+      auth: "token"
     - method: GET
       path: "/v1/admin/agents"
       operation: AdminAgentList
@@ -390,6 +430,20 @@ declaration:
       endpoint: POST /v1/admin/model/audit
     - check: endpoint-routed
       endpoint: POST /v1/token/exchange
+    - check: endpoint-routed
+      endpoint: POST /v1/token/work
+    - check: endpoint-routed
+      endpoint: GET /v1/work/authorisations
+    - check: endpoint-routed
+      endpoint: DELETE /v1/work/authorisations/{id}
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/work-authorisations
+    - check: endpoint-routed
+      endpoint: GET /v1/admin/work-authorisations
+    - check: endpoint-routed
+      endpoint: POST /v1/admin/work-authorisations/{id}/renew
+    - check: endpoint-routed
+      endpoint: DELETE /v1/admin/work-authorisations/{id}
     - check: endpoint-routed
       endpoint: POST /v1/lease
     - check: endpoint-routed
@@ -775,6 +829,9 @@ See [Agent Architecture](agent.md) for the 7-endpoint agent protocol.
 | GET | /v1/audit | Audit | yes | Query audit log |
 | POST | /v1/token/exchange | TokenExchange | yes | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component, for the admin gateway's registration and no other — see [Token Exchange](#token-exchange-post-v1tokenexchange) |
 | GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
+| POST | /v1/token/work | WorkExchange | yes | Mint a work pass, for an actor a work authorisation names, under that authorisation — see [Work Exchange](#work-exchange-post-v1tokenwork) |
+| GET | /v1/work/authorisations | WorkAuthorisationsHeld | yes | The work authorisations that name the caller's registration as owner or actor, revoked ones included, each a `WorkAuthorisation`. An actor finds the authorisation for a definition here; an owner reports from it which of its definitions are authorised |
+| DELETE | /v1/work/authorisations/{id} | WorkAuthorisationWithdraw | yes | Revoke a work authorisation whose owner is the caller's registration, as its owner withdraws the work it covers. Narrows only; refused with `FORBIDDEN` for any other caller |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens — there is
 no token to present before an agent is registered. Key rotation is different: it
@@ -830,6 +887,10 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator, after step-up (`destructive-action-step-up`) |
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator, after step-up |
 | PUT | /v1/admin/operators/{name}/role | OperatorRole | `admin:*` | Change an operator's role, after step-up |
+| POST | /v1/admin/work-authorisations | WorkAuthorise | `work:authorise` | Make one work authorisation for each definition a `WorkAuthorisationRequest` names, in one act, or none — see [Work Exchange](#work-exchange-post-v1tokenwork) |
+| GET | /v1/admin/work-authorisations | WorkAuthorisationList | `admin:read` | Every work authorisation, revoked and expired ones included, filtered by the query parameters `owner`, `actor` and `authorised_by` where given |
+| POST | /v1/admin/work-authorisations/{id}/renew | WorkAuthorisationRenew | `work:authorise` | Set a new `not_after`, no more than 90 days ahead, judging its `capabilities` against the renewing person as at its making |
+| DELETE | /v1/admin/work-authorisations/{id} | WorkAuthorisationRevoke | `work:authorise` for the person who made or last renewed it, or `admin:*` | Revoke it, with a reason |
 | GET | /v1/admin/agents | AdminAgentList | `admin:read` | Agents with what the registry holds of each: name, type, version, `lease_state`, `registered_at` and `last_seen`, and no metrics, which another component holds ([`architecture/admin`](admin.md#get-v1adminagents)) |
 | GET | /v1/admin/agents/{name} | AdminAgentGet | `admin:read` | Agent detail — its [AgentEntry](#agententry) without the token: `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen` ([`architecture/admin`](admin.md#get-v1adminagentsname)), and no metrics or recent tasks, which this orchestrator neither holds nor handles. The entry's `token` is never answered |
 | POST | /v1/admin/agents/{name}/deregister | AdminAgentDeregister | `admin:*` | Force-deregister an agent, after step-up (`destructive-action-step-up`) |
@@ -1310,6 +1371,29 @@ exchange binds this behaviour, by name, from its dependency on this blueprint
 ```yaml
 contracts:
   behaviors:
+    - name: work-exchange
+      description: Mint a work pass, for an actor a work authorisation names, under that authorisation (protocol/identity, The work pass)
+      required: true
+      rules:
+        - The route POST /v1/token/work MUST take a WorkExchangeRequest and answer every judgement of the authorisation it names with 200 and a WorkExchangeResponse (protocol/types)
+        - It MUST read the caller's token from the Authorization header alone, and admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's, and whose registration declares work:exchange. Every other token MUST be refused with FORBIDDEN, disclosing nothing about the authorisation
+        - A body missing authorisation, audience or run, or whose scope names a name protocol/types does not list, or names none while the audience is not the authorisation's owner, MUST be refused with 400 INVALID_REQUEST. An audience that is not the identity id of a component registered here now MUST be refused with 404 NOT_FOUND. Neither mints anything
+        - It MUST answer issued false with WORK_AUTHORISATION_UNKNOWN for an authorisation it does not hold and for one whose actors do not name the caller's identity id, alike; WORK_AUTHORISATION_REVOKED for a revoked one; WORK_AUTHORISATION_EXPIRED for one past its not_after; and WORK_OWNER_UNREGISTERED where no component is registered here now under the identity id its owner names
+        - The work pass's cap MUST be the intersection of scope, the authorisation's capabilities, and the capabilities the owner's, the caller's and the audience's registered manifests each declare. Where that intersection is empty it MUST mint nothing and answer issued false with FORBIDDEN, unless the audience is the authorisation's owner, to which it MUST mint a work pass with an empty cap (protocol/identity, The work pass, rule 11)
+        - The work pass MUST carry what protocol/identity's The work pass gives it, with aud the audience, sub and identity_id the owner's, act the caller, cid the authorisation's id, definition the authorisation's and run the request's, and MUST carry no identity_key, record_keys, step_up_at or role
+        - It MUST mint nothing but a work pass, and MUST NOT keep or cache one
+        - Each request MUST be audited, refused or not, as work_exchange, with the authorisation's id, the run, the caller's identity id, the audience and the capabilities minted
+    - name: work-authorisation
+      description: Make, renew, revoke and surface a work authorisation (protocol/identity, The work pass, rules 1 to 6)
+      required: true
+      rules:
+        - WorkAuthorise and WorkAuthorisationRenew MUST be admitted only on a person's operator token that can use work:authorise, and judge every capability an authorisation names against what that person may use at that moment - their role now and their token's cap. A capability they may not use MUST be refused with FORBIDDEN, a person-only one with CAPABILITY_PERSON_ONLY, and an admin capability, token:exchange, work:exchange or work:authorise with INVALID_REQUEST. A request any one of whose definitions is refused makes none
+        - A request whose owner or any actor is not the identity id of a component registered here now MUST be refused with 404 NOT_FOUND, and one whose not_after is not in the future or is more than 90 days ahead with INVALID_REQUEST
+        - Each authorisation MUST be recorded with authorised_by the person's identity_id, and audited as work_authorise or work_authorisation_renew with its owner, definition, actors, capabilities and not_after
+        - WorkAuthorisationRevoke MUST admit the person who made or last renewed the authorisation, on a token that can use work:authorise, and a person whose token can use admin:*, and WorkAuthorisationWithdraw MUST admit only the registration its owner names. Each MUST record revoked_at, revoked_by and the reason given, keep the record, and audit it as work_authorisation_revoke. Nothing un-revokes an authorisation
+        - OperatorDelete MUST revoke no work authorisation, and MUST name in its audit entry each live one the removed operator made or last renewed
+        - A verified POST /v1/rotate-key MUST replace the rotating component's identity id with its new one in every authorisation that names it as owner or actor, auditing each as work_authorisation_rekey
+        - A registration token, a pass and a work pass MUST NOT make, renew or widen an authorisation
     - name: token-exchange
       description: Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component
       required: true
@@ -1570,13 +1654,14 @@ one count ([`architecture/admin`](admin.md#contracts),
 ```
 1. Check Authorization header for "Bearer <token>"
 2. If no header, check request body for "token" field — except on
-   TokenExchange and every /v1/admin/* route, whose token is read from the
-   header alone
+   TokenExchange, WorkExchange and every /v1/admin/* route, whose token is
+   read from the header alone
 3. Verify token against orchestrator's signing key
 4. Check expiry
-5. Refuse a token whose type is "pass" with PASS_AUDIENCE_MISMATCH, on every
-   route, and log it as a security event: this orchestrator is the audience
-   of no pass (protocol/identity, The pass). Refuse a token whose type is
+5. Refuse a token whose type is "pass" or "work" with PASS_AUDIENCE_MISMATCH,
+   on every route, and log it as a security event: this orchestrator is the
+   audience of no pass and no work pass (protocol/identity, The pass and The
+   work pass). Refuse a token whose type is
    "attestation" with CREDENTIAL_REQUIRED, on every route but
    CredentialAttest. On CredentialAttest, refuse it with
    OPERATOR_SUBJECT_MISMATCH unless its sub is the operator the path names
@@ -1691,6 +1776,65 @@ once, before the component is reached.
 
 ---
 
+## Work Exchange (POST /v1/token/work)
+
+Work nobody is present for runs on its definition's owner's authority, as far
+as a person allowed it, and is carried to each component on a work pass
+([`protocol/identity`](../protocol/identity.md#the-work-pass)). This
+orchestrator holds the record a work pass rests on, the work authorisation,
+and is the one party that mints work passes, as it is the one that mints
+passes.
+
+```
+POST /v1/token/work
+Authorization: Bearer <the actor's own registration token>
+{ "authorisation": "<work authorisation id>",
+  "audience": "<identity id of the component the request goes to>",
+  "scope": ["content:propose"],
+  "run": "<the run's id>" }
+
+200 { "issued": true, "pass": "<WLT, type work>", "expires_at": "2024-04-03T16:00:30.000Z", "capabilities": ["content:propose"] }
+200 { "issued": false, "code": "WORK_AUTHORISATION_EXPIRED" }
+```
+
+`work-exchange` and `work-authorisation` in [Contracts](#contracts) are the
+rules. The body is a `WorkExchangeRequest` and the answer a
+`WorkExchangeResponse`, both [`protocol/types`](../protocol/types.md#workexchangerequest)'s.
+Its shape follows the token exchange's: the actor, authenticated by its own
+registration token, asks, and what it asks under is a record this orchestrator
+holds rather than a token presented to it.
+
+**A person makes the authorisation; nothing else can.** A person's client asks
+for it at `POST /v1/admin/work-authorisations`, on the person's own token,
+through the admin gateway, after the owner has installed the definitions it
+covers and before any of them can run. The person sees each definition's
+ceiling and the actors before they allow it
+([`architecture/admin`](admin.md#work-authorisations)). A definition installed
+with no authorisation is the owner's to report as not authorised, never as
+running.
+
+**Each answer about the authorisation is a 200**, so a status other than 200
+judged the actor's own request, and the actor reports the run it could not
+carry out by the code it was given: an expired authorisation is renewed by a
+person, a revoked one is not, and an unregistered owner is a component to
+start.
+
+**A rotation carries the authorisations with it.** A component's identity id
+is the fingerprint of its current key ([`protocol/spec`](../protocol/spec.md#post-v1rotate-key)),
+so a key rotation would otherwise orphan every authorisation that names it.
+The rotation is signed by the old key and the new one, which is continuity
+enough to rename the component in each authorisation, and each renaming is
+audited. A component that registers afresh under a new key has no such proof,
+and no authorisation names it.
+
+**Removing a person stops none of their authorisations.** The authority used
+was never theirs. `OperatorDelete` names each live authorisation the person
+made in its audit entry, and `WorkAuthorisationList` filters by
+`authorised_by`, so the work they allowed is surfaced for another person to
+renew or revoke.
+
+---
+
 ## System Events
 
 The orchestrator owns the `system.*` namespace and publishes lifecycle
@@ -1753,6 +1897,11 @@ Every operation creates an AuditEntry:
 | `model_agreement_withdraw` | A model provider agreement withdrawn |
 | `model_set` | The tenant's model configuration about to be changed, before and after |
 | `model_complete` | A completion: what it will ask, before anything else, and what ran, when it ends |
+| `work_authorise` | A work authorisation made, by whom, for which owner, definition, actors and capabilities, until when |
+| `work_authorisation_renew` | A work authorisation's `not_after` moved, by whom |
+| `work_authorisation_revoke` | A work authorisation revoked, by which person or owner, and why |
+| `work_authorisation_rekey` | A component's identity id replaced in a work authorisation after its key rotation |
+| `work_exchange` | A work pass asked for: the authorisation, the run, the actor, the audience and what was minted, or the code it was refused with |
 
 Each entry is persisted to append-only flat-file storage (JSONL), which is the
 record, and echoed to standard output as one log line whose `log_type` is
@@ -1820,6 +1969,9 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
   1-hour TTL. Expired channels cleaned up periodically.
 - **Audit Log** — Append-only flat-file (JSONL). In-memory buffer for
   recent entries, flushed periodically.
+- **Work Authorisations** — Map of id → `WorkAuthorisation`, persisted, with
+  revoked ones kept and no id reused ([Work Exchange](#work-exchange-post-v1tokenwork)).
+  Nothing about a work pass is stored: each is minted and forgotten.
 
 ---
 
@@ -2257,7 +2409,14 @@ agents hold, which is theirs.
 - [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`)
 - [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [Contracts](#contracts), `token-exchange`)
 - [ ] Every exchange is audited, refused or not, with the person's identity id, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`)
-- [ ] A pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5)
+- [ ] A pass or a work pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5)
+- [ ] `POST /v1/token/work` admits only a live registration token whose registration declares `work:exchange`, answers `WORK_AUTHORISATION_UNKNOWN` alike for an unknown authorisation and one that does not name the caller, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED` and `WORK_OWNER_UNREGISTERED` as their rule says, each in a 200 with `issued: false` ([Contracts](#contracts), `work-exchange`)
+- [ ] A work pass's `cap` is the intersection of `scope`, the authorisation's `capabilities` and what the owner's, the actor's and the audience's manifests declare; an empty intersection mints nothing and answers `FORBIDDEN`, except for a work pass addressed to the authorisation's owner, which is minted with an empty `cap` ([Contracts](#contracts), `work-exchange`)
+- [ ] A work pass carries `type` `work`, the audience as `aud`, the owner as `sub` and `identity_id`, the actor as `act`, the authorisation as `cid`, its `definition` and the request's `run`, expires no more than 30 seconds after it was issued, and carries no `identity_key`, `record_keys`, `step_up_at` or `role` ([Contracts](#contracts), `work-exchange`; [`protocol/identity`](../protocol/identity.md#the-work-pass))
+- [ ] `POST /v1/admin/work-authorisations` admits only a person's operator token able to use `work:authorise`, refuses a capability the person may not use with `FORBIDDEN`, a person-only one with `CAPABILITY_PERSON_ONLY`, an admin or exchange capability with `INVALID_REQUEST`, a `not_after` more than 90 days ahead with `INVALID_REQUEST`, and makes none of a request any part of which is refused ([Contracts](#contracts), `work-authorisation`)
+- [ ] A registration token, a pass and a work pass cannot make, renew or widen a work authorisation; an owner's registration can revoke one naming it as owner at `DELETE /v1/work/authorisations/{id}`, and any other caller is refused with `FORBIDDEN` ([Contracts](#contracts), `work-authorisation`; [Endpoints](#endpoints))
+- [ ] `OperatorDelete` revokes no work authorisation and names each live one the removed operator made in its audit entry, and a verified key rotation renames the component in every authorisation naming it ([Contracts](#contracts), `work-authorisation`)
+- [ ] Every work exchange and every making, renewal, revocation and renaming of a work authorisation is audited with the action [Audit Actions](#audit-actions) names for it ([Contracts](#contracts), `work-exchange`, `work-authorisation`)
 - [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered ([Auth Middleware](#auth-middleware) step 6)
 - [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it ([Auth Middleware](#auth-middleware) step 6)
 - [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key` ([Auth Middleware](#auth-middleware) step 6)

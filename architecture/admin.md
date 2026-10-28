@@ -1395,11 +1395,11 @@ contracts:
         # <!-- wl:id operator-role-admin-family -->
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
         # <!-- wl:id capability-roles-table -->
-        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit` and `work:authorise` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         # <!-- wl:id admin-wildcard-excludes -->
-        - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit`, which are outside the `admin` family
+        - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit` or `work:authorise`, which are outside the `admin` family
         # <!-- wl:id every-capability-held -->
-        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use or telemetry:push
+        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use, telemetry:push or work:exchange (protocol/types, Work capabilities)
         # <!-- wl:id last-admin-kept -->
         - The last active admin MUST NOT be removable or demotable
         # <!-- wl:id role-change-audited -->
@@ -1831,7 +1831,8 @@ POST /v1/admin/credentials/token
                    "content:propose", "content:decide", "content:reconcile",
                    "programme:read", "programme:install",
                    "programme:operate", "programme:switch",
-                   "integration:read", "fabric:read", "fabric:attest"],
+                   "integration:read", "fabric:read", "fabric:attest",
+                   "work:authorise"],
   "not_after": "2024-05-03T16:00:00.000Z"
 }
 ```
@@ -2172,8 +2173,8 @@ a failed registration. <!-- wl:id operators-list-pending -->
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke` and `scope:admit` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, and admit a component's operational scope. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes, and confirm or reject relationships |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit` and `work:authorise` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, and authorise work that runs with nobody present. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest`, `work:authorise` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, and confirm or reject relationships |
 | **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only plus full audit log access with export capability |
 
@@ -2216,6 +2217,15 @@ not carry them, and this table gives them to `admin` alone. The roles carrying
 time. `integration:use`, `telemetry:push` and `token:exchange` are a
 component's, and no role carries them.
 
+`work:authorise` lets a person allow a component's definition to run with
+nobody present, under that component's authority and within capabilities the
+person may use themselves ([`protocol/identity`](../protocol/identity.md#the-work-pass)).
+`operator` carries it with the `programme:` family, because installing a
+programme's standing work and allowing it to run are one piece of day-to-day
+work. It is outside the `admin` family, so `admin:*` does not carry it, and
+this table gives it to `admin` explicitly. `work:exchange` is a component's,
+and no role carries it.
+
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):
 only a person confirms or rejects a relationship, so this table is the one way
@@ -2255,7 +2265,7 @@ Operator tokens use the same WLT format as agent tokens, with the `cid`,
           "content:propose", "content:decide", "content:reconcile",
           "programme:read", "programme:install", "programme:operate",
           "programme:switch", "integration:read",
-          "fabric:read", "fabric:attest"],
+          "fabric:read", "fabric:attest", "work:authorise"],
   "cid": "<id of the credential that obtained it>",
   "identity_id": "<alice's identity id at this hub>",
   "record_keys": [],
@@ -2414,6 +2424,7 @@ presents a token it received
 | Operator management | Orchestrator | always — it is the trust anchor and holds operator records |
 | Agent management | Orchestrator | always |
 | Audit | Orchestrator | always |
+| Work authorisations | Orchestrator, which mints every work pass ([Work Authorisations](#work-authorisations)) | always |
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
 | Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a `PassRoute` can name the inbox group a route answers, with an owner that cannot be asked reported absent. None can yet, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
@@ -2505,6 +2516,37 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 | `/v1/admin/operators/{name}` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked. After step-up (`destructive-action-step-up`) |
 | `/v1/admin/operators/{name}/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*). After step-up |
 | `/v1/admin/operators/{name}/role` | PUT | admin | Change operator role. After step-up |
+
+### Work Authorisations
+
+Work nobody is present for, such as a programme's schedule or a workflow an
+event starts, runs on its definition's owner's authority, carried to each
+component on a work pass, under a work authorisation a person made
+([`protocol/identity`](../protocol/identity.md#the-work-pass)). The
+orchestrator holds the authorisations and serves these routes itself; the
+operations and the rules are
+[`architecture/orchestrator`](orchestrator.md#work-exchange-post-v1tokenwork)'s
+`work-authorisation`, not restated here.
+
+| Path | Method | Role | Purpose |
+|------|--------|------|---------|
+| `/v1/admin/work-authorisations` | POST | operator+ | Allow one owner's definitions to run unattended, each within a ceiling of capabilities the person may use themselves, for named actors, until a `not_after` at most 90 days ahead |
+| `/v1/admin/work-authorisations` | GET | viewer+ | Every authorisation, revoked and expired ones included, filterable by `owner`, `actor` and `authorised_by` |
+| `/v1/admin/work-authorisations/{id}/renew` | POST | operator+ | Move its `not_after`, judged against the renewing person as at its making |
+| `/v1/admin/work-authorisations/{id}` | DELETE | the person who made or last renewed it, or admin | Revoke it, with a reason |
+
+**A client offers the authorisation as part of installing.** A person's client
+that installs a programme's operations and workflows
+([`architecture/programme-service`](programme-service.md#installing)) shows the
+person each installed definition, its ceiling as capability names and the
+actors that would run it, and asks for the authorisation in the same act. A
+definition left unauthorised installs and does not run, and its owner reports
+it as not authorised.
+
+**Allowing is not lending.** The person's authority is the ceiling's upper
+bound and nothing more: the work runs on the owner's, and the person is
+recorded as who allowed it. Removing that person stops none of it; it is
+surfaced instead, for another person to renew or revoke.
 
 ### System Overview
 
@@ -3333,6 +3375,7 @@ The rest SHOULD be:
 - [ ] Every capability this document names for a person's token is carried by at least one role in the Operator Roles table, and no role carries `token:exchange`, so no operator token's `cap` reaches it whatever it names ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check every-capability-in-a-role covers every-capability-held -->
 - [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check fabric-by-role covers capability-roles-table -->
 - [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check replicate-by-role covers capability-roles-table -->
+- [ ] An `admin` or `operator` token carries `work:authorise`, a `viewer` or `auditor` token does not, and no role carries `work:exchange` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`)
 - [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check declassify-by-role covers capability-roles-table -->
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after` ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-removal covers console-removal-deletes-keys console-removal-reports -->
 
@@ -3408,7 +3451,7 @@ The rest SHOULD be:
 - [ ] A change of identity key for an operator with no record is refused with `OPERATOR_UNKNOWN`, and one over another hub's `hub_id` with `CREDENTIAL_FOREIGN_HUB`, logged as a security event ([Contracts](#contracts), `operator-key-change`) <!-- wl:check key-change-unknown-or-foreign covers key-change-unknown key-change-foreign-hub -->
 - [ ] The answer to a change of identity key carries the operator record, its `identity_id` and `hub_id` and no token, and the change is audited with the operator's identity id and both keys' fingerprints ([Contracts](#contracts), `operator-key-change`) <!-- wl:check key-change-answered covers key-change-answer key-change-audited -->
 - [ ] A console holds one credential per account per hub, whose key it generated and had attested through the CLI, asks for a `not_after` 30 days ahead unless the person chooses another within 90, and warns when fewer than 7 days remain ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-credential-made covers console-credential-per-account console-credential-lifetime -->
-- [ ] A role carrying `admin:*` does not thereby carry `model:attest`, `telemetry:read`, `action:invoke` or `scope:admit` ([Contracts](#contracts), `operator-roles`) <!-- wl:check admin-wildcard-bounded covers admin-wildcard-excludes -->
+- [ ] A role carrying `admin:*` does not thereby carry `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit` or `work:authorise` ([Contracts](#contracts), `operator-roles`) <!-- wl:check admin-wildcard-bounded covers admin-wildcard-excludes -->
 - [ ] Removing or demoting the last active admin is refused, and every role change is audited with the previous and new role ([Contracts](#contracts), `operator-roles`) <!-- wl:check last-admin-protected covers last-admin-kept role-change-audited -->
 - [ ] A client that registers reads the answer's `status`, asks for an attestation token only for an approved operator, and reports a pending registration as pending, never as connected ([The registration response](#the-registration-response)) <!-- wl:check registration-status-read covers client-reads-status -->
 - [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator, and the `jti` records are shared by every instance answering for the hub ([Store: Operators](#store-operators), [Store: Credentials](#store-credentials) and [Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
