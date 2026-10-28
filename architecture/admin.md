@@ -788,7 +788,15 @@ gateway. The command that stands the gateway up makes the key, on the
 gateway's host, before the orchestrator first starts, keeps it at
 `.weblisk/keys/admin-gateway.key`, and writes its fingerprint
 ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) to
-`orchestrator.admin_gateway_identity`. The key is still the gateway's own, as
+`orchestrator.admin_gateway_identity`. Where `admin_gateway.key_passphrase`
+is set ([`schemas/config`](../schemas/config.md#service-key-passphrases)),
+the key is written `kdf = argon2id` under the passphrase that source returns,
+and the command refuses, writing no key, where the source does not answer: a
+key it fell back to writing `kdf = none` would be one production may not run
+([`protocol/identity`](../protocol/identity.md#key-categories) rules 2 and 3).
+Unset, it is written `kdf = none`. Either way the public key is written beside
+it as `.weblisk/keys/admin-gateway.pub`, which holds nothing secret, so the
+fingerprint is read again without the passphrase. <!-- wl:id gateway-key-encrypted-when-declared --> The key is still the gateway's own, as
 [`protocol/identity`](../protocol/identity.md)'s trust model asks: it is made
 where the gateway runs and leaves nowhere. It is made by the command and not
 the process so that it can be declared before the orchestrator starts. The
@@ -3414,6 +3422,7 @@ The rest SHOULD be:
 - [ ] Started with its registration key or its TLS key readable or writable by its group or by other accounts, the admin gateway refuses to run and names the file, for a key the operator supplied as for one the CLI made ([Registration, lease and identity](#registration-lease-and-identity)) <!-- wl:check gateway-open-key-refused covers gateway-refuses-open-key -->
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake ([Certificate](#certificate); [Two listeners](#two-listeners)) <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->
+- [ ] With `admin_gateway.key_passphrase` set, `weblisk component admin init` writes the registration key `kdf = argon2id` under the passphrase the source returns and `admin-gateway.pub` beside it, and with a source that does not answer writes no key; unset, it writes `kdf = none`; either way the fingerprint written to `orchestrator.admin_gateway_identity` is the `.pub`'s ([Registration, lease and identity](#registration-lease-and-identity), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check gateway-key-encrypted covers gateway-key-encrypted-when-declared -->
 - [ ] `weblisk tenant create` and `weblisk component admin init` leave `.weblisk/keys/` mode 0700 and `admin-gateway.key` and `admin-gateway-tls.key` mode 0600, with the tenant's `.gitignore` excluding `.weblisk/keys/`; run in a tenant whose `.gitignore` lacks that entry they add it before writing either key, and given a `tls_key` inside the tenant's tree that no `.gitignore` entry excludes they refuse, writing neither key ([Registration, lease and identity](#registration-lease-and-identity)) <!-- wl:check gateway-keys-mode covers gateway-keys-kept -->
 - [ ] With `admin_gateway.tls_cert` and `tls_key` set, the CLI makes, renews and replaces no certificate or key: `weblisk server start` serves the configured certificate with fewer than 30 days left unchanged, and a missing configured file is reported, not made ([Certificate](#certificate)) <!-- wl:check given-certificate-kept covers given-certificate-served -->
 - [ ] The admin gateway registers with the key whose fingerprint is `orchestrator.admin_gateway_identity`; started with any other key, its registration is refused `CAPABILITY_GATEWAY_ONLY`, as [`protocol/types`](../protocol/types.md#capability) refuses a capability it marks admin gateway only, and it exchanges nothing <!-- wl:check gateway-declared-key covers gateway-registers-declared-key -->

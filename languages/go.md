@@ -578,6 +578,20 @@ abstract storage interface.
 - Apply `user_version` pragma for schema migrations.
 - Schema creation on first open (CREATE TABLE IF NOT EXISTS).
 
+### Injected Passphrase
+
+The channel [`protocol/identity`](../protocol/identity.md#encryption-scheme)
+leaves to the platform. A service whose key file is `kdf = argon2id` reads its
+passphrase once, at start and before it binds a port, as one line from
+standard input, ended by a line feed or by the end of input, of at most
+1024 bytes, within 10 seconds; it then closes standard input and zeroises the
+passphrase once the key is open. No line, a longer one, or one that does not
+open the key is `identity.key_decrypt_failed` and exit code 2
+([`protocol/identity`](../protocol/identity.md#key-categories) rule 5). A key with `kdf = none` reads nothing from standard input, and
+outside `WL_DEV=1` is refused (rule 6). Nothing reads a passphrase from an
+argument, an environment variable or a terminal prompt. [`architecture/cli`](../architecture/cli.md#weblisk-server-start)
+is what writes that line.
+
 ### Development Mode
 
 When `WL_DEV=1` is set, storage MAY fall back to in-memory maps

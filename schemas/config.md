@@ -28,6 +28,7 @@ orchestrator:
   admin_addresses: list[string]    # Origins the admin gateway is reached at; at least one (rule 20)
   admin_gateway_from: list[string] # Addresses the admin gateway's requests reach the orchestrator from (default: [])
   admin_gateway_identity: string   # Fingerprint of the admin gateway's registration key; token:exchange is admitted for it alone
+  key_passphrase: string           # Where its service key's passphrase is held: <source>:<reference>; never a secret (rule 23)
 
 # Required — the admin gateway, the tenant's one door for people
 admin_gateway:
@@ -38,6 +39,7 @@ admin_gateway:
   tls_key: string                  # Its key's path (default: .weblisk/keys/admin-gateway-tls.key)
   allowlist: list[string]          # Addresses and CIDR ranges people may connect from (default: [127.0.0.1, ::1])
   orchestrator: string             # The orchestrator address it registers at (default: http://127.0.0.1:<orchestrator.port>)
+  key_passphrase: string           # Where its registration key's passphrase is held: <source>:<reference> (rule 23)
 
 # Required — gateway configuration
 gateway:
@@ -64,10 +66,12 @@ agents:
     port: integer                  # Listen port (9710–9749 for work, 9750–9799 for infra)
     replicas: integer              # Instance count (default: 1)
     env: map[string, string]       # Added to the CLI's clean start environment; never a secret (rule 16)
+    key_passphrase: string         # Where its service key's passphrase is held: <source>:<reference> (rule 23)
 
 # Optional — the content service and its repositories
 content:
   port: integer                    # Listen port (default: 9802)
+  key_passphrase: string           # Where its service key's passphrase is held: <source>:<reference> (rule 23)
   backends:                        # Stores this hub can reach. A placement names one
     - name: string                 # Backend name (lowercase, alphanumeric + hyphens)
       driver: string               # Driver name the specifying blueprint declares,
@@ -262,6 +266,20 @@ service's API after reading a census of what would leave
 | `trace_sample_rate` | float | no | `1.0` | Fraction of traces sampled, applied only where a trace starts |
 | `metrics_enabled` | boolean | no | `true` | Expose structured metrics at `/metrics` on each component |
 | `trace_export_endpoint` | string | no | — | Send traces/metrics to an external collector |
+
+## Service key passphrases
+
+`key_passphrase`, on `orchestrator`, `admin_gateway`, `content` and each
+`agents[]` entry, names where that component's service key passphrase is held,
+as a secret source reference in the flag form
+`<source>:<reference>` ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference)).
+It is never the passphrase: the value is a pointer, and may be committed,
+logged and printed. Absent, the component's key is `kdf = none`, which
+[`protocol/identity`](../protocol/identity.md#key-categories) rule 6 confines
+to development. Set, the key is `kdf = argon2id` under the passphrase the
+source returns, and [`architecture/cli`](../architecture/cli.md#weblisk-server-start)
+says how it reaches the component when it starts. Several components may name
+one reference; one passphrase then opens each of their keys.
 
 ## Port Conventions
 
@@ -473,3 +491,4 @@ gateway set it, and no process runs there that the operator does not trust.
 20. `admin_gateway` is present, `orchestrator.admin_addresses` names at least one origin, every one of them `https`, at a loopback address too (a client sends people's registrations, attestations and tokens there, and refuses any other scheme: [`architecture/admin`](../architecture/admin.md#certificate), `client-pins-gateway-key`), and `orchestrator.admin_gateway_identity` is a fingerprint: 64 lowercase hexadecimal characters
 21. A set `admin_gateway.tls_key` names a path outside the tenant's tree, or one inside it that an entry of the tenant's `.gitignore` excludes, such as any under `.weblisk/keys/`. Judged from the file, without asking git ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity), `gateway-keys-kept`)
 22. `admin_gateway.internal_address` is an absolute URL with no path, query or fragment, and is `https` unless its host is a loopback IP literal, as rule 19 says. Where `admin_gateway.orchestrator` names a host that is not a loopback address, `internal_address` is set and its host is not a loopback address: an orchestrator on another host cannot reach the gateway at the gateway's loopback
+23. Every `key_passphrase` is `<source>:<reference>` with a non-empty reference and a source name that matches `[a-z0-9][a-z0-9-]*` ([`protocol/secret-source`](../protocol/secret-source.md#conventions)); a `file:` reference names an absolute path; `fd:` is refused, because the CLI starting a component inherits no descriptor to name. Judged from the file, without asking any source

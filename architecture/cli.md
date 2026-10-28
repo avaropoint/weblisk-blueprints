@@ -1499,6 +1499,23 @@ that omits the door means.
 - **Named, not skipped.** A declared component that has not been generated is
   reported with the command that generates it, the rest start, and the command
   exits non-zero. A tenant running less than it declares is not started.
+- **Passphrase.** A component whose section names `key_passphrase`
+  ([`schemas/config`](../schemas/config.md#service-key-passphrases)) is given
+  its key's passphrase on its standard input when it starts, as one line ended
+  by a line feed, and its standard input is then closed. The CLI gets it from
+  the named source with `get` — `field: "passphrase"` where the source lists
+  `named_fields`, and no field otherwise
+  ([`protocol/secret-source`](../protocol/secret-source.md#actions)) — once for
+  each distinct reference, before anything starts, so a source that asks a
+  person asks once. It is never placed in an argument, an environment variable
+  or a file, and is zeroised once every component that needed it has read it
+  ([`protocol/identity`](../protocol/identity.md#key-categories) rules 4, 9 and
+  10). A source that does not answer refuses the start whole, as above,
+  reported as [`protocol/secret-source`](../protocol/secret-source.md#reporting-a-source-that-did-not-answer)
+  says; nothing is started with a passphrase missing. A component with no
+  `key_passphrase` is given nothing on its standard input. The same holds for
+  every start of a component this document lists under
+  [A component starts with a clean environment](#a-component-starts-with-a-clean-environment). <!-- wl:id start-injects-passphrase -->
 - **Clean.** Each component, the orchestrator first among them, starts with
   the environment [A component starts with a clean
   environment](#a-component-starts-with-a-clean-environment) gives it and
@@ -3824,6 +3841,7 @@ security:
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree ([`weblisk component <name> init`](#weblisk-component-name-init), [`architecture/generation`](generation.md#a-repair-round-is-a-transaction))
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation ([`weblisk server init`](#weblisk-server-init))
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components ([`weblisk server start`](#weblisk-server-start))
+- [ ] A component whose section names `key_passphrase` receives the passphrase the named source returns as one line on its standard input, and in no argument, environment variable or file; one reference is asked once for every component naming it; a source that does not answer starts nothing; a component with no `key_passphrase` receives nothing on its standard input ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check start-passphrase-stdin covers start-injects-passphrase -->
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything ([`weblisk server start`](#weblisk-server-start))
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last ([`weblisk server start`](#weblisk-server-start))
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs))
