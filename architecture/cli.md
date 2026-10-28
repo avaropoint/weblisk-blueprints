@@ -1089,10 +1089,27 @@ program, as npm is, may add its own (a start through npm, below):
    address, which the component registers with, passed as well as `--orch`
    in its arguments, so a component reading either finds it
    ([`languages/go`](../languages/go.md#environment-variables)). Where none
-   is named or running, neither `WL_ORCH_URL` nor `--orch` is set, on a real
-   start and on a build's own runs alike: the component starts without one,
-   as [`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)
-   says, and a conformance run of a tree alone is such a start. And, on a
+   is named or running, neither `WL_ORCH_URL` nor `--orch` is set on a real
+   start: the component starts without one, as
+   [`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)
+   says. A conformance run of a tree alone names no real orchestrator
+   either, and for a component that, given none, registers with none, it is
+   such a start. A component whose configuration gives the address it
+   registers at a default, as
+   [`schemas/config`](../schemas/config.md#schema-definition) gives
+   `admin_gateway.orchestrator` one, has an orchestrator even when none is
+   named: started with neither, it registers at that default, which on the
+   host a tenant is built on is the tenant's own, and a build's test run
+   would hold a namespace the tenant's real component is then refused. On a
+   build's own runs, such a component, with no orchestrator of the run's
+   own, is given in both `WL_ORCH_URL` and `--orch` a loopback address the
+   CLI binds for the length of the run, holds until the component has
+   exited, and answers no request at, closing each connection, so what the
+   component meets is the transport failure its default gives it where no
+   orchestrator runs and never the tenant's orchestrator. A component that
+   registers with none is given no such address: its registration would
+   fail, which [`languages/go`](../languages/go.md#error-handling) makes
+   fatal, and it would exit before it was tested. And, on a
    build's own runs only, `WL_DEV=1`, which starts a fresh component with no
    persistent store and has it say so. That one value is the only difference
    between a tested start's environment and a real one's. A tested start
@@ -3804,7 +3821,8 @@ security:
 - [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition
-- [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike
+- [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike, except as the next line says
+- [ ] On each of a build's own runs with no orchestrator of the run's own, a component whose configuration gives its orchestrator address a default is given `WL_ORCH_URL` and `--orch` as item 2 of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) says, and an orchestrator listening at that default receives no request from it; a component with no such default is given neither
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*`
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret
 - [ ] Each of a build's own runs of a component — the conformance run and the interoperability run, repair rounds included — starts it in an empty working directory made for that run and removed after it, never the tenant's root, and after the run the tenant's root holds nothing the run wrote
