@@ -94,8 +94,9 @@ operations:
     title: Escalated work, and whether escalation is working
     agent: >
       Report on the health-and-safety work that has escalated in this project.
-      Read what is due from the tenant's programme service and the obligation
-      registers it names. For each occurrence that has passed its declared
+      Read the escalations this run was started on, where it was started on
+      any, and the obligation registers, which show what is still open past
+      its grace. For each occurrence that has passed its declared
       grace and become another position's problem, say what the activity was,
       which position it belonged to, which position it escalated to, and how
       many days late it is now.

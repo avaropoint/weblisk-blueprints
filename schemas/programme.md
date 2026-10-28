@@ -1437,9 +1437,9 @@ table, [Events it publishes](../architecture/programme-service.md#events-it-publ
 which also says when each fires. The words here are what an author writes;
 `attestation` is published as `obligation.attested`, an occurrence's record
 first standing attested, and `adopted` as `programme.adopted`. Every other word
-is its own topic. The programme service also decides every start on a fact —
-an `on:`, a `when:`, a `for:` and `adopted` — and asks execution to run the
-item, so execution keeps only the clocks
+is its own topic. Every start on a fact —
+an `on:`, a `when:`, a `for:` and `adopted` — is registered by the
+programme service at execution, which holds it and fires it
 ([Starting on a fact](../architecture/programme-service.md#starting-on-a-fact)).
 
 `register.row_added` is **not** in it, and may only be *counted* — see `when:`.
@@ -1566,8 +1566,10 @@ specifies the part these blocks reach: the programme service's routes and
 capabilities, who may do what and on which token, what it hands execution,
 notification and the prompt worker, and how a decision reaches the admin
 gateway's one inbox, and [`architecture/execution`](../architecture/execution.md)
-specifies execution. **No tenant runs either yet, and notification, the
-prompt worker and the model service are not specified**
+specifies execution, [`architecture/notification`](../architecture/notification.md)
+notification and [`architecture/prompt-worker`](../architecture/prompt-worker.md)
+the prompt worker. **No tenant runs any of them yet, and the model service is
+not specified here**
 ([Known Gaps](../architecture/programme-service.md#known-gaps)). A tenant today
 runs none of them, so adopting can create documents and nothing else. An adoption reports every block it could not hand to its
 owner, by name, with the service that is missing — never a smaller programme
@@ -1867,9 +1869,9 @@ in the tenant, and which blueprint that service is built from:
 |---|---|---|
 | any file at all: specs, forms, registers, `skills` | content | [`architecture/content`](../architecture/content.md) |
 | a `declares.obligation`, an `operations`, `workflows` or `notices` entry | the programme service, which answers what is due — occurrences, escalation, readiness — publishes the facts `on:`, `when:` and `for:` name, and runs every `does:` | [`architecture/programme-service`](../architecture/programme-service.md) |
-| an `operations` or `workflows` entry | execution, which fires the clocks and holds the runs, waits and timers | `architecture/execution` |
-| a `notices` entry; an obligation with a `responsible` or an `escalate.to`; a workflow step with a `task` or an `approval` | notification, which tells each position's holders their own way | `architecture/notification` |
-| an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | `architecture/prompt-worker`, `architecture/model-service` |
+| an `operations` or `workflows` entry | execution, which holds and fires every start and holds the runs, waits and timers | [`architecture/execution`](../architecture/execution.md) |
+| a `notices` entry; an obligation with a `responsible` or an `escalate.to`; a workflow step with a `task` or an `approval` | notification, which tells each position's holders their own way | [`architecture/notification`](../architecture/notification.md) |
+| an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | [`architecture/prompt-worker`](../architecture/prompt-worker.md), `architecture/model-service` |
 | a `domain_services` entry | that domain controller | the programme's `domains/<id>.md`, under [`architecture/domain`](../architecture/domain.md) |
 | a `depends_on` entry | that published agent | `agents/<agent>.md` ([below](#depends_on--published-agents-a-programme-relies-on)) |
 | a position named anywhere — `approved_by`, `responsible`, `approvers`, `escalate.to`, a notice's `to` | the register of who holds each position, in content | [`schemas/position`](position.md) |
@@ -1887,10 +1889,10 @@ needs running first. A build plan is ordered by it.
 | 1 | `orchestrator` | [`architecture/orchestrator`](../architecture/orchestrator.md) | — |
 | 2 | `admin` | [`architecture/admin`](../architecture/admin.md) | `orchestrator` |
 | 3 | `content` | [`architecture/content`](../architecture/content.md) | `orchestrator` |
-| 4 | `execution` | `architecture/execution` | `orchestrator` |
-| 5 | `notification` | `architecture/notification` | `orchestrator`, `content` |
+| 4 | `execution` | [`architecture/execution`](../architecture/execution.md) | `orchestrator` |
+| 5 | `notification` | [`architecture/notification`](../architecture/notification.md) | `orchestrator`, `content` |
 | 6 | `model-service` | `architecture/model-service` | `orchestrator` |
-| 7 | `prompt-worker` | `architecture/prompt-worker` | `execution`, `model-service`, `content` |
+| 7 | `prompt-worker` | [`architecture/prompt-worker`](../architecture/prompt-worker.md) | `execution`, `model-service`, `content` |
 | 8 | `programme-service` | [`architecture/programme-service`](../architecture/programme-service.md) | `content`, `execution`, `notification` |
 | — | a domain service | the programme's `domains/<id>.md` | `execution`, and every agent its blueprint names in `depends_on` |
 | — | a published agent | `agents/<agent>.md` | every agent its blueprint names in `depends_on` |

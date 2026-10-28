@@ -2,7 +2,7 @@
 type: architecture
 name: programme-service
 version: 2.0.0
-requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin]
+requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/prompt-worker]
 platform: any
 tier: free
 adoption: opt-in
@@ -27,10 +27,10 @@ the work to:
 
 | what | held by | run or delivered by | specified |
 |---|---|---|---|
-| an installed operation | the programme service | execution fires its clock; the programme service decides every start on a fact | here, [Endpoints](#endpoints), [Starting on a fact](#starting-on-a-fact) |
-| an installed workflow definition | the programme service | execution holds its runs, waits and timers | here, and [`patterns/workflow`](../patterns/workflow.md) for the definition |
-| an installed notice | the programme service | notification tells each position's holders, each their own way | here, [Notification](#notification) |
-| an `agent:` instruction | the programme service records it on its operation or step | the prompt worker runs it | here, [The prompt worker](#the-prompt-worker) |
+| an installed operation | the programme service | execution holds its starts — its clock and the facts it reacts to — and runs it; the programme service runs its `does:` | here, [Endpoints](#endpoints), and [`architecture/execution`](execution.md) |
+| an installed workflow definition | the programme service | execution holds its starts, runs, waits and timers | here, [`patterns/workflow`](../patterns/workflow.md) for the definition, and [`architecture/execution`](execution.md) |
+| an installed notice | the programme service | notification tells each position's holders, each their own way | here, [Notification](#notification), and [`architecture/notification`](notification.md) |
+| an `agent:` instruction | the programme service records it on its operation or step | the prompt worker runs it | here, [The prompt worker](#the-prompt-worker), and [`architecture/prompt-worker`](prompt-worker.md) |
 | an obligation in force, and what it owes | the document that declares it, in content | the programme service answers what is due, and announces what advances | here, [What Is Due](#what-is-due) |
 | a decision a person owes | the owner whose work waits on it | a person, through the admin gateway's one inbox | here, [The decision inbox](#the-decision-inbox) |
 
@@ -42,10 +42,12 @@ handed. The fields a programme author writes, their vocabularies and their
 refusals belong to [`schemas/programme.md`](../schemas/programme.md), and are
 not restated here.
 
-> **Scope boundary.** Execution is the service
-> [`architecture/domain`](domain.md) already names: cron, task and workflow
-> merged into one. Notification, the prompt worker and the model service are
-> each specified in their own blueprint. This document states what each is
+> **Scope boundary.** Execution is [`architecture/execution`](execution.md),
+> the service [`architecture/domain`](domain.md) names: cron, task and
+> workflow merged into one. Notification is
+> [`architecture/notification`](notification.md), the prompt worker
+> [`architecture/prompt-worker`](prompt-worker.md) and the model service
+> `architecture/model-service`. This document states what each is
 > handed, and never how it does its own work. A tenant that does not run one
 > of them is told so by name, item by item ([Installing](#installing)).
 
@@ -106,7 +108,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
-    version: ">=2.0.0 <4.0.0"
+    version: ">=4.0.0 <5.0.0"
     bindings:
       types:
         # What an installed workflow becomes, and what execution answers
@@ -114,7 +116,11 @@ requires:
         - name: WorkflowDefinition
           fields_used: [name, description, trigger, phases]
         - name: WorkflowPhase
-          fields_used: [name, agent, action, input, depends_on, approval]
+          fields_used: [name, agent, action, input, depends_on, approval, approvers, approval_order, task, escalate]
+        - name: WorkflowTask
+          fields_used: [activity, responsible, due]
+        - name: WorkflowEscalation
+          fields_used: [after, to]
         - name: WorkflowExecution
           fields_used: [id, workflow_name, status, phases, started_at, completed_at]
     on_change:
@@ -195,6 +201,64 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  - blueprint: architecture/execution
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # Every installed operation's and workflow's start is registered and
+        # switched at execution, on this service's registration token holding
+        # execution:register: PUT and DELETE /v1/execution/schedules/{schedule},
+        # and its /pause, /resume and /runs (Registering the starts)
+        - name: ScheduleRegistration
+          fields_used: [definition, organisation, project, clock, on, when, for, state, muted]
+        - name: Clock
+          fields_used: [cadence, local_time, weekday, day, timezone]
+        - name: Condition
+          fields_used: [event, where, within, across, count]
+        - name: RecordStart
+          fields_used: [records]
+        - name: Schedule
+          fields_used: [uid, key, state, muted, held, dropped, missed, next_fire]
+        # What an agent: phase's input carries. source and skills are the
+        # prompt worker's (The prompt worker)
+        - name: InstructionTask
+          fields_used: [instruction, needs]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/notification
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # How a notice that advanced, and an occurrence that advanced, are
+        # told: NotifyByPosition, on this service's registration token (Telling)
+        - name: NotifyRequest
+          fields_used: [authorisation, run, organisation, project, notice, positions, says, fact]
+        - name: NoticeRef
+          fields_used: [programme, id]
+        - name: NoticeFact
+          fields_used: [event, occurred_at, obligation, subject, due_at]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/prompt-worker
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # An agent: phase's source and skills, each a file in content. What
+        # each needs: word comes to is stated there, and read, never restated
+        # (What a needs: ceiling comes to)
+        - name: ContentRef
+          fields_used: [repository, path]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -207,7 +271,7 @@ requires:
                   │                    │      │  │
                   │       definitions, │      │  └── content.changed (a register moved)
                   │       clocks,      │      │
-                  │       run once     ▼      │ get_workflow, a does: action
+                  │       starts       ▼      │ get_workflow, a does: action
                   │                  execution ──► prompt worker ──► model service
                   │                    │    (an agent: phase)
           one     │                    │
@@ -218,9 +282,10 @@ requires:
 ```
 
 - **The programme service holds and never runs a definition.** It keeps each
-  installed operation, workflow and notice, with its state. It hands clocks
-  and definitions to execution, and asks execution to run an item once when a
-  fact starts it. It runs its own `does:` actions when execution invokes them.
+  installed operation, workflow and notice, with its state. It registers each
+  operation's and workflow's starts at execution and switches them there, and
+  serves execution the definitions. It runs its own `does:` actions when
+  execution invokes them.
 - **It answers what is due from the documents, never from a table of tasks.**
   Every obligation in force is read from the document that declares it, every
   occurrence is derived from the obligation and the register it records into,
@@ -228,10 +293,11 @@ requires:
   announced, so that nothing is announced twice ([What it keeps](#what-it-keeps)).
 - **It publishes the facts work reacts to**, because it is the one service
   that can see them: an occurrence advancing, a register gaining a row, a
-  counted condition crossing its threshold, a programme being adopted.
-- **Execution runs and never holds a programme.** It fires the clock and keeps
-  every run in its one run ledger ([`architecture/domain`](domain.md),
-  Execution replaces the Workflow and Task agents). It fetches a definition
+  programme being adopted.
+- **Execution runs and never holds a programme.** It holds every start an
+  owner registers — a clock, the facts an `on:` names, a `when:` count, a
+  `for:` register — fires them, and keeps every run in its one run ledger
+  ([`architecture/execution`](execution.md)). It fetches a definition
   from its owner with `get_workflow`, as it fetches a domain's.
 - **Notification tells and never decides who.** It is given positions and a
   message. Who holds a position, and how each holder wants to be told, are
@@ -257,10 +323,10 @@ requires:
 - Running each `does:` action an operation or a workflow phase names, when
   execution invokes it ([The `does:` Actions](#the-does-actions))
 - **What is due**: every obligation in force at an organisation, its
-  occurrences and their states, what is late and whose it is, counted
-  conditions, and readiness ([What Is Due](#what-is-due))
+  occurrences and their states, what is late and whose it is, and
+  readiness ([What Is Due](#what-is-due))
 - Publishing the facts in [Events it publishes](#events-it-publishes), and
-  deciding every start on a fact: an `on:`, a `when:`, a `for:` and `adopted`
+  registering each item's starts at execution
   ([Starting on a fact](#starting-on-a-fact))
 - Deciding when a notice has advanced, and asking notification to tell its
   positions; and telling an obligation's `responsible` and `escalate.to`
@@ -298,7 +364,7 @@ requires:
 | GET | /v1/programme/operations/{id} | GetOperation | yes | `programme:read` | One operation, its declaration as installed, and its changes |
 | POST | /v1/programme/operations/{id}/pause | PauseOperation | yes | `programme:operate` | Stop its clock. On an unmuted operation, a pass only |
 | POST | /v1/programme/operations/{id}/resume | ResumeOperation | yes | `programme:operate` | Start its clock. On an unmuted operation, a pass only |
-| POST | /v1/programme/operations/{id}/runs | RunOperation | yes | `programme:operate` | Ask execution to run it once, now. On an unmuted operation, a pass only |
+| POST | /v1/programme/operations/{id}/runs | RunOperation | yes | `programme:operate` | Run it once, now, from its start at execution. On an unmuted operation, a pass only |
 | POST | /v1/programme/operations/{id}/schedule | RescheduleOperation | yes | `programme:operate` | Set the clock it runs on in place of the map's, body `ItemSchedule`. On an unmuted operation, a pass only ([Rescheduling](#rescheduling)) |
 | DELETE | /v1/programme/operations/{id}/schedule | RestoreOperationSchedule | yes | `programme:operate` | Return it to the map's clock. On an unmuted operation, a pass only |
 | POST | /v1/programme/operations/{id}/mute | MuteOperation | yes | `programme:switch` | Withhold from people everything its runs produce |
@@ -306,7 +372,7 @@ requires:
 | GET | /v1/programme/workflows | ListWorkflows | yes | `programme:read` | Installed workflow definitions in scope, each with its two switches |
 | GET | /v1/programme/workflows/{id} | GetWorkflow | yes | `programme:read` | One definition, as the programme declared it and as execution is given it |
 | POST | /v1/programme/workflows/{id}/pause | PauseWorkflow | yes | `programme:operate` | Start no new run. Runs already started continue. On an unmuted workflow, a pass only |
-| POST | /v1/programme/workflows/{id}/resume | ResumeWorkflow | yes | `programme:operate` | Start runs again, and deliver what was held for it while it was paused. On an unmuted workflow, a pass only |
+| POST | /v1/programme/workflows/{id}/resume | ResumeWorkflow | yes | `programme:operate` | Start runs again; execution delivers what it held while the workflow was paused. On an unmuted workflow, a pass only |
 | POST | /v1/programme/workflows/{id}/schedule | RescheduleWorkflow | yes | `programme:operate` | Set the clock it starts on in place of the map's, body `ItemSchedule`. On an unmuted workflow, a pass only |
 | DELETE | /v1/programme/workflows/{id}/schedule | RestoreWorkflowSchedule | yes | `programme:operate` | Return it to the map's clock. On an unmuted workflow, a pass only |
 | POST | /v1/programme/workflows/{id}/mute | MuteWorkflow | yes | `programme:switch` | Withhold from people everything its runs produce |
@@ -364,17 +430,24 @@ a person's request here only on a route that list declares
 and restore routes of an operation or a workflow also admit a registered
 component's own registration token carrying `programme:operate`, and a work
 pass whose `cap` carries it, while the item is muted
-([Who May Do What](#who-may-do-what), rule 3). The read routes also admit a
-work pass whose `cap` carries `programme:read`, which is how an `agent:`
-instruction under `needs: [read]` reads what is due. Every other route admits
-a pass only. `/v1/message` admits a work pass only
+([Who May Do What](#who-may-do-what), rule 3). Every other route admits a pass
+only. `/v1/message` admits a work pass only
 ([Interfaces](#interfaces)); `/v1/event` and `/v1/services` admit what
 [`patterns/messaging`](../patterns/messaging.md) and
 [`protocol/spec`](../protocol/spec.md#post-v1services) admit there.
 
 The service declares `programme:read`, `programme:install`,
-`programme:operate`, `content:read`, `fabric:read` and `work:exchange` on its
-manifest. It checks `programme:switch` but never holds it, as
+`programme:operate`, `content:read`, `content:describe`, `content:propose`,
+`fabric:read`, `work:exchange`, `execution:register`, `notification:send`,
+`agent:message` and `event:observe` on its manifest. The content and fabric
+names are there because a work pass under an item's authorisation carries
+only what its owner's manifest declares as well
+([`protocol/identity`](../protocol/identity.md#the-work-pass)): without
+`content:propose` no `agent:` item could propose a change, and without
+`content:read` and `content:describe` notification could read no holder.
+`execution:register` registers its starts, `notification:send` asks
+notification to tell, and `event:observe` hears content's events at scope
+`*`. It checks `programme:switch` but never holds it, as
 [`protocol/types`](../protocol/types.md#capability) requires of a person-only
 capability.
 
@@ -400,7 +473,8 @@ This service claims the namespaces `obligation.*`, `register.*` and
 as [`patterns/messaging`](../patterns/messaging.md) `event-publishing` does,
 with `scope` `"*"`. These are the facts a programme's `on:`, `when:` and
 `for:` name ([`schemas/programme`](../schemas/programme.md#on--reacting-to-a-fact-instead-of-to-the-clock)),
-under the topic each word is published as:
+under the topic each word is published as. Execution hears them for the
+starts it holds ([`architecture/execution`](execution.md#interfaces)):
 
 | Topic | The programme's word | Published when | Payload |
 |---|---|---|---|
@@ -409,7 +483,6 @@ under the topic each word is published as:
 | `obligation.escalated` | `obligation.escalated` | An overdue occurrence first passes its obligation's `escalate.after` | `ObligationAdvanced` |
 | `obligation.attested` | `attestation` | An occurrence first reads `attested` | `ObligationAdvanced` |
 | `register.row_added` | `register.row_added` | A row arrives in a register an installed item hears ([Hearing a row](#hearing-a-row)) | `RowAdded` |
-| `programme.condition_met` | — | A `when:` condition crosses its threshold ([Counted conditions](#counted-conditions)) | `ConditionMet` |
 | `programme.adopted` | `adopted` | An installation is first recorded for a programme at an organisation, and not on a repeat | `ProgrammeAdopted` |
 
 A topic is published only from what a sweep or a delivery observed, never from
@@ -433,9 +506,9 @@ reads the entry.
 
 | to | what | how |
 |---|---|---|
-| execution | each operation's and each workflow's clock: the map's `schedule`, or the one a person set ([Rescheduling](#rescheduling)), registered as its start under the item's `uid`. Pausing an item pauses its clock there, so no new run begins. And a request to run an item once, now, with its trigger and input, whenever a person runs it or a fact starts it ([Starting on a fact](#starting-on-a-fact)) | when a start fires, execution runs the definition it fetches with `get_workflow`, as [`architecture/domain`](domain.md) states for any owner's definition. The acts execution answers for a clock, for pausing one and for running once are execution's to name, in its own blueprint, `architecture/execution`; this document states only what each carries |
-| notification | a notice that has advanced: its `says`, its `to` positions, and the fact it is about. And an occurrence that advanced: the obligation's `activity`, the stage, and the `responsible` or `escalate.to` position it is told to | [Notification](#notification) |
-| the prompt worker | nothing directly. An `agent:` phase names the worker as its agent, and execution dispatches it | [The prompt worker](#the-prompt-worker) |
+| execution | each operation's and each workflow's starts, registered with `PUT /v1/execution/schedules/{schedule}` on this service's registration token, paused or running and muted as the item is; switched there with `…/pause`, `…/resume` and `…/runs` and replaced on a mute, unmute or reschedule; withdrawn with `DELETE` ([Starting on a fact](#starting-on-a-fact)) | when a start fires, execution runs the definition it fetches with `get_workflow`, as [`architecture/execution`](execution.md#firing) states for any owner's definition |
+| notification | a notice that has advanced: its `says`, its `to` positions, the fact it is about, and its work authorisation. And an occurrence that advanced: the obligation's `activity`, the stage, the `responsible` or `escalate.to` position it is told to, and the `due-sweep`'s work authorisation | `NotifyByPosition` ([Notification](#notification)) |
+| the prompt worker | nothing directly. An `agent:` phase names the worker as its agent, with the instruction, its `needs:`, the adopted map as `source` and the programme's skills in its `input`, and execution dispatches it | [The prompt worker](#the-prompt-worker) |
 | the orchestrator | nothing but reads. It reads `GET /v1/work/authorisations` for the authorisations that name it as owner, and revokes those of what it withdraws | [Installing](#installing), [Withdrawing](#withdrawing) |
 
 ## Error Handling
@@ -484,9 +557,9 @@ reported `unverifiable` with that reason, never as met and never as missing
    never from the published template. With no adoption record it refuses with
    `PROGRAMME_NOT_ADOPTED`. It installs each operation, workflow and notice
    and mints each a `uid`. Each is paused or running as its `start` says, and
-   every one is muted. A workflow whose `on:` names `adopted` is held one
-   `adopted` delivery ([Starting on a fact](#starting-on-a-fact)).
-4. It hands each clock and definition to execution. It answers every block
+   every one is muted.
+4. It registers each operation's and workflow's starts at execution
+   ([Starting on a fact](#starting-on-a-fact)). It answers every block
    it could not hand to an owner, by name, with the missing service, and the
    build plan, in the order [`schemas/programme`](../schemas/programme.md#adoption-emits-a-build-plan)
    gives, of the services the tenant does not run, read from the service
@@ -506,8 +579,9 @@ reported `unverifiable` with that reason, never as met and never as missing
 
 ### Firing
 
-1. Execution fires a clock, or this service asks it to run an item once, and
-   execution starts a run in its own ledger.
+1. A start fires at execution — a clock, a fact, a count, a row, or a person
+   running the item — and execution starts a run in its own ledger
+   ([`architecture/execution`](execution.md#firing)).
 2. It fetches the definition with `get_workflow`. It dispatches each phase:
    a `does:` phase to this service, and an `agent:` phase to the prompt
    worker.
@@ -518,36 +592,48 @@ reported `unverifiable` with that reason, never as met and never as missing
 
 ### Starting on a fact
 
-**Every start that is not a clock is decided here**, because each needs what
-only this service holds: the facts, which it publishes, and the item's state,
-which it keeps. Execution is asked to run the item once, with the trigger and
-the input below, and never subscribes to a fact for an item installed here.
+**Execution holds every start; this service registers and switches them.** An
+item's starts are registered with `PUT /v1/execution/schedules/{schedule}`, one
+`ScheduleRegistration` for each way the item starts, because a registration
+carries exactly one of `clock`, `on`, `when` and `for`:
 
-| the item's start | runs once when | input | while the item is paused |
-|---|---|---|---|
-| `on:` | a sweep ends having published one or more of the named topics at the item's organisation | every event the sweep published that the item names, together: a burst **coalesces**, and the input says how many | nothing is held. The next sweep after it resumes reports what is still true |
-| `when:` | the condition crosses its threshold ([Counted conditions](#counted-conditions)) | the `ConditionMet` | nothing is held. The condition latches as it would have |
-| `for:` (a workflow) | each row arrives in the named register ([Hearing a row](#hearing-a-row)) | that row's key, and its columns where they may leave this service. One run per row, **never coalesced** | each row is held, in arrival order, and delivered when it is resumed. A row that cannot be held is reported as missed, naming the row |
-| `adopted` (a workflow) | it is first running after its installation | the programme and organisation | it is held, once, and delivered on first resume. Withdrawing discards it |
+| the item declares | registered as | `{schedule}` |
+|---|---|---|
+| `schedule` | `clock`: its `cadence`, `at` as `local_time`, `weekday`, `day`, and the tenant's `timezone` ([Configuration](#configuration)); or the clock a person set ([Rescheduling](#rescheduling)) | `<uid>.clock` |
+| `on:` | `on`: the topics [Events it publishes](#events-it-publishes) gives each word | `<uid>.on` |
+| `when:` | `when`, as written | `<uid>.when` |
+| `for:` | `for`, the register | `<uid>.for` |
 
-**An item hears only its own programme's obligations.** An obligation
+`<uid>` is the installed item's, and the registration's `definition` is the
+`uid` too, so two organisations that adopt one programme register two starts
+and never one. Each is registered paused or running and muted as the item is,
+at the item's organisation.
+
+What a start does when it fires is execution's: coalescing a burst of facts
+into one run, latching a count, holding `for:` rows and an `adopted` while a
+start is paused, and refusing a row whose chain already holds a run of the
+same workflow ([`architecture/execution`](execution.md#firing)). This service
+publishes the facts and the rows, with the run that wrote each row where the
+change names one ([Hearing a row](#hearing-a-row)), and switches the starts:
+
+| a person or a component | here | at execution |
+|---|---|---|
+| pauses or resumes an item | its `state` | `POST …/pause` or `…/resume` on each of its starts |
+| runs an item | — | `POST …/runs` on its first start |
+| mutes or unmutes an item | its `muted` | each start registered again, with `muted` changed |
+| reschedules or restores an item | its `schedule_set` | its `clock` start registered again |
+| withdraws an installation | each item `withdrawn` | `DELETE` of each start |
+
+A start execution could not be reached to register or switch is reported on
+the item, and the item is not reported running until it is.
+
+**A notice hears only its own programme's obligations.** An obligation
 belongs to every programme installed at the organisation whose adopted copy
-has a spec declaring an obligation with its `id`. An `obligation.*` fact
-starts an `on:` item, counts toward a `when:`, and advances a notice only where
-the obligation belongs to the item's programme. An obligation no adopted spec
-declares, the tenant's own, is answered, swept and told to its own positions,
-and starts or advances no programme's item. Two programmes that each declare a
-notice on `obligation.escalated` therefore each hear their own escalations,
-and one escalation is never told twice by them.
-
-**A `for:` run never starts itself, directly or round a loop.** Each run this
-service asks for under `for:` is recorded with its chain: that run and every
-run that, through `for:`, started it. A row whose writer is a run in a chain
-already holding a run of the same workflow starts nothing, and is recorded as
-not started for that reason. A row whose writer cannot be told starts nothing
-and is held, reported as *writer unknown*, so that a person can start the
-workflow with `RunOperation` or the uniform `run` verb
-([Hearing a row](#hearing-a-row)).
+has a spec declaring an obligation with its `id`, and each `obligation.*`
+event names them in `programmes`. A notice advances on an `obligation.*` fact
+only where the obligation belongs to its programme, so two programmes that
+each declare a notice on `obligation.escalated` each tell their own
+escalations, and one escalation is never told twice by them.
 
 ### Telling
 
@@ -564,11 +650,23 @@ workflow with `RunOperation` or the uniform `run` verb
 3. **A notice advances** when a fact it names first becomes true at its
    organisation, about an obligation that belongs to its programme
    ([Starting on a fact](#starting-on-a-fact)), and not again while that fact
-   merely stays true. If it has
-   advanced and the notice is unmuted, the service asks notification to tell
-   the `to` positions. It records that it asked, and what notification
-   answered. A muted notice's advance is recorded as not sent, and nobody is
-   told.
+   merely stays true. If it has advanced and the notice is unmuted, the
+   service asks notification to tell the `to` positions.
+4. **Either is told with `NotifyByPosition`**, on this service's own
+   registration token, naming the work authorisation it is told under — the
+   notice's own, or the `due-sweep`'s for an occurrence — and an id it gives
+   the advance as `run` ([`architecture/notification`](notification.md#notifying)).
+   An occurrence is told as `notice` the `due-sweep` operation that observed
+   it, with the obligation's `activity` as `says` and the occurrence in
+   `fact`, because no notice is declared for it.
+   It records that it asked, and the outcome notification answered. A muted
+   notice's or sweep's advance is recorded as not sent, and nobody is told.
+5. An advance whose outcome is `reached_nobody`, `not_authorised` or
+   `holders_unreadable` is recorded as not delivered, with the outcome and the
+   positions notification reports `unheld`, and never as sent
+   ([`architecture/notification`](notification.md#outcomes)). A request
+   notification did not answer is sent again with the same `run`, which tells
+   nobody twice.
 
 ### Rescheduling
 
@@ -581,10 +679,10 @@ adopted map: the hour it runs is operating it, not authoring it, and
    map's `schedule`. Anything else is refused with `INVALID_REQUEST`.
 2. The item records it as `schedule_set`, with who set it and when, beside the
    map's `schedule`, which is unchanged and still reported.
-3. The new clock is handed to execution in place of the old one. A run
-   already started is not touched.
-4. `DELETE …/schedule` removes `schedule_set`, and the map's clock is handed
-   back.
+3. The item's clock start is registered at execution again, with the new
+   clock in place of the old one. A run already started is not touched.
+4. `DELETE …/schedule` removes `schedule_set`, and the clock start is
+   registered again with the map's clock.
 
 An item whose map declares no `schedule` has no clock to move, and is refused
 with `INVALID_STATE`: a clock added to an `on:`-only item would be standing
@@ -610,7 +708,7 @@ stops and is recorded `withdrawn`, the withdrawal is recorded, the service
 revokes every work authorisation that names one of those items as its
 owner's definition (`DELETE /v1/work/authorisations/{id}`,
 [`protocol/identity`](../protocol/identity.md#the-work-pass) rule 4), every
-held delivery is discarded, and `get_workflow` answers `NOT_FOUND` for each of
+start it registered at execution is withdrawn there, and `get_workflow` answers `NOT_FOUND` for each of
 its definitions. Runs already in execution's ledger stay there.
 
 ---
@@ -757,18 +855,13 @@ announce them.
 
 ### Counted conditions
 
-A `when:` on a running item is evaluated here, from the events this service
-publishes and from rows it hears, at the level `across` names, at or below
-the organisation the programme is installed at. One observation is kept per
-event for `within` of the condition, and no longer.
-
-It fires **on the edge, once**: when the count, or the count of distinct
-values of `count.distinct`, first reaches `count.at_least`, and not again
-until the window has emptied below it. Firing publishes
-`programme.condition_met` and runs the item once. A `count.distinct` naming a
-field no event of the type carries is reported once on the item, naming the
-field and the event type, and the condition is reported as never able to
-fire. An `across` broader than the organisation was refused at install.
+A `when:` is counted by execution, which holds it as a start
+([`architecture/execution`](execution.md#firing)). What it counts is what
+this service publishes: the `obligation.*` events and `register.row_added`.
+A `count.distinct` naming a field no event of the type carries counts
+nothing forever, so this service reports it on the item at install, naming the
+field and the event type, as a condition that can never fire. An `across`
+broader than the organisation was refused at install.
 
 ### Hearing a row
 
@@ -790,12 +883,12 @@ for rows.
    names it, and the proposal names its `run` ([`architecture/content`](content.md#who-a-change-was-for)).
    A direct write by a person has no run. A change or proposal this service
    cannot read leaves the writer unknown.
-5. Each arrival publishes one `register.row_added`, and each running `for:`
-   workflow on that register is run once for it, under the rule in
-   [Starting on a fact](#starting-on-a-fact). An arrival of more than
+5. Each arrival publishes one `register.row_added`, carrying the run that
+   wrote it, or `writer: unknown`, from which execution starts each `for:`
+   workflow on that register and stops a loop
+   ([`architecture/execution`](execution.md#firing)). An arrival of more than
    `max_rows_per_change` rows from one change publishes that many and one
-   more naming how many were not announced, and each `for:` workflow is run
-   for every one of them.
+   more naming how many were not announced.
 
 ### Readiness
 
@@ -842,9 +935,6 @@ what a record says**:
 | installations and items | every installation and installed item, with its switches, `schedule_set` and who switched what | the tenant's installed standing work: the items, their switches and who set them. This is the system of record for them |
 | announcement marks | per occurrence, the highest stage and step announced | a second announcement of everything currently due, once |
 | seen keys | per heard register, the keys already seen | nothing: the next read takes every row as seen |
-| condition windows | per `when:`, one observation per event, for its `within` | a condition that may fire late once |
-| held deliveries | per paused workflow, its held `for:` rows and `adopted` | each held row and adoption, reported as missed |
-| `for:` chains | per run it asked for under `for:`, that run's chain | a loop guard for runs already started |
 | advances of notices | per notice, each advance: when, which positions, and what notification answered | the history `ListNotices` shows |
 
 Nothing here is a due date, an occurrence or a state. Those are derived.
@@ -860,7 +950,7 @@ ever invoked ([`schemas/programme`](../schemas/programme.md#does-names-an-action
 
 | action | does | reads with |
 |---|---|---|
-| `due-sweep` | Computes what is due at the item's organisation, advances what has advanced ([How an occurrence advances](#how-an-occurrence-advances)), publishes each advance, tells each advanced occurrence's positions while the operation is unmuted ([Telling](#telling)), and runs once every running item whose `on:` names a topic it published ([Starting on a fact](#starting-on-a-fact)). Answers a `SweepResult` | `content:read` |
+| `due-sweep` | Computes what is due at the item's organisation, advances what has advanced ([How an occurrence advances](#how-an-occurrence-advances)), publishes each advance, and tells each advanced occurrence's positions while the operation is unmuted ([Telling](#telling)). Execution starts every item whose `on:` names a topic it published. Answers a `SweepResult` | `content:read` |
 | `programme-readiness` | Computes the readiness of every programme installed at the item's organisation, and answers it as `{programmes: [ProgrammeReadiness]}`. Announces nothing | `content:read`, `fabric:read` |
 
 **A `does:` item is this service's own work, and its reads ride on work
@@ -923,34 +1013,20 @@ and `run` are the pass's.
 
 ### What a `needs:` ceiling comes to
 
-A work authorisation's ceiling is capability names from
-[`protocol/types`](../protocol/types.md#capability), and a `needs:` ceiling is
-the closed set `read`, `write`, `delete`, `integrations` and `dispatch`
-([`schemas/programme.md`](../schemas/programme.md#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does)).
-Each word comes to these names, and the ceiling an `agent:` item's
-authorisation is asked for is the union of its words' names. Empty `needs:`
-is `read`.
-
-| word | capabilities | so an agent may |
-|---|---|---|
-| `read` | `content:read`, `programme:read`, `fabric:read` | read documents, registers and their logs; what is due and installed; and the relationships between them |
-| `write` | `content:propose` | propose a change to an entry, never make one: `content:write` is person only, and a person applies the proposal |
-| `delete` | `content:propose` | propose a removal |
-| `integrations` | `integration:use` | have an integration act for a need its owner declares |
-| `dispatch` | `programme:operate` | run, pause or resume an installed item, while it is muted (rule 3) |
-
-`write` and `delete` come to one name, because content tells a removal from a
-change by the proposal's `action`, not by a capability. The prompt worker
-therefore proposes a removal only under a ceiling that holds `delete`; the
-work pass cannot hold it apart.
+What each `needs:` word comes to is stated once, by the prompt worker, its one
+consumer ([`architecture/prompt-worker`](prompt-worker.md#needs-comes-to-these-capabilities)),
+and the capabilities an `agent:` item's work authorisation is asked for are
+exactly those, for the words its `needs:` names, `read` where it names none.
 
 Every item's authorisation names as its actors every service its blocks hand
 work to: execution for any operation or workflow; the prompt worker for an
 `agent:`; this service for a `does:`; notification for a notice, for a step
 that waits for a person, and for a `due-sweep`. A `does:` item's ceiling is
 its action's *reads with* ([The `does:` Actions](#the-does-actions)); a
-notice's is `content:read`, so that notification can read who holds its
-positions; a workflow's is the union over its steps.
+notice's is `content:read` and `content:describe`, which notification reads
+its positions' holders with
+([`architecture/notification`](notification.md#resolving-holders)); a
+workflow's is the union over its steps.
 
 ---
 
@@ -965,43 +1041,35 @@ every run, wait and timer in its one ledger. A programme's workflow becomes
 one such declaration, as
 [`schemas/programme.md`](../schemas/programme.md#how-a-workflow-maps-onto-patternsworkflow)
 maps it, named by the installed item's `uid`. An operation becomes a
-declaration of one phase.
-
-It is handed a clock for each item that has one, and asked to run an item once
-when a person or a fact starts it ([Starting on a fact](#starting-on-a-fact)).
-It is never asked to subscribe to a fact for an item installed here.
+declaration of one phase. Its starts are registered there
+([Starting on a fact](#starting-on-a-fact)).
 
 **People read runs through the admin gateway's Workflows group.** Execution
 is the provider of `GET /v1/admin/workflows` and `GET /v1/admin/workflows/{id}`
-([`architecture/admin`](admin.md#the-admin-api-is-an-aggregate)). Each needs
-`admin:read`, on a pass addressed to execution, and answers the shape
+([`architecture/execution`](execution.md#endpoints)). Each needs `admin:read`,
+on a pass addressed to execution, and answers the shape
 [`architecture/admin`](admin.md#get-v1adminworkflows) gives. A run of a
 programme's workflow names its definition in `workflow_name`. A run with no
-domain has no `domain_name`. Execution serves these two routes, and declares
-them among its `pass_routes`, once its blueprint requires this one.
-[`agents/workflow`](../agents/workflow.md) does neither yet, so until then
-the gateway answers both with `ADMIN_GROUP_UNAVAILABLE`.
+domain has no `domain_name`.
 
 ### Notification
 
-Notification tells a person once, in their own way. From the programme
-service it accepts a **notify by position**: the notice's `id`, its `says`,
-its `to` positions and the fact it is about; or an occurrence that advanced,
-with its obligation's `activity`, its stage and the position it is told to.
-It finds who holds each position, words the message, and delivers by each
-holder's own preference. Nobody is present when a notice advances, so
-whatever notification reads to tell a notice, the holders of its positions
-among it, it reads on work passes under the notice's own work authorisation,
-or the `due-sweep`'s, which names notification as an actor
+Notification is [`architecture/notification`](notification.md). From the
+programme service it accepts a **notify by position**, `NotifyByPosition`:
+the notice or the occurrence that advanced, what to say, the positions to
+tell, the fact it is about, and the work authorisation it is told under. It
+finds who holds each position in the
+[position-holders register](../schemas/position.md#who-holds-a-position),
+words the message, and delivers by each holder's own preference. Nobody is
+present when a notice advances, so it reads the holders on work passes under
+that authorisation, which names notification as an actor
 ([`protocol/identity`](../protocol/identity.md#the-work-pass)).
-[`patterns/notification`](../patterns/notification.md)
-describes channels and delivery, and
-[`agents/email-send`](../agents/email-send.md) is its email adapter.
 
 A notice names positions only, never a person or a channel
 ([`schemas/programme.md`](../schemas/programme.md#notices--who-is-told-what)).
 A notice that reaches nobody, because nobody holds a position it names, is
-reported to the programme service, never treated as delivered.
+answered as that outcome, and this service records it as not delivered
+([Telling](#telling)).
 
 ### The prompt worker
 
@@ -1014,16 +1082,25 @@ Execution dispatches an `agent:` phase to it, with the instruction and the
 - runs with the intersection of the ceiling, its own manifest's declaration
   and the identity under the run, and never more. The identity under the run
   is the item's owner, this service, narrowed by the work authorisation a
-  person made for the item; the worker is its actor, and reaches content and
-  the model service only on work passes minted under that authorisation
+  person made for the item; the worker is its actor, and reaches content only
+  on work passes minted under that authorisation
   ([`protocol/identity`](../protocol/identity.md#the-work-pass));
-- asks the tenant's model service for each completion, and reaches no model
-  any other way;
+- asks the tenant's model service for each completion, on its own
+  registration token, and reaches no model any other way;
 - writes only through an owner's API, as a proposal where that owner requires
   one, and keeps nothing of its own. The run's record is execution's.
 
-An instruction that reads what is due reads it here, at the read routes, on a
-work pass carrying `programme:read`.
+Its component blueprint is [`architecture/prompt-worker`](prompt-worker.md):
+how execution hands it a phase, the closed tool set an instruction may be
+given, which capabilities each `needs:` word comes to, how a programme's
+`skills` reach the instruction, and what a phase answers, including that it
+was not runnable.
+
+**What an `agent:` phase is handed.** At install, each `agent:` operation or
+step becomes a phase whose `input` is an `InstructionTask`: the instruction,
+its `needs:`, `source`, the adopted `map.md` it was read from in content, and
+`skills`, each skill file the programme brings with no `for`
+([`schemas/programme`](../schemas/programme.md#skills--files-the-programme-brings)).
 
 ### The decision inbox
 
@@ -1036,7 +1113,9 @@ act, made on their own pass, at the owner whose work is waiting on it:
   ([`architecture/content`](content.md#who-may-move-an-entry)). This is the
   one kind of decision a tenant can serve today;
 - a workflow's `approval` or `task` step is a wait execution holds, and is
-  decided at execution.
+  decided there with `POST /v1/execution/waits/{wait}/decision` and
+  `execution:decide`, by a person holding a position the wait awaits
+  ([`architecture/execution`](execution.md#deciding)).
 
 No machine makes a decision ([Who May Do What](#who-may-do-what), rule 5).
 How each decision is shaped is
@@ -1073,9 +1152,10 @@ capability its row gives, and the capabilities named there.
    authenticator
 7. Read the authorisations that name it as owner, and report each item's
    authorisation state
-8. Hand every running item's clock to execution again, if execution is
-   registered; an item whose clock could not be handed is reported, never
-   dropped
+8. Register every installed item's starts at execution again, if execution
+   is registered, which a repeated registration under one key does not
+   double; a start that could not be registered is reported on its item,
+   never dropped
 9. Serve until signalled
 ```
 
@@ -1094,30 +1174,30 @@ registration failure is fatal.
 
 ## Known Gaps
 
-**Execution's blueprint is not written.** Until it is,
-[`architecture/domain`](domain.md) and the
-[`agents/workflow`](../agents/workflow.md) and
-[`agents/task`](../agents/task.md) blueprints describe the runner. None of
-them requires this document, so `/v1/admin/workflows` stays
-`ADMIN_GROUP_UNAVAILABLE`.
+**Nothing is built from these blueprints yet.** This service, execution,
+notification and the prompt worker are each specified, and no tenant runs
+any of them, so an adoption today hands no block to an owner, and says so.
 
-**A person's step has nowhere to be decided.** `patterns/workflow` has no
-phase for a person's task or for approvers named by position
-([`schemas/programme.md`](../schemas/programme.md#how-a-workflow-maps-onto-patternsworkflow)).
-No capability in [`protocol/types`](../protocol/types.md#capability) names
-deciding one, and no route at execution serves one, so the admin gateway's
-inbox ([`architecture/admin`](admin.md#decision-inbox)) would list content's
-open proposals and no step of execution's, and it lists neither until a
-`PassRoute` can name the inbox group a route answers.
+**A person's step can wait and not yet be decided.** Execution holds a
+workflow's `task` and `approval` steps as waits and lists them in the
+inbox, and decides one only for a person shown to hold a position it awaits
+([`architecture/execution`](execution.md#who-holds-a-position)). Until the
+position-holders register is held in a tenant, each such decision is refused
+with `EXECUTION_POSITION_UNRESOLVED`.
 
-**Notification has no route, capability or blueprint.** The notify-by-position
-call above has no declared action name or capability yet. Nothing is
-specified for how a person sets their own preferences. Who holds a position
-is the tenant's personal data, so content keeps it in the scope's records
-repository ([`architecture/content`](content.md#where-an-entry-labelled-pii-is-kept)),
-as a restricted register of who holds each
-[position](../schemas/position.md). No schema declares that register yet,
-so notification has nothing it can read a holder from.
+**An `on:` start hears every obligation at its organisation.** A notice hears
+only its own programme's obligations ([Starting on a fact](#starting-on-a-fact)),
+and an `on:` start at execution is registered with topics and nothing to
+narrow them to a programme, so an `on: [obligation.escalated]` operation
+runs for every escalation at its organisation. Each event names the
+`programmes` its obligation belongs to, for a start that can be narrowed by
+them once execution's registration can say so.
+
+**The prompt worker has no tool that reads what is due.** Its tools read and
+propose content ([`architecture/prompt-worker`](prompt-worker.md)), and none
+reads this service's due routes, so an `agent:` instruction knows what is due
+from the events its run was started on and from the registers, not from
+`GET /v1/programme/due`.
 
 **The prompt worker has no model to call.** The tenant's model is served at
 `POST /v1/admin/complete`, which is a person's route
@@ -1138,8 +1218,10 @@ reported as not runnable, never as having run.
 it.** `attested` needs a person's signed change
 ([The three states, and a fourth](#the-three-states-and-a-fourth)). Where a
 register declares `review: required` and `approvers`, the positions that must
-approve a row are not checked against who signed it, because the register of
-position holders has no schema yet. Until it does, `attested` says a person
+approve a row are not checked against who signed it: this service does not
+yet read the position-holders register
+([`schemas/position`](../schemas/position.md#who-holds-a-position)) when it
+judges an attestation. Until it does, `attested` says a person
 stood behind the record, and not that the person held the position the
 register names.
 
@@ -1680,10 +1762,6 @@ types:
         type: int
         required: true
         description: Advances recorded and not sent, because the sweep is muted or nobody holds the position
-      started:
-        type: "[]string"
-        required: true
-        description: The uid of each item it ran once
       not_read:
         type: "[]NotRead"
         required: true
@@ -1769,28 +1847,6 @@ types:
         type: int
         required: false
         description: On the one extra event of a change past max_rows_per_change, how many rows were not announced
-  ConditionMet:
-    description: The payload of programme.condition_met
-    fields:
-      item:
-        type: string
-        required: true
-        description: The uid of the item whose when crossed
-      event:
-        type: string
-        required: true
-      count:
-        type: int
-        required: true
-      within:
-        type: string
-        required: true
-      across:
-        type: string
-        required: true
-      organisation:
-        type: string
-        required: true
   ProgrammeAdopted:
     description: The payload of programme.adopted
     fields:
@@ -1843,7 +1899,7 @@ resources:
           - the programme's installation at the organisation is installed
         in_flight:
           handling: drains
-          says: every item under it stops starting runs; a run execution already started finishes in execution's ledger, and every held delivery is discarded
+          says: every item under it stops starting runs and its starts at execution are withdrawn; a run already started finishes in execution's ledger
         effect: every item under it is withdrawn, every work authorisation naming one is revoked, and get_workflow answers NOT_FOUND for each; no document is deleted
         reversible: false
     states:
@@ -1888,7 +1944,7 @@ resources:
           - the item is an operation or a workflow
         in_flight:
           handling: drains
-          says: its clock stops at execution and no new run starts; a run already started finishes
+          says: its starts at execution are paused and no new run starts; a run already started finishes
         effect: the item is paused
         reversible: {by: resume}
       - name: resume
@@ -1899,7 +1955,7 @@ resources:
         in_flight:
           handling: none
           says: a paused item has no run starting
-        effect: the item is running, its clock is handed to execution again, and what was held for it is delivered
+        effect: the item is running, and its starts at execution resume, delivering what execution held for them
         reversible: {by: pause}
       - name: run
         capability: "programme:operate"
@@ -1909,7 +1965,7 @@ resources:
         in_flight:
           handling: continues
           says: a run already under way is unaffected; this starts one more
-        effect: execution is asked to run the item once, now, with trigger person
+        effect: the item's first start at execution runs it once, now
         reversible: false
       - name: reschedule
         capability: "programme:operate"
@@ -1920,7 +1976,7 @@ resources:
         in_flight:
           handling: continues
           says: a run already under way is unaffected; the next start follows the new clock
-        effect: schedule_set is the body, schedule_set_by names the person, and execution is handed the new clock
+        effect: schedule_set is the body, schedule_set_by names the person, and its clock start is registered again with it
         reversible: {by: restore-schedule}
       - name: restore-schedule
         capability: "programme:operate"
@@ -1929,7 +1985,7 @@ resources:
         in_flight:
           handling: continues
           says: a run already under way is unaffected; the next start follows the map's clock
-        effect: schedule_set is removed and execution is handed the map's clock
+        effect: schedule_set is removed and its clock start is registered again with the map's clock
         reversible: {by: reschedule}
       - name: mute
         capability: "programme:switch"
@@ -1955,7 +2011,7 @@ resources:
       state_field: state
       states:
         paused: {description: installed, and its clock and its facts start nothing}
-        running: {description: its clock is handed to execution and its facts start it}
+        running: {description: its starts at execution are running}
         withdrawn: {description: its installation was withdrawn, terminal: true}
       transitions:
         - {name: start, from: paused, to: running, trigger: installed with start running, or a notice installed, description: the map says it starts}
@@ -2055,6 +2111,8 @@ programme_service:
   max_rows_per_change: 100    # rows of one change announced one by one
   steps: [3, 10, 30, 100, 300, 1000]   # the sizes at which an overdue lapse
                                        # is announced again
+  timezone: <IANA name>       # the installation's local time, which a map's
+                              # `at` and every period boundary are read in
 ```
 
 Each value may be changed by an operator in the tenant's configuration, and
@@ -2081,6 +2139,8 @@ security:
     - boundary: Programme Service → Content. Reads the adopted map, the
         documents that declare obligations, registers and their change
         logs. Writes nothing
+    - boundary: Programme Service → Execution. Its own starts, registered and
+        switched on its registration token holding execution:register
     - boundary: Execution → Programme Service. get_workflow, and the
         actions an operation or a phase names in does, from execution alone,
         on a work pass naming an item installed here
@@ -2105,10 +2165,6 @@ security:
     - rule: No machine decides
       mechanism: No action or worker capability approves, rejects, closes,
         attests or signs. Only a person's signed change reads attested
-    - rule: A loop of runs cannot start itself
-      mechanism: A for run is never started by a row whose writer's chain
-        holds a run of the same workflow, and a row whose writer is unknown
-        starts nothing
     - rule: What a record says does not leave through a due answer
       mechanism: Labels and cells are answered and published only from
         registers at public or internal
@@ -2157,15 +2213,17 @@ security:
 - [ ] Pausing, running or rescheduling a notice or a withdrawn item, and rescheduling an item whose map declares no `schedule`, is refused with `INVALID_STATE` ([Error Handling](#error-handling), [Rescheduling](#rescheduling))
 - [ ] An `ItemSchedule` outside the map's `schedule` vocabulary is refused with `INVALID_REQUEST`; one inside it is recorded as `schedule_set` beside the map's `schedule`, and `DELETE` of it hands execution the map's clock again ([Rescheduling](#rescheduling), [Error Handling](#error-handling))
 - [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true ([Telling](#telling))
+- [ ] An advance answered `reached_nobody`, `not_authorised` or `holders_unreadable` is recorded as not delivered, with the positions answered `unheld` ([Telling](#telling))
+- [ ] Every `agent:` phase's `input` is an `InstructionTask` carrying the instruction, its `needs:`, the adopted map as `source` and the programme's skills with no `for` ([The prompt worker](#the-prompt-worker))
 - [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent ([Telling](#telling), [Endpoints](#endpoints))
 - [ ] An occurrence that advances under a muted `due-sweep` tells nobody and is recorded as not sent; under an unmuted one, `overdue` tells its `responsible` position and `escalated` tells its `escalate.to` position as well ([Telling](#telling))
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
-- [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it, discards every held delivery and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
+- [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it, withdraws each of its starts at execution and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
 - [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run ([Known Gaps](#known-gaps))
 - [ ] An installed item with no live work authorisation is reported as not authorised and never run ([Installing](#installing))
 - [ ] `get_workflow` and a `does:` action are answered only on a work pass whose `identity_id` is this service's and whose `definition` names an item installed here, and one naming no such item is refused with `NOT_FOUND` ([Interfaces](#interfaces))
 - [ ] Withdrawing a programme revokes every work authorisation naming one of its items ([Withdrawing](#withdrawing))
-- [ ] An item's authorisation is asked for with the capabilities its `needs:` words come to, and none other; an empty `needs:` comes to `read`'s ([What a `needs:` ceiling comes to](#what-a-needs-ceiling-comes-to))
+- [ ] An `agent:` item's authorisation is asked for with the capabilities its `needs:` words come to in [`architecture/prompt-worker`](prompt-worker.md#needs-comes-to-these-capabilities), and none other; an empty `needs:` comes to `read`'s ([What a `needs:` ceiling comes to](#what-a-needs-ceiling-comes-to))
 - [ ] A `does:` naming an action outside [The `does:` Actions](#the-does-actions) is reported at install with the actions this build runs, and `GET /v1/programme/actions` answers the same list
 - [ ] Every obligation reported is one a document in content declares; a spec's obligation no document carries is reported in readiness's `not_in_force` and owes no occurrence ([Where an obligation is read from](#where-an-obligation-is-read-from), [Readiness](#readiness))
 - [ ] An obligation with a word outside a closed vocabulary is reported `undeclarable` with the field and why, and has no occurrences ([Where an obligation is read from](#where-an-obligation-is-read-from))
@@ -2179,11 +2237,10 @@ security:
 - [ ] Reading what is due publishes nothing and changes no announcement mark ([Events it publishes](#events-it-publishes))
 - [ ] A subject's label, a row's columns and an event's cells come only from registers whose recorded scope is `public` or `internal` ([What a person is answered](#what-a-person-is-answered))
 - [ ] A register first heard announces none of the rows it already holds; an edited row announces nothing; each new row announces one `register.row_added` ([Hearing a row](#hearing-a-row))
-- [ ] An `obligation.*` fact starts, counts toward or advances an item only where the obligation belongs to the item's programme ([Starting on a fact](#starting-on-a-fact))
-- [ ] A burst a sweep publishes runs an `on:` item once, with every event in its input; each row a `for:` workflow hears runs it once, never coalesced ([Starting on a fact](#starting-on-a-fact))
-- [ ] A row whose writer's chain holds a run of the same `for:` workflow starts nothing, and a row whose writer is unknown starts nothing and is held, reported as *writer unknown* ([Starting on a fact](#starting-on-a-fact), [Hearing a row](#hearing-a-row))
-- [ ] Rows a paused `for:` workflow hears are held in order and delivered on resume; an `adopted` is delivered once, on first resume, and withdrawing discards both ([Starting on a fact](#starting-on-a-fact))
-- [ ] A `when:` fires once when its count first reaches `count.at_least`, publishes `programme.condition_met`, and fires again only after the window has emptied below it ([Counted conditions](#counted-conditions))
+- [ ] A notice advances on an `obligation.*` fact only where the obligation belongs to the notice's programme, and every `obligation.*` event names those programmes ([Starting on a fact](#starting-on-a-fact))
+- [ ] Every installed operation and workflow has one start at execution for each of its `schedule`, `on:`, `when:` and `for:`, keyed `<uid>.clock`, `<uid>.on`, `<uid>.when` and `<uid>.for`, registered paused or running and muted as the item is; pausing, resuming, running, muting, unmuting and rescheduling the item switch or re-register them there ([Starting on a fact](#starting-on-a-fact))
+- [ ] Every `register.row_added` names the run that wrote the row where the change applied a proposal naming one, and `writer: unknown` where the change or proposal could not be read ([Hearing a row](#hearing-a-row))
+- [ ] A `when:` whose `count.distinct` names a field no event of its type carries is reported on its item at install as a condition that can never fire ([Counted conditions](#counted-conditions))
 - [ ] Readiness reports documented per tier, cumulative, and operating as operating, not operating and undetermined; an obligation with no occurrence in the window is undetermined and never counted against; a number that is a floor sets `measured` false and says why ([Readiness](#readiness))
 - [ ] An artifact no document declares is `unknown`, never `missing`, while the fabric cannot be read ([Readiness](#readiness))
 - [ ] The manifest claims `obligation.*`, `register.*` and `programme.*` in `publishes`, and every topic in [Events it publishes](#events-it-publishes) is published with the payload its row names ([Registration and Standalone Operation](#registration-and-standalone-operation))

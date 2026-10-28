@@ -786,12 +786,15 @@ naming a position is listed and cannot be decided
 **Notification and the prompt worker have no blueprint.** A wait opens
 unannounced and an `agent:` phase fails, each saying so.
 
-**The facts a start reacts to have no publisher.** `obligation.*`,
-`attestation`, `register.row_added` and `adopted` are named by
+**Two facts are published under other names than this service subscribes
+to.** The programme service publishes the facts a start reacts to
+([`architecture/programme-service`](programme-service.md#events-it-publishes)):
+`obligation.*` and `register.row_added` under the names
 [`schemas/programme.md`](../schemas/programme.md#on--reacting-to-a-fact-instead-of-to-the-clock)
-and published by no specified service
-([`architecture/programme-service`](programme-service.md#known-gaps)), so an
-`on`, `when` or `for` start registers and fires nothing until one is.
+writes, and `attestation` and `adopted` as `obligation.attested` and
+`programme.adopted`. Until this service subscribes to those two topics and
+reads a start's `attestation` and `adopted` as them, a start on either fires
+nothing.
 
 **No content entry records the run that wrote it.** Execution carries a
 run's chain in every dispatch's context, and nothing yet writes it beside the

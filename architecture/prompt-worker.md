@@ -1316,11 +1316,11 @@ for the owner are `programme:operate`, which the programme service admits
 only on its own registration or a person's pass today, or a new execution
 capability for starting a run of the same owner's definition.
 
-**What is due cannot be read.** An instruction such as "review what is
-overdue" wants the due list, which the programme service's blueprint does not
-yet specify ([`architecture/programme-service`](programme-service.md#known-gaps)).
-Until it does, the obligation registers can be read through `content-read`,
-and nothing reads occurrences or readiness. A due-list tool is added to
+**What is due cannot be read by a tool.** An instruction such as "review
+what is overdue" wants the due list, which the programme service serves
+([`architecture/programme-service`](programme-service.md#what-is-due)) and no
+tool in this worker's set reads. Until one does, the obligation registers can
+be read through `content-read`, and nothing reads occurrences or readiness. A due-list tool is added to
 [The Tool Set](#the-tool-set) when its route exists.
 
 **Execution's task does not yet carry `source` or `skills`.** This
