@@ -2047,24 +2047,24 @@ All migration errors follow the standard `ErrorResponse` from
 
 ## Verification Checklist
 
-- [ ] Every data migration has a formal MigrationPlan with all required fields
-- [ ] Every plan declares a BlastRadius with explicit row, table, and time limits
-- [ ] Every plan has a MutationContract with grants covering all steps
-- [ ] Rollback steps exist for every forward step
-- [ ] Dry run completes successfully before approval is requested
-- [ ] DryRunReport is available to approvers before they make a decision
-- [ ] Approval routing matches the operation class × environment × data loss risk matrix
-- [ ] A destructive migration at a tenant that declares no `multi_party_rules` is approved by one person with a step-up and asks nobody else; at one that declares a rule for it, it waits for that rule's `min_approvers` as well <!-- wl:check migration-approvers-declared covers migration-second-person-declared -->
-- [ ] Approved migrations execute within the approval expiration window
+- [ ] Every data migration has a formal MigrationPlan with all required fields — [Migration Plan](#migration-plan)
+- [ ] Every plan declares a BlastRadius with explicit row, table, and time limits — [Blast Radius](#blast-radius)
+- [ ] Every plan has a MutationContract with grants covering all steps — [Mutation Contract](#mutation-contract), [Validation Checks](#validation-checks)
+- [ ] Rollback steps exist for every forward step — [Validation Checks](#validation-checks)
+- [ ] Dry run completes successfully before approval is requested — [Approval Request Content](#approval-request-content)
+- [ ] DryRunReport is available to approvers before they make a decision — [Approval Request Content](#approval-request-content)
+- [ ] Approval routing matches the operation class × environment × data loss risk matrix — [Approval Routing](#approval-routing)
+- [ ] A destructive migration at a tenant that declares no `multi_party_rules` is approved by one person with a step-up and asks nobody else; at one that declares a rule for it, it waits for that rule's `min_approvers` as well — [Approval Routing](#approval-routing) <!-- wl:check migration-approvers-declared covers migration-second-person-declared -->
+- [ ] Approved migrations execute within the approval expiration window — [Approval Expiration](#approval-expiration), [Pre-Execution Checks](#pre-execution-checks)
 - [ ] Blast radius limits are enforced during execution — limit breach triggers rollback
-- [ ] Mutation contract is verified at every step — unauthorized operations are rejected
-- [ ] Pre-migration and post-migration integrity checkpoints are computed and compared
-- [ ] Row count deltas match expected values per table
-- [ ] Schema state matches expected state after migration
-- [ ] Referential integrity is verified post-migration
-- [ ] Tables outside the blast radius are verified unchanged
-- [ ] Migration lifecycle follows the state machine — no stage is skipped
-- [ ] Migration record is appended to hash-chained history — no records modified
-- [ ] Hash chain integrity is validated periodically
-- [ ] AI agents cannot self-approve migrations in staging or production
-- [ ] Safety violations trigger kill-switch enforcement per patterns/safety
+- [ ] Mutation contract is verified at every step — unauthorized operations are rejected — [Step Execution](#step-execution)
+- [ ] Pre-migration and post-migration integrity checkpoints are computed and compared — [Pre-Execution Checks](#pre-execution-checks), [Verification Checks](#verification-checks)
+- [ ] Row count deltas match expected values per table — [Verification Checks](#verification-checks)
+- [ ] Schema state matches expected state after migration — [Verification Checks](#verification-checks)
+- [ ] Referential integrity is verified post-migration — [Verification Checks](#verification-checks)
+- [ ] Tables outside the blast radius are verified unchanged — [Verification Checks](#verification-checks)
+- [ ] Migration lifecycle follows the state machine — no stage is skipped — [Migration Lifecycle State Machine](#migration-lifecycle-state-machine)
+- [ ] Migration record is appended to hash-chained history — no records modified — [Hash Chain Integrity](#hash-chain-integrity)
+- [ ] Hash chain integrity is validated periodically — [Tamper Detection](#tamper-detection)
+- [ ] AI agents cannot self-approve migrations in staging or production — [Implementation Notes](#implementation-notes)
+- [ ] Safety violations trigger kill-switch enforcement — [Safety Violations](#safety-violations)

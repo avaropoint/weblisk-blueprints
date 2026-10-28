@@ -1427,14 +1427,14 @@ lineage:
 - [ ] Consent is evaluated before any data access — missing or expired consent produces deny
 - [ ] Masking rules activate at the correct scope level (public=none, internal=pseudonymize, confidential=hash/redact, restricted/critical=redact)
 - [ ] MaskingStrategy parameters are validated (e.g. hash requires algorithm + salt, pattern requires regex + replacement)
-- [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain
+- [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain — [Cascade Flow](#cascade-flow)
 - [ ] ErasureResult includes confirmations for every store, plus exceptions for stores that could not erase
 - [ ] Legal-hold subjects are excluded from erasure — request returns hold_active exception
-- [ ] LineageEntry records are immutable (append-only) and survive data erasure
-- [ ] Lineage tracking cannot be disabled for scope >= confidential
-- [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries
-- [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline
+- [ ] LineageEntry records are immutable (append-only) and survive data erasure — [Lineage Retention Rules](#lineage-retention-rules), [Lineage Graph Storage](#lineage-graph-storage)
+- [ ] Lineage tracking cannot be disabled for scope >= confidential — [Contracts](#contracts), [Required for Scope >= Confidential](#required-for-scope--confidential)
+- [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries — [Contracts](#contracts), [MinimizationRule](#minimizationrule)
+- [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline — [Contracts](#contracts), [Required for All Agents](#required-for-all-agents)
 - [ ] `privacy.erasure_completed` event includes full ErasureResult with per-store outcomes
 - [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked
-- [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another
-- [ ] All privacy events follow the standard event envelope from protocol/spec
+- [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another — [Required for All Agents](#required-for-all-agents), [Design Principles](#design-principles)
+- [ ] All privacy events follow the standard event envelope — [`protocol/types`](../protocol/types.md#eventenvelope)

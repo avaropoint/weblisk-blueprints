@@ -379,18 +379,18 @@ it overrides the category-based default.
 
 ## Verification Checklist
 
-- [ ] Transient errors trigger retry with exponential backoff
-- [ ] Permanent errors fail immediately without retry
-- [ ] Every retry delay is full jitter under `protocol/conventions:backoff`
-- [ ] Max delay caps exponential growth
-- [ ] No retry on a 429 comes before its Retry-After
-- [ ] Circuit breaker trips after consecutive failure threshold
-- [ ] Circuit breaker enters HALF_OPEN after recovery timeout
+- [ ] Transient errors trigger retry with exponential backoff — [Default Retry Configuration](#default-retry-configuration), [Error Classification](#error-classification)
+- [ ] Permanent errors fail immediately without retry — [Error Classification](#error-classification)
+- [ ] Every retry delay is full jitter under `protocol/conventions:backoff` — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
+- [ ] Max delay caps exponential growth — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
+- [ ] No retry on a 429 comes before its Retry-After — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
+- [ ] Circuit breaker trips after consecutive failure threshold — [States](#states), [Default Configuration](#default-configuration)
+- [ ] Circuit breaker enters HALF_OPEN after recovery timeout — [States](#states), [Default Configuration](#default-configuration)
 - [ ] Successful probe in HALF_OPEN closes circuit
-- [ ] Failed probe in HALF_OPEN reopens circuit
-- [ ] Per-target circuits isolate failures
-- [ ] Circuit breaker state changes emit events to alerting
-- [ ] Agent-specific overrides apply correctly
-- [ ] Domain workflow phase timeouts trigger retry logic
-- [ ] Metrics emit for retries, exhaustion, and circuit breaker state
-- [ ] Timeouts cancel in-flight requests where supported
+- [ ] Failed probe in HALF_OPEN reopens circuit — [States](#states)
+- [ ] Per-target circuits isolate failures — [Per-Target Circuits](#per-target-circuits)
+- [ ] Circuit breaker state changes emit events to alerting — [Circuit Breaker Events](#circuit-breaker-events)
+- [ ] Agent-specific overrides apply correctly — [Override Configuration](#override-configuration)
+- [ ] Domain workflow phase timeouts trigger retry logic — [Domain Workflow Integration](#domain-workflow-integration)
+- [ ] Metrics emit for retries, exhaustion, and circuit breaker state — [Observability](#observability)
+- [ ] Timeouts cancel in-flight requests where supported — [Timeout Handling](#timeout-handling)

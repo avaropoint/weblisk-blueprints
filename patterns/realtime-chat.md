@@ -367,13 +367,13 @@ types:
 
 ## Verification Checklist
 
-- [ ] WebSocket endpoint accepts connections with channel parameter
-- [ ] Connected frame includes member list and recent history
-- [ ] Messages are broadcast to all channel members
-- [ ] Presence join/leave events are broadcast correctly
-- [ ] History endpoint returns paginated messages
-- [ ] Channel auth modes (none, token) are enforced
-- [ ] Rate limiting prevents message flooding
-- [ ] Disconnected clients are cleaned up from presence
-- [ ] Messages are persisted up to history_limit
+- [ ] WebSocket endpoint accepts connections with channel parameter — [WebSocket Endpoint](#websocket-endpoint)
+- [ ] Connected frame includes member list and recent history — [WebSocket Frame Types](#websocket-frame-types), [Connection Lifecycle](#connection-lifecycle)
+- [ ] Messages are broadcast to all channel members — [Connection Lifecycle](#connection-lifecycle)
+- [ ] Presence join/leave events are broadcast correctly — [Presence](#presence)
+- [ ] History endpoint returns paginated messages — [History](#history)
+- [ ] Channel auth modes (none, token) are enforced — [Channel Auth Modes](#channel-auth-modes)
+- [ ] Rate limiting prevents message flooding — [Rate Limiting](#rate-limiting)
+- [ ] Disconnected clients are cleaned up from presence — [Connection Lifecycle](#connection-lifecycle)
+- [ ] Messages are persisted up to history_limit — [Implementation Notes](#implementation-notes)
 - [ ] Invalid frames return error frames (not disconnection)
