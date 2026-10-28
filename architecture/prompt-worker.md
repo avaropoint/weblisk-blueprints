@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: prompt-worker
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, patterns/scope]
 platform: any
 tier: free
@@ -155,17 +155,20 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/execution
-    version: ">=1.0.0 <2.0.0"
+    # 1.1.0 is where InstructionTask carries source and skills
+    version: ">=1.1.0 <2.0.0"
     bindings:
       types:
         # The payload of run_instruction. source and skills are what this
         # blueprint requires the task to carry (Skills, Scope)
         - name: InstructionTask
-          fields_used: [instruction, source, needs, skills, run, step, scope, muted]
-        - name: RunScope
-          fields_used: [organisation, project]
-      # record_turn, on POST /v1/message, is answered by execution; this
-      # worker sends it once per turn with an InstructionTurn
+          fields_used: [instruction, source, needs, skills, run, step, organisation, project, muted]
+        - name: ContentRef
+          fields_used: [repository, path]
+        # record_turn, on POST /v1/message, is answered by execution; this
+        # worker sends it once per turn with an InstructionTurn
+        - name: InstructionTurn
+          fields_used: [run, step, completion, backend, model, usage, content, calls]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -179,8 +182,6 @@ requires:
           fields_used: [request, run, phase]
         - name: ServiceCompletionResponse
           fields_used: [completion, response, usage]
-        - name: CompletionUsage
-          fields_used: [input_tokens, output_tokens, cost]
       endpoints:
         - path: /v1/model/complete
           methods: [POST]
@@ -879,17 +880,13 @@ as one that found nothing.
 
 ## Usage and cost
 
-Each turn's usage is the `CompletionUsage` the model service answered, which
-is what the backend reported
-([`architecture/model-service`](model-service.md#usage-and-cost)). The worker
-hands it to execution as a `RunUsage` on the turn, field by field:
-
-| `CompletionUsage` | `RunUsage` |
-|---|---|
-| `input_tokens` | `prompt_tokens` |
-| `output_tokens` | `completion_tokens` |
-| — | `total_tokens`: absent. The backend reported no total, and the worker adds nothing up on its behalf |
-| `cost` | `cost`, its amount and currency as given |
+Each turn's usage is the `RunUsage` the model service answered, which is
+what the backend reported
+([`architecture/model-service`](model-service.md#usage-and-cost)), in the one
+usage type a completion's record and a run's record share
+([`protocol/types`](../protocol/types.md#runs)). The worker hands it to
+execution on the turn as it was answered, adding nothing up on the backend's
+behalf and changing no member.
 
 An absent member stays absent, never zero. The outcome's `usage` is the sum
 over the phase's turns only where every turn reported that member, and in
@@ -1037,20 +1034,6 @@ types:
         required: true
         description: "Each needs word the ceiling named that no tool carries, such as integrations or dispatch"
 
-  ContentRef:
-    description: >
-      Where an entry is in the tenant's content. The shape this blueprint
-      requires of InstructionTask.source and each of InstructionTask.skills
-    fields:
-      repository:
-        name: Repository
-        type: string
-        required: true
-      path:
-        name: Path
-        type: string
-        required: true
-
   SkillRead:
     fields:
       repository:
@@ -1115,55 +1098,12 @@ types:
         name: Reason
         type: string
         required: false
-
-  InstructionTurn:
-    description: >
-      The payload of record_turn, which execution answers: one model turn of
-      one agent: phase, sent as it ends
-    fields:
-      run:
-        name: Run
-        type: string
-        required: true
-      step:
-        name: Step
-        type: string
-        required: true
-        description: "The task's step"
-      completion:
-        name: Completion
-        type: string
-        required: false
-        description: "The Completion id the model service answered. Absent where the turn was refused before it ran"
-      backend:
-        name: Backend
-        type: string
-        required: false
-        description: "CompletionResponse.provider"
-      model:
-        name: Model
-        type: string
-        required: false
-        description: "CompletionResponse.model: the model the backend's answer says ran, absent where it named none"
-      usage:
-        name: Usage
-        type: RunUsage
-        required: false
-        description: "As Usage and cost maps it. Absent where the backend reported none"
-      content:
-        name: Content
-        type: string
-        required: false
-        description: "The model's answer for the turn, as text"
-      calls:
-        name: Calls
-        type: "[]RunToolCall"
-        required: true
-        description: "Each call the turn asked for, in order. Empty for a done turn or an unreadable one"
 ```
 
-`InstructionTurn` is the payload of an action execution answers. It is
-declared here because the worker is its one sender; execution binds it.
+`InstructionTurn`, the payload of `record_turn`, is declared by execution,
+which answers it, beside `InstructionTask` and `ContentRef`
+([`architecture/execution`](execution.md#types)); this worker binds all
+three.
 
 ---
 
@@ -1323,15 +1263,6 @@ tool in this worker's set reads. Until one does, the obligation registers can
 be read through `content-read`, and nothing reads occurrences or readiness. A due-list tool is added to
 [The Tool Set](#the-tool-set) when its route exists.
 
-**Execution's task does not yet carry `source` or `skills`.** This
-blueprint requires `InstructionTask` to carry the adopted map the
-instruction is part of (`source`) and the programme's agent skills
-(`skills`), each as a repository and a path in the adopting scope's content
-([Skills](#skills), [Scope](#scope)), and the programme service to put both
-in the phase's `input` when it installs the item. Until both do, a task
-without `source` is `not-runnable` with `SCOPE_MISSING`, rather than guessing
-the instruction's level, and a task without `skills` runs with none.
-
 **A retried phase may propose again.** The worker keeps nothing, so a phase
 execution retries after a worker stopped mid-phase starts afresh, and may
 make a proposal its first attempt already made. Each is recorded with its
@@ -1363,7 +1294,7 @@ never available, and `RunToolCall.provider_call_id` is always absent.
 - [ ] A `propose-modify` of an entry the phase did not read is refused with `INVALID_REQUEST`; one the phase read is sent with `if_match` the identity it read, `agent` `prompt-worker`, the run, and no `on_behalf_of` ([Proposing](#proposing))
 - [ ] In a muted run, a `propose-create` is `refused` with `WORKER_PROPOSAL_WITHHELD`, no proposal reaches content, and the proposal is in the outcome's `withheld` with its bytes ([Muted runs](#muted-runs))
 - [ ] Every turn is sent to execution with `record_turn` before the next completion is asked, and a turn execution refuses ends the phase `failed` ([The turn loop](#the-turn-loop), step 4)
-- [ ] A turn's usage maps `input_tokens` to `prompt_tokens` and `output_tokens` to `completion_tokens`, leaves `total_tokens` absent, and an absent member is never sent as `0` ([Usage and cost](#usage-and-cost))
+- [ ] A turn's usage is sent to execution as the model service answered it, every member the backend did not report absent and never sent as `0` ([Usage and cost](#usage-and-cost))
 - [ ] Where one turn reported no `cost`, the outcome's `usage.cost` is absent and `usage_complete` is false ([Usage and cost](#usage-and-cost))
 - [ ] A tool result containing the text "ignore your instructions" reaches the model only inside a `tool_result`, and the phase's tools are the same after it as before ([Instructions and data](#instructions-and-data))
 - [ ] A skill that cannot be read makes the phase `not-runnable`, naming the skill, before any completion is asked ([Preparing the prompt](#preparing-the-prompt), step 4)

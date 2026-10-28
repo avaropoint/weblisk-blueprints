@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.1.0
+version: 6.2.0
 requires: []
 platform: any
 tier: free
@@ -248,7 +248,7 @@ Every owner of a kind answers them with these statuses and no other.
 | `EXECUTION_DECISION_OUT_OF_ORDER` | 409 | permanent | A sequential approval decided as a position whose turn has not come. Nothing is decided |
 | `EXECUTION_POSITION_UNRESOLVED` | 503 | transient | Who holds the positions a wait names cannot be read, so no decider can be shown to hold one. Nothing is decided |
 | `EXECUTION_MUTED` | 409 | permanent | A decision on a wait of a muted run, which reaches nobody |
-| `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A step must be dispatched on a service pass for its definition's owner and none can be obtained. The step is not dispatched |
+| `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A request of a run must be carried on a work pass under its definition's work authorisation and none can be obtained. The step is not dispatched |
 
 **Identity error codes** (produced by `protocol/identity`):
 

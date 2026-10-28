@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain]
 platform: any
 tier: free
@@ -112,6 +112,9 @@ requires:
           fields_used: ["*"]
         - name: RunUsage
           fields_used: ["*"]
+        # The authorisation a run's requests are carried under
+        - name: WorkAuthorisation
+          fields_used: [id, owner, definition, actors, capabilities, not_after, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -124,8 +127,10 @@ requires:
         # type and aud say a person's request reached this service on a pass
         # addressed to it; cap is what it may use; identity_id names who
         # acted; act names the gateway that carried it
+        # On a work pass this service mints, cid, definition and run say
+        # which authorisation and run it carries
         - name: WLToken
-          fields_used: [type, aud, act, cap, identity_id, sub]
+          fields_used: [type, aud, act, cap, identity_id, sub, cid, definition, run]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -209,8 +214,16 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <5.0.0"
+    # 4.2.0 is where the work routes are served
+    version: ">=4.2.0 <5.0.0"
     bindings:
+      endpoints:
+        # A work pass for one request of a run, and the authorisations that
+        # name this service as an actor (Unattended authority)
+        - path: /v1/token/work
+          methods: [POST]
+        - path: /v1/work/authorisations
+          methods: [GET]
       behaviors:
         # What a pass this service accepts rests on. Relied on, never called
         - name: token-exchange
@@ -261,12 +274,12 @@ requires:
   events (workflow.trigger, the allow-list) ─────►│   clock · on · when · for   │
                                                   │  Clock and Timer Wheel      │
                                                   │  Run Engine (DAG)           │
-                                                  │  Dispatcher ──service pass──┼──► work agent, prompt worker
+                                                  │  Dispatcher ──work pass─────┼──► work agent, prompt worker
                                                   │  Wait Holder                │       (POST /v1/execute)
   person ──► admin gateway ──pass──► decide ─────►│  Run Ledger (one)           │
                     ▲                             └──────────────┬──────────────┘
                     │ inbox: GET /v1/execution/waits             │ a wait opened, escalated
-                    └────────────────────────────────────────────┘──► notification (not specified)
+                    └────────────────────────────────────────────┘──► notification (not yet: Known Gaps)
 ```
 
 **Start Registry** holds each start an owner registered: what fires it, the
@@ -406,7 +419,13 @@ any other request. A route missing a parameter its row requires, or naming a
 value outside its closed set, is refused with `INVALID_REQUEST`.
 
 The service declares `execution:read`, `execution:operate`,
-`execution:register`, `agent:message` and `event:observe` on its manifest. It checks
+`execution:register`, `agent:message`, `event:observe`, `work:exchange`,
+`content:describe` and `content:read` on its manifest: the last three because
+it carries every request of a run on a work pass, and reads who holds a
+position from content on one ([Unattended authority](#unattended-authority),
+[Who holds a position](#who-holds-a-position)). A work pass carries a
+capability only where the actor's manifest declares it too
+([`protocol/identity`](../protocol/identity.md#minting-a-work-pass)). It checks
 `execution:decide` but never holds it, as
 [`protocol/types`](../protocol/types.md#capability) requires of a person-only
 capability. An owner that registers starts here declares `execution:register`
@@ -417,7 +436,10 @@ on its own manifest.
 ## Interfaces
 
 **What it asks of an owner**, on [`POST /v1/message`](../protocol/spec.md#post-v1message),
-on its own registration token:
+on a work pass addressed to the owner and minted under the definition's work
+authorisation, which the owner checks names a definition it holds now and
+which may carry no capability
+([`protocol/identity`](../protocol/identity.md#minting-a-work-pass), rule 11):
 
 | action | asked of | answers |
 |---|---|---|
@@ -428,13 +450,14 @@ on its own registration token:
 
 | action | from | does |
 |---|---|---|
-| `record_turn` | the agent a running step was dispatched to, on its own registration token, for that step alone | Records one model turn as a `RunStep` of `step_type` `model-turn`, and each tool call it made as a `RunToolCall` of that step, with the backend, model, usage and cost as the backend reported them ([`protocol/types`](../protocol/types.md#runs)). Any other caller, or a step that is not running, is refused with `FORBIDDEN` |
+| `record_turn` | the agent a running step was dispatched to, on its own registration token, for that step alone, with an `InstructionTurn` ([Types](#types)) as `payload` | Records one model turn as a `RunStep` of `step_type` `model-turn`, and each tool call it made as a `RunToolCall` of that step, with the backend, model, usage and cost as the backend reported them ([`protocol/types`](../protocol/types.md#runs)). Any other caller, or a step that is not running, is refused with `FORBIDDEN` |
 
 **What it sends a work agent or the prompt worker**: a `TaskRequest` to its
-`POST /v1/execute`, on a service pass ([Unattended authority](#unattended-authority)),
+`POST /v1/execute`, on a work pass ([Unattended authority](#unattended-authority)),
 as [`patterns/task-dispatch`](../patterns/task-dispatch.md) dispatches one.
 An `agent:` phase is sent to the prompt worker with `action`
-`run_instruction` and an `InstructionTask` as its `payload`
+`run_instruction` and an `InstructionTask` as its `payload`, on a work pass
+asked for with `scope` `[content:read]`
 ([The prompt worker](#the-prompt-worker)).
 
 **Events it publishes** (namespaces `workflow` and `execution`, claimed at
@@ -460,13 +483,14 @@ A run's callback, where its trigger named one, is published as
 **Events it subscribes to**: `workflow.trigger` (scope `self`), the
 orchestrator's `system.agent.registered` and `system.agent.deregistered`, and
 each fact the start allow-list names
-([`schemas/programme.md`](../schemas/programme.md#on--reacting-to-a-fact-instead-of-to-the-clock)):
+([`schemas/programme.md`](../schemas/programme.md#on--reacting-to-a-fact-instead-of-to-the-clock)),
+on the topic its publisher gives it
+([`architecture/programme-service`](programme-service.md#events-it-publishes)):
 `obligation.due_soon`, `obligation.overdue`, `obligation.escalated`,
-`attestation`, `register.row_added` and `adopted`, at scope `*`, which needs
-`event:observe` on its manifest. Which service publishes those facts, and on
-what topic, is not yet specified ([Known Gaps](#known-gaps)); execution
-subscribes to the names that schema writes and follows the publisher's
-blueprint when one exists.
+`obligation.attested` (the schema's `attestation`), `register.row_added` and
+`programme.adopted` (the schema's `adopted`), at scope `*`, which needs
+`event:observe` on its manifest. A start registered with the schema's word
+is read as the topic it is published on.
 
 ---
 
@@ -484,7 +508,7 @@ blueprint when one exists.
 | `EXECUTION_DECISION_OUT_OF_ORDER` | A sequential approval decided as a position whose turn has not come |
 | `EXECUTION_POSITION_UNRESOLVED` | Who holds the positions the wait names cannot be read, so nobody can be shown to hold one. Nothing is decided |
 | `EXECUTION_MUTED` | A decision on a wait of a muted run, which reaches nobody |
-| `EXECUTION_PASS_UNAVAILABLE` | `RunScheduleNow` or `RetryRun` needs a step dispatched on a service pass, and none can be obtained |
+| `EXECUTION_PASS_UNAVAILABLE` | `RunScheduleNow` or `RetryRun` needs a request carried on a work pass, and none can be obtained |
 | `STEP_UP_REQUIRED` | `CancelRun` without a recent re-confirmation: cancelling is destructive ([Resources](#resources); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`). The run continues |
 | `APPROVAL_SELF_DENIED` | An approval accepted by the person who started its run, or who completed a task it follows ([`patterns/approval`](../patterns/approval.md#error-handling)) |
 
@@ -497,7 +521,7 @@ but the refusal, in the audit.
 
 A run that could not do what it was asked is not an error on any route. It
 is a run in the ledger with its status and its reason: a step whose target is
-not registered, a definition its owner no longer has, a service pass that
+not registered, a definition its owner no longer has, a work pass that
 could not be obtained. A run is never reported as having run a step it did
 not dispatch.
 
@@ -511,7 +535,7 @@ not dispatch.
    registration token carrying `execution:register`, with a
    `ScheduleRegistration`: the definition's name, the scope, exactly one of
    `clock`, `on`, `when` and `for`, and `state` and `muted`. `{schedule}` is
-   the owner's own key for the start, such as `<programme>.<id>`; with the
+   the owner's own key for the start, such as `<uid>.clock`; with the
    owner's identity id it is what registering twice matches on.
 2. The service checks the start against its vocabulary
    ([`schemas/programme.md`](../schemas/programme.md#schedule--a-small-closed-vocabulary-and-not-the-obligations),
@@ -553,8 +577,9 @@ one. A domain's `workflow.trigger` needs no registration.
    as [`patterns/workflow`](../patterns/workflow.md#reference-expression-syntax)
    says.
 2. A phase whose `agent` is the owner or `self` is sent to the owner on
-   `POST /v1/message`, on this service's registration token. Any other is
-   dispatched to its target's `POST /v1/execute` on a service pass.
+   `POST /v1/message`, on a work pass addressed to the owner. Any other is
+   dispatched to its target's `POST /v1/execute` on a work pass addressed to
+   that target ([Unattended authority](#unattended-authority)).
 3. The step is recorded with each attempt. A failure is handled by the
    phase's `on_error`, and a retry waits as
    [`protocol/conventions`](../protocol/conventions.md) `backoff` says. A step
@@ -633,8 +658,8 @@ and are not restated here.
 1. **A person reaches this service only on a pass.** An operator token is
    refused on every route with `PASS_REQUIRED`.
 2. **Only a person decides a wait, and only on a pass.** `execution:decide`
-   is person only. A registration, channel or service pass on the decision
-   route is refused with `FORBIDDEN`, whatever it carries. No event, action
+   is person only. A registration token, channel token or work pass on the
+   decision route is refused with `FORBIDDEN`, whatever it carries. No event, action
    or phase output closes a wait, `workflow.approval.decision` included: that
    event is published here after a person has decided, and the service
    subscribes to no topic that would close a wait.
@@ -665,50 +690,71 @@ pass's `identity_id` and the gateway is `via`.
 
 A firing has no person behind it, so no pass
 ([`protocol/identity`](../protocol/identity.md#the-pass)) can carry it.
-[`architecture/domain`](domain.md) says a definition runs "on a pass minted
-for the definition's owner", and the identity lane of this corpus is
-specifying that token, a **service pass**. Execution requires of it exactly
-this, and dispatches on nothing weaker:
+Every request of a run that execution sends to another component goes on a
+**work pass** ([`protocol/identity`](../protocol/identity.md#the-work-pass)):
+minted by the orchestrator at `POST /v1/token/work` for that one request,
+under the work authorisation a person made for the run's definition, with
+the definition's **owner** as its subject, the component the request goes to
+as its audience, and execution as its actor. Execution dispatches on nothing
+weaker:
 
-1. The orchestrator mints it, at execution's request, for one dispatch: its
-   subject is the definition's **owner** (its registration's `identity_id`),
-   its audience the one component the step is sent to, and its actor
-   execution.
-2. Its `cap` is never more than the intersection of what the owner's
-   manifest declares and, for an `agent:` phase, the phase's `needs` ceiling.
-   It never carries a person-only capability.
-3. It is minted only while the owner's lease is current, lives no longer
-   than one step's timeout, and is never exchanged again.
-4. The component it reaches records the owner as who acted, and execution as
-   who carried it.
+1. It finds the definition's authorisation at `GET /v1/work/authorisations`,
+   by owner and definition, among those that name it as an actor, and asks
+   for one work pass per request, naming that authorisation, the audience,
+   the capabilities the request needs and the run.
+2. A work pass's `cap` is what the orchestrator mints, never more than the
+   authorisation's `capabilities` and what the owner's, execution's and the
+   audience's manifests declare, and never a person-only capability. For an
+   `agent:` phase, the authorisation's `capabilities` are what the phase's
+   `needs` ceiling comes to
+   ([`architecture/prompt-worker`](prompt-worker.md#needs-comes-to-these-capabilities)).
+3. **A request to the definition's owner goes on a work pass too**, addressed
+   to the owner: `get_workflow`, and a phase whose `agent` is the owner or
+   `self`. The owner admits it only where the pass names a definition it
+   holds now, whatever its `cap`, which may be empty
+   ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass),
+   rule 11). That is how execution proves to an owner that it is firing that
+   owner's definition.
+4. The pass is held in memory for its one request, and a retry asks for a
+   new one. The component it reaches records the owner as who acted,
+   execution as who carried it, and the authorisation and run.
 
-**Two cases need no service pass.** A phase sent to the definition's own
-owner runs under the owner's own registration, so execution sends it on its
-own token, with `agent:message`. Reading and recording in its own ledger is
-execution's own work.
+Reading and recording in its own ledger is execution's own work, and needs
+no pass.
 
-Until the service pass is specified and the orchestrator mints it, a step
-that needs one is **not dispatched**: it is recorded `failed` with
-`EXECUTION_PASS_UNAVAILABLE`, its `on_error` applies, and the run says why.
-Execution never dispatches such a step on its own registration token
-instead, which would run every owner's work with execution's authority.
+**A request no work pass can be obtained for is not sent.** Where there is no
+live authorisation for the definition, or the orchestrator refuses the
+exchange (`WORK_AUTHORISATION_UNKNOWN`, `WORK_AUTHORISATION_REVOKED`,
+`WORK_AUTHORISATION_EXPIRED`, `WORK_OWNER_UNREGISTERED`), the step is
+recorded `failed` with `EXECUTION_PASS_UNAVAILABLE` and the orchestrator's
+code in its detail, its `on_error` applies, and the run says it was not
+authorised, never that it ran. Execution never sends such a request on its
+own registration token instead, which would run every owner's work with
+execution's authority.
 
 ### Who holds a position
 
 A wait names positions, never people. Whether the person on a pass holds one
-is read from the tenant's register of who holds each position, in the
-scope's records repository in content
-([`schemas/position.md`](../schemas/position.md#known-gaps)). Execution reads
-it on its own registration token, at the run's organisation, when a wait
-opens and again at each decision, and keeps no copy.
+is read from the tenant's register of who holds each position
+([`schemas/position.md`](../schemas/position.md#who-holds-a-position)), in
+the organisation's records repository in content, when a wait opens and
+again at each decision, and no copy is kept. Execution reads it as
+[`architecture/notification`](notification.md#resolving-holders) does: it
+finds the records repository on a work pass carrying `content:describe`,
+reads the register on a second carrying `content:read`, each minted under
+the run's work authorisation, and applies the register's own rule for
+resolving a position on the day the wait opened or is decided. It never reads
+the register on its own registration
+([`schemas/position.md`](../schemas/position.md#who-may-read-it)).
 
-That register's spec is not yet declared. Until it is, every wait is
-recorded with `holders: unresolved`, `GET /v1/execution/waits?for=me` lists
-every open wait in scope with that mark rather than an empty list, and every
-decision on a wait naming a position is refused with
-`EXECUTION_POSITION_UNRESOLVED`. A wait is never decided by capability alone
-because its positions could not be read. An approval with no `approvers`
-names no position and is decided by capability.
+Where the register cannot be read — no records repository, no register in
+it, a refused read, or no work pass — the wait is recorded with
+`holders: unresolved`, `GET /v1/execution/waits?for=me` lists every open wait
+in scope with that mark rather than an empty list, and every decision on a
+wait naming a position is refused with `EXECUTION_POSITION_UNRESOLVED`. A
+wait is never decided by capability alone because its positions could not be
+read. An approval with no `approvers` names no position and is decided by
+capability.
 
 ### Muted runs
 
@@ -726,42 +772,50 @@ already recorded.
 
 ### The prompt worker
 
-An `agent:` phase is sent to the prompt worker, the tenant's one runner of
-`agent:` instructions ([`architecture/programme-service`](programme-service.md#the-prompt-worker)).
-Its blueprint is not written. Execution holds it to this contract:
+An `agent:` phase is sent to the prompt worker,
+[`architecture/prompt-worker`](prompt-worker.md), the tenant's one runner of
+`agent:` instructions. Execution holds it to this contract:
 
 1. It receives a `TaskRequest` on `POST /v1/execute`, `action`
-   `run_instruction`, with an `InstructionTask` as `payload`, on a service
-   pass whose `cap` is the ceiling rule 2 of
-   [Unattended authority](#unattended-authority) gives.
-2. It answers a `TaskResult` within the phase's `timeout`: `status`
-   `success` or `failed`, a `summary`, and in `changes` each proposal it made
-   through an owner's API. It writes nothing except through an owner's API.
+   `run_instruction`, with an `InstructionTask` as `payload`, on a work pass
+   addressed to it, asked for with `scope` `[content:read]`: the pass is the
+   proof of the run, not the grant of its tools
+   ([`architecture/prompt-worker`](prompt-worker.md#authority)). The task
+   carries the instruction, its `needs`, the adopted map as `source` and the
+   programme's skills, as its owner put them in the phase's `input`.
+2. It answers a signed `TaskResult` within the phase's `timeout`: `status`
+   `success` or `failed`, a `summary`, in `changes` each proposal it made
+   through an owner's API, and in `metrics.instruction` its
+   `InstructionOutcome`. An outcome of `not-runnable` is recorded as the step
+   not having run, never as having run. It writes nothing except through an
+   owner's API.
 3. It keeps nothing. The run's record is execution's: the worker reports each
    model turn it takes, and each tool call that turn makes, to execution with
-   `record_turn` ([Interfaces](#interfaces)) as it happens, with the backend,
-   model, usage and cost the backend reported, and what it answers is
-   recorded on the step.
+   `record_turn` and an `InstructionTurn` ([Interfaces](#interfaces)) as it
+   happens, with the backend, model, usage and cost the backend reported, and
+   what it answers is recorded on the step.
 4. Told that the run is muted, it makes no proposal a person would see, and
-   says in `summary` what it would have proposed.
+   keeps what it would have proposed in its outcome's `withheld`.
 
 Until a prompt worker is registered, an `agent:` phase is recorded `failed`
 with its target not registered, never as having run.
 
 ### Notification
 
-When a wait opens or escalates in an unmuted run, execution asks
-notification to tell the awaited positions: the wait's id, its kind, its
-title or activity, its due, and its decide route. The notify-by-position
-call has no declared name yet
-([`architecture/programme-service`](programme-service.md#notification)).
-Until notification's blueprint declares it, the wait records `announced:
-false` with that reason, and the inbox still lists it: a wait nobody was told
-of is still a wait.
+A wait that opens or escalates in an unmuted run is published as
+`execution.wait.opened` or `execution.wait.escalated`. Telling the awaited
+positions' holders of it is notification's
+([`architecture/notification`](notification.md)), and its `NotifyByPosition`
+tells a notice or an occurrence: its request names a notice and the fact it
+is about, and a wait is neither. Until notification's request can carry a
+wait, execution asks it nothing, the wait records `announced: false` with
+that reason, and the inbox still lists it: a wait nobody was told of is still
+a wait ([Known Gaps](#known-gaps)).
 
 ### Content
 
-Execution reads the position register from content. Every write a step makes
+Execution reads the position register from content, on work passes
+([Who holds a position](#who-holds-a-position)). Every write a step makes
 is made by the component the step reached, through content's own routes, as
 a proposal where content requires one. A run's id and chain travel in each
 dispatch's `context`, so that a row a run wrote can carry them once content
@@ -771,30 +825,19 @@ records them ([Known Gaps](#known-gaps)).
 
 ## Known Gaps
 
-**The service pass is not yet specified.** [Unattended authority](#unattended-authority)
-states what execution requires of it. Until
-[`protocol/identity`](../protocol/identity.md#the-pass) specifies it and the
-orchestrator mints it, every step dispatched to a component other than its
-definition's owner is recorded failed, and so is every `agent:` phase. A
-`does:` phase of the programme service and a domain's `self` phase run.
+**Nothing is built from this blueprint yet.** No tenant runs execution, and
+until one does, no start fires and no wait is held.
 
-**Nobody can be shown to hold a position.** The register is not declared
-([`schemas/position.md`](../schemas/position.md#known-gaps)), so every wait
-naming a position is listed and cannot be decided
+**Nobody can be shown to hold a position until a tenant holds the register.**
+The register is declared ([`schemas/position.md`](../schemas/position.md#who-holds-a-position));
+until an organisation's records repository holds it, every wait naming a
+position is listed and cannot be decided
 ([Who holds a position](#who-holds-a-position)).
 
-**Notification and the prompt worker have no blueprint.** A wait opens
-unannounced and an `agent:` phase fails, each saying so.
-
-**Two facts are published under other names than this service subscribes
-to.** The programme service publishes the facts a start reacts to
-([`architecture/programme-service`](programme-service.md#events-it-publishes)):
-`obligation.*` and `register.row_added` under the names
-[`schemas/programme.md`](../schemas/programme.md#on--reacting-to-a-fact-instead-of-to-the-clock)
-writes, and `attestation` and `adopted` as `obligation.attested` and
-`programme.adopted`. Until this service subscribes to those two topics and
-reads a start's `attestation` and `adopted` as them, a start on either fires
-nothing.
+**A wait is announced to nobody.** Notification's `NotifyByPosition` tells a
+notice or an occurrence, and its request has no way to name a wait
+([Notification](#notification)). A wait opens with `announced: false`, is
+listed in the inbox, and is published as `execution.wait.opened`.
 
 **No content entry records the run that wrote it.** Execution carries a
 run's chain in every dispatch's context, and nothing yet writes it beside the
@@ -951,7 +994,9 @@ types:
     description: The payload of run_instruction, sent to the prompt worker
     fields:
       instruction: {type: string, required: true, description: The agent instruction, in the author's words}
+      source: {type: ContentRef, required: true, description: The adopted map the instruction is declared in, as the owner put it in the phase's input}
       needs: {type: "[]string", required: true, description: The phase's ceiling. Empty means read}
+      skills: {type: "[]ContentRef", required: true, description: "Each skill of the instruction's programme with no for, in the order the map lists them, as the owner put them in the phase's input. Empty where it has none"}
       run: {type: string, required: true}
       step: {type: string, required: true}
       chain: {type: "[]string", required: true}
@@ -960,7 +1005,31 @@ types:
       muted: {type: bool, required: true}
       events: {type: int, required: false, description: How many facts this run covers, so a coalesced burst is never answered as one}
       record: {type: map, required: false}
+
+  ContentRef:
+    description: Where an entry is in the tenant's content, by repository and path
+    fields:
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+
+  InstructionTurn:
+    description: The payload of record_turn, sent by the agent a running step was dispatched to as each model turn ends
+    fields:
+      run: {type: string, required: true}
+      step: {type: string, required: true, description: The step the task named}
+      completion: {type: string, required: false, description: The Completion id the model service answered. Absent where the turn was refused before it ran}
+      backend: {type: string, required: false, description: CompletionResponse.provider}
+      model: {type: string, required: false, description: "CompletionResponse.model: the model the backend's answer says ran, absent where it named none"}
+      usage: {type: RunUsage, required: false, description: The usage the model service answered. Absent where the backend reported none}
+      content: {type: string, required: false, description: "The model's answer for the turn, as text"}
+      calls: {type: "[]RunToolCall", required: true, description: Each call the turn asked for, in order. Empty for a done turn or an unreadable one}
 ```
+
+`InstructionTask`, `ContentRef` and `InstructionTurn` are the contract of
+an `agent:` phase, declared here, where the run is held. The prompt worker
+binds them ([`architecture/prompt-worker`](prompt-worker.md)), and the
+programme service binds `ContentRef` for the `input` it gives an `agent:`
+phase.
 
 ---
 
@@ -1318,7 +1387,7 @@ security:
     description: |
       Execution trusts a person's authority only on a pass, an owner's only
       on its own registration token, and runs unattended work only under its
-      owner's authority on a service pass. It holds no person's token and
+      owner's authority on a work pass. It holds no person's token and
       never runs work as the person who started or switched it on. It decides
       nothing: every wait is closed by a person holding the position it names.
 
@@ -1328,11 +1397,12 @@ security:
     - boundary: Owner → Execution. Registers, switches and withdraws its own
         starts on its own registration token, and reaches no other owner's
     - boundary: Execution → Owner. get_workflow and the owner's own phases,
-        on execution's registration token
-    - boundary: Execution → Target component. A machine phase on a service
-        pass for the definition's owner, addressed to that target alone
-    - boundary: Execution → Content. Reads the position register. Writes
-        nothing
+        on a work pass addressed to the owner, which the owner checks names a
+        definition it holds now
+    - boundary: Execution → Target component. A machine phase on a work pass
+        for the definition's owner, addressed to that target alone
+    - boundary: Execution → Content. Reads the position register on work
+        passes under the run's authorisation. Writes nothing
 
   enforcement:
     - rule: No machine decides
@@ -1341,8 +1411,8 @@ security:
     - rule: One authority per start
       mechanism: Schedule routes admit only the owner's registration token
     - rule: Unattended work never borrows a person's or execution's authority
-      mechanism: A step to another component goes on a service pass for the
-        owner, or is not dispatched
+      mechanism: Every request of a run goes on a work pass for the owner,
+        or is not sent
     - rule: Nothing a muted run produces reaches a person
       mechanism: A muted run's wait is withheld, unannounced and unlisted
     - rule: A wait is never decided by someone shown to hold nothing
@@ -1374,7 +1444,7 @@ security:
 
 - [ ] Every route in [Endpoints](#endpoints) but `PUT` and `DELETE` on a schedule and its three switching routes, `POST /v1/event`, `POST /v1/services`, `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes` with the one capability its row gives, and `GET /v1/execution/waits` carries the `inbox` [Endpoints](#endpoints) shows ([Endpoints](#endpoints))
 - [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
-- [ ] The manifest declares `execution:read`, `execution:operate`, `execution:register` and `agent:message`, and never `execution:decide` ([Endpoints](#endpoints))
+- [ ] The manifest declares `execution:read`, `execution:operate`, `execution:register`, `agent:message`, `event:observe`, `work:exchange`, `content:describe` and `content:read`, and never `execution:decide` ([Endpoints](#endpoints))
 - [ ] `POST /v1/execution/waits/{wait}/decision` on a registration token carrying `execution:decide` claims is refused with `FORBIDDEN`, and the wait stays `open` ([Who May Do What](#who-may-do-what) rule 2, [Error Handling](#error-handling))
 - [ ] Publishing `workflow.approval.decision` to the service closes no wait ([Who May Do What](#who-may-do-what) rule 2)
 - [ ] A decision as a position the person on the pass does not hold is refused with `EXECUTION_NOT_A_HOLDER` ([Deciding](#deciding), [Error Handling](#error-handling))
@@ -1391,8 +1461,11 @@ security:
 - [ ] A paused `for` start holds each added row and delivers it on resume, one run per row; a paused `on` start drops facts and counts them in `dropped` ([Firing](#firing) step 3)
 - [ ] A `for` row whose chain already holds a run of the same definition starts nothing ([Firing](#firing) step 2)
 - [ ] A `workflow.trigger` whose envelope `source` differs from its `source_domain` starts no run ([Firing](#firing) step 1)
-- [ ] While no service pass can be obtained, a phase targeting a component other than the definition's owner is recorded `failed` with `EXECUTION_PASS_UNAVAILABLE` and is never sent on the service's own registration token ([Unattended authority](#unattended-authority))
-- [ ] A `does:` phase of a programme workflow is sent to the programme service on `POST /v1/message` on the service's own registration token ([Running a machine phase](#running-a-machine-phase) step 2)
+- [ ] Where no live work authorisation names the definition, or the orchestrator refuses the work exchange, a phase is recorded `failed` with `EXECUTION_PASS_UNAVAILABLE` and the orchestrator's code, and is never sent on the service's own registration token ([Unattended authority](#unattended-authority))
+- [ ] `get_workflow`, and a `does:` phase of a programme workflow, are sent to the owner on `POST /v1/message` on a work pass addressed to the owner under the definition's authorisation, and never on the service's own registration token ([Unattended authority](#unattended-authority) rule 3, [Running a machine phase](#running-a-machine-phase) step 2)
+- [ ] An `agent:` phase is dispatched to the prompt worker with an `InstructionTask` carrying `source` and `skills` as the owner gave them in the phase's `input`, on a work pass asked for with `scope` `[content:read]` ([The prompt worker](#the-prompt-worker))
+- [ ] The position register is read on work passes under the run's authorisation, carrying `content:describe` and then `content:read`, and never on the service's own registration ([Who holds a position](#who-holds-a-position))
+- [ ] A start registered on `attestation` or `adopted` fires on `obligation.attested` or `programme.adopted` ([Interfaces](#interfaces))
 - [ ] Time a run spends `waiting` counts towards no phase or run timeout ([A person's phase](#a-persons-phase) step 5)
 - [ ] `POST /v1/execution/runs/{run}/retry` on a `completed` run is refused with `INVALID_STATE`; on a `failed` run it queues a new `Run` whose `parent` is that run, starting at the phase it failed at, and leaves that run unchanged ([Cancelling and retrying](#cancelling-and-retrying), [Error Handling](#error-handling))
 - [ ] `record_turn` from any agent but the one a running step was dispatched to is refused with `FORBIDDEN`, and one from that agent records a `model-turn` `RunStep` and its `RunToolCall`s with the usage the backend reported, absent where it reported none ([Interfaces](#interfaces))

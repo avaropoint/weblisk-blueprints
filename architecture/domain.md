@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: domain
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
@@ -234,7 +234,7 @@ sequence. Summary:
 
 1. Domain receives task via `POST /v1/execute` with `action` field
 2. Domain matches `action` against workflow triggers
-3. Domain publishes `workflow.trigger` event (scope: `workflow`, the runner's registered name until execution's blueprint names its own)
+3. Domain publishes `workflow.trigger` event (scope: `execution`, the runner's registered name, [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built); a tenant still running the interim [`agents/workflow`](../agents/workflow.md) registers it as `workflow`)
 4. Returns immediate acknowledgment (`status: "accepted"`)
 5. Execution resolves the DAG and dispatches phases to work agents
 6. Work agents execute via `POST /v1/execute` and return results
@@ -602,7 +602,7 @@ Phase 2 — Publish workflow trigger:
     callback_topic: "<domain>.workflow.result",
     entity: entity_context,
     config: domain_config
-  }, scope: "workflow", correlation_id: task.id)
+  }, scope: "execution", correlation_id: task.id)
 
 Phase 3 — Return acknowledgment:
   Return TaskResult:

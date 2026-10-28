@@ -2,7 +2,7 @@
 type: architecture
 name: programme-service
 version: 2.1.0
-requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/prompt-worker]
+requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification]
 platform: any
 tier: free
 adoption: opt-in
@@ -203,7 +203,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/execution
-    version: ">=1.0.0 <2.0.0"
+    # 1.1.0 is where InstructionTask carries source and skills
+    version: ">=1.1.0 <2.0.0"
     bindings:
       types:
         # Every installed operation's and workflow's start is registered and
@@ -220,17 +221,21 @@ requires:
           fields_used: [records]
         - name: Schedule
           fields_used: [uid, key, state, muted, held, dropped, missed, next_fire]
-        # What an agent: phase's input carries. source and skills are the
-        # prompt worker's (The prompt worker)
+        # What an agent: phase's input carries: the instruction, its
+        # ceiling, the adopted map and the programme's skills, each file a
+        # ContentRef (The prompt worker)
         - name: InstructionTask
-          fields_used: [instruction, needs]
+          fields_used: [instruction, source, needs, skills]
+        - name: ContentRef
+          fields_used: [repository, path]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/notification
-    version: ">=1.0.0 <2.0.0"
+    # 1.1.0 is where an occurrence is told under its due-sweep
+    version: ">=1.1.0 <2.0.0"
     bindings:
       types:
         # How a notice that advanced, and an occurrence that advanced, are
@@ -241,20 +246,6 @@ requires:
           fields_used: [programme, id]
         - name: NoticeFact
           fields_used: [event, occurred_at, obligation, subject, due_at]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/prompt-worker
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        # An agent: phase's source and skills, each a file in content. What
-        # each needs: word comes to is stated there, and read, never restated
-        # (What a needs: ceiling comes to)
-        - name: ContentRef
-          fields_used: [repository, path]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -1023,11 +1014,13 @@ Every item's authorisation names as its actors every service its blocks hand
 work to: execution for any operation or workflow; the prompt worker for an
 `agent:`; this service for a `does:`; notification for a notice, for a step
 that waits for a person, and for a `due-sweep`. A `does:` item's ceiling is
-its action's *reads with* ([The `does:` Actions](#the-does-actions)); a
-notice's is `content:read` and `content:describe`, which notification reads
-its positions' holders with
-([`architecture/notification`](notification.md#resolving-holders)); a
-workflow's is the union over its steps.
+its action's *reads with* ([The `does:` Actions](#the-does-actions)), and a
+`due-sweep`'s adds `content:describe`; a notice's is `content:read` and
+`content:describe`, which notification reads its positions' holders with
+([`architecture/notification`](notification.md#resolving-holders)); a step
+that waits for a person comes to the same two, which execution reads the
+positions it awaits with ([`architecture/execution`](execution.md#who-holds-a-position));
+a workflow's is the union over its steps.
 
 ---
 
