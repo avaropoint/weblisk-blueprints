@@ -877,7 +877,7 @@ way. It is the one surface that has never drifted — a checkbox list in all 87
 blueprints that carry one — and it is what a person reads to know what a
 component owes.
 
-Two rules, and the first is not cosmetic.
+Three rules, and the first and the last are not cosmetic.
 
 ### An identifier MUST be backticked
 
@@ -913,6 +913,32 @@ Where the claim can be checked mechanically, declare the check — in the
 blueprint's `declaration:` block, NOT in the sentence. See
 [Section Form](#section-form); the checklist stays prose and the machine-
 readable part stays in the declaration.
+
+### A line cites the rule it checks
+
+A checklist line checks a rule stated elsewhere — in prose, in an error-code
+table, in a contract's MUST list. It cites that rule's section with a link to
+its heading's anchor, in its own file (`[Auth Middleware](#auth-middleware)
+step 5`) or in another (`` [`protocol/types`](../protocol/types.md#capability) ``),
+and it does not restate the values that section holds. Every error code, HTTP
+status and declared type name the line does name MUST appear in a section it
+cites.
+
+A rule stated in several places drifts: an upgrade edits one place and the
+others go stale. A stale checklist line is the most expensive copy, because
+generated code is judged against the checklist, and the repair loop rewrites
+correct code to the stale side. A line that cites its rule, and names nothing
+the rule does not, has nothing of its own to go stale.
+
+A line whose rule is stated nowhere else — the checklist is that rule's home —
+cites nothing. It is allowed, and it is the exception: every error code it
+names MUST be a registered code
+([`protocol/types`](../protocol/types.md#error-code-conventions)) that its own
+file also names outside the checklist, so that no code lives in a checklist
+alone.
+
+[`checks/checklist-cites.py`](../checks/checklist-cites.py) holds every
+checklist line to this for error codes and statuses.
 
 ---
 
