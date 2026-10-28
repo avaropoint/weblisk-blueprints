@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.0.0
+version: 5.1.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -201,6 +201,14 @@ requires:
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
+        # Its part of the resource API (Resources: one API for every kind):
+        # its catalogue entries, the lease reads and the feeds of its kinds
+        - path: /v1/admin/resources
+          methods: [GET]
+        - path: /v1/admin/r/lease
+          methods: [GET]
+        - path: /v1/admin/events
+          methods: [GET]
         # Read by GET alone, at the gateway's anchor. POST /v1/services is an
         # endpoint each agent serves, bound above from protocol/spec
         - path: /v1/services
@@ -354,6 +362,14 @@ component declares it as a pass route.
 | GET | /v1/admin/overview | Overview | admin | yes | The System overview, composed from the orchestrator's and reporting every other group unavailable |
 | GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, answered `ADMIN_GROUP_UNAVAILABLE` while no pass route can name its group |
 | POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered as `admin-gateway-authorization` says of this route |
+| GET | /v1/admin/resources | ResourceCatalogue | admin | carried | The catalogue of every kind the tenant declares, composed as [The catalogue](#the-catalogue) says |
+| GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, carried to its owner ([The uniform address](#the-uniform-address)) |
+| POST | /v1/admin/r/{kind} | ResourceCreate | admin | carried | A kind's `create`, carried as `ResourceList` |
+| GET | /v1/admin/r/{kind}/{uid} | ResourceGet | admin | carried | A kind's `get`, carried as `ResourceList` |
+| PATCH | /v1/admin/r/{kind}/{uid} | ResourceUpdate | admin | carried | A kind's `update`, with `If-Match` ([Writes, and what guards them](#writes-and-what-guards-them)) |
+| DELETE | /v1/admin/r/{kind}/{uid} | ResourceDelete | admin | carried | A kind's `delete`, with `If-Match` |
+| POST | /v1/admin/r/{kind}/{uid}/{verb} | ResourceVerb | admin | carried | A verb the kind declares, with `If-Match` |
+| GET | /v1/admin/ws | ResourceWatch | admin | carried | The feed of resource events ([The feed](#the-feed)) |
 | GET | /v1/* | CarryGet | admin | carried | Any other route, to its provider: the orchestrator on the operator token, another on a pass, or `ADMIN_GROUP_UNAVAILABLE` |
 | POST | /v1/* | CarryPost | admin | carried | As `CarryGet` |
 | PUT | /v1/* | CarryPut | admin | carried | As `CarryGet` |
@@ -420,9 +436,10 @@ answers them for every other provider, and the HTTP column here names that
 registry for the eight it lists. `TOKEN_REQUEST_REPLAYED` is registered there
 too, as a code a client of `POST /v1/admin/operators/token` acts on, and the
 HTTP column names that registry for it as well. So is `STEP_UP_REQUIRED`,
-which every component that serves a destructive act answers. An orchestrator
+which every component that serves a destructive act answers, and so are the
+five resource codes, which every owner of a kind answers. An orchestrator
 enters every code in its central error registry with its HTTP status, from
-there for those thirteen and from here for the rest, which is what `architecture/orchestrator`'s
+there for those eighteen and from here for the rest, which is what `architecture/orchestrator`'s
 `error-codes-registered` check looks for. The Category column classes the
 fault, as `architecture/content` and `architecture/fabric` do. It is not
 `ErrorResponse.category`: there, each of these is `permanent` and not
@@ -459,7 +476,12 @@ because nothing was judged.
 | `OPERATOR_LAST_ADMINISTRATOR` | 409 | conflict | A request to revoke would end the last active authenticate credential of the last active admin. A sign-records credential signs nobody in and a step-up credential only re-confirms, so neither is counted. A change of that admin's identity key is not refused | Refuse | `last_administrator` |
 | `ADMIN_TOKEN_UNCHECKED` | 503 | io | A request for a route another component provides reached the admin gateway, and the orchestrator could not be asked to exchange its operator token, or answered anything but 200 with a `TokenExchangeResponse` or the `404` `NOT_FOUND` that says the provider is not registered now, which is `ADMIN_GROUP_UNAVAILABLE`; or the provider refused, with a `401` other than `STEP_UP_REQUIRED`, the pass the gateway sent it | Refuse and forward nothing more, with `retry_after` 5. The request may be repeated once the orchestrator answers. Never forward on the person's token, and never relay the code that answer or that refusal carried, which judged the gateway's own request or its pass, never the person's token | — |
 | `STEP_UP_REQUIRED` | [types](../protocol/types.md#errorresponse) | auth | A destructive act arrived on an operator token or a pass whose `step_up_at` is absent or more than 300 seconds old (`destructive-action-step-up`) | Refuse, change nothing, audit. The answer carries RFC 9470's challenge and names the act in `detail.control`; the client has its person re-confirm, mints through that re-confirmation and retries once. The admin gateway returns it as the provider gave it | — |
-| `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a route no provider here may be sent: none is deployed, the one deployed is not registered now, no directory entry declares the route among its `pass_routes` or more than one does, which is so wherever the provider's blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names in `detail.address` (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
+| `RESOURCE_KIND_UNDECLARED` | [types](../protocol/types.md#errorresponse) | validation | A request at the resource API names a kind the tenant's catalogue does not hold (`resource-api`) | Refuse, exchange and forward nothing. The client reads the catalogue; retrying changes nothing | — |
+| `RESOURCE_OPERATION_UNDECLARED` | [types](../protocol/types.md#errorresponse) | validation | The kind is declared and the operation or verb is not one its declaration names, at the gateway or at the owner (`resource-api`), or a feed subscription names a kind that declares no events (`resource-feed`) | Refuse, naming in `Allow` what the address serves. An undeclared act does not exist on the wire | — |
+| `RESOURCE_FIELD_NOT_SETTABLE` | [types](../protocol/types.md#errorresponse) | validation | A write names a field its declaration does not let a person set there (`resource-api`) | Refuse, change nothing, name each field in `detail.fields` | — |
+| `RESOURCE_IF_MATCH_REQUIRED` | [types](../protocol/types.md#errorresponse) | validation | An update, a delete or a verb at the uniform address carries no `If-Match` (`resource-api`) | Refuse before exchanging anything. The client reads the item and sends its `ETag` | — |
+| `RESOURCE_PRECONDITION_FAILED` | [types](../protocol/types.md#errorresponse) | conflict | The item's `ETag` is not the `If-Match` the write carried: somebody changed it since the client read it (`resource-api`) | The owner refuses, changes nothing and carries the current `ETag`. Never merge, never apply to what the person did not see | — |
+| `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a resource kind the catalogue reports `declared-unavailable`, naming the kind in `detail.kind` and its reason in `detail.reason`, or an act that takes approval while none can be decided (`resource-api`); or for a route no provider here may be sent: none is deployed, the one deployed is not registered now, no directory entry declares the route among its `pass_routes` or more than one does, which is so wherever the provider's blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names in `detail.address` (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
 answers a token past its `exp`. The client mints another with its credential,
@@ -1242,7 +1264,7 @@ contracts:
         # <!-- wl:id gateway-judged-by-orchestrator -->
         - Every request it carries on a person's token MUST be authorised by the orchestrator's judgement of that token against every capability the request requires (Auth Middleware), as token-status-on-use authorises a request - what the operator's role carries now, never beyond the token's cap, admin:* read as each capability of the admin family by its own name - whichever component provides the route. The gateway MUST NOT authorise by the token's role claim, which is the role at mint and ignores cap, and judges nothing itself
         # <!-- wl:id gateway-forwards-orchestrator-groups -->
-        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route. The orchestrator's routes are those architecture/orchestrator's Administrative endpoints lists, every one under /v1/admin/ and none outside it, which this document's dependency contract binds - Operator management, Agent management, Audit, the Model routes and its overview (The admin API is an aggregate) - but POST /v1/admin/model/audit. The orchestrator serves that route for the model gateway inside its own process alone (architecture/orchestrator, Recording what the model routes do), so the gateway MUST answer a request for it 404 NOT_FOUND, forwarding nothing and exchanging nothing, whatever the service directory declares, as the model gateway answers one that reaches it from outside the process. The gateway forwards no other path to the orchestrator
+        - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route. The orchestrator's routes are those architecture/orchestrator's Administrative endpoints lists, every one under /v1/admin/ and none outside it, which this document's dependency contract binds - Operator management, Agent management, Audit, the Model routes, its overview and its part of the resource API, its catalogue entries, the lease reads and the feeds of the kinds it owns (The admin API is an aggregate; Resources: one API for every kind) - but POST /v1/admin/model/audit. The orchestrator serves that route for the model gateway inside its own process alone (architecture/orchestrator, Recording what the model routes do), so the gateway MUST answer a request for it 404 NOT_FOUND, forwarding nothing and exchanging nothing, whatever the service directory declares, as the model gateway answers one that reaches it from outside the process. The gateway forwards no other path to the orchestrator
         # <!-- wl:id gateway-carries-on-pass -->
         - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. The gateway learns such a route, which component provides it and what it requires from the service directory alone, never from a blueprint it was not generated from - it is a route that is not one of the orchestrator's and that exactly one directory entry declares among its pass_routes (protocol/types, PassRoute), matched by method and by path. For each such request the gateway MUST have the orchestrator exchange the token presented with it (architecture/orchestrator, token-exchange), naming as audience the identity id of that entry's component, the fingerprint of the public key the entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived, at that entry's url and nowhere else
         # <!-- wl:id gateway-pass-address-bound -->
@@ -1266,7 +1288,53 @@ contracts:
         - The System overview is composed by the gateway, from the orchestrator's GET /v1/admin/overview, forwarded as any request for its groups is, and from each group another component holds, asked of that component on a pass addressed to it as the rules above carry any request, once a pass route can name the overview group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no component for one and MUST report every such group unavailable, never zero. The orchestrator asks no component for any
         - The decision inbox, GET /v1/admin/approvals, is composed by the gateway from each owner's own open decisions, each asked of its owner on a pass addressed to it as the rules above carry any request, once a pass route can name the inbox group it answers. None can yet (protocol/types, PassRoute, which has no such field), so the gateway asks no owner, hard-codes no owner's route, and MUST answer the inbox ADMIN_GROUP_UNAVAILABLE, never an empty list. It serves no route that decides <!-- wl:id inbox-composed-by-pass-route -->
         # <!-- wl:id gateway-unknown-route-unavailable -->
-        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's, is not the decision inbox the rule above governs, and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
+        - The gateway MUST answer with ADMIN_GROUP_UNAVAILABLE, and forward nothing, a request for a route that is not one of the orchestrator's, is not the decision inbox the rule above governs, is not a route of the resource API (resource-api, resource-feed), and that no directory entry declares among its pass_routes, or that more than one declares, since the directory then names no one provider. A component declares a pass route only where its blueprint specifies both the route and that it accepts a pass for it (protocol/types, PassRoute), so a route whose provider is not deployed, or whose provider's blueprint specifies no pass for it, is answered so. It MUST NOT carry such a request as a POST /v1/message action, which checks no operator token (protocol/spec)
+
+    - name: resource-api
+      description: How the admin gateway and each owner serve every declared kind at one address
+      required: true
+      rules:
+        # <!-- wl:id resource-catalogue-composed -->
+        - The gateway MUST answer GET /v1/admin/resources with a ResourceCatalogue (protocol/types) composed from the orchestrator's own GET /v1/admin/resources, forwarded on the person's token as any request for its groups is, from the resources of each entry of the directory it reads, and from the tenant's declared catalogue .weblisk/resources.json, and MUST report every kind any of them declares, never leaving one out and never answering a kind as empty
+        # <!-- wl:id resource-catalogue-status -->
+        - A kind MUST be reported available only where the orchestrator declares it, or exactly one directory entry declares it at an address gateway-pass-address-bound lets a pass be sent to, and otherwise declared-unavailable with the one reason schemas/resource names for the case - owner-unspecified, owner-not-declared, owner-not-registered, owner-ambiguous or owner-address-unverified - and the kind's declaration, the registered owner's where there is one
+        # <!-- wl:id resource-carried-to-owner -->
+        - A request at /v1/admin/r/{kind}, /v1/admin/r/{kind}/{uid} or /v1/admin/r/{kind}/{uid}/{verb} for an available kind MUST be carried to the method and path the kind's declaration gives that operation or verb - to the orchestrator on the operator token as it arrived, and to any other owner on a pass whose exchange scope names the capability the declaration gives it and nothing more, as admin-gateway-authorization carries any request - and the owner's answer MUST be relayed as the owner gave it, reshaped in nothing
+        # <!-- wl:id resource-undeclared-refused -->
+        - A request naming a kind the catalogue does not hold MUST be answered RESOURCE_KIND_UNDECLARED, one naming an operation or verb the kind's declaration does not name RESOURCE_OPERATION_UNDECLARED with an Allow header naming the methods the address does serve, and one for a declared-unavailable kind ADMIN_GROUP_UNAVAILABLE with detail.kind and detail.reason, and none of them is exchanged or forwarded
+        # <!-- wl:id resource-if-match-required -->
+        - An update, a delete or a verb arriving at the uniform address with no If-Match MUST be answered RESOURCE_IF_MATCH_REQUIRED before anything is exchanged or forwarded
+        # <!-- wl:id resource-owner-etag -->
+        - An owner MUST answer every get of an item with an ETag taken over the item without its sensitive and volatile fields, MUST compare every If-Match it is sent with the item's ETag before acting, and MUST refuse a mismatch with RESOURCE_PRECONDITION_FAILED, carrying the current ETag and changing nothing
+        # <!-- wl:id resource-owner-declared-only -->
+        - An owner MUST serve at the uniform address exactly the operations and verbs its declaration names, refusing any other there with RESOURCE_OPERATION_UNDECLARED, and MUST refuse with RESOURCE_FIELD_NOT_SETTABLE, changing nothing, a write naming a field its declaration does not let a person set there
+        # <!-- wl:id resource-sensitive-never-answered -->
+        - A field a declaration marks sensitive MUST NOT appear in any answer, list item or event, by its owner or by the gateway
+        # <!-- wl:id resource-bound-route-one-rule -->
+        - A route an operation or verb binds MUST keep every rule its own blueprint states, and the capability the declaration gives the operation MUST be the one that route requires, so the uniform address is a second address for one act and never a second rule for it
+        # <!-- wl:id resource-approval-undecidable -->
+        - While no route decides an ApprovalRequest a resource operation records, an operation or verb whose declaration takes approval MUST be answered ADMIN_GROUP_UNAVAILABLE with detail.reason approval-undecidable, and MUST NOT be answered 202 or applied
+        # <!-- wl:id resource-write-audited -->
+        - Every create, update, delete and verb MUST be audited by its owner, admitted or refused, with the identity id its token or pass carries, the kind, the item, the operation or verb and the outcome
+
+    - name: resource-feed
+      description: How the admin gateway serves the feed of resource events at /v1/admin/ws
+      required: true
+      rules:
+        # <!-- wl:id feed-on-operator-token -->
+        - GET /v1/admin/ws MUST be opened on an operator token in the Authorization header. The connection is one request, so the gateway holds that token, and each that replaces it, for as long as the connection is open and no longer, and presents it to the orchestrator alone
+        # <!-- wl:id feed-rounds-carried -->
+        - Each subscription MUST be served by repeated requests to the kind's owner's feed route, GET /v1/admin/events/{kind} with after, uid and wait of at most 25 seconds, each carried exactly as resource-api carries a get of that kind - to the orchestrator on the token, to any other owner on a pass of its own - so every subscription is judged again on every round
+        # <!-- wl:id feed-filtered-by-read -->
+        - An owner MUST answer its feed route with a ResourceEventPage holding only events about items the request may get, in position order, no sensitive field in any event's data
+        # <!-- wl:id feed-closed-at-expiry -->
+        - The gateway MUST close the connection with TOKEN_EXPIRED at the exp of the token it holds unless a token frame has replaced it, and MUST close it at once on a token frame whose sub is not the sub of the token the connection opened on
+        # <!-- wl:id feed-subscription-error -->
+        - A refused exchange, a refusal from the owner, or a kind that is declared-unavailable MUST close that subscription with an error frame naming the code, and MUST leave every other subscription open
+        # <!-- wl:id feed-replay-or-gap -->
+        - A subscription with after MUST be sent every event its owner holds after that position, and where the owner no longer holds them all, a gap frame, never silence
+        # <!-- wl:id feed-unavailable -->
+        - GET /v1/admin/ws MUST be answered 503 ADMIN_GROUP_UNAVAILABLE, holding no connection and opening no subscription, where no kind in the catalogue is available with an owner that serves a feed, and a subscription to a kind that declares no events MUST be answered RESOURCE_OPERATION_UNDECLARED
 
     - name: destructive-action-step-up
       description: A destructive act needs the person's own re-confirmation within 300 seconds, and never a second person
@@ -2416,6 +2484,7 @@ presents a token it received
 | Audit | Orchestrator | always |
 | Model | Orchestrator, on the platform-provided routes the CLI installs: `/v1/admin/model` (GET and PUT), `/v1/admin/model/providers` (GET), `/v1/admin/complete` (POST), `/v1/admin/model/agreements` (POST and GET), `/v1/admin/model/agreements/{id}` (DELETE) and `/v1/admin/model/ceiling` (GET) ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | always |
 | System overview | composed by the admin gateway | always, with absent providers reported absent |
+| Resources: `/v1/admin/resources`, `/v1/admin/r/…` and `/v1/admin/ws` | composed by the admin gateway from each owner's declared kinds; each kind is served by its owner ([Resources: one API for every kind](#resources-one-api-for-every-kind)) | always, each declared kind reported `available` or `declared-unavailable` with its reason |
 | Decision inbox: `/v1/admin/approvals` | composed by the admin gateway from each owner's own open decisions ([`patterns/approval`](../patterns/approval.md)); each is decided at its owner ([Decision Inbox](#decision-inbox)) | once a `PassRoute` can name the inbox group a route answers, with an owner that cannot be asked reported absent. None can yet, so the gateway answers it `ADMIN_GROUP_UNAVAILABLE` |
 | Health | the orchestrator's leases, in the agent list and the overview; and telemetry's SLO status, which no blueprint specifies yet: telemetry's is written in the second step of the tenant service plan | the leases always; SLO status once a telemetry component's blueprint specifies it on a pass |
 | Domains | Domain controllers | a domain controller is deployed |
@@ -2630,6 +2699,176 @@ waits on the credential layer, so the gateway answers these routes
 
 Observations are retired as a word and as a store: the runtime signal is
 telemetry's, and what a programme measures is its objective.
+
+---
+
+## Resources: one API for every kind
+
+Every kind a tenant holds or runs that a person may see and operate is
+declared once, in its owner's blueprint ([`schemas/resource`](../schemas/resource.md)),
+and served at one address here: the same five operations, the same verbs
+route, the same refusals and the same feed, whichever component owns it. The
+CLI and every console are two clients of this API and nothing else
+([`architecture/cli`](cli.md#resource-commands)). The rules are
+`resource-api` and `resource-feed` ([Contracts](#contracts)); this section
+says what they are for.
+
+| Method | Path | What it does |
+|---|---|---|
+| GET | /v1/admin/resources | The catalogue: every kind the tenant declares, each `available` or `declared-unavailable` with its reason |
+| GET | /v1/admin/r/{kind} | `list`: the kind's items the request may read, a page at a time |
+| POST | /v1/admin/r/{kind} | `create` |
+| GET | /v1/admin/r/{kind}/{uid} | `get`: one item, with its `ETag` |
+| PATCH | /v1/admin/r/{kind}/{uid} | `update`: the `settable` fields the body names, with `If-Match` |
+| DELETE | /v1/admin/r/{kind}/{uid} | `delete`, with `If-Match` |
+| POST | /v1/admin/r/{kind}/{uid}/{verb} | a verb the kind declares, with `If-Match` |
+| GET | /v1/admin/ws | the feed: subscriptions by kind, and by item, over a WebSocket ([The feed](#the-feed)) |
+
+`{uid}` is the item's identity as its declaration forms it: a minted id, or a
+declared name such as an agent's.
+
+### The catalogue
+
+`GET /v1/admin/resources` answers a `ResourceCatalogue`
+([`protocol/types`](../protocol/types.md#resourcecatalogue)): one entry for
+every kind the tenant declares, from three sources, in this order of
+authority.
+
+1. **The orchestrator's own kinds**, which it answers at its own
+   `GET /v1/admin/resources` ([`architecture/orchestrator`](orchestrator.md#resources-this-orchestrator-owns)),
+   forwarded on the person's token as any request for its groups is. That
+   forward is also the orchestrator's judgement that the person may read the
+   catalogue at all.
+2. **Each registered component's**, from the `resources` its directory entry
+   carries (`ServiceEntry.resources`), read with the directory as every route
+   the gateway carries is.
+3. **The tenant's declared catalogue**, `.weblisk/resources.json`, which
+   generation writes from every Resources block in the corpus revision the
+   tenant was built at ([`architecture/generation`](generation.md#resources)),
+   marking which owners the tenant declares. It supplies every kind no
+   registered component serves, so a kind is reported where it should be and
+   is not, with why.
+
+A kind is `available` when exactly one registered component declares it, at
+an address a pass may be sent to, and every other kind is
+`declared-unavailable` with one reason from
+[`schemas/resource`](../schemas/resource.md#when-a-kind-is-unavailable):
+`owner-unspecified`, `owner-not-declared`, `owner-not-registered`,
+`owner-ambiguous` or `owner-address-unverified`. **An unavailable kind is
+never left out and never answered as empty**, for the reason
+`provider-absent-unavailable` gives: an owner that is not there and an owner
+with nothing are different facts.
+
+### The uniform address
+
+A request at `/v1/admin/r/{kind}` is carried to the kind's owner, at the route
+its declaration names for that operation: the existing route an operation
+`binds`, or the uniform address itself where it binds none. To the
+orchestrator it goes on the operator token, as every request for its groups
+does; to any other owner on a pass the orchestrator exchanged that token for,
+as `admin-gateway-authorization` carries any request, with the capabilities
+the declaration names for that operation. **The gateway judges nothing new
+here**: it reads the catalogue to know where the request goes and what it
+needs, which is what it already reads the directory for.
+
+The owner answers. A bound route answers its own shape, and the catalogue
+names the member that holds a list's items, so the gateway relays every answer
+as the owner gave it and reshapes nothing. A list the owner serves at the
+uniform address answers a `ResourceList`.
+
+**An undeclared kind, operation or verb does not exist on the wire.** A kind
+the catalogue does not hold is `RESOURCE_KIND_UNDECLARED`; an operation or
+verb its declaration does not name is `RESOURCE_OPERATION_UNDECLARED`; a
+declared kind that is not available is `ADMIN_GROUP_UNAVAILABLE`, naming the
+kind and its reason. None of them is forwarded.
+
+### Writes, and what guards them
+
+Every `update`, `delete` and verb names the version of the item it acts on.
+`get` answers an `ETag`, the item's digest without its sensitive and volatile
+fields ([`schemas/resource`](../schemas/resource.md#fields)), and a write
+carries it back as `If-Match`. One with none is `RESOURCE_IF_MATCH_REQUIRED`,
+refused here before anything is exchanged; one whose `If-Match` the item no
+longer has is `RESOURCE_PRECONDITION_FAILED`, refused by the owner, which
+alone knows the item now. A write naming a field the declaration does not let
+a person set there is `RESOURCE_FIELD_NOT_SETTABLE`. All five codes are
+[`protocol/types`](../protocol/types.md#errorresponse)', since every owner
+answers them.
+
+**Authority is the declaration's, judged as every request is.** The capability
+each operation and verb names is what the exchange's scope names, and the
+orchestrator judges it. An act the declaration marks `step_up` is a
+destructive act, refused `STEP_UP_REQUIRED` by its owner without a recent
+re-confirmation (`destructive-action-step-up`), which the gateway relays as it
+came. An act that takes `approval` is answered `202` with the
+`ApprovalRequest` its owner records, once a route to decide one is specified;
+until then the gateway answers it `ADMIN_GROUP_UNAVAILABLE` with the reason
+`approval-undecidable`, never `202` for a decision nobody can make.
+
+**Every write is audited by its owner**, admitted or refused: who acted by the
+identity id their token or pass carries, the kind, the item, the operation or
+verb, and the outcome.
+
+### The feed
+
+`GET /v1/admin/ws` opens a WebSocket on the person's operator token. Over it a
+client subscribes to a kind, or to one item of a kind, from a position, and is
+sent each event its owner announces after it
+([`schemas/resource`](../schemas/resource.md#events)), as a `ResourceEvent`:
+CloudEvents 1.0 attributes, `type` `weblisk.<kind>.<event>`, `subject` the
+item's identity, `data` the fields that changed and are not sensitive.
+
+The frames, each one JSON text message:
+
+| from | `op` | carries |
+|---|---|---|
+| client | `subscribe` | `sub`, the client's name for it; `kind`; `uid`, optional; `after`, the last position it saw, optional |
+| client | `unsubscribe` | `sub` |
+| client | `token` | `token`, a new operator token for the same person, sent before the one the connection opened on expires |
+| gateway | `subscribed` | `sub`, and the `position` it starts after |
+| gateway | `event` | `sub`, and one `ResourceEvent` |
+| gateway | `gap` | `sub`: the owner no longer holds every event after the position asked for, so the client reads the items again and subscribes from the position given |
+| gateway | `error` | `sub` where it concerns one, `code` and `error`, as an `ErrorResponse` carries them. A subscription answered an error is closed |
+
+**Each subscription is a run of ordinary requests.** The gateway asks the
+kind's owner for the events after the position the subscription holds, at the
+owner's feed route, `GET /v1/admin/events/{kind}` with `after`, `uid` and
+`wait` (seconds, at most 25), carried exactly as any request is: forwarded to
+the orchestrator on the token, or sent to another owner on a pass exchanged for
+it, which names the capability the kind's `get` names. The owner answers a
+`ResourceEventPage` holding only the events about items the request may read,
+waiting up to `wait` seconds for one where it has none. The gateway relays
+them and asks again. A pass lives 30 seconds, so every subscription is judged
+again at least that often, and a person whose operator, credential or role is
+withdrawn stops receiving within one round.
+
+**The connection lives no longer than the token it rests on.** A client sends
+a fresh token before the last one expires; at its `exp` the gateway closes the
+connection with `TOKEN_EXPIRED`. A refused exchange, a refusal from the owner,
+or an owner that is not there closes that subscription with an `error` frame
+naming the code, and leaves the others open.
+
+**After a reconnect, a client subscribes with `after`** set to the last
+position it saw, and the owner replays what followed. Positions are an owner's,
+for one kind; an owner keeps what it can and says `gap` when it cannot, never
+silence.
+
+`GET /v1/admin/ws` is answered `503` `ADMIN_GROUP_UNAVAILABLE` where no kind in
+the catalogue has an available owner that serves a feed, and a subscription to
+a kind whose owner serves none is answered an `error` frame with that code. A
+kind with no `events` has nothing to subscribe to, and a subscription to it is
+`RESOURCE_OPERATION_UNDECLARED`.
+
+### Existing routes are the implementation
+
+The resource API adds an address, not a second rule. A route an operation or
+verb `binds` keeps every rule its own blueprint states — who may call it, what
+it answers, what it refuses — and is reached both at its own path and at the
+uniform address. So the agent kind's `deregister` is
+`POST /v1/admin/agents/{name}/deregister`, with the step-up it always needed,
+and `weblisk agents deregister` and `weblisk agent deregister` are one act.
+A group whose provider specifies no kind yet keeps its routes as they are
+above; it joins the catalogue when its blueprint declares its kinds.
 
 ---
 
@@ -3239,13 +3478,11 @@ The rest SHOULD be:
 - The admin gateway is a separate process from the application
   gateway. In Go deployments, it is a separate binary. In
   Cloudflare deployments, it is a separate Worker.
-- A WebSocket at `/v1/admin/ws` for real-time status updates (agent status
-  changes, new decisions, workflow completions) is a gap. The gateway holds
-  no subscription and no standing access to data
-  (`admin-gateway-authorization`), so it has nothing to feed one from, and
-  no provider's blueprint specifies the feed or a pass for it. Until one
-  does, the gateway answers a request for it as it answers any route that
-  is not the orchestrator's and that no pass route declares, with
+- The WebSocket at `/v1/admin/ws` is the feed of resource events
+  ([The feed](#the-feed)). It gives the gateway no standing access to data:
+  each subscription is a run of ordinary requests, each judged as it is
+  made, and the gateway holds the person's token only while their connection
+  is open (`resource-feed`). Where no owner serves a feed, it is answered
   `ADMIN_GROUP_UNAVAILABLE`, and a console refreshes by asking again
 - All admin API responses include `Cache-Control: no-store` to prevent
   caching of sensitive operational data
@@ -3391,7 +3628,15 @@ The rest SHOULD be:
 - [ ] A sixth `POST /v1/admin/credentials/token` within a minute from one client address is refused before its signature is verified, whatever `cid` each names, while requests from another address, and to `POST /v1/admin/operators/{name}/key` from the same one, are not ([Contracts](#contracts), `auth-route-rate-limit`; [Rate Limiting](#rate-limiting)) <!-- wl:check credential-token-limited covers auth-routes-limited -->
 - [ ] The admin gateway forwards each request for a route served without a token with `X-Forwarded-For` naming the client address it counted, replacing any the request carried; the orchestrator counts such a request by that header only where it arrives from an address `orchestrator.admin_gateway_from` names, and a request from any other address by that address, so a sixth from one client through the gateway is refused at both and a first from another client is not ([Contracts](#contracts), `auth-route-rate-limit`; [Rate Limiting](#rate-limiting)) <!-- wl:check forwarded-source-trusted covers gateway-limits-and-forwards-source orchestrator-trusts-declared-gateway -->
 - [ ] Bootstrap event (first operator registration) is permanently recorded in the audit log ([Bootstrap Flow](#bootstrap-flow))
-- [ ] While no provider's blueprint specifies `/v1/admin/ws`, a request for it is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it ([Implementation Notes](#implementation-notes); [Error Handling](#error-handling))
+- [ ] Where no kind in the catalogue has an available owner that serves a feed, `GET /v1/admin/ws` is answered 503 `ADMIN_GROUP_UNAVAILABLE`, and the gateway opens no subscription and holds no connection to serve it; a subscription to a kind that declares no events is answered `RESOURCE_OPERATION_UNDECLARED` ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`; [Error Handling](#error-handling)) <!-- wl:check feed-unavailable-answered covers feed-unavailable -->
+- [ ] `GET /v1/admin/resources` at a tenant whose declared catalogue names a kind of an owner the tenant does not declare, one of an owner that is declared and not registered, and one that two registered components declare, reports each `declared-unavailable` with `owner-not-declared`, `owner-not-registered` and `owner-ambiguous`, and the orchestrator's `agent` and `lease` as `available`; no declared kind is missing from the answer ([The catalogue](#the-catalogue); [Contracts](#contracts), `resource-api`) <!-- wl:check catalogue-composed covers resource-catalogue-composed resource-catalogue-status -->
+- [ ] With a real operator token, `GET /v1/admin/r/agent` and `GET /v1/admin/r/agent/{name}` at the admin gateway answer what `GET /v1/admin/agents` and `GET /v1/admin/agents/{name}` answer, with no `token` field and with an `ETag`, and a token whose `cap` leaves out `admin:read` is refused `FORBIDDEN` at both ([The uniform address](#the-uniform-address); [Contracts](#contracts), `resource-api`) <!-- wl:check uniform-address-carried covers resource-carried-to-owner resource-sensitive-never-answered resource-bound-route-one-rule -->
+- [ ] A request naming a kind no catalogue entry holds is answered `RESOURCE_KIND_UNDECLARED`, `DELETE /v1/admin/r/agent/{name}` is answered `RESOURCE_OPERATION_UNDECLARED` with an `Allow` header, and a request for a `declared-unavailable` kind is answered `ADMIN_GROUP_UNAVAILABLE` naming the kind and its reason; none is exchanged or forwarded ([The uniform address](#the-uniform-address); [Error Handling](#error-handling); [Contracts](#contracts), `resource-api`) <!-- wl:check undeclared-refused covers resource-undeclared-refused resource-owner-declared-only -->
+- [ ] `POST /v1/admin/r/agent/{name}/deregister` with no `If-Match` is answered `RESOURCE_IF_MATCH_REQUIRED` and nothing is exchanged; with the `ETag` of an earlier read after the agent re-registered with a changed manifest it is answered `RESOURCE_PRECONDITION_FAILED` and the agent stays registered; at a kind that declares `update`, a `PATCH` naming a field its declaration makes `read-only` is answered `RESOURCE_FIELD_NOT_SETTABLE` and nothing changes ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check writes-guarded covers resource-if-match-required resource-owner-etag -->
+- [ ] An act whose declaration takes approval is answered `ADMIN_GROUP_UNAVAILABLE` with `detail.reason` `approval-undecidable`, never `202`, and is not applied ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check approval-not-faked covers resource-approval-undecidable -->
+- [ ] Every create, update, delete and verb at the resource API, admitted or refused, leaves an audit entry at its owner naming the identity id that acted, the kind, the item, the act and its outcome ([Contracts](#contracts), `resource-api`) <!-- wl:check resource-writes-audited covers resource-write-audited -->
+- [ ] A client subscribed to `agent` over `GET /v1/admin/ws` receives `weblisk.agent.created` when an agent registers and `weblisk.agent.deregister` when one is force-deregistered, each with `subject` the agent's name and no `token` in `data`; reconnecting with `after` set to the first event's position receives the second again; a subscription after a position its owner no longer holds receives a `gap` frame ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-delivers covers feed-rounds-carried feed-filtered-by-read feed-replay-or-gap -->
+- [ ] The gateway holds no person's token once the connection it came on is closed; it closes the connection with `TOKEN_EXPIRED` at that token's `exp` unless a `token` frame for the same `sub` replaced it, and at once on a `token` frame for another `sub`; an operator whose credential is revoked stops receiving within one round, and their other subscriptions are each closed with an `error` frame naming the code ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-token-bound covers feed-on-operator-token feed-closed-at-expiry feed-subscription-error -->
 - [ ] The admin gateway serves no page, script or static file of its own, and keeps no session or cookie: a person reaches it through the CLI or a console holding their credential ([Admin Session Model](#admin-session-model); [Separate access points, shared services](#separate-access-points-shared-services))
 - [ ] While no `PassRoute` can name the inbox group a route answers, `GET /v1/admin/approvals` at the admin gateway is answered 503 `ADMIN_GROUP_UNAVAILABLE` with content registered or not, the gateway asks no owner and sends nothing, and it is never answered as an empty list; the gateway serves no route that decides, and a decision reaches its owner only at the owner's own route ([Contracts](#contracts), `admin-gateway-authorization`; [Decision Inbox](#decision-inbox); [Error Handling](#error-handling)) <!-- wl:check inbox-composed covers inbox-composed-by-pass-route inbox-never-quietly-empty inbox-decides-nothing -->
 - [ ] A registration missing `name`, `public_key`, `role`, `timestamp` or `signature`, or whose signature does not verify under the `public_key` it submits, is refused and writes no record; one outside the replay window, or seen before, is refused; and every registration, admitted or refused, is audited ([Contracts](#contracts), `operator-registration`) <!-- wl:check registration-checked covers registration-fields registration-verifies-submitted-key registration-replay registration-audited -->
