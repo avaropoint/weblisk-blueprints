@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.2.0
 kind: reference
 noun: position
 match: [positions/*.md]
@@ -367,6 +367,33 @@ never by a service or an agent acting alone:
   `content:propose`, and a person decides it with `content:decide`
   ([`architecture/content`](../architecture/content.md#who-may-move-an-entry)).
 
+**Nobody records themselves as a holder on their own word.** A change to the
+register that records the person making it as a holder of a position — a row
+whose `holder` is that person's identity id added, or such a row's
+`position`, `project`, `first_day` or `last_day` changed so that it covers a
+day it did not — takes effect only:
+
+- **by proposal, decided by a different person**: the person who decides it
+  is neither its requester nor the person the row names, whatever the records
+  repository's `self_decision_ceiling` allows
+  ([`architecture/content`](../architecture/content.md#separation-of-duties));
+  or
+- **as an admin's act**: a direct write by a person able to use `admin:*`.
+
+Any other such change — a direct write by a person who is not an admin, or a
+decision by the requester or by the person the row names — is refused with
+`CONTENT_SELF_HOLDING_REFUSED`, and nothing is written. A proposal recording
+a *different* person as a holder is decided as any proposal is, and that
+person may not decide it either. Ending one's own holding, by a `last_day`
+that covers fewer days, records nobody as a holder and is not held to this
+rule. Content enforces it, because content is where the register is written,
+and the record is the audit: an admitted change is one entry of the records
+repository's change log naming who requested and who decided or wrote it, and
+a refused one is an `AuditEntry` naming the person, the position and the
+code. It exists because a holding is authority: whoever holds an approving
+position decides what that position approves, so a person who could name
+themselves to one could approve their own work.
+
 **A holding ends; it is never removed.** A person who stops holding a
 position is given a `last_day`. A row is never deleted and its `holding` never
 reused, because an act recorded under a holding — an approval, an
@@ -427,19 +454,14 @@ resources:
 kind is declared-unavailable until it does ([Resources](#resources)); a
 holding is read and changed as the whole register entry.
 
-**Nothing refuses a person recording themselves as a holder.** A person with
-`content:write` may write a row naming themselves, including for a position
-that approves. A change made by proposal is held to content's
-[separation of duties](../architecture/content.md#separation-of-duties) where
-the records repository's `self_decision_ceiling` is below `restricted`, and
-a direct write is held to nothing but the log that records it.
-
 **No act is checked against a holding yet.** The register says who held a
 position on a day, and nothing yet checks that whoever approved, attested or
 signed under a position held it then. The positions an approval, escalation
 or obligation names are resolved by [the rule above](#resolving-a-position-to-its-holders);
-which service resolves each, other than notification for a notice, is not
-specified.
+which service resolves each, other than notification for a notice or an
+occurrence and execution for the positions a wait awaits
+([`architecture/execution`](../architecture/execution.md#who-holds-a-position)),
+is not specified.
 
 **No retention is declared.** The register declares no keeping period: how
 long a tenant keeps who held its positions is the tenant's to set, and no
@@ -465,4 +487,5 @@ field yet lets a tenant set one for a register the corpus declares.
 - [ ] At a project with a covering row for the position, only that project's holders are answered; with none, the organisation's are ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
 - [ ] A position with no covering row resolves to no holder, never to a person and never to an error ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
 - [ ] A holding that ends is given a `last_day`, and no row is removed ([Changing who holds a position](#changing-who-holds-a-position))
+- [ ] A change recording the person making it as a holder is refused with `CONTENT_SELF_HOLDING_REFUSED` and writes nothing when it is a direct write by a person who is not an admin, or a decision by its requester or by the person the row names, whatever `self_decision_ceiling` says; the same change decided by a different person, or written by a person able to use `admin:*`, is applied and its change log entry names who requested and who decided or wrote it; a refusal is recorded in an `AuditEntry` ([Changing who holds a position](#changing-who-holds-a-position))
 - [ ] A tenant service reads the register only on a work pass under the authorisation of the work it resolves for ([Who may read it](#who-may-read-it))

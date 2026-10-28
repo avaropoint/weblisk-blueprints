@@ -2195,10 +2195,13 @@ first tenant to run those services has work to receive; until something reads
 them, whatever adopts reports each as not installed. **Who
 holds a position** belongs to the customer rather than to a programme: the
 `pii` [position-holders register](position.md#who-holds-a-position) in the
-organisation's records repository. Notification resolves a notice's `to`
-against it ([`architecture/notification`](../architecture/notification.md)),
-and nothing yet resolves an `approved_by`, `approvers`, `escalate.to` or
-`responsible` against it ([`position.md`, Known gaps](position.md#known-gaps)).
+organisation's records repository. Notification resolves a notice's `to`,
+and an occurrence's `responsible` and `escalate.to`, against it
+([`architecture/notification`](../architecture/notification.md)), and
+execution a wait's `approvers` and `responsible`
+([`architecture/execution`](../architecture/execution.md#who-holds-a-position));
+nothing yet resolves an `approved_by` against it
+([`position.md`, Known gaps](position.md#known-gaps)).
 
 **The run a row was written by is asserted where it was not carried on a
 work pass.** The chain [`for`](#for--one-run-per-record) relies on to stop a
@@ -2214,10 +2217,11 @@ nobody checked. A row whose writer cannot be read starts nothing.
 decided.** [`patterns/workflow`](../patterns/workflow.md#a-persons-phase)
 carries `task`, approvers by position and `escalate`, and
 [`architecture/execution`](../architecture/execution.md#who-holds-a-position)
-holds each as a wait listed in the decision inbox. Until the register of who
-holds a position is declared ([`position.md`, Known gaps](position.md#known-gaps)),
-nobody can be shown to hold one, so every such wait is listed and refused,
-never decided by capability alone.
+holds each as a wait listed in the decision inbox. The register of who holds
+a position is declared ([`position.md`](position.md#who-holds-a-position));
+until an organisation's records repository holds it, nobody can be shown to
+hold one, so every such wait is listed and refused, never decided by
+capability alone.
 
 **`weblisk domain create` takes no blueprint path.** It is given a domain's
 name and resolves the spec itself

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.0.0
+version: 1.1.0
 requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send]
 platform: any
 tier: free
@@ -389,10 +389,16 @@ fault in the request.
 
 ### Notifying
 
-1. The programme service decides a notice has advanced and is unmuted
+1. The programme service decides a notice has advanced and is unmuted, or
+   that an occurrence has advanced under an unmuted `due-sweep`
    ([`architecture/programme-service`](programme-service.md#telling)). It
    sends `NotifyByPosition` on its own registration token, naming the
-   notice's work authorisation and the `run` it gives this advance.
+   notice's work authorisation and the `run` it gives this advance. An
+   occurrence has no notice of its own: it is told as `notice` the
+   `due-sweep` operation that observed it, under that operation's
+   authorisation, with the obligation's `activity` as `says` and its
+   `responsible` or `escalate.to` position as `positions`, and nothing in the
+   request's shape changes for it.
 2. This service checks the token and the authorisation
    ([Who May Do What](#who-may-do-what), rule 3). It looks the authorisation
    up in `GET /v1/work/authorisations`. An authorisation it does not find
@@ -622,7 +628,7 @@ types:
       authorisation:
         type: string
         required: true
-        description: The id of the notice's work authorisation, which names notification among its actors
+        description: The id of the notice's work authorisation, which names notification among its actors. For an occurrence, the due-sweep operation's
       run:
         type: string
         required: true
@@ -641,11 +647,11 @@ types:
       positions:
         type: "[]string"
         required: true
-        description: The notice's to positions, by the ids programmes name them with. At least one
+        description: The notice's to positions, or an occurrence's responsible and escalate.to positions, by the ids programmes name them with. At least one
       says:
         type: string
         required: true
-        description: The notice's says, as the adopted map gives it
+        description: The notice's says, as the adopted map gives it, or an occurrence's obligation's activity
       why:
         type: string
         required: false
@@ -654,7 +660,7 @@ types:
         type: NoticeFact
         required: true
   NoticeRef:
-    description: The notice a notification tells
+    description: The notice a notification tells, or for an occurrence the due-sweep operation that observed it
     fields:
       programme:
         type: string
@@ -662,7 +668,7 @@ types:
       id:
         type: string
         required: true
-        description: The notice's id, local to its programme
+        description: The notice's id, local to its programme, or the due-sweep operation's for an occurrence
   NoticeFact:
     description: The fact a notice is about. Ids and instants only
     fields:
@@ -1064,6 +1070,12 @@ security:
 service, so the programme service reports every notice as not handed over
 ([`architecture/programme-service`](programme-service.md#known-gaps)).
 
+**A wait cannot be told.** A request names a notice, or an occurrence by its
+`due-sweep`, and the fact it is about. A wait execution holds for a person is
+neither, so execution asks nothing here and a wait opens unannounced
+([`architecture/execution`](execution.md#notification)). Telling one needs a
+request that can name a wait, its run and its decide route.
+
 **Only email and in_app are delivered.**
 [`patterns/notification`](../patterns/notification.md#channel-types) names
 webhook, chat, SMS and push channels. None has an adapter a tenant runs, so a
@@ -1100,6 +1112,7 @@ there). Rule 4 is this blueprint's, and nothing outside it enforces it yet.
 - [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
 - [ ] `NotifyByPosition` on a pass is refused with `FORBIDDEN`, and tells nobody ([Who May Do What](#who-may-do-what) rule 3, [Error Handling](#error-handling))
 - [ ] `NotifyByPosition` on a registration token whose `identity_id` is not the named authorisation's `owner` is refused with `FORBIDDEN`; on a work pass whose `cid` is that authorisation and whose `identity_id` is its owner, it is admitted ([Who May Do What](#who-may-do-what) rule 3)
+- [ ] A request naming as `notice` a programme's `due-sweep` operation, under that operation's authorisation, for an occurrence is admitted and told exactly as a notice is, with no field the request shape does not declare ([Notifying](#notifying))
 - [ ] An authorisation that is revoked, past its `not_after`, or does not list this service among its `actors` answers `200` with outcome `not_authorised`, and no request is made of content ([Notifying](#notifying), [Outcomes](#outcomes))
 - [ ] Every request this service makes of content is on a work pass minted under the request's authorisation, a new one for each retry, and none is on its own registration token ([Who May Do What](#who-may-do-what) rule 4, [Retrying](#retrying))
 - [ ] Where no named position has a holder, the answer's outcome is `reached_nobody`, `unheld` names every position, and `notification.unreached` is published ([Outcomes](#outcomes))

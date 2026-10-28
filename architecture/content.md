@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.0.0
+version: 5.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -725,6 +725,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_SELF_HOLDING_REFUSED` | policy | A change to an organisation's `registers/position-holders.md` that records somebody as a holder of a position, where that is a direct write recording the writer, by a person not able to use `admin:*`; or a decision to apply it made by the person it records, or by its requester whatever `self_decision_ceiling` says. See [`schemas/position`](../schemas/position.md#changing-who-holds-a-position) | Refuse, naming the position. Nothing is written; the refusal is recorded in an `AuditEntry`, and a proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, remote declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -2920,6 +2921,15 @@ self-decided, whatever a repository declares:
   level, so a requester's decision to apply one is refused with
   `CONTENT_SEPARATION_REQUIRED`, whatever `self_decision_ceiling` says. In a
   repository with a `scope_floor` there is no such change.
+
+**A change recording somebody as a holder of a position is never
+self-decided.** The position-holders register holds authority, so for a
+change to it that records a holder the exception above does not apply: its
+requester's decision is refused, and so is a decision by the person it
+records, and a direct write recording the writer is admitted only from a
+person able to use `admin:*`. Each is refused with
+`CONTENT_SELF_HOLDING_REFUSED`
+([`schemas/position`](../schemas/position.md#changing-who-holds-a-position)).
 
 It never lets a service or an agent decide. A decider holds `content:decide`,
 which is person only, so the exception can only ever let a person agree with
