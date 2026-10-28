@@ -2056,9 +2056,12 @@ validator checks them, and no tenant runs the programme service, execution or
 notification that would receive them
 ([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)),
 so no shipped map declares one yet. **Who
-holds a position** belongs to the customer rather than to a programme: a
-`pii` register in the scope's records repository, which no spec declares yet
-([`position.md`, Known gaps](position.md#known-gaps)).
+holds a position** belongs to the customer rather than to a programme: the
+`pii` [position-holders register](position.md#who-holds-a-position) in the
+organisation's records repository. Notification resolves a notice's `to`
+against it ([`architecture/notification`](../architecture/notification.md)),
+and nothing yet resolves an `approved_by`, `approvers`, `escalate.to` or
+`responsible` against it ([`position.md`, Known gaps](position.md#known-gaps)).
 
 **No content entry records the run that wrote it**, so the chain
 [`for`](#for--one-run-per-record) relies on to stop a loop is not carried by any

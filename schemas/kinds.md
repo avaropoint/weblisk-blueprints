@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.2.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -145,6 +145,10 @@ Not capabilities — values a kind declares.
 | `workflow` | — | namespace + path | authored | — | versioned, has-custody |
 | `programme` | — | namespace + path | published | — | versioned |
 | `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |
+| `notification` | — | notification id | observed | runtime | *(none)* |
+| `delivery` | — | delivery id | observed | runtime | *(none)* |
+| `preference` | — | preference id | authored | — | *(none)* |
+| `position-holder` | — | organisation + holding key | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -194,6 +198,18 @@ by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
+
+**`notification`, `delivery`, `preference` and `position-holder` are a
+tenant's records about telling people, and drive nothing.** A notification
+and its deliveries are observed, as a run is: they say a person was told, and
+are corroboration, not evidence. A preference is what one person chose and
+is answered only to them. A position-holder is one row of the
+[position-holders register](position.md#who-holds-a-position), named by its
+own `holding` key and never by the person it names. None has a capability:
+none is versioned on its own, none is a chain member and none proves
+anything. They are declared so that
+[`architecture/notification`](../architecture/notification.md#resources) and
+[`position.md`](position.md#resources) can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
