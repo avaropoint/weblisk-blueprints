@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, protocol/identity, patterns/workflow, architecture/content, architecture/orchestrator, architecture/admin]
 platform: any
 tier: free
@@ -423,6 +423,14 @@ them among its `pass_routes`, once its blueprint requires this one.
 [`agents/workflow`](../agents/workflow.md) does neither yet, so until then
 the gateway answers both with `ADMIN_GROUP_UNAVAILABLE`.
 
+**What execution keeps of a run is declared here, for it** ([Resources](#resources)):
+the `run`, `run-step` and `tool-call` kinds, with every step a run took, every
+tool call each step made, the model, usage and cost each backend reported, and
+the decisions and approvals it recorded. Execution serves them at the admin
+gateway's uniform address
+([`architecture/admin`](admin.md#resources-one-api-for-every-kind)) once its
+blueprint takes the declaration over.
+
 ### Notification
 
 Notification tells a person once, in their own way. From the programme
@@ -478,6 +486,15 @@ How each decision is shaped is
 programme service, execution, notification or the prompt worker. A tenant
 runs none of them, so an adoption today hands no block to an owner, and says
 so.
+
+**The run record waits on execution's blueprint.** The `run`, `run-step` and
+`tool-call` kinds ([Resources](#resources)) are held here for an owner no
+blueprint specifies, so every tenant reports them `declared-unavailable`.
+When that blueprint is written it moves the block into itself, and reconciles
+two addresses for one record: `GET /v1/admin/workflows` answers a
+`WorkflowExecution`, whose states `pending` and `pending_approval` are a run's
+`queued` and `waiting`, and the run kind's `list` should bind that route or
+replace it, not stand beside it as a second rule.
 
 **Execution's blueprint is not written.** Until it is,
 [`architecture/domain`](domain.md) and the
@@ -602,6 +619,171 @@ types:
 
 ---
 
+## Resources
+
+What execution keeps of every run, and how a person reads and stops one,
+declared as [`schemas/resource`](../schemas/resource.md) says. **These kinds
+are execution's, not this service's.** This document is the home of the
+contract execution is handed ([Execution](#execution)), and execution's own
+blueprint is not written, so they are held here, each `declared-unavailable`
+with `owner-unspecified` in every tenant, until that blueprint is written and
+moves them into itself
+([`schemas/resource`](../schemas/resource.md#where-it-is-declared)). The
+types are [`protocol/types`](../protocol/types.md#runs)'.
+
+```yaml
+resources:
+  - kind: run
+    owner: execution
+    type: Run
+    identity: {field: uid, form: minted}
+    label: definition
+    fields:
+      - {name: uid, access: read-only, present: text}
+      - {name: definition, access: read-only, present: text}
+      - {name: definition_kind, access: read-only, present: choice}
+      - {name: agent, access: read-only, present: reference, kind: agent}
+      - {name: parent, access: read-only, present: reference, kind: run}
+      - {name: trigger, access: read-only, present: choice}
+      - {name: triggered_by, access: read-only, present: text}
+      - {name: status, access: read-only, present: choice}
+      - {name: queued_at, access: read-only, present: instant}
+      - {name: started_at, access: read-only, present: instant}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: usage, access: read-only}
+      - {name: error, access: read-only}
+      - {name: cancelled_by, access: read-only, present: text}
+      - {name: trace_id, access: read-only, present: text}
+    operations:
+      list: {capability: "admin:read", filters: [definition, definition_kind, agent, parent, status]}
+      get: {capability: "admin:read"}
+    verbs:
+      - name: cancel
+        capability: "action:invoke"
+        step_up: true
+        transition: cancel
+        preconditions:
+          - the run is queued, running or waiting
+        in_flight:
+          handling: cancels
+          says: no further step starts; a phase's tasks are cancelled as patterns/workflow cancels a timed-out run's, a model's turn under way is abandoned with the usage its backend reported recorded, and a tool call already sent runs to its end and is recorded with its outcome
+        effect: the run is cancelled, cancelled_by names the person's identity id, and ended_at is set
+        reversible: false
+      - name: retry
+        capability: "action:invoke"
+        preconditions:
+          - the run is failed or cancelled
+          - what it ran is still installed at its owner
+        in_flight:
+          handling: none
+          says: a failed or cancelled run has no work under way
+        effect: a new run of the same definition is queued, starting at the step this one failed or was cancelled at, with parent this run, trigger person and triggered_by the person's identity id; this run is unchanged
+        reversible: false
+    states:
+      initial_state: queued
+      entity_type: Run
+      state_field: status
+      states:
+        queued: {description: accepted and not yet started}
+        running: {description: a step is under way}
+        waiting: {description: a step waits on a person's decision or an approval}
+        completed: {description: every step finished, terminal: true}
+        failed: {description: "a step failed and the definition fails the run, or it timed out", terminal: true}
+        cancelled: {description: a person cancelled it, terminal: true}
+      transitions:
+        - {name: start, from: queued, to: running, trigger: the run is dispatched, description: its first step starts}
+        - {name: wait, from: running, to: waiting, trigger: a step waits on a decision, description: it stops until the decision is made}
+        - {name: resume, from: waiting, to: running, trigger: the decision is made, description: the step goes on}
+        - {name: complete, from: running, to: completed, trigger: the last step completes, description: it ends well}
+        - {name: fail, from: [running, waiting], to: failed, trigger: a step fails or the run times out, description: it ends badly}
+        - {name: cancel, from: [queued, running, waiting], to: cancelled, trigger: manual, description: a person stops it}
+    events: [created, running, waiting, completed, failed, cancelled, retry]
+    relations:
+      - {relation: run_by, to: agent, field: agent}
+      - {relation: spawned_by, to: run, field: parent}
+    unavailable:
+      reason: owner-unspecified
+      says: execution's blueprint is not written, so no tenant keeps runs yet
+
+  - kind: run-step
+    owner: execution
+    type: RunStep
+    identity: {field: uid, form: minted}
+    label: name
+    fields:
+      - {name: uid, access: read-only, present: text}
+      - {name: run, access: read-only, present: reference, kind: run}
+      - {name: seq, access: read-only, present: number}
+      - {name: step_type, access: read-only, present: choice}
+      - {name: name, access: read-only, present: text}
+      - {name: status, access: read-only, present: choice}
+      - {name: started_at, access: read-only, present: instant}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: backend, access: read-only, present: text}
+      - {name: model, access: read-only, present: text}
+      - {name: usage, access: read-only}
+      - {name: content, access: read-only, present: text}
+      - {name: reason, access: read-only, present: text}
+      - {name: approval, access: read-only, present: text}
+      - {name: error, access: read-only}
+      - {name: span_id, access: read-only, present: text}
+    operations:
+      list: {capability: "admin:read", filters: [run, step_type, status]}
+      get: {capability: "admin:read"}
+    events: [created, updated]
+    relations:
+      - {relation: part_of, to: run, field: run}
+    unavailable:
+      reason: owner-unspecified
+      says: execution's blueprint is not written, so no tenant keeps runs yet
+
+  - kind: tool-call
+    owner: execution
+    type: RunToolCall
+    identity: {field: uid, form: minted}
+    label: tool
+    fields:
+      - {name: uid, access: read-only, present: text}
+      - {name: run, access: read-only, present: reference, kind: run}
+      - {name: step, access: read-only, present: reference, kind: run-step}
+      - {name: tool, access: read-only, present: text}
+      - {name: provider_call_id, access: read-only, present: text}
+      - {name: arguments, access: read-only}
+      - {name: outcome, access: read-only, present: choice}
+      - {name: refused_with, access: read-only, present: text}
+      - {name: result_digest, access: read-only, present: text}
+      - {name: started_at, access: read-only, present: instant}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: span_id, access: read-only, present: text}
+    operations:
+      list: {capability: "admin:read", filters: [run, step, tool, outcome]}
+      get: {capability: "admin:read"}
+    events: [created, updated]
+    relations:
+      - {relation: part_of, to: run-step, field: step}
+    unavailable:
+      reason: owner-unspecified
+      says: execution's blueprint is not written, so no tenant keeps runs yet
+```
+
+**A run is the record; nothing else keeps one.** The prompt worker keeps
+nothing ([The prompt worker](#the-prompt-worker)), so every model turn it takes
+and every tool it calls is a step and a call of the run execution dispatched it
+in, with the model the backend reported and the usage it reported. A figure a
+backend did not report is absent, never zero, and no cost is computed from a
+price list ([`protocol/types`](../protocol/types.md#runusage)).
+
+**A person stops a run with `cancel`, and starts a failed one again with
+`retry`.** These are the workflow agent's `cancel_execution` and
+`retry_execution` ([`agents/workflow`](../agents/workflow.md#manual-overrides)),
+declared fully enough to exist on the wire. Neither act is in a capability
+family execution holds, so each names `action:invoke`
+([`protocol/types`](../protocol/types.md#capability)). Cancelling ends work
+that cannot be resumed, so it is a destructive act and takes a step-up;
+retrying starts a new run and changes nothing done, so it does not.
+
+---
+
 ## Security
 
 ```yaml
@@ -673,3 +855,4 @@ security:
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
 - [ ] An `agent:` item is reported as not runnable while no model route is open to a service, and is never reported as having run ([Known Gaps](#known-gaps))
+- [ ] At every tenant until execution's blueprint is written, the catalogue reports `run`, `run-step` and `tool-call` `declared-unavailable` with `owner-unspecified`, and none is reported available or empty ([Resources](#resources); [`architecture/admin`](admin.md#the-catalogue))

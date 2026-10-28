@@ -1049,6 +1049,9 @@ overridable_behaviors:
     audit: logged
 
 manual_actions:
+  # cancel_execution and retry_execution are declared on the wire as the run
+  # kind's cancel and retry verbs (architecture/programme-service, Resources),
+  # held for execution; these entries go when execution's blueprint is written
   - action: cancel_execution
     description: Cancel an in-flight workflow
     allowed: operator
