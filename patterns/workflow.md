@@ -838,25 +838,25 @@ from patterns/observability):
 
 ## Verification Checklist
 
-- [ ] Workflows declared in YAML with required fields
-- [ ] Reference expressions resolve correctly from all four roots
-- [ ] Array indexing and expansion produce correct results
-- [ ] Unresolvable references return null (not errors)
-- [ ] Workflow Agent receives workflow.trigger events and resolves DAG
-- [ ] Phase dispatch via task.submit events to Task Agent
-- [ ] Task completion matched to workflow phase via workflow_id + phase name
-- [ ] DAG levels advance when all phases in a level complete
-- [ ] Independent phases within a level dispatch concurrently
-- [ ] on_error: fail stops the entire workflow
-- [ ] on_error: skip marks phase skipped, dependents receive null
-- [ ] on_error: retry re-submits via task.submit with backoff
-- [ ] approval: required pauses workflow, publishes workflow.approval.required
-- [ ] Approval decision resumes or rejects via workflow.approval.decision
-- [ ] Workflow-level timeout cancels in-flight tasks
-- [ ] Phase-level timeout cancels individual phase
-- [ ] Circular dependency detection fails the workflow at init
-- [ ] WorkflowExecution records persist to durable storage
-- [ ] workflow.completed published with scope = invoker
-- [ ] callback_topic receives result if specified
-- [ ] Metrics emit for all workflow and phase executions
-- [ ] trace_id and correlation_id propagate through all events
+- [ ] Workflows declared in YAML with required fields — [Declaration Fields](#declaration-fields)
+- [ ] Reference expressions resolve correctly from every root — [Grammar](#grammar), [Roots](#roots)
+- [ ] Array indexing and expansion produce correct results — [Array Indexing](#array-indexing), [Array Expansion](#array-expansion)
+- [ ] Unresolvable references return null (not errors) — [Resolution Rules](#resolution-rules)
+- [ ] Workflow Agent receives workflow.trigger events and resolves DAG — [Phase 1 — Trigger](#phase-1--trigger), [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
+- [ ] Phase dispatch via task.submit events to Task Agent — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
+- [ ] Task completion matched to workflow phase via workflow_id + phase name — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
+- [ ] DAG levels advance when all phases in a level complete — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
+- [ ] Independent phases within a level dispatch concurrently — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes)
+- [ ] on_error: fail stops the entire workflow — [Error Strategies](#error-strategies), [Error Propagation](#error-propagation)
+- [ ] on_error: skip marks phase skipped, dependents receive null — [Error Propagation](#error-propagation)
+- [ ] on_error: retry re-submits via task.submit with backoff — [Error Propagation](#error-propagation)
+- [ ] approval: required pauses workflow, publishes workflow.approval.required — [Approval Gates](#approval-gates)
+- [ ] Approval decision resumes or rejects via workflow.approval.decision — [Approval Gates](#approval-gates)
+- [ ] Workflow-level timeout cancels in-flight tasks — [Implementation Notes](#implementation-notes)
+- [ ] Phase-level timeout cancels individual phase — [Implementation Notes](#implementation-notes)
+- [ ] Circular dependency detection fails the workflow at init — [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
+- [ ] WorkflowExecution records persist to durable storage — [Phase 3 — Initialize Execution](#phase-3--initialize-execution), [Implementation Notes](#implementation-notes)
+- [ ] workflow.completed published with scope = invoker — [Phase 6 — Aggregate](#phase-6--aggregate), [Event Topics](#event-topics)
+- [ ] callback_topic receives result if specified — [Phase 6 — Aggregate](#phase-6--aggregate)
+- [ ] Metrics emit for all workflow and phase executions — [Observability](#observability)
+- [ ] trace_id and correlation_id propagate through all events — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes)

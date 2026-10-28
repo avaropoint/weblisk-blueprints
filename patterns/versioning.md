@@ -566,19 +566,19 @@ revision records:
 
 ## Verification Checklist
 
-- [ ] Version field follows semantic versioning (MAJOR.MINOR.PATCH)
-- [ ] MAJOR changes include migration steps
-- [ ] MINOR changes are backward-compatible
-- [ ] PATCH changes are non-functional
-- [ ] Revision records are created for every version change
-- [ ] Revision records include complete changelog
-- [ ] Blueprint hash is computed and stored per revision
-- [ ] Migration steps execute in order
-- [ ] Failed migrations trigger automatic rollback
-- [ ] Post-migration validation runs after migration
-- [ ] Data migrations follow governance pipeline in `patterns/migration`
-- [ ] Manual rollback to any previous version works
-- [ ] Revision history is retained indefinitely
-- [ ] Compatibility matrix validates cross-blueprint dependencies
-- [ ] Zero-downtime transition — agent serves requests during update
-- [ ] Version transition events are emitted to the bus
+- [ ] Version field follows semantic versioning — [Semantic Versioning Rules](#semantic-versioning-rules)
+- [ ] MAJOR changes include migration steps — [Semantic Versioning Rules](#semantic-versioning-rules), [Zero-Downtime Transition](#zero-downtime-transition)
+- [ ] MINOR changes are backward-compatible — [Semantic Versioning Rules](#semantic-versioning-rules)
+- [ ] PATCH changes are non-functional — [Semantic Versioning Rules](#semantic-versioning-rules)
+- [ ] Revision records are created for every version change — [Blueprint Revision Record](#blueprint-revision-record)
+- [ ] Revision records include complete changelog — [Revision Fields](#revision-fields)
+- [ ] Blueprint hash is computed and stored per revision — [Revision Fields](#revision-fields), [Implementation Notes](#implementation-notes)
+- [ ] Migration steps execute in order — [Migration Execution](#migration-execution)
+- [ ] Failed migrations trigger automatic rollback — [Migration Execution](#migration-execution), [Automatic Rollback](#automatic-rollback)
+- [ ] Post-migration validation runs after migration — [Migration Execution](#migration-execution)
+- [ ] Data migrations follow the governance pipeline — [Implementation Notes](#implementation-notes)
+- [ ] Manual rollback to any previous version works — [Manual Rollback](#manual-rollback)
+- [ ] Revision history is retained indefinitely — [Retention](#retention)
+- [ ] Compatibility matrix validates cross-blueprint dependencies — [Compatibility Matrix](#compatibility-matrix)
+- [ ] Zero-downtime transition — agent serves requests during update — [Zero-Downtime Transition](#zero-downtime-transition), [Transition States](#transition-states)
+- [ ] Version transition events are emitted to the bus — [Contracts](#contracts), [Zero-Downtime Transition](#zero-downtime-transition)

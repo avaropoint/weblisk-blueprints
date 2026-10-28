@@ -713,17 +713,17 @@ Applications MAY define custom roles and hierarchy via configuration.
 
 ## Verification Checklist
 
-- [ ] GET /users is admin-only and returns paginated results with `cursor`, `limit` (max 100), `role`, `status`, `search`, and `sort` query params
-- [ ] PasswordHash, LoginAttempts, and LockedUntil are never returned in any API response
-- [ ] DELETE /users/{id} performs soft-delete (sets status to `deleted`); admin cannot delete self
-- [ ] PUT /users/{id}/role validates role against configured roles list and prevents admin from demoting themselves
-- [ ] POST /auth/forgot-password returns 200 OK regardless of whether the email exists (prevents email enumeration)
-- [ ] Password reset tokens are single-use, expire after configured TTL, and only the most recent token per email is valid
-- [ ] Successful password reset invalidates all existing sessions and refresh tokens for the user
-- [ ] Passwords are hashed with bcrypt (cost ≥ 12) or argon2id and are never logged, cached, or stored in plaintext
-- [ ] Login lockout activates after `max_login_attempts` consecutive failures; locked account returns 429 until `lockout_duration` expires
-- [ ] OAuth callback validates the `state` parameter server-side for CSRF protection and does not auto-merge accounts by email
-- [ ] Unlinking an OAuth provider is rejected if the user has no password and no remaining OAuth links
-- [ ] Email changes require re-verification; resend-verification is rate-limited to 1 request per 5 minutes
-- [ ] User search (`?search=`) uses prefix matching only — not substring — to avoid full-table scans
-- [ ] All tokens (reset, verification, OAuth state) are generated with `crypto/rand`, and token lookups use constant-time comparison
+- [ ] GET /users is admin-only and returns paginated results with the query params it declares — [List Users (GET /users)](#list-users-get-users)
+- [ ] PasswordHash, LoginAttempts, and LockedUntil are never returned in any API response — [User Record](#user-record), [List Users (GET /users)](#list-users-get-users)
+- [ ] DELETE /users/{id} performs soft-delete (sets status to `deleted`); admin cannot delete self — [Delete User (DELETE /users/{id})](#delete-user-delete-usersid), [Permission Checks by Endpoint](#permission-checks-by-endpoint)
+- [ ] PUT /users/{id}/role validates role against configured roles list and prevents admin from demoting themselves — [Change Role (PUT /users/{id}/role)](#change-role-put-usersidrole)
+- [ ] POST /auth/forgot-password returns 200 OK regardless of whether the email exists (prevents email enumeration) — [Request Reset (POST /auth/forgot-password)](#request-reset-post-authforgot-password)
+- [ ] Password reset tokens are single-use, expire after configured TTL, and only the most recent token per email is valid — [Request Reset (POST /auth/forgot-password)](#request-reset-post-authforgot-password)
+- [ ] Successful password reset invalidates all existing sessions and refresh tokens for the user — [Complete Reset (POST /auth/reset-password)](#complete-reset-post-authreset-password)
+- [ ] Passwords are hashed as required and are never logged, cached, or stored in plaintext — [Password Requirements](#password-requirements)
+- [ ] Login lockout activates after `max_login_attempts` consecutive failures; locked account returns 429 until `lockout_duration` expires — [Login Attempt Tracking](#login-attempt-tracking)
+- [ ] OAuth callback validates the `state` parameter server-side for CSRF protection and does not auto-merge accounts by email — [Callback (GET /auth/oauth/{provider}/callback)](#callback-get-authoauthprovidercallback), [Implementation Notes](#implementation-notes)
+- [ ] Unlinking an OAuth provider is rejected if the user has no password and no remaining OAuth links — [Unlink Account (DELETE /auth/oauth/{provider}/link)](#unlink-account-delete-authoauthproviderlink)
+- [ ] Email changes require re-verification; resend-verification is rate-limited — [Update User (PUT /users/{id})](#update-user-put-usersid), [Resend (POST /auth/resend-verification)](#resend-post-authresend-verification)
+- [ ] User search (`?search=`) uses prefix matching only — not substring — to avoid full-table scans — [Implementation Notes](#implementation-notes)
+- [ ] All tokens (reset, verification, OAuth state) are generated with `crypto/rand`, and token lookups use constant-time comparison — [Implementation Notes](#implementation-notes), [Initiate (GET /auth/oauth/{provider})](#initiate-get-authoauthprovider)
