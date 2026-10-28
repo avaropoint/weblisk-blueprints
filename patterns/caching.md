@@ -284,13 +284,13 @@ Standard metrics (if patterns/observability is extended):
 
 ## Verification Checklist
 
-- [ ] Cache Get/Set/Delete/Clear operations work correctly
-- [ ] TTL expiry removes entries after configured duration
-- [ ] LRU eviction triggers when max_size is reached
-- [ ] Service directory push clears service + route namespaces
-- [ ] Cache stats are emitted as the standard cache metrics, and never in a health answer
-- [ ] Concurrent access is safe (no data races)
-- [ ] Cache keys are namespaced (no collisions)
-- [ ] AI embedding cache uses content-hash keys
-- [ ] Non-deterministic AI responses (temperature > 0) are NOT cached
-- [ ] Cold start works correctly (empty cache, no errors)
+- [ ] Cache Get/Set/Delete/Clear operations work correctly — [Cache Interface](#cache-interface)
+- [ ] TTL expiry removes entries after configured duration — [Eviction Policy](#eviction-policy)
+- [ ] LRU eviction triggers when max_size is reached — [Eviction Policy](#eviction-policy), [Contracts](#contracts)
+- [ ] Service directory push clears service + route namespaces — [Cache-Aside Pattern](#cache-aside-pattern), [Event-Driven Invalidation](#event-driven-invalidation)
+- [ ] Cache stats are emitted as the standard cache metrics, and never in a health answer — [Observability](#observability)
+- [ ] Concurrent access is safe (no data races) — [Implementation Notes](#implementation-notes)
+- [ ] Cache keys are namespaced (no collisions) — [Cache Namespaces](#cache-namespaces), [Design Principles](#design-principles)
+- [ ] AI embedding cache uses content-hash keys — [AI Response Caching](#ai-response-caching)
+- [ ] Non-deterministic AI responses are NOT cached — [AI Response Caching](#ai-response-caching)
+- [ ] Cold start works correctly (empty cache, no errors) — [Implementation Notes](#implementation-notes)

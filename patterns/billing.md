@@ -531,20 +531,20 @@ config:
 
 ## Verification Checklist
 
-- [ ] A repeated notification carrying the same identifier MUST NOT be applied twice
-- [ ] A notification older than the state it would overwrite MUST be discarded
-- [ ] Reconciliation MUST correct local state without any notification having been received
-- [ ] Entitlement MUST be derived from current subscription state at the moment of use
+- [ ] A repeated notification carrying the same identifier MUST NOT be applied twice — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
+- [ ] A notification older than the state it would overwrite MUST be discarded — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] Reconciliation MUST correct local state without any notification having been received — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
+- [ ] Entitlement MUST be derived from current subscription state at the moment of use — [Design Principles](#design-principles), [Contracts](#contracts)
 - [ ] A subject whose payment succeeded MUST be entitled without waiting for a notification
-- [ ] A lapsed subscription MUST suspend rather than delete
-- [ ] A metering failure MUST NOT change whether an operation proceeds
-- [ ] A quota refusal MUST name the measure exceeded and when it resets
-- [ ] A quota refusal MUST be distinguishable by the caller from a transient fault
-- [ ] A subject MUST be able to retrieve the usage records they are charged from
-- [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged
-- [ ] A budget MUST be evaluated before the operation it bounds runs
-- [ ] A budget declared above its parent scope's remaining allowance MUST be refused
-- [ ] Where several budgets apply, the narrowest MUST decide, and the decision MUST name it
-- [ ] Reaching a budget MUST emit an event even where the behaviour is to degrade
-- [ ] An operation whose cost is not knowable in advance MUST be checked against an estimate and metered on its actual consumption
-- [ ] A budget bounding one agent MUST NOT stop another agent in the same tenant
+- [ ] A lapsed subscription MUST suspend rather than delete — [Design Principles](#design-principles), [Configuration](#configuration)
+- [ ] A metering failure MUST NOT change whether an operation proceeds — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] A quota refusal MUST name the measure exceeded and when it resets — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] A quota refusal MUST be distinguishable by the caller from a transient fault — [Design Principles](#design-principles), [Contracts](#contracts)
+- [ ] A subject MUST be able to retrieve the usage records they are charged from — [Design Principles](#design-principles), [Types](#types)
+- [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged — [Contracts](#contracts), [Types](#types)
+- [ ] A budget MUST be evaluated before the operation it bounds runs — [Design Principles](#design-principles), [Contracts](#contracts)
+- [ ] A budget declared above its parent scope's remaining allowance MUST be refused — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] Where several budgets apply, the narrowest MUST decide, and the decision MUST name it — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] Reaching a budget MUST emit an event even where the behaviour is to degrade — [Contracts](#contracts)
+- [ ] An operation whose cost is not knowable in advance MUST be checked against an estimate and metered on its actual consumption — [Implementation Notes](#implementation-notes)
+- [ ] A budget bounding one agent MUST NOT stop another agent in the same tenant — [Design Principles](#design-principles)

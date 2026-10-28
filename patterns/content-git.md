@@ -733,37 +733,37 @@ from the line's, returning both of those digests.
 
 ## Verification Checklist
 
-- [ ] After `establish`, the store has an unborn line named `default_line`, no commit, and no file outside its git directory, and a census over it has `entries` 0
-- [ ] A `ContentChange` produces exactly one commit, whose tree differs from its parent's only at the change's `path`
+- [ ] After `establish`, the store has an unborn line named `default_line`, no commit, and no file outside its git directory, and a census over it has `entries` 0 — [Contracts](#contracts), [Types](#types)
+- [ ] A `ContentChange` produces exactly one commit, whose tree differs from its parent's only at the change's `path` — [Design Principles](#design-principles), [Contracts](#contracts)
 - [ ] The commit's author is the actor's pseudonym and its committer is the content service; neither is an identity id, a name or a real email address
-- [ ] The same identity gets the same pseudonym on every commit in one repository, and a different one in another repository
-- [ ] The sha256 of `git cat-file blob <version>:<path>` equals the change's `after` and the commit's `Content-After`
-- [ ] A commit's `Content-After` that disagrees with the bytes at its path is reported and joined to no record
-- [ ] With a signing key and `commit.gpgsign=true` in the host's global git configuration, a commit the service makes carries no signature
-- [ ] A hook the store's configuration names, and a `core.fsmonitor` program, are not run by any operation of the service
-- [ ] A person's uncommitted edit to one path is not included in a commit the service makes for another path
-- [ ] A write racing a person's commit that changed the same path is refused with `CONTENT_PRECONDITION_FAILED`, and the line keeps the person's commit
-- [ ] Adopting a subdirectory of a git repository is refused with `CONTENT_PLACEMENT_PARTIAL`, and so is adopting a store that uses alternates or is shallow
-- [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason
-- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED` ([`architecture/content`](../architecture/content.md#declaration-flow), step 6)
-- [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED`
-- [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, the service's lease `checks` name `line-rewritten` `not_ready`, and nothing in the store is changed by the service
+- [ ] The same identity gets the same pseudonym on every commit in one repository, and a different one in another repository — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
+- [ ] The sha256 of `git cat-file blob <version>:<path>` equals the change's `after` and the commit's `Content-After` — [Commit Form](#commit-form), [Joining a Record to History](#joining-a-record-to-history)
+- [ ] A commit's `Content-After` that disagrees with the bytes at its path is reported and joined to no record — [Contracts](#contracts)
+- [ ] With a signing key and `commit.gpgsign=true` in the host's global git configuration, a commit the service makes carries no signature — [Contracts](#contracts)
+- [ ] A hook the store's configuration names, and a `core.fsmonitor` program, are not run by any operation of the service — [Contracts](#contracts)
+- [ ] A person's uncommitted edit to one path is not included in a commit the service makes for another path — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] A write racing a person's commit that changed the same path is refused with `CONTENT_PRECONDITION_FAILED`, and the line keeps the person's commit — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] Adopting a subdirectory of a git repository is refused with `CONTENT_PLACEMENT_PARTIAL`, and so is adopting a store that uses alternates or is shallow — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] Adopting a store with a detached HEAD, or whose working tree differs from its line, is refused with `CONTENT_LINE_UNSETTLED`, and the census's `backend_report` names the reason — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] The census over a git store reports `keeps_history` true, and adopting one whose declaration carries no `scope_floor` is refused with `CONTENT_SCOPE_UNDECLARED` ([`architecture/content`](../architecture/content.md#declaration-flow), step 6) — [Contracts](#contracts)
+- [ ] An adoption whose store gained a configured remote after the census is refused with `CONTENT_PRECONDITION_FAILED` — [Contracts](#contracts), [`architecture/content`](../architecture/content.md#declaration-flow) step 6
+- [ ] After a person resets the line to an earlier commit, every read and write answers `CONTENT_UNREADABLE`, the service's lease `checks` name `line-rewritten` `not_ready`, and nothing in the store is changed by the service — [Contracts](#contracts), [Types](#types)
 - [ ] A path inside a nested repository, and a path the line records as a symbolic link, are reserved ([Contracts](#contracts), `git-reserved-paths`) and refused with `CONTENT_RESERVED_PATH` ([`architecture/content`](../architecture/content.md#error-handling))
-- [ ] With git below 2.38.0 on the host, the service starts, its lease `checks` name the backend `not_ready`, and reads of its repositories answer `CONTENT_UNREADABLE`
-- [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed
-- [ ] A remote on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs
-- [ ] Outside development, a remote's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone
-- [ ] A remote on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and the `ceiling` `public`
-- [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made
-- [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id
-- [ ] A push to a remote, once architecture/content's Remote Send Flow lets one be made, is made from the record mirror, names one refspec for the line, is never forced, and sends no tag
-- [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key
-- [ ] A destination whose line was moved to a commit not on the record mirror's line makes the remote `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line
-- [ ] No operation fetches from a remote
-- [ ] A remote census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report`
-- [ ] A person's commit on the line, made after a remote was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the remote `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it
-- [ ] A commit the service made for an observation after a remote's census, of a path with no recorded scope whose bytes declare none, holds the remote `behind` with `held_reason` `unclassified`; the commit to send is the newest anchored commit before it, and nothing is pushed while architecture/content's Remote Send Flow holds every send
-- [ ] Where the tenant registers `pii` with `maps_to: restricted`, a commit from before adoption, in a repository floored at `internal`, that adds a file carrying `custom_labels: [pii]` beside `scope: internal` or beside no level is classified `restricted`, and holds a plain remote `behind` with `held_reason` `above-ceiling`
-- [ ] A commit a person made on the line after a remote's census, changing only paths that have a recorded scope at or below the remote's ceiling, is classified and holds no remote back: the remote is `behind` with `held_reason` `egress-unrecorded`, and nothing is pushed
-- [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN`
-- [ ] A store with a configured remote reports an `undeclared-remote` finding, and its repository's `effective_custody` is `opaque`
+- [ ] With git below 2.38.0 on the host, the service starts, its lease `checks` name the backend `not_ready`, and reads of its repositories answer `CONTENT_UNREADABLE` — [Contracts](#contracts)
+- [ ] `tamper_evident` is false after an anchored commit is removed from the record mirror, and the ceiling is recomputed — [Contracts](#contracts), [`architecture/content`](../architecture/content.md#derived-scope-ceiling)
+- [ ] A remote on a `git-remote` backend returns `credential` as an OpenSSH `ssh-ed25519` public key, and the private key appears in no response, log or event, and in no file at any time, including while a push runs — [Contracts](#contracts)
+- [ ] Outside development, a remote's private key is held in a store that meets `protocol/identity` rule 8, never under file permissions alone — [Contracts](#contracts)
+- [ ] A remote on a `git-remote` backend whose declaration claims `exclusive` custody and every attestation is recorded `custody` `opaque`, with every attestation `false` and the `ceiling` `public` — [Contracts](#contracts), [`architecture/content`](../architecture/content.md#derived-scope-ceiling)
+- [ ] Under exclusive custody with a working tree, a write to a path a person edited in the working tree is refused with `CONTENT_PRECONDITION_FAILED` returning the line's and the working tree's digests, and no commit is made — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] A change whose `actor` is a service's identity id names that service by its pseudonym as author, never by its identity id — [Contracts](#contracts)
+- [ ] A push to a remote, once architecture/content's Remote Send Flow lets one be made, is made from the record mirror, names one refspec for the line, is never forced, and sends no tag — [Contracts](#contracts)
+- [ ] A destination whose host key is not in `host_keys`, or that does not offer `mlkem768x25519-sha256`, is sent nothing and is not presented the key — [Contracts](#contracts)
+- [ ] A destination whose line was moved to a commit not on the record mirror's line makes the remote `diverged`, records the destination's head in `backend_report`, and receives nothing more until its line again names a commit on the mirror's line — [Contracts](#contracts)
+- [ ] No operation fetches from a remote — [Contracts](#contracts)
+- [ ] A remote census over a store whose history holds a commit a person made with a real address lists that name and address in `backend_report` — [Contracts](#contracts)
+- [ ] A person's commit on the line, made after a remote was confirmed, that adds `.weblisk/secrets/x`, a gitlink or a symbolic link holds the remote `behind` with `held_reason` `reserved-path` naming the path; the commit is never pushed, and neither is any anchored commit that descends from it — [Contracts](#contracts)
+- [ ] A commit the service made for an observation after a remote's census, of a path with no recorded scope whose bytes declare none, holds the remote `behind` with `held_reason` `unclassified`; the commit to send is the newest anchored commit before it, and nothing is pushed while architecture/content's Remote Send Flow holds every send — [Contracts](#contracts)
+- [ ] Where the tenant registers `pii` with `maps_to: restricted`, a commit from before adoption, in a repository floored at `internal`, that adds a file carrying `custom_labels: [pii]` beside `scope: internal` or beside no level is classified `restricted`, and holds a plain remote `behind` with `held_reason` `above-ceiling` — [Contracts](#contracts)
+- [ ] A commit a person made on the line after a remote's census, changing only paths that have a recorded scope at or below the remote's ceiling, is classified and holds no remote back: the remote is `behind` with `held_reason` `egress-unrecorded`, and nothing is pushed — [Contracts](#contracts)
+- [ ] A repository declaration whose placement names a `git-remote` backend is refused with `CONTENT_BACKEND_UNKNOWN` — [Contracts](#contracts)
+- [ ] A store with a configured remote reports an `undeclared-remote` finding, and its repository's `effective_custody` is `opaque` — [Control State](#control-state), [Contracts](#contracts), [`architecture/content`](../architecture/content.md#effective-custody)

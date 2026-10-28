@@ -406,15 +406,15 @@ types:
 
 ## Verification Checklist
 
-- [ ] Registration creates user with hashed password
-- [ ] Registration rejects duplicate emails
-- [ ] Login sets HttpOnly, Secure, SameSite=Lax cookie
-- [ ] Login returns CSRF token in response body
-- [ ] Logout destroys session and clears cookie
-- [ ] GET /auth/me returns user for valid session, 401 otherwise
+- [ ] Registration creates user with hashed password — [Password Storage](#password-storage), [`patterns/user-management`](user-management.md#password-requirements)
+- [ ] Registration rejects duplicate emails — [Registration (POST /auth/register)](#registration-post-authregister)
+- [ ] Login sets the session cookie with the flags [Login (POST /auth/login)](#login-post-authlogin) lists
+- [ ] Login returns CSRF token in response body — [Login (POST /auth/login)](#login-post-authlogin), [CSRF Protection](#csrf-protection)
+- [ ] Logout destroys session and clears cookie — [Logout (POST /auth/logout)](#logout-post-authlogout)
+- [ ] GET /auth/me returns user for valid session, 401 otherwise — [Get Current User (GET /auth/me)](#get-current-user-get-authme)
 - [ ] CSRF token is required on all state-changing endpoints
-- [ ] Invalid CSRF token returns 403
+- [ ] Invalid CSRF token returns 403 — [CSRF Protection](#csrf-protection)
 - [ ] Expired sessions are rejected
-- [ ] Passwords are never returned in any API response
-- [ ] Failed login does not reveal whether email exists
-- [ ] Session IDs use crypto-random 256-bit values
+- [ ] Passwords are never returned in any API response — [User](#user), [Design Principles](#design-principles)
+- [ ] Failed login does not reveal whether email exists — [Login (POST /auth/login)](#login-post-authlogin), [Implementation Notes](#implementation-notes)
+- [ ] Session IDs have the entropy [Implementation Notes](#implementation-notes) sets

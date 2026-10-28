@@ -654,16 +654,16 @@ evidence trail.
 
 ## Verification Checklist
 
-- [ ] Compliance profiles group policies with control IDs
-- [ ] Governance events include evidence blocks (input_hash, policy_version)
-- [ ] Compliance report filters by profile and control
-- [ ] Evidence export streams raw events for audit
-- [ ] Governance directives are signed by orchestrator
-- [ ] Unsigned directives are rejected
-- [ ] policy_update directive installs new policies at runtime
-- [ ] suspend/resume directives control task acceptance
-- [ ] Metrics emit for evaluations, violations, and directives
-- [ ] Trust is assessed through verifiable compliance signals, not assertions
-- [ ] No trust hierarchy exists — trust is mutual and negotiated between parties
-- [ ] Marketplace publishers satisfy conformance validation before distribution
-- [ ] Either party can revoke trust independently without the other's consent
+- [ ] Compliance profiles group policies with control IDs — [Compliance Profiles](#compliance-profiles)
+- [ ] Governance events include evidence blocks (input_hash, policy_version) — [Governance Events](#governance-events)
+- [ ] Compliance report filters by profile and control — [Compliance Report Endpoint](#compliance-report-endpoint)
+- [ ] Evidence export streams raw events for audit — [Evidence Export](#evidence-export)
+- [ ] Governance directives are signed by orchestrator — [Signature Verification](#signature-verification)
+- [ ] Unsigned directives are rejected — [Signature Verification](#signature-verification)
+- [ ] policy_update directive installs new policies at runtime — [Directive Types](#directive-types)
+- [ ] suspend/resume directives control task acceptance — [Directive Types](#directive-types)
+- [ ] Metrics emit for evaluations, violations, and directives — [Observability](#observability)
+- [ ] Trust is assessed through verifiable compliance signals, not assertions — [Trust Signals](#trust-signals)
+- [ ] No trust hierarchy exists — trust is mutual and negotiated between parties — [Continuous Compliance Trust Model](#continuous-compliance-trust-model)
+- [ ] Marketplace publishers satisfy conformance validation before distribution — [Marketplace Conformance](#marketplace-conformance)
+- [ ] Either party can revoke trust independently without the other's consent — [Protection Against Bad Actors](#protection-against-bad-actors)

@@ -453,14 +453,14 @@ types:
 
 ## Verification Checklist
 
-- [ ] Token endpoint returns JWT + refresh token on valid credentials
-- [ ] JWT contains correct sub, iss, iat, exp, scopes claims
-- [ ] JWT signature is verified on every protected request
-- [ ] Expired JWTs are rejected
-- [ ] Refresh endpoint issues new token pair and invalidates the old refresh token
-- [ ] Revoked refresh tokens cannot be used
-- [ ] API keys authenticate via the same Authorization header
-- [ ] Scope enforcement returns 403 for insufficient permissions
-- [ ] Refresh tokens are stored as hashes, not plaintext
-- [ ] API keys are returned in full only on creation
-- [ ] Token endpoint is rate-limited
+- [ ] Token endpoint returns JWT + refresh token on valid credentials — [Token Exchange (POST /auth/token)](#token-exchange-post-authtoken)
+- [ ] JWT carries every claim [JWT Claims](#jwt-claims) lists
+- [ ] JWT signature is verified on every protected request — [Authentication Flow](#authentication-flow)
+- [ ] Expired JWTs are rejected — [Authentication Flow](#authentication-flow), [Implementation Notes](#implementation-notes)
+- [ ] Refresh endpoint issues new token pair and invalidates the old refresh token — [Token Refresh (POST /auth/refresh)](#token-refresh-post-authrefresh)
+- [ ] Revoked refresh tokens cannot be used — [Token Revocation (DELETE /auth/token)](#token-revocation-delete-authtoken), [RefreshToken (server-side)](#refreshtoken-server-side)
+- [ ] API keys authenticate via the same Authorization header — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey), [Authentication Flow](#authentication-flow)
+- [ ] Scope enforcement returns 403 for insufficient permissions — [Scope Enforcement](#scope-enforcement)
+- [ ] Refresh tokens are stored as hashes, not plaintext — [Implementation Notes](#implementation-notes)
+- [ ] API keys are returned in full only on creation — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey)
+- [ ] Token endpoint is rate-limited — [Implementation Notes](#implementation-notes)

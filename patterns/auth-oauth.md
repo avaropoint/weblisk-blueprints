@@ -336,13 +336,13 @@ config:
 
 ## Verification Checklist
 
-- [ ] An unauthenticated request to a protected surface MUST return a challenge naming where to authorize
-- [ ] Published resource metadata MUST be readable without a credential
-- [ ] A credential naming a different resource MUST be refused
-- [ ] A refusal for a credential naming another resource MUST disclose nothing about that resource
-- [ ] The credential exchange MUST be bound to a secret the client holds and does not transmit in the authorization request
-- [ ] An expired credential MUST be refused at use, not merely at issue
-- [ ] A revoked grant MUST be refused at the next use
-- [ ] An insufficient-scope refusal MUST name every scope the attempted operation requires
-- [ ] A resolved credential MUST yield a principal, a client, a resource and a scope
-- [ ] The resource identifier advertised in metadata MUST be the one credentials are validated against
+- [ ] An unauthenticated request to a protected surface MUST return a challenge naming where to authorize — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] Published resource metadata MUST be readable without a credential — [Implementation Notes](#implementation-notes)
+- [ ] A credential naming a different resource MUST be refused — [Design Principles](#design-principles), [Contracts](#contracts)
+- [ ] A refusal for a credential naming another resource MUST disclose nothing about that resource — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling)
+- [ ] The credential exchange MUST be bound to a secret the client holds and does not transmit in the authorization request — [Design Principles](#design-principles), [Contracts](#contracts)
+- [ ] An expired credential MUST be refused at use, not merely at issue — [Design Principles](#design-principles), [Error Handling](#error-handling)
+- [ ] A revoked grant MUST be refused at the next use — [Design Principles](#design-principles), [Contracts](#contracts)
+- [ ] An insufficient-scope refusal MUST name every scope the attempted operation requires — [Contracts](#contracts), [Error Handling](#error-handling)
+- [ ] A resolved credential MUST yield a principal, a client, a resource and a scope — [Types](#types)
+- [ ] The resource identifier advertised in metadata MUST be the one credentials are validated against — [Contracts](#contracts)
