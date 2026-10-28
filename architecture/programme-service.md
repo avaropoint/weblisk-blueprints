@@ -27,7 +27,7 @@ the work to:
 |---|---|---|---|
 | an installed operation | the programme service | execution fires its clock and its events | here, [Endpoints](#endpoints) |
 | an installed workflow definition | the programme service | execution holds its runs, waits and timers | here, and [`patterns/workflow`](../patterns/workflow.md) for the definition |
-| an installed notice | the programme service | notification tells each position's holders, each their own way | here, [Notification](#notification) |
+| an installed notice | the programme service | notification tells each position's holders, each their own way | here, [Notification](#notification), and [`architecture/notification`](notification.md) |
 | an `agent:` instruction | the programme service records it on its operation or step | the prompt worker runs it | here, [The prompt worker](#the-prompt-worker) |
 | a decision a person owes | the owner whose work waits on it | a person, through the admin gateway's one inbox | here, [The decision inbox](#the-decision-inbox) |
 
@@ -272,7 +272,12 @@ pass only.
 The service declares `programme:read`, `programme:install` and
 `programme:operate` on its manifest. It checks `programme:switch` but never
 holds it, as [`protocol/types`](../protocol/types.md#capability) requires of
-a person-only capability.
+a person-only capability. It also declares `notification:send`, to ask
+notification to tell a notice, and `content:read` and `content:describe`: it
+reads the adopted map with them, and a work pass notification is minted
+under a notice's authorisation carries only what this service's manifest
+declares as well ([`protocol/identity`](../protocol/identity.md#the-work-pass)),
+so without them notification could read no holder.
 
 ---
 
@@ -294,7 +299,7 @@ a work pass naming no such item, is refused, the second with `NOT_FOUND`
 | to | what | how |
 |---|---|---|
 | execution | each operation's and each workflow's `schedule`, `on`, `when` or `for`, registered as its start. Pausing an item pauses its start there, so no new run begins | when a start fires, execution runs the definition it fetches with `get_workflow`, as [`architecture/domain`](domain.md) states for any owner's definition: `workflow.trigger` out, `workflow.completed` or `workflow.failed` back |
-| notification | a notice that has advanced: its `says`, its `to` positions, and the fact it is about | [Notification](#notification) |
+| notification | a notice that has advanced: its `says`, its `to` positions, the fact it is about, and its work authorisation | `NotifyByPosition` ([Notification](#notification)) |
 | the prompt worker | nothing directly. An `agent:` phase names the worker as its agent, and execution dispatches it | [The prompt worker](#the-prompt-worker) |
 
 ## Error Handling
@@ -331,9 +336,12 @@ does not call itself complete
 4. It hands each schedule and definition to execution. It answers every block
    it could not hand to an owner, by name, with the missing service.
 5. The same person's client asks the orchestrator, on the person's own token,
-   for a work authorisation for each operation and workflow installed, each
-   with the capabilities its `needs:` ceiling comes to and the actors that run
-   it ([`architecture/admin`](admin.md#work-authorisations)). An item with no
+   for a work authorisation for each operation, workflow and notice
+   installed, each with the capabilities its `needs:` ceiling comes to and the
+   actors that run it ([`architecture/admin`](admin.md#work-authorisations)).
+   A notice's names notification as its actor, with `content:describe` and
+   `content:read`, which notification reads its positions' holders with
+   ([`architecture/notification`](notification.md#resolving-holders)). An item with no
    live authorisation installs and does not run, and this service reports it
    as not authorised, never as running.
 6. Nothing reaches a person until somebody holding `programme:switch` unmutes
@@ -356,9 +364,18 @@ does not call itself complete
 2. The service decides whether the notice has advanced. It advances when the
    fact first becomes true, and not again while it merely stays true.
 3. If it has advanced and the notice is unmuted, the service asks
-   notification to tell the `to` positions. It records that it asked, and
-   what notification answered. A muted notice's advance is recorded as not
-   sent, and nobody is told.
+   notification to tell the `to` positions, with `NotifyByPosition` on its
+   own registration token, naming the notice's work authorisation and an id
+   it gives this advance as `run`
+   ([`architecture/notification`](notification.md#notifying)). It records
+   that it asked, and the outcome notification answered. A muted notice's
+   advance is recorded as not sent, and nobody is told.
+4. An advance whose outcome is `reached_nobody`, `not_authorised` or
+   `holders_unreadable` is recorded as not delivered, with the outcome and
+   the positions notification reports `unheld`, and never as sent
+   ([`architecture/notification`](notification.md#outcomes)). A request
+   notification did not answer is sent again with the same `run`, which
+   tells nobody twice.
 
 ### Withdrawing
 
@@ -443,23 +460,21 @@ the gateway answers both with `ADMIN_GROUP_UNAVAILABLE`.
 
 ### Notification
 
-Notification tells a person once, in their own way. From the programme
-service it accepts a **notify by position**: the notice's `id`, its `says`,
-its `to` positions and the fact it is about. It finds who holds each
-position, words the message from `says`, and delivers by each holder's own
-preference. Nobody is present when a notice advances, so whatever
-notification reads to tell a notice, the holders of its positions among
-it, it reads on work passes under the notice's own work authorisation, which
-names notification as an actor
-([`protocol/identity`](../protocol/identity.md#the-work-pass)).
-[`patterns/notification`](../patterns/notification.md)
-describes channels and delivery, and
-[`agents/email-send`](../agents/email-send.md) is its email adapter.
+Notification is [`architecture/notification`](notification.md). From the
+programme service it accepts a **notify by position**, `NotifyByPosition`:
+the notice, its `says`, its `to` positions, the fact it is about, and the
+notice's work authorisation. It finds who holds each position in the
+[position-holders register](../schemas/position.md#who-holds-a-position),
+words the message from `says`, and delivers by each holder's own preference.
+Nobody is present when a notice advances, so it reads the holders on work
+passes under the notice's own work authorisation, which names notification
+as an actor ([`protocol/identity`](../protocol/identity.md#the-work-pass)).
 
 A notice names positions only, never a person or a channel
 ([`schemas/programme.md`](../schemas/programme.md#notices--who-is-told-what)).
 A notice that reaches nobody, because nobody holds a position it names, is
-reported to the programme service, never treated as delivered.
+answered as that outcome, and this service records it as not delivered
+([Telling](#telling)).
 
 ### The prompt worker
 
@@ -501,10 +516,11 @@ How each decision is shaped is
 
 ## Known Gaps
 
-**No component blueprint implements any of this.** Nothing builds the
-programme service, execution, notification or the prompt worker. A tenant
-runs none of them, so an adoption today hands no block to an owner, and says
-so.
+**No component blueprint implements most of this.** Nothing builds the
+programme service, execution or the prompt worker, and notification's
+blueprint, [`architecture/notification`](notification.md), is written and
+not built. A tenant runs none of them, so an adoption today hands no block
+to an owner, and says so.
 
 **Execution's blueprint is not written.** Until it is,
 [`architecture/domain`](domain.md) and the
@@ -533,15 +549,6 @@ deciding one, and no route at execution serves one, so the admin gateway's
 inbox ([`architecture/admin`](admin.md#decision-inbox)) would list content's
 open proposals and no step of execution's, and it lists neither until a
 `PassRoute` can name the inbox group a route answers.
-
-**Notification has no route, capability or blueprint.** The notify-by-position
-call above has no declared action name or capability yet. Nothing is
-specified for how a person sets their own preferences. Who holds a position
-is the tenant's personal data, so content keeps it in the scope's records
-repository ([`architecture/content`](content.md#where-an-entry-labelled-pii-is-kept)),
-as a restricted register of who holds each
-[position](../schemas/position.md). No schema declares that register yet,
-so notification has nothing it can read a holder from.
 
 **Two acts the capabilities name have no route.** [`protocol/types`](../protocol/types.md#capability)
 gives `programme:operate` "reschedule" and `programme:switch` "who hears
@@ -657,8 +664,9 @@ security:
     - boundary: Every component a firing reaches. Only on a work pass, under
         a work authorisation a person made for the item, within its
         capabilities
-    - boundary: Programme Service → Notification. Positions and a message.
-        Never a person or a channel
+    - boundary: Programme Service → Notification. NotifyByPosition on this
+        service's own registration token, naming the notice's work
+        authorisation. Positions and a message. Never a person or a channel
 
   enforcement:
     - rule: Nothing reaches a person until a person unmutes it
@@ -706,6 +714,7 @@ security:
 - [ ] The mute and unmute routes of operations, workflows and notices each need `programme:switch`, and the service never declares `programme:switch` on its own manifest ([Endpoints](#endpoints))
 - [ ] Pausing, resuming or running an unmuted item on a component's registration token is refused with `FORBIDDEN`. The same act on a muted item is admitted with `programme:operate` ([Endpoints](#endpoints), [Who May Do What](#who-may-do-what) rules 2 and 3)
 - [ ] A notice is sent once when its fact first becomes true, and not again while the fact stays true ([Telling](#telling))
+- [ ] An advance answered `reached_nobody`, `not_authorised` or `holders_unreadable` is recorded as not delivered, with the positions answered `unheld` ([Telling](#telling))
 - [ ] A muted notice that advances reaches nobody, and its advance is recorded as not sent; once unmuted, its next advance is sent ([Telling](#telling), [Endpoints](#endpoints))
 - [ ] Pausing a workflow starts no new run and lets a started run finish; `get_workflow` for a withdrawn workflow answers `NOT_FOUND` ([Endpoints](#endpoints), [Withdrawing](#withdrawing), [Interfaces](#interfaces))
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
