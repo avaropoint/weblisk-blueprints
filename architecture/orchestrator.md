@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.0.0
+version: 4.1.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -357,6 +357,14 @@ declaration:
       path: "/v1/admin/model/audit"
       operation: AdminModelAudit
       auth: "token"
+    # Generated, not platform-provided: the model gateway records a
+    # registered component's completion through it in process. "token" admits
+    # a registration token; the capability judged is llm:chat (Auth
+    # Middleware, step 8)
+    - method: POST
+      path: "/v1/model/audit"
+      operation: ModelAudit
+      auth: "token"
   checks:
     - check: no-path-literals
       subject: route registration
@@ -388,6 +396,8 @@ declaration:
       endpoint: GET /v1/admin/audit/export
     - check: endpoint-routed
       endpoint: POST /v1/admin/model/audit
+    - check: endpoint-routed
+      endpoint: POST /v1/model/audit
     - check: endpoint-routed
       endpoint: POST /v1/token/exchange
     - check: endpoint-routed
@@ -775,6 +785,7 @@ See [Agent Architecture](agent.md) for the 7-endpoint agent protocol.
 | GET | /v1/audit | Audit | yes | Query audit log |
 | POST | /v1/token/exchange | TokenExchange | yes | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component, for the admin gateway's registration and no other — see [Token Exchange](#token-exchange-post-v1tokenexchange) |
 | GET | /v1/model/ceiling | ModelCeiling | yes | What a model backend may be sent now, and where it is reached, for a registered component (platform-provided — see [A model is a destination](#a-model-is-a-destination)) |
+| POST | /v1/model/audit | ModelAudit | yes | Append a registered component's completion's entry to this orchestrator's audit log, for the model gateway inside its own process alone ([Recording what the model routes do](#recording-what-the-model-routes-do)). Generated, and not platform-provided |
 
 \* Registration uses ML-DSA-65 identity verification instead of tokens — there is
 no token to present before an agent is registered. Key rotation is different: it
@@ -812,7 +823,10 @@ which sends a request for a group this orchestrator provides on the person's
 own token, for this orchestrator to judge itself, and a pass is refused on every
 route here ([`protocol/identity`](../protocol/identity.md#the-pass)). A registered component reaches what it needs of
 the tenant's model through `GET /v1/model/ceiling`, which is not an
-administrative route ([A model is a destination](#a-model-is-a-destination)).
+administrative route ([A model is a destination](#a-model-is-a-destination)),
+and asks it for a completion at `POST /v1/model/complete`, the model
+service's route, which the same model gateway serves
+([`architecture/model-service`](model-service.md)).
 
 | Method | Path | Operation | Capability | Purpose |
 |--------|------|-----------|-----------|---------|
@@ -1104,6 +1118,28 @@ the CLI's does not today (the gap note under
 person whose token can use an action's capability can append that action's
 entry. It names them as its actor, so it records nothing in anyone else's
 name.
+
+**A registered component's completion is recorded at `POST /v1/model/audit`
+(`ModelAudit`).** The model gateway also serves `POST /v1/model/complete`, the
+model service's route for a registered component asking the tenant's model
+on its own registration token
+([`architecture/model-service`](model-service.md#asking-the-model-unattended)).
+`AdminModelAudit` is under `/v1/admin/` and takes a person's operator token
+alone, so the gateway records such a completion here instead, in the same
+way: inside the process, with the token of the request it records, and
+answering `404` to a request for the path from outside the process.
+`ModelAudit` takes the same body, and admits one `action`, `model_complete`,
+whose entries are written as the table above says, with the `run` and `phase`
+the component stated named in the first entry's `detail`. The orchestrator
+judges the token by [Auth Middleware](#auth-middleware): step 6 admits a
+registration token alone, and step 8 requires that its `cap` name `llm:chat`.
+It appends the entry, whose `actor` is the token's `identity_id`, and answers
+`201` with it. It refuses an `action` other than `model_complete`, and a
+`status` other than `ok`, `failed` or `denied`, with `INVALID_REQUEST`. The
+admin gateway forwards nothing outside `/v1/admin/` to this orchestrator, so
+it carries no request for the path. Where no model gateway intercepts the
+path, a registered component whose token names `llm:chat` can append a
+`model_complete` entry here, and it names that component as its actor.
 
 ### A model is a destination
 
@@ -1608,12 +1644,16 @@ one count ([`architecture/admin`](admin.md#contracts),
    capability when the operator's role carries it now and the token's cap
    names it, admin:* being read as each admin: capability by name. An
    operator token whose cap is absent or empty names none. Otherwise
-   FORBIDDEN, whatever the role (architecture/admin, Auth Middleware)
+   FORBIDDEN, whatever the role (architecture/admin, Auth Middleware).
+   On ModelAudit, the one route outside /v1/admin/ judged here, refuse a body
+   whose action is not model_complete with INVALID_REQUEST, judged no
+   further, and a registration token whose cap does not name llm:chat with
+   FORBIDDEN (Recording what the model routes do)
 9. On failure → 401: INVALID_SIGNATURE from step 3, malformed tokens
    included, TOKEN_EXPIRED from step 4, PASS_AUDIENCE_MISMATCH from step 5,
    and {"error": "valid token required — register first"} where no token was
    presented; 403 FORBIDDEN from steps 6 and 8; 400 INVALID_REQUEST from
-   step 8, for AdminModelAudit alone; or the operator code
+   step 8, for AdminModelAudit and ModelAudit alone; or the operator code
    architecture/admin's Error Handling names
 10. On success → pass TokenClaims to handler
 ```
@@ -2230,6 +2270,7 @@ agents hold, which is theirs.
 - [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing ([The tenant's model](#the-tenants-model))
 - [ ] A completion appends a `model_complete` entry with `status` `ok` once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok` where the backend answered, `denied` where the gate refused it, and `failed` for every other refusal or failure after the first, a body refused with `INVALID_REQUEST` included, its `detail` naming the code; and returns no answer or refusal whose second entry was not appended ([Recording what the model routes do](#recording-what-the-model-routes-do))
 - [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) step 8)
+- [ ] `POST /v1/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it refuses an operator token with `FORBIDDEN`, a registration token whose `cap` does not name `llm:chat` with `FORBIDDEN`, and an `action` other than `model_complete` with `INVALID_REQUEST`, and otherwise appends an `AuditEntry` whose `actor` is the token's `identity_id` ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) steps 6 and 8)
 - [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 8)
 - [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs ([Administrative endpoints](#administrative-endpoints))
 - [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8)
