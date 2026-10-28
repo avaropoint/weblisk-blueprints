@@ -1395,11 +1395,11 @@ contracts:
         # <!-- wl:id operator-role-admin-family -->
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
         # <!-- wl:id capability-roles-table -->
-        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit` and `work:authorise` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:` and `programme:` capability, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         # <!-- wl:id admin-wildcard-excludes -->
-        - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit` or `work:authorise`, which are outside the `admin` family
+        - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise` or a `notification:` capability, which are outside the `admin` family
         # <!-- wl:id every-capability-held -->
-        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use, telemetry:push or work:exchange (protocol/types, Work capabilities)
+        - Every capability this document names for a person's token to carry MUST be carried by some role; a capability no role holds is a constant, not a permission. token:exchange, which this document names as what the admin gateway's registration declares, is a component's and not a person's, and no role carries it (protocol/types, Exchange capability); nor does any role carry integration:use, telemetry:push, work:exchange (protocol/types, Work capabilities) or notification:send (protocol/types, Notification capabilities)
         # <!-- wl:id last-admin-kept -->
         - The last active admin MUST NOT be removable or demotable
         # <!-- wl:id role-change-audited -->
@@ -2173,10 +2173,10 @@ a failed registration. <!-- wl:id operators-list-pending -->
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit` and `work:authorise` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, and authorise work that runs with nobody present. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest`, `work:authorise` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, and confirm or reject relationships |
-| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything |
-| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read` | Read-only plus full audit log access with export capability |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, authorise work that runs with nobody present, and read whom notices told. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `integration:read`, `fabric:read`, `fabric:attest`, `work:authorise`, `notification:read`, `notification:receive` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
+| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read`, `notification:receive` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything but their own notification preference |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `integration:read`, `fabric:read`, `notification:read`, `notification:receive` | Read-only plus full audit log access with export capability, and whom notices told |
 
 A role is held by an operator, and an operator is always a person
 ([`protocol/types`](../protocol/types.md#operator)), so a role may carry a
@@ -2225,6 +2225,14 @@ programme's standing work and allowing it to run are one piece of day-to-day
 work. It is outside the `admin` family, so `admin:*` does not carry it, and
 this table gives it to `admin` explicitly. `work:exchange` is a component's,
 and no role carries it.
+
+`notification:receive` is how a person reads and sets their own notification
+preference and reads what they were told
+([`architecture/notification`](notification.md#who-may-do-what)), so every
+role carries it; it reaches no other person's. `notification:read` answers
+whom each notice told, by identity id, which is a record about people, so
+`admin`, `operator` and `auditor` carry it and `viewer` does not.
+`notification:send` is a component's, and no role carries it.
 
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):
@@ -3376,6 +3384,7 @@ The rest SHOULD be:
 - [ ] An `operator` or `admin` token carries `fabric:read` and `fabric:attest`, a `viewer` or `auditor` token carries `fabric:read` and not `fabric:attest` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check fabric-by-role covers capability-roles-table -->
 - [ ] An `admin` token carries `content:replicate` and `content:connect`, an `operator` token carries neither, and no token minted for a service subject carries either ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check replicate-by-role covers capability-roles-table -->
 - [ ] An `admin` or `operator` token carries `work:authorise`, a `viewer` or `auditor` token does not, and no role carries `work:exchange` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`)
+- [ ] Every role's token carries `notification:receive`; an `admin`, `operator` or `auditor` token carries `notification:read` and a `viewer` token does not; and no role carries `notification:send` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`)
 - [ ] An `admin` token carries `content:declassify`, and an `operator`, `auditor` or `viewer` token, and every token minted for a service subject, does not ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check declassify-by-role covers capability-roles-table -->
 - [ ] Removing an account from a console deletes its credential keys, revokes each credential first with the token of a signed-in person that hub permits to revoke it where there is one, and otherwise reports each credential live at its hub until its `not_after` ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-removal covers console-removal-deletes-keys console-removal-reports -->
 
