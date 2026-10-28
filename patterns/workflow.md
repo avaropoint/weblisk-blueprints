@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 3.0.0
+version: 4.0.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -15,10 +15,19 @@ are declared, how phases bind data, how execution proceeds through a
 dependency graph, and how errors, approvals, and parallelism are
 handled — all through HTTP-based pub/sub events.
 
-**Key architectural principle:** Domains declare workflows. The
-Workflow Agent executes them. The Task Agent dispatches individual
-phases. All coordination happens via events — no synchronous proxy,
-no embedded execution engine.
+**Key architectural principle:** Owners declare workflows. The
+executor runs them and dispatches their phases. A step that waits for a
+person is decided by a person, at the executor, and by nothing else.
+
+**The executor is [`architecture/execution`](../architecture/execution.md)**:
+cron, task and workflow merged into one service, with one run ledger. Where
+this pattern says the executor, that is the service it means. Before
+execution existed, the executor was two agents, and
+[`agents/workflow`](../agents/workflow.md) and
+[`agents/task`](../agents/task.md) still describe that interim form, in which
+the engine hands each phase to the dispatcher as a `task.submit` event. An
+executor that holds the engine and the dispatcher in one service dispatches
+directly, under the same capacity, timeout and dead-letter rules.
 
 ## Overview
 
@@ -30,11 +39,13 @@ those outputs to downstream phases. The workflow engine handles:
    triggers, and metadata (owned by domains)
 2. **Data binding** — Reference expression syntax for wiring phase
    inputs to task data, prior outputs, entity context, and config
-3. **Execution** — Event-driven DAG traversal via the Workflow Agent
-4. **Dispatch** — Phase tasks submitted to the Task Agent via events
+3. **Execution** — DAG traversal by the executor
+4. **Dispatch** — Each machine phase sent to its target by the executor's dispatcher
 5. **Error strategies** — Per-phase fail/skip/retry semantics
 6. **Approval gates** — Pause execution until human review
-7. **State tracking** — Durable execution history with phase-level detail
+7. **A person's phase** — A task or an approval, by position, that waits
+   for a person and is decided only by one
+8. **State tracking** — Durable execution history with phase-level detail
 
 ---
 
@@ -110,7 +121,7 @@ requires:
 
 ## Design Principles
 
-1. **Domains declare, agents execute** — Domains own workflow definitions (business logic); the Workflow Agent executes the DAG; the Task Agent dispatches individual phases.
+1. **Owners declare, the executor executes** — Owners (domains, the programme service) own workflow definitions (business logic); the executor runs the DAG and dispatches its phases.
 2. **Event-driven coordination** — All coordination happens via HTTP-based pub/sub events; no synchronous proxy or embedded execution engine.
 3. **Fail-safe by default** — Each phase declares its own error strategy (fail/skip/retry); the default is fail, which stops the workflow to prevent silent corruption.
 4. **Durable execution** — Workflow executions persist to durable storage with phase-level detail, enabling recovery from agent crashes and full audit trails.
@@ -135,7 +146,7 @@ contracts:
           description: Workflow-level timeout in seconds (default 600)
       inherits: DAG resolution, phase dispatch, result aggregation, and state tracking
       overridable: true
-      override_constraints: Must use event-driven coordination; cannot bypass Task Agent
+      override_constraints: Cannot bypass the dispatcher's capacity, timeout and dead-letter rules
     - name: phase-dispatch
       description: Submit individual workflow phases to target agents via task events
       parameters:
@@ -161,9 +172,31 @@ contracts:
           type: enum(required, auto)
           required: false
           description: Whether phase output requires human review
-      inherits: Approval event publishing and decision handling
+      inherits: Approval event publishing, and a decision taken only at the executor's decision route from a person
       overridable: true
-      override_constraints: Approval timeout falls back to workflow-level timeout
+      override_constraints: A decision is never taken from an event, an action or a phase's output
+    - name: person-phase
+      description: Hold a task or approval phase as a wait, awaiting the positions it names, until a person holding one decides it
+      parameters:
+        - name: task
+          type: WorkflowTask
+          required: false
+          description: A person's work, by responsible position, with its due
+        - name: approvers
+          type: "[]string"
+          required: false
+          description: The positions whose holders must each accept
+        - name: approval_order
+          type: enum(sequential)
+          required: false
+          description: Ask the approvers one at a time, in declared order
+        - name: escalate
+          type: WorkflowEscalation
+          required: false
+          description: The position a wait left open becomes the problem of
+      inherits: Wait opening, holder resolution, decision recording, escalation and audit
+      overridable: false
+      override_constraints: Only a person holding an awaited position decides; no machine closes a wait
   types:
     - name: WorkflowDefinition
       description: Workflow declaration with phases, triggers, and metadata
@@ -176,6 +209,12 @@ contracts:
       inherited_by: Workflow Types section
     - name: PhaseResult
       description: Per-phase execution result with status, output, and error
+      inherited_by: Workflow Types section
+    - name: WorkflowTask
+      description: A person's work on a phase, by position, with its due
+      inherited_by: Workflow Types section
+    - name: WorkflowEscalation
+      description: Where a person's phase left open goes, and after how long
       inherited_by: Workflow Types section
   endpoints:
     - path: /v1/message
@@ -198,7 +237,7 @@ contracts:
       description: Phase output pending human approval
       payload: {workflow_id, phase, output_preview}
     - topic: workflow.approval.decision
-      description: Human approved or rejected a phase
+      description: A person decided a phase at the executor. A record of the decision, published by the executor, and never a way to make one
       payload: {workflow_id, phase, decision, reason}
 ```
 
@@ -206,9 +245,11 @@ contracts:
 
 ## Workflow Declaration
 
-Workflows are declared in domain blueprint files (in `domains/`).
-Domains own the business logic and define what work needs to happen.
-The Workflow Agent reads these definitions and executes the DAG.
+Workflows are declared by their owner: a domain blueprint (in `domains/`),
+or a programme map, which the programme service installs as definitions
+([`schemas/programme`](../schemas/programme.md#how-a-workflow-maps-onto-patternsworkflow)).
+The owner defines what work needs to happen. The executor fetches each
+definition from its owner and runs the DAG.
 
 ```yaml
 workflows:
@@ -220,8 +261,15 @@ workflows:
 
     phases:
       - name: <phase-name>
-        agent: <agent-name> | self
+        agent: <agent-name> | self   # a machine phase: agent and action
         action: <action-name>
+        task:                        # or a person's work (A Person's Phase)
+          activity: <what is done>
+          responsible: <position>
+          due: <n><h|d|w>
+        approvers: [<position>, ...] # or a person's decision
+        approval_order: sequential   # optional, with approvers
+        escalate: {after: <n><h|d|w>, to: <position>}  # optional, on a person's phase
         input:
           <key>: <value | $reference>
         output: <output-key>
@@ -243,9 +291,13 @@ workflows:
 | approval | workflow | no | auto | Default approval mode for phases |
 | phases | workflow | yes | — | Ordered list of phase declarations |
 | name | phase | yes | — | Unique identifier within workflow |
-| agent | phase | yes | — | Target agent name, or `self` for caller |
-| action | phase | yes | — | Task action to invoke on target agent |
-| input | phase | yes | — | Map of input keys to values or references |
+| agent | phase | conditional | — | Target agent name, or `self` for caller. Required on a machine phase; absent on a person's |
+| action | phase | conditional | — | Task action to invoke on target agent. Required with `agent` |
+| task | phase | conditional | — | A person's work: `activity`, `responsible` position and `due` ([A Person's Phase](#a-persons-phase)) |
+| approvers | phase | conditional | — | The positions whose holders must each accept ([A Person's Phase](#a-persons-phase)) |
+| approval_order | phase | no | — | `sequential`; only with `approvers` |
+| escalate | phase | no | — | `after` and `to`, on a phase with `task` or `approvers` |
+| input | phase | no | — | Map of input keys to values or references |
 | output | phase | no | — | Key name for storing phase result (omit if result not referenced)(omit if result not referenced) |
 | depends_on | phase | no | [] | Phase names that must complete first |
 | timeout | phase | no | 300 | Max seconds for this phase |
@@ -343,9 +395,8 @@ input:
 
 ## Execution Engine (Event-Driven)
 
-The Workflow Agent owns the execution engine. It receives workflow
-trigger events, resolves the DAG, and coordinates phase execution
-through the Task Agent — all via HTTP-based pub/sub events.
+The executor owns the execution engine. It receives workflow
+trigger events, resolves the DAG, and dispatches each phase.
 
 ### Phase 1 — Trigger
 
@@ -362,12 +413,12 @@ publish("workflow.trigger", {
 }, scope: "workflow", correlation_id: "corr-001")
 ```
 
-The Workflow Agent (subscribed to `workflow.trigger`, scope `self`)
+The executor (subscribed to `workflow.trigger`, scope `self`)
 receives this event.
 
 ### Phase 2 — Resolve Definition
 
-The Workflow Agent fetches the workflow definition from the source
+The executor fetches the workflow definition from the source
 domain:
 
 ```
@@ -377,7 +428,7 @@ POST /v1/message to "seo":
 → Response: workflow YAML definition
 ```
 
-The Workflow Agent caches definitions per domain. Cache is invalidated
+The executor caches definitions per domain. Cache is invalidated
 on the domain's `system.agent.registered` event, which the orchestrator
 publishes when the domain starts or its manifest changes, and not on a token
 renewal (architecture/orchestrator, Registration Flow step 10). A deployment that changes a domain's workflow
@@ -431,7 +482,9 @@ for each phase in current level (concurrent):
 
   b. Resolve input references from trigger payload + prior outputs
 
-  c. If agent = "self":
+  c. If the phase has task or approvers:
+       Open a wait (A Person's Phase); the phase dispatches nothing
+     Else if agent = "self":
        POST /v1/message to invoker domain:
          action: phase.action
          payload: resolved_input
@@ -452,11 +505,11 @@ for each phase in current level (concurrent):
          (the event envelope carries the trace:
           protocol/spec#trace-propagation)
 
-  d. Workflow Agent waits for corresponding task.completed or
+  d. The executor waits for corresponding task.completed or
      task.failed event (matched by workflow_id + phase name)
 ```
 
-The Workflow Agent subscribes to `task.completed` and `task.failed`
+The executor subscribes to `task.completed` and `task.failed`
 (scope: `self`). When a task completion event arrives:
 
 ```
@@ -473,12 +526,17 @@ The Workflow Agent subscribes to `task.completed` and `task.failed`
    If yes → go to Phase 6 (Aggregate)
 ```
 
+In the interim two-agent form the engine publishes `task.submit` and waits
+for `task.completed` or `task.failed`, as above. An executor that holds its
+dispatcher sends the same request to the target's `POST /v1/execute` itself,
+and records the result on the phase, with no event between them.
+
 ### Phase 6 — Aggregate
 
 ```
 Collect all phase results.
 Build aggregated result:
-  workflow_name, invoker, status (success/failed/pending_approval),
+  workflow_name, invoker, status (completed/failed),
   summary, phase results, merged observations, merged recommendations,
   metrics (phases_total, completed, failed, skipped, duration_ms)
 
@@ -538,24 +596,85 @@ When a phase fails with `on_error: retry`:
 
 ## Approval Gates
 
-Phases with `approval: required` pause execution:
+A machine phase with `approval: required` pauses the run after it has
+produced its output:
 
 ```
 1. Phase executes normally and produces output
 2. Phase output stored but NOT exposed to downstream phases yet
-3. Workflow status → "pending_approval"
-4. Publish: workflow.approval.required
+3. A wait opens for the phase (A Person's Phase), awaiting its approvers,
+   or any person holding the executor's decide capability where it names none
+4. Workflow status → "waiting"
+5. Publish: workflow.approval.required
    scope: invoker
    payload: { phase, output_preview, workflow_id }
-5. Lifecycle Agent (subscribed, scope: "*") records pending approval
-6. Wait for workflow.approval.decision event:
-   payload: { workflow_id, phase, decision: "accept" | "reject", reason }
+6. A person decides at the executor's decision route, on their own pass
 7. On accept → expose output to downstream phases, resume workflow
 8. On reject → mark phase failed, apply on_error strategy
+9. Publish: workflow.approval.decision, as the record of what the person decided
 ```
 
-Approval timeout: if no decision within the workflow timeout, the
-workflow fails with `"approval_timeout"`.
+**A decision is taken only at the executor's decision route, from a person.**
+The executor MUST NOT take a decision from an event, an action, a phase's
+output or any token a service may hold. `workflow.approval.decision` is
+published by the executor after a person has decided, and the executor
+subscribes to no topic that would decide a phase. An executor that took the
+event as the decision would let any publisher on the bus approve work.
+
+Time a run spends waiting for a person counts towards no phase or workflow
+`timeout`. A wait ends by a decision, by the run being cancelled, or by the
+run failing.
+
+---
+
+## A Person's Phase
+
+A phase may be a person's, not a machine's. It names no `agent` and no
+`action`; it dispatches nothing; it opens a **wait** that only a person
+closes. There are two:
+
+| phase | written as | a person | closes it by |
+|---|---|---|---|
+| a task | `task: {activity, responsible, due}` | a holder of `responsible` | `complete`, or `decline` |
+| an approval | `approvers: [<position>, ...]`, and `approval_order: sequential` or omitted | a holder of each named position, one person to a position | `accept` from every position, or `reject` from any |
+
+A phase carries exactly one of `agent`, `task` and `approvers`. `approval:
+required` on a machine phase is the [approval gate](#approval-gates), and
+may name `approvers` beside its `agent` to say whose decision the gate waits
+for.
+
+**Positions, never people.** `responsible`, `approvers` and `escalate.to`
+name positions, as a programme names them
+([`schemas/programme`](../schemas/programme.md#the-rules-that-are-load-bearing)).
+Whether a person holds one is the tenant's register of position holders,
+read when the wait opens and again at each decision
+([`schemas/position`](../schemas/position.md#known-gaps)). An executor that
+cannot read it decides nothing on that wait, and says so; it never decides
+by capability alone a wait that names a position.
+
+**Order.** With `approval_order: sequential`, the approvers are asked one
+at a time, in declared order, and a decision as a later position before an
+earlier one has accepted is refused. Omitted, they may decide in any order.
+
+**The due.** A task's `due` is `<n><h|d|w>` from the moment the wait opens.
+Past it, the wait stays open; a due is what escalation is measured from,
+never a timeout that fails the phase.
+
+**Escalation.** `escalate: {after, to}` — `after` in
+[`schemas/programme`](../schemas/programme.md#escalateafter--how-long-past-due)'s
+closed form — fires once, `after` past a task's `due`, or past an
+approval's opening, which has no due. It adds `to` as a position whose
+holder may decide in place of the one still awaited (in a sequential
+approval the current one, otherwise the first still awaited in declared
+order). The awaited positions may still decide.
+
+**Separation of duties.** An approval is not accepted by the person who
+started the run, nor by one who completed a task the approval follows
+([`patterns/approval`](approval.md#separation-of-duties)).
+
+**Outcomes.** `complete` and `accept` complete the phase. `decline` and
+`reject` fail it, and its `on_error` applies. The decision is recorded on the
+run with who decided, as which position, and why.
 
 ---
 
@@ -575,13 +694,19 @@ state_machines:
         description: Workflow created, not yet executing
       running:
         description: Phases are executing
-      pending_approval:
-        description: Waiting for human approval on a phase
+      waiting:
+        description: A person's phase or an approval gate is open, and no phase is running
       completed:
         description: All phases finished successfully
         terminal: true
       failed:
         description: Workflow failed
+        terminal: true
+      cancelled:
+        description: Stopped by a person or by the definition's owner; open waits closed
+        terminal: true
+      withheld:
+        description: Stopped at its first person's phase because its run may reach nobody (the executor says when, as architecture/execution's muted runs do)
         terminal: true
 
     transitions:
@@ -589,29 +714,41 @@ state_machines:
         from: pending
         to: running
         trigger: workflow.started event published
-      - name: pause_for_approval
+      - name: wait
         from: running
-        to: pending_approval
-        trigger: workflow.approval.required event published
+        to: waiting
+        trigger: a wait opened and no phase is running
       - name: resume
-        from: pending_approval
+        from: waiting
         to: running
-        trigger: workflow.approval.decision (accept) event received
+        trigger: a person decided a wait at the executor's decision route, and a phase can run
       - name: complete
         from: running
         to: completed
         trigger: all phases done, workflow.completed event published
       - name: fail
-        from: [running, pending_approval]
+        from: [running, waiting]
         to: failed
-        trigger: phase failed (fail strategy) | timeout | approval rejected
+        trigger: phase failed (fail strategy) | timeout | approval rejected | task declined
+      - name: cancel
+        from: [pending, running, waiting]
+        to: cancelled
+        trigger: cancelled at the executor
+      - name: retry
+        from: failed
+        to: running
+        trigger: retried at the executor, from the phases that failed
+      - name: withhold
+        from: running
+        to: withheld
+        trigger: a person's phase opened in a run that may reach nobody
 ```
 
 ---
 
 ## Event Topics
 
-The Workflow Agent owns the `workflow.*` namespace. These are the
+The executor owns the `workflow.*` namespace. These are the
 standard events in the workflow lifecycle:
 
 | Topic | Scope | Published When |
@@ -623,7 +760,7 @@ standard events in the workflow lifecycle:
 | `workflow.phase.failed` | invoker | Phase errored |
 | `workflow.phase.skipped` | invoker | Phase skipped (condition or error) |
 | `workflow.approval.required` | invoker | Phase output pending approval |
-| `workflow.approval.decision` | `workflow` | Human approved/rejected |
+| `workflow.approval.decision` | invoker | A person decided at the executor; a record, never a decision |
 | `workflow.completed` | invoker | All phases done |
 | `workflow.failed` | invoker | Workflow failed |
 
@@ -674,12 +811,28 @@ types:
         description: "Phase identifier (unique within workflow)"
       agent:
         type: string
-        required: true
-        description: "Target agent or `self`"
+        required: false
+        description: "Target agent or `self`. Required on a machine phase; absent on a person's"
       action:
         type: string
-        required: true
-        description: "Task action to invoke"
+        required: false
+        description: "Task action to invoke. Required with `agent`"
+      task:
+        type: WorkflowTask
+        required: false
+        description: "A person's work. Exclusive with `agent` and `approvers`"
+      approvers:
+        type: "[]string"
+        required: false
+        description: "Positions whose holders must each accept. Exclusive with `task`; beside `agent` only with `approval: required`"
+      approval_order:
+        type: string
+        required: false
+        description: "`sequential`, or absent for any order. Only with `approvers`"
+      escalate:
+        type: WorkflowEscalation
+        required: false
+        description: "Only on a phase with `task` or `approvers`"
       input:
         type: map
         required: false
@@ -747,7 +900,7 @@ types:
       status:
         type: string
         required: true
-        description: "pending / running / pending_approval / completed / failed"
+        description: "pending / running / waiting / completed / failed / cancelled / withheld"
       phases:
         type: "[]PhaseResult"
         required: true
@@ -777,7 +930,7 @@ types:
       status:
         type: string
         required: true
-        description: "pending / running / completed / failed / skipped"
+        description: "pending / running / waiting / completed / failed / skipped"
       output:
         type: map
         required: false
@@ -798,6 +951,42 @@ types:
         description: "Number of retry attempts"
 ```
 
+### WorkflowTask
+
+```yaml
+types:
+  WorkflowTask:
+    fields:
+      activity:
+        type: string
+        required: true
+        description: "What the person does, in the author's words"
+      responsible:
+        type: string
+        required: true
+        description: "The position whose holder does it. Never a person"
+      due:
+        type: string
+        required: false
+        description: "`<n><h|d|w>` from the moment the wait opens"
+```
+
+### WorkflowEscalation
+
+```yaml
+types:
+  WorkflowEscalation:
+    fields:
+      after:
+        type: string
+        required: true
+        description: "`<n><h|d|w>` past a task's due, or past an approval's opening"
+      to:
+        type: string
+        required: true
+        description: "The position it then also belongs to. Never a person"
+```
+
 ---
 
 ## Observability
@@ -811,7 +1000,7 @@ from patterns/observability):
 | workflow_execution_duration_seconds | histogram | End-to-end workflow duration |
 | workflow_phase_duration_seconds | histogram | Per-phase duration by agent and action |
 | workflow_phase_total | counter | Phase executions by status |
-| workflow_approval_wait_seconds | histogram | Time spent waiting for approval |
+| workflow_approval_wait_seconds | histogram | Time a wait stays open, approval or task |
 | workflow_parallel_phases | gauge | Current parallel phase count |
 
 ---
@@ -820,19 +1009,19 @@ from patterns/observability):
 
 - Phases within a level MUST dispatch concurrently. Sequential
   dispatch within a level is a conformance violation.
-- The Workflow Agent MUST enforce the workflow-level timeout.
+- The executor MUST enforce the workflow-level timeout.
   When exceeded, cancel all in-flight tasks and fail the workflow.
 - Phase timeouts are independent of workflow timeout. A phase can
   time out before the workflow does.
 - The `self` agent target dispatches via `POST /v1/message` to the
   invoker domain — no task.submit event needed.
 - Workflow executions MUST be persisted to durable storage (flat-file
-  JSONL+ZSTD by default). If the Workflow Agent crashes mid-execution,
+  JSONL+ZSTD by default). If the executor crashes mid-execution,
   the record shows which phases completed and enables recovery.
 - The trigger event's trace is carried to every task.submit event and
   downstream call as [`protocol/spec`](../protocol/spec.md#trace-propagation)
   says.
-- The Workflow Agent SHOULD cache workflow definitions fetched from
+- The executor SHOULD cache workflow definitions fetched from
   domains. Cache invalidation occurs on `system.agent.registered`
   events for the source domain.
 
@@ -844,8 +1033,8 @@ from patterns/observability):
 - [ ] Reference expressions resolve correctly from every root — [Grammar](#grammar), [Roots](#roots)
 - [ ] Array indexing and expansion produce correct results — [Array Indexing](#array-indexing), [Array Expansion](#array-expansion)
 - [ ] Unresolvable references return null (not errors) — [Resolution Rules](#resolution-rules)
-- [ ] Workflow Agent receives workflow.trigger events and resolves DAG — [Phase 1 — Trigger](#phase-1--trigger), [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
-- [ ] Phase dispatch via task.submit events to Task Agent — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
+- [ ] The executor receives workflow.trigger events and resolves DAG — [Phase 1 — Trigger](#phase-1--trigger), [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
+- [ ] Phase dispatch through the executor's dispatcher — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
 - [ ] Task completion matched to workflow phase via workflow_id + phase name — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
 - [ ] DAG levels advance when all phases in a level complete — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
 - [ ] Independent phases within a level dispatch concurrently — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes)
@@ -853,7 +1042,14 @@ from patterns/observability):
 - [ ] on_error: skip marks phase skipped, dependents receive null — [Error Propagation](#error-propagation)
 - [ ] on_error: retry re-submits via task.submit with backoff — [Error Propagation](#error-propagation)
 - [ ] approval: required pauses workflow, publishes workflow.approval.required — [Approval Gates](#approval-gates)
-- [ ] Approval decision resumes or rejects via workflow.approval.decision — [Approval Gates](#approval-gates)
+- [ ] A decision resumes or fails the phase only when a person makes it at the executor's decision route; `workflow.approval.decision` published by any other component decides nothing — [Approval Gates](#approval-gates)
+- [ ] A phase carrying `task` or `approvers` dispatches nothing and opens a wait — [A Person's Phase](#a-persons-phase), [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
+- [ ] A phase carrying more than one of `agent`, `task` and `approvers` is refused at declaration — [A Person's Phase](#a-persons-phase)
+- [ ] With `approval_order: sequential`, a decision as a later position before an earlier one has accepted is refused — [A Person's Phase](#a-persons-phase)
+- [ ] An approval closes accepted only when every named position has accepted, and rejected on the first reject — [A Person's Phase](#a-persons-phase)
+- [ ] An escalation fires once, `after` past a task's due or an approval's opening, and adds its `to` position — [A Person's Phase](#a-persons-phase)
+- [ ] A wait naming a position whose holders cannot be read is decided by nobody — [A Person's Phase](#a-persons-phase)
+- [ ] Time spent waiting for a person counts towards no phase or workflow timeout — [Approval Gates](#approval-gates)
 - [ ] Workflow-level timeout cancels in-flight tasks — [Implementation Notes](#implementation-notes)
 - [ ] Phase-level timeout cancels individual phase — [Implementation Notes](#implementation-notes)
 - [ ] Circular dependency detection fails the workflow at init — [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)

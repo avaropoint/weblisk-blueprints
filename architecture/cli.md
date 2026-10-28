@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.2.1
+version: 4.3.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -347,8 +347,10 @@ the sections below: [Project Commands](#project-commands),
 [Status Commands](#status-commands), [Agent Commands](#agent-commands),
 [Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
 [Approval Commands](#approval-commands), [Objective Commands](#objective-commands),
-[Federation Commands](#federation-commands), and
-[Audit Commands](#audit-commands).
+[Federation Commands](#federation-commands),
+[Audit Commands](#audit-commands), and the
+[Resource commands](#resource-commands), whose nouns and verbs are read from
+the tenant.
 
 ---
 
@@ -426,6 +428,10 @@ them, and [Renamed commands](#renamed-commands) says what each becomes.
   `interface`. Adding a family adds its noun, with no change to the CLI.
 - **Verbs are a closed set in code**, each gated by a capability the family
   declares. A family that lacks the capability has no such verb.
+- **A tenant's resource kinds are nouns, read from the tenant.** Each kind the
+  tenant's catalogue declares is a noun, with the verbs its declaration
+  serves ([Resource commands](#resource-commands)). A kind the tenant adds
+  adds its noun, with no change to the CLI.
 - **Operational nouns are code**: `knowledge`, `component`, `agent`,
   `workflow`, `tenant`, `change`, `run`, `fabric`, `namespace`, `catalog`, `id`,
   `identity`, `operator`, `approval`, `secret`, `provider`, `cache`,
@@ -486,6 +492,55 @@ The rules of D25, which the change service enforces and a client only renders:
    service, listed in the decision inbox with every other decision, so
    `change approve` is a form of `approval accept`.
 5. **A change with a refusing conflict is never approved** ([`schemas/change`](../schemas/change.md#rules), `approval-conflicts`).
+
+### Resource commands
+
+`weblisk <kind> <verb> [<uid>] [flags]`, for every kind the connected tenant's
+catalogue declares ([`architecture/admin`](admin.md#resources-one-api-for-every-kind)),
+and `weblisk resource list` and `weblisk resource show <kind>` for the
+catalogue itself. The CLI and Studio are two clients of the one API: the CLI
+learns every noun, verb, field and refusal here from the catalogue, at the
+tenant, and holds no list of its own. Each is `tenant-api`.
+
+| Command | Calls | What it does |
+|---|---|---|
+| `resource list` | `GET /v1/admin/resources` | Every declared kind, each `available` or `declared-unavailable` with its reason, which is printed and never left out |
+| `resource show <kind>` | `GET /v1/admin/resources` | One kind's declaration: its fields and how each may be set, its operations and verbs with the capability each needs, whether it takes a step-up, its states and events |
+| `<kind> list` | `GET /v1/admin/r/{kind}` | The items, a page at a time; `--where <field>=<value>` for each filter the kind declares, `--all` to read every page |
+| `<kind> show <uid>` | `GET /v1/admin/r/{kind}/{uid}` | One item, with its `ETag` |
+| `<kind> create` | `POST /v1/admin/r/{kind}` | `--set <field>=<value>` for each field it may set, or `--from <file>` |
+| `<kind> update <uid>` | `PATCH /v1/admin/r/{kind}/{uid}` | `--set`, `--from`; `If-Match` is the `ETag` of the read it makes first, or `--if-match` |
+| `<kind> delete <uid>` | `DELETE /v1/admin/r/{kind}/{uid}` | With `If-Match` as `update` takes it |
+| `<kind> <verb> <uid>` | `POST /v1/admin/r/{kind}/{uid}/{verb}` | Prints the verb's preconditions, in-flight handling, effect and whether it can be undone, then asks; `--yes` skips the question |
+| `<kind> watch [<uid>]` | `GET /v1/admin/ws` | Prints each event as it arrives; `--after <position>` to resume |
+
+- **Only what the declaration serves exists.** A verb or operation the kind
+  does not declare is not offered, and if a stale catalogue offers one the
+  tenant's `RESOURCE_OPERATION_UNDECLARED` is printed as it came.
+- **A field is set only as its declaration allows.** `secret` fields are read
+  from a prompt or a secret source, never from the command line, and never
+  printed; a field outside the presentations is printed as its value and never
+  offered for setting ([`schemas/resource`](../schemas/resource.md#presentations)).
+- **A destructive act asks for its person's step-up** as every destructive act
+  does ([Authentication Flow](#authentication-flow)), and an act the tenant
+  answers `RESOURCE_PRECONDITION_FAILED` is never retried with a fresh
+  `If-Match`: the item changed, and the person is shown it again.
+- **An unavailable kind says why.** `<kind> list` for a `declared-unavailable`
+  kind prints its reason, as `ADMIN_GROUP_UNAVAILABLE` carries it, and exits
+  non-zero; it never prints an empty list.
+- **`--json`** prints what the tenant answered, unchanged.
+
+A noun that is both a resource kind and an operational noun of today's
+surface takes the kind's verbs for what the tenant holds: `weblisk agents
+list`, `describe` and `deregister` are `agent list`, `agent show` and
+`agent deregister` ([Renamed commands](#renamed-commands)). Today's
+`agent list`, which lists agents scaffolded on this machine, is the one
+spelling that collides, and is renamed with the scaffolding commands by
+`v2-cli-cmdtree`.
+
+`server start`, `stop` and `restart`, and `component <name> start` and `stop`,
+are unchanged: starting and stopping a process is the supervisor's on the
+tenant's host, never an act on a resource.
 
 ### The Command Surface
 
@@ -614,6 +669,7 @@ byte identical to it.
 | `operator` (the identity on this machine: `init`, `store`, `path`, `connect`, `token`, `rotate`, `sign`, `pubkey`, `attest`) | `identity`; so `operator attest` is `identity attest` |
 | `operators` (a hub's operators) | `operator` |
 | `approvals` | `approval`; `change approve` is a form of `approval accept` |
+| `agents list`, `agents describe <name>`, `agents deregister <name>` | `agent list`, `agent show <name>`, `agent deregister <name>`, the resource commands for the `agent` kind ([Resource commands](#resource-commands)) |
 | `policy validate`, `policy test` (the gateway's policy file) | `gateway policy validate`, `gateway policy test` |
 | `programme <id> init` | `programme adopt <id>` |
 
@@ -4001,3 +4057,9 @@ security:
 - [ ] `weblisk marketplace publish` publishes a capability or asset with listing config ([`weblisk marketplace publish`](#weblisk-marketplace-publish))
 - [ ] `weblisk marketplace list` shows active purchases and subscriptions ([`weblisk marketplace list`](#weblisk-marketplace-list))
 - [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period ([`weblisk marketplace terminate <id>`](#weblisk-marketplace-terminate-id))
+
+### Resources
+- [ ] `weblisk resource list` prints every kind the tenant's catalogue answers, each `declared-unavailable` one with its reason, and `weblisk <kind> list` for such a kind prints the reason `ADMIN_GROUP_UNAVAILABLE` carries and exits non-zero, never printing an empty list ([Resource commands](#resource-commands))
+- [ ] The CLI offers for a kind exactly the operations and verbs its catalogue entry declares, and holds no list of nouns or verbs of its own for them ([Resource commands](#resource-commands))
+- [ ] `weblisk <kind> <verb> <uid>` prints the verb's preconditions, in-flight handling, effect and reversibility before asking, sends the `ETag` of the read it made as `If-Match`, and on `RESOURCE_PRECONDITION_FAILED` shows the item again and does not retry ([Resource commands](#resource-commands))
+- [ ] A field presented `secret` is never read from the command line and never printed ([Resource commands](#resource-commands))

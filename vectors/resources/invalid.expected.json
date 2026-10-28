@@ -1,0 +1,80 @@
+{
+  "findings": [
+    {
+      "kind": "not-a-kind",
+      "rule": "resource-kind-declared"
+    },
+    {
+      "kind": "document",
+      "rule": "resource-kind-once"
+    },
+    {
+      "kind": "policy",
+      "rule": "resource-keys"
+    },
+    {
+      "kind": "standard",
+      "rule": "resource-type-declared"
+    },
+    {
+      "kind": "procedure",
+      "rule": "resource-identity"
+    },
+    {
+      "kind": "sop",
+      "rule": "resource-field-of-type"
+    },
+    {
+      "kind": "guideline",
+      "rule": "resource-field-access"
+    },
+    {
+      "kind": "reference",
+      "rule": "resource-presentation"
+    },
+    {
+      "kind": "specification",
+      "rule": "resource-sensitive"
+    },
+    {
+      "kind": "blueprint",
+      "rule": "resource-operations-closed"
+    },
+    {
+      "kind": "code",
+      "rule": "resource-capability"
+    },
+    {
+      "kind": "evidence",
+      "rule": "resource-binds"
+    },
+    {
+      "kind": "provider",
+      "rule": "resource-verb-name"
+    },
+    {
+      "kind": "partner",
+      "rule": "resource-verb-complete"
+    },
+    {
+      "kind": "component",
+      "rule": "resource-transition"
+    },
+    {
+      "kind": "obligation",
+      "rule": "resource-states"
+    },
+    {
+      "kind": "register",
+      "rule": "resource-events"
+    },
+    {
+      "kind": "skill",
+      "rule": "resource-relation-declared"
+    },
+    {
+      "kind": "workflow",
+      "rule": "resource-unavailable"
+    }
+  ]
+}

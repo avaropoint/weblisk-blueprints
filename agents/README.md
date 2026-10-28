@@ -19,15 +19,15 @@ configuration, and operational behavior.
 
 | Blueprint | Purpose |
 |-----------|---------|
-| [workflow.md](workflow.md) | Workflow execution engine — DAG resolution, phase coordination |
-| [task.md](task.md) | Task dispatch and tracking — priority queue, concurrency control |
+| [workflow.md](workflow.md) | Workflow execution engine — DAG resolution, phase coordination. Superseded by [`architecture/execution`](../architecture/execution.md) and kept as the interim description |
+| [task.md](task.md) | Task dispatch and tracking — priority queue, concurrency control. Superseded by [`architecture/execution`](../architecture/execution.md) and kept as the interim description |
 | [lifecycle.md](lifecycle.md) | Continuous optimization — strategies, observations, approvals |
 | [alerting.md](alerting.md) | Notification routing and delivery |
 | [incident-response.md](incident-response.md) | Automated incident detection, runbooks, remediation |
 | [health-monitor.md](health-monitor.md) | Retiring, and not what decides whether a component is live or present: liveness is the supervisor's, through [`GET /livez`](../protocol/spec.md#get-livez-and-get-readyz), and presence is the orchestrator's, through [leases](../architecture/orchestrator.md#presence) |
 | [hub.md](hub.md) | Registry hub — indexing, search, metrics, verification |
 | [sync.md](sync.md) | Background data sync (client ↔ server) |
-| [cron.md](cron.md) | Scheduled task execution |
+| [cron.md](cron.md) | Scheduled task execution. Superseded by [`architecture/execution`](../architecture/execution.md) and kept as the interim description |
 | [webhook.md](webhook.md) | Webhook processing (inbound + outbound) |
 | [email-send.md](email-send.md) | Transactional email sending |
 

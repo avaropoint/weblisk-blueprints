@@ -397,6 +397,89 @@ declaration:
       path: "/v1/admin/model/audit"
       operation: AdminModelAudit
       auth: "token"
+    # The resource API's part this orchestrator serves (Resources this
+    # orchestrator owns): its kinds in the catalogue, the lease reads, and
+    # the feed of each kind it owns
+    - method: GET
+      path: "/v1/admin/resources"
+      operation: AdminResourceCatalogue
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/r/lease"
+      operation: AdminLeaseList
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/r/lease/{name}"
+      operation: AdminLeaseGet
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/events/agent"
+      operation: AdminAgentEvents
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/events/lease"
+      operation: AdminLeaseEvents
+      auth: "admin:read"
+  # The kinds a person sees and operates here (schemas/resource). Each
+  # operation that binds an Operation above is served at that route; the
+  # others at the uniform address, as architecture/admin's Resources says
+  resources:
+    - kind: agent
+      owner: orchestrator
+      type: AgentEntry
+      list_type: AgentSummary
+      identity: {field: manifest.name, form: declared-name}
+      label: manifest.name
+      fields:
+        - {name: manifest.name, access: read-only, present: text}
+        - {name: manifest.type, access: read-only, present: text}
+        - {name: manifest.version, access: read-only, present: text}
+        - {name: manifest.description, access: read-only, present: text}
+        - {name: manifest.url, access: read-only, present: text}
+        - {name: manifest.capabilities, access: read-only, present: list}
+        - {name: manifest.pass_routes, access: read-only, present: list}
+        - {name: agent_id, access: read-only, present: text}
+        - {name: registered_at, access: read-only, present: instant}
+        - {name: last_seen, access: read-only, present: instant, volatile: true}
+        - {name: lease, access: read-only, volatile: true}
+        - {name: last_renewal, access: read-only, volatile: true}
+        - {name: token, access: read-only, sensitive: true}
+      operations:
+        list: {capability: "admin:read", binds: AdminAgentList, items: agents}
+        get: {capability: "admin:read", binds: AdminAgentGet}
+      verbs:
+        - name: deregister
+          capability: "admin:*"
+          step_up: true
+          binds: AdminAgentDeregister
+          preconditions:
+            - the agent is registered here now
+          in_flight:
+            handling: continues
+            says: this orchestrator holds none of the agent's work; work the agent has under way runs on until it next needs this orchestrator, which no longer knows its registration
+          effect: the agent's entry, namespaces and routes are removed as the Deregistration Flow removes them, system.agent.deregistered is published and the directory is broadcast without it
+          reversible: false
+      events: [created, updated, deleted, deregister]
+      relations: []
+    - kind: lease
+      owner: orchestrator
+      type: AgentLease
+      identity: {field: agent, form: declared-name}
+      label: agent
+      fields:
+        - {name: agent, access: read-only, present: reference, kind: agent}
+        - {name: lease_state, access: read-only, present: choice}
+        - {name: ready, access: read-only, present: boolean}
+        - {name: checks, access: read-only}
+        - {name: duration, access: read-only, present: duration}
+        - {name: renewed_at, access: read-only, present: instant, volatile: true}
+        - {name: expires_at, access: read-only, present: instant, volatile: true}
+      operations:
+        list: {capability: "admin:read"}
+        get: {capability: "admin:read"}
+      events: [created, updated]
+      relations:
+        - {relation: held_by, to: agent, field: agent}
   checks:
     - check: no-path-literals
       subject: route registration
@@ -906,6 +989,11 @@ administrative route ([A model is a destination](#a-model-is-a-destination)).
 | DELETE | /v1/admin/model/agreements/{id} | AdminModelAgreementWithdraw | `model:attest` | Withdraw an agreement (platform-provided) |
 | GET | /v1/admin/model/ceiling | AdminModelCeiling | `admin:read` | What a model backend may be sent now (platform-provided) |
 | POST | /v1/admin/model/audit | AdminModelAudit | the one its `action` names | Append a model route's entry to this orchestrator's audit log, for the model gateway inside its own process alone ([Recording what the model routes do](#recording-what-the-model-routes-do)). Generated, and not platform-provided |
+| GET | /v1/admin/resources | AdminResourceCatalogue | `admin:read` | The kinds this orchestrator owns, each a `CatalogueEntry`, for the admin gateway to compose the tenant's catalogue from ([Resources this orchestrator owns](#resources-this-orchestrator-owns)) |
+| GET | /v1/admin/r/lease | AdminLeaseList | `admin:read` | Every agent's lease, each an `AgentLease`, as a `ResourceList` |
+| GET | /v1/admin/r/lease/{name} | AdminLeaseGet | `admin:read` | One agent's lease, with its ETag |
+| GET | /v1/admin/events/agent | AdminAgentEvents | `admin:read` | The `agent` events after a position, as a `ResourceEventPage` ([`architecture/admin`](admin.md#the-feed)) |
+| GET | /v1/admin/events/lease | AdminLeaseEvents | `admin:read` | The `lease` events after a position, as a `ResourceEventPage` |
 
 The four routes marked "after step-up" MUST be served as
 [`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up` says,
@@ -950,6 +1038,54 @@ specified below, in [The tenant's model](#the-tenants-model),
 [Recording what the model routes do](#recording-what-the-model-routes-do) and
 [A model is a destination](#a-model-is-a-destination), and the CLI's gateway is
 held to it as generated code is held to its blueprint.
+
+### Resources this orchestrator owns
+
+What a person sees and operates of this orchestrator's state is declared once,
+in the `resources:` key of the [Declaration](#declaration), as
+[`schemas/resource`](../schemas/resource.md) says: the kinds `agent`, an entry
+of the registry, and `lease`, the presence that entry holds. The admin gateway
+serves both at the one address every kind is served at
+([`architecture/admin`](admin.md#resources-one-api-for-every-kind)), and
+forwards each request for them here on the person's operator token, as it
+forwards every request for a group this orchestrator provides.
+
+**An agent's operations are the routes that already serve them.** `list`,
+`get` and the verb `deregister` bind `AdminAgentList`, `AdminAgentGet` and
+`AdminAgentDeregister`, and nothing about those routes changes but two
+additions: `AdminAgentGet` answers an `ETag` taken over the entry without its
+volatile fields and without `token`, and `AdminAgentDeregister` compares an
+`If-Match` it is given with that ETag and refuses a mismatch with
+`RESOURCE_PRECONDITION_FAILED` ([`protocol/types`](../protocol/types.md#errorresponse)),
+before the step-up is judged. A request at the route's own path that carries
+no `If-Match` is served as it was; the uniform address is where one is
+required. An agent is created and removed by its own registration, never by a
+person, so the kind declares neither `create` nor `delete`; a person removes
+one by `deregister`.
+
+**A lease is read, never written by a person.** The orchestrator grants it at
+registration and the holder renews it ([Presence](#presence)), so `lease`
+declares `list` and `get` alone, served at the uniform address by
+`AdminLeaseList` and `AdminLeaseGet`. An `AgentLease` is the entry's lease and
+last renewal with the state derived as `GET /v1/admin/agents` derives it.
+
+**What each kind announces.** An `agent` is `created` by a registration that
+finds no entry, `updated` by one that changes the manifest, and `deleted` by a
+deregistration the agent asked for itself; a forced one announces
+`deregister`. These are the same acts that publish `system.agent.registered`
+and `system.agent.deregistered` ([System Events](#system-events)), seen by a
+person rather than by an agent. A `lease` is `created` when a registration
+grants one and `updated` when a renewal changes what the lease says is ready;
+a renewal that changes nothing announces nothing. **A lapse is not an event**,
+here as on the directory: nothing acts when a lease lapses, and a client that
+watches leases reads `expires_at` from the last event and shows the lease
+`unknown` once it has passed, as this orchestrator would answer it.
+
+`AdminAgentEvents` and `AdminLeaseEvents` answer what
+[`architecture/admin`](admin.md#the-feed) asks of every owner's feed, and
+`AdminResourceCatalogue` answers this orchestrator's two `CatalogueEntry`
+values, each `available`, for the admin gateway to compose the tenant's
+catalogue from.
 
 ### The tenant's model
 
@@ -2213,6 +2349,57 @@ types:
       storage_dsn:
         type: string
         description: Where the orchestrator's stores live. Carries no credential — key and secret material is supplied per protocol/identity, not through configuration
+
+  AgentSummary:
+    description: One agent as GET /v1/admin/agents lists it, and the agent kind's list item
+    fields:
+      name:
+        type: string
+        description: The manifest's name
+      type:
+        type: string
+        description: The manifest's type, an absent one read as agent
+      version:
+        type: string
+        description: The manifest's version
+      lease_state:
+        type: string
+        description: What the lease says now (protocol/types, LeaseState)
+        constraints:
+          enum: [ready, not_ready, unknown]
+      registered_at:
+        type: timestamp
+        description: The instant of registration
+      last_seen:
+        type: timestamp
+        description: The instant of the last request received from the agent
+
+  AgentLease:
+    description: The lease an agent's entry holds, as the lease kind answers it
+    fields:
+      agent:
+        type: string
+        description: The name of the agent that holds it
+      lease_state:
+        type: string
+        description: What the lease says now, derived when read (protocol/types, LeaseState)
+        constraints:
+          enum: [ready, not_ready, unknown]
+      ready:
+        type: bool
+        description: What the last renewal said, false until the first
+      checks:
+        type: map
+        description: The last renewal's checks, where it carried any (protocol/types, LeaseRenewal)
+      duration:
+        type: int64
+        description: Seconds the lease lasts from each renewal, as Lease's duration counts them (protocol/types, Lease)
+      renewed_at:
+        type: timestamp
+        description: The instant of the registration or renewal that set it
+      expires_at:
+        type: timestamp
+        description: The instant at which it lapses unless renewed
 ```
 
 ---
@@ -2422,3 +2609,6 @@ agents hold, which is theirs.
 - [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key` ([Auth Middleware](#auth-middleware) step 6)
 - [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure ([Security](#security), [A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`)
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers ([Auth Middleware](#auth-middleware) step 9)
+- [ ] `GET /v1/admin/resources` answers `agent` and `lease`, each `available`, with the declarations the [Declaration](#declaration)'s `resources:` holds, and no other kind ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
+- [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
+- [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events))
