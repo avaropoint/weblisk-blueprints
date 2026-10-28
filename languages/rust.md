@@ -30,7 +30,7 @@ protocol types, identity management, and agent lifecycle patterns
 compile to standalone binaries with no garbage collector and no
 runtime overhead. This guide covers project structure (Cargo
 workspace), build commands, async concurrency with tokio, storage
-mapping with rusqlite, and Rust-specific idioms for error handling,
+mapping (JSONL by default), and Rust-specific idioms for error handling,
 trait-based abstractions, and type safety.
 
 ---
@@ -123,7 +123,7 @@ weblisk-app/
       lib.rs                  # Re-exports all modules
       protocol.rs             # Protocol types (AgentManifest, TaskRequest, etc.)
       identity.rs             # ML-DSA-65 key management, signing, tokens
-      storage.rs              # Storage trait + SQLite implementation
+      storage.rs              # Storage trait + the chosen backend (JSONL by default)
       error.rs                # Error types (thiserror)
       config.rs               # Configuration loader (env vars, CLI flags)
   server/
@@ -160,6 +160,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 pqcrypto-dilithium = "0.5"
 rand = "0.8"
+# only if SQLite was chosen (Storage Mapping); the JSONL default needs none of the three
 rusqlite = { version = "0.31", features = ["bundled"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.24"
@@ -240,10 +241,10 @@ runtime:
       - name: rusqlite
         version: "0.31"
         features: ["bundled"]
-        purpose: Embedded SQLite for production persistence
+        purpose: Embedded SQLite, only if SQLite was chosen
       - name: r2d2
         version: "0.8"
-        purpose: Connection pooling for SQLite
+        purpose: Connection pooling for SQLite, only if SQLite was chosen
       - name: chrono
         version: "0.4"
         purpose: Timestamp formatting and parsing
@@ -338,7 +339,7 @@ provides domain-specific logic.
 #[async_trait::async_trait]
 pub trait Agent: Send + Sync {
     fn manifest(&self) -> &AgentManifest;
-    async fn execute(&self, req: TaskRequest) -> Result<TaskResponse>;
+    async fn execute(&self, req: TaskRequest) -> Result<TaskResult>;
     async fn handle_message(&self, msg: Message) -> Result<()>;
 }
 ```
@@ -412,7 +413,7 @@ pub enum WebliskError {
     #[error("task execution failed: {0}")]
     TaskFailed(String),
     #[error("storage error: {0}")]
-    Storage(#[from] rusqlite::Error),
+    Storage(String),
     #[error("serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
     #[error("identity error: {0}")]
@@ -584,12 +585,14 @@ async fn handle_execute(
     let _permit = match limiter.try_acquire() {
         Some(permit) => permit,
         None => {
-            return Ok(error_response(429, ErrorResponse {
+            let mut resp = error_response(429, ErrorResponse {
                 error: "agent at capacity".into(),
                 code: "RATE_LIMITED".into(),
                 category: "transient".into(),
                 retryable: true,
-            }));
+            });
+            resp.headers_mut().insert("Retry-After", hyper::header::HeaderValue::from_static("5"));
+            return Ok(resp);
         }
     };
     // ... execute task, permit drops automatically at scope end
@@ -605,7 +608,7 @@ declarations.
 ```rust
 use tokio::task::JoinSet;
 
-async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<TaskResponse> {
+async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<TaskResult> {
     let mut set = JoinSet::new();
     for task in tasks {
         let agent = agents.get(&task.target).cloned();
@@ -654,27 +657,18 @@ async fn dispatch_phase(tasks: Vec<TaskRequest>, agents: &AgentRegistry) -> Vec<
 ```rust
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AgentManifest {
-    pub name: String,
-    pub version: String,
-    pub capabilities: Vec<String>,
-    pub actions: Vec<Action>,
-}
+// A type's name and fields are protocol/types', under their JSON keys. The
+// three below are not restated here: each carries every field protocol/types
+// declares for it, and a TaskResult is signed (architecture/agent, POST /v1/execute).
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskRequest {
-    pub task_id: String,
-    pub action: String,
-    pub payload: serde_json::Value,
-}
+pub struct AgentManifest { /* every field of protocol/types' AgentManifest */ }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaskResponse {
-    pub task_id: String,
-    pub status: String,
-    pub result: serde_json::Value,
-}
+pub struct TaskRequest { /* every field of protocol/types' TaskRequest */ }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskResult { /* every field of protocol/types' TaskResult */ }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Liveness {
@@ -898,11 +892,11 @@ opt-level = 3
 - [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface))
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
 - [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface))
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResponse`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResult`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates ([Protocol Type Definitions](#protocol-type-definitions), [Workspace Layout](#workspace-layout))
 - [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
 - [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes))
 - [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits))
-- [ ] `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS`
+- [ ] IF SQLite was chosen: `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements](#sqlite-requirements), [Storage Mapping (Rust)](#storage-mapping-rust))
 - [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode))
 - [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling))
 - [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency))
