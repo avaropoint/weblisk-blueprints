@@ -2142,54 +2142,54 @@ than naming a statute that does not exist.
 
 ## Verification Checklist
 
-- [ ] The map is `map.md` at the programme's root, every spec is directly under `specs/`, every form directly under `templates/`, and nothing relies on a `type:` field to say which it is
-- [ ] Every map and every spec carries an `id`, unique within the pack
-- [ ] Every `version:` is `MAJOR.MINOR.PATCH` and nothing else — no `v`, no two-part number, no pre-release suffix
-- [ ] A file with no `version:` is reported as **unversioned**, and nothing anywhere reads it as `1.0.0`
+- [ ] The map is `map.md` at the programme's root, every spec is directly under `specs/`, every form directly under `templates/`, and nothing relies on a `type:` field to say which it is ([Three file kinds](#three-file-kinds-and-where-a-file-sits-decides))
+- [ ] Every map and every spec carries an `id`, unique within the pack ([The programme map](#the-programme-map), [The artifact specification](#the-artifact-specification))
+- [ ] Every `version:` is `MAJOR.MINOR.PATCH` and nothing else — no `v`, no two-part number, no pre-release suffix ([Unversioned is a real answer](#unversioned-is-a-real-answer-and-is-never-100))
+- [ ] A file with no `version:` is reported as **unversioned**, and nothing anywhere reads it as `1.0.0` ([Unversioned is a real answer](#unversioned-is-a-real-answer-and-is-never-100))
 - [ ] Any edit this release makes that the [Versioning](#versioning) tables call MAJOR has a major bump beside it — most of all a moved tier boundary, a withdrawn `satisfies` entry, or a changed `declares.obligation`
-- [ ] No file declares `pack`, `source`, `builtin` or `derived_from`
-- [ ] Every `satisfies` entry is `framework:control` with exactly one colon and neither half empty
-- [ ] Every tier's `requires` names a declared tier; exactly one tier has none; there is no cycle
-- [ ] Every `artifacts[].tier` names a declared tier
-- [ ] No artifact sits at a tier lower than something it `requires`
-- [ ] Every artifact `id` a map places is defined by some spec in the pack, or is knowingly supplied by another
-- [ ] Every obligation declares an `activity`, and a `cadence` **or** a `for:` — never both
-- [ ] Every `cadence` is in the declared vocabulary; every `applies_to` is `the organisation` or `each workspace`
-- [ ] Nothing says `each project` meaning *a job site* — that is `per:`, and the check is whether the organisation keeps a register of them
-- [ ] Every obligation with `per:` records into a register carrying a relation column onto the subject register
-- [ ] Every `interval_basis` is `required` or `chosen`, and every interval the organisation picked itself says `chosen` — an interval with a citation beside it and no basis reads as imposed
-- [ ] Every `for.due` matches `<n><h|d|w> (after|before) <field>`, and `<field>` names a column of the trigger register
-- [ ] Every operation has a `schedule`, an `on:` or a `when:`; every `when.within` is `<n><h|d|w>` and at most `90d`; every `when.across` is `project`, `org` or `tenant`; every `when.count.at_least` is 1 or more
-- [ ] Every `when.count.distinct` names a field the declared `event` actually carries — for `register.row_added` that is a **column of the register named in `where`**
-- [ ] Every `for.records` names a register **other than** the obligation's own `records:`
-- [ ] Every `escalate` declares both `after` — `<n><h|d|w>`, no months — and `to`
-- [ ] Every obligation names `records:`, and some artifact produces that document
-- [ ] Every declared register has at least one column, with unique keys, and a `target` on every `relation`
-- [ ] `review`, `approvers` and `approval_order` appear only with `layout: form`, and only with their declared values
-- [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority`
-- [ ] Every `retention` on a register that is appended to says `from: modified`, and every `authority` either cites the instrument setting the period or says in words that none does
-- [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere
-- [ ] Every `artifact_scope` and column `scope` is a `ScopeLevel`, and every `custom_labels` sits beside a declared level
-- [ ] No spec writes a top-level `scope:` to mean the document it creates; that is `artifact_scope`
-- [ ] Every register whose rows are about a person — any row of which may record an injury to them or their health, a credential they hold, a complaint by or about them, the end of their employment, or a request about their own personal information — is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
-- [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates
-- [ ] Every `creates` names a form in the programme's `templates/` and a relative `path` carrying `{key}` where its obligation has `per:` or `for:` and `{date}` where it has a `cadence` — and no shipped spec declares one until the programme loader places it
-- [ ] No map declares `agents:`; every agent is an `agent:` instruction on an operation or a workflow step, with its `needs:`
+- [ ] No file declares `pack`, `source`, `builtin` or `derived_from` ([The programme map](#the-programme-map), [The artifact specification](#the-artifact-specification))
+- [ ] Every `satisfies` entry is `framework:control` with exactly one colon and neither half empty ([The rules that are load-bearing](#the-rules-that-are-load-bearing))
+- [ ] Every tier's `requires` names a declared tier; exactly one tier has none; there is no cycle ([Tiers](#tiers), [Which mistakes stop the file](#which-mistakes-stop-the-file-and-which-do-not))
+- [ ] Every `artifacts[].tier` names a declared tier ([Which mistakes stop the file](#which-mistakes-stop-the-file-and-which-do-not))
+- [ ] No artifact sits at a tier lower than something it `requires` ([`requires` orders generation](#requires-orders-generation-and-that-ordering-is-the-point))
+- [ ] Every artifact `id` a map places is defined by some spec in the pack, or is knowingly supplied by another ([Artifacts](#artifacts))
+- [ ] Every obligation declares an `activity`, and a `cadence` **or** a `for:` — never both ([`declares.obligation`](#declaresobligation), [The rules that are load-bearing](#the-rules-that-are-load-bearing))
+- [ ] Every `cadence` is in the declared vocabulary; every `applies_to` is `the organisation` or `each workspace` ([`cadence`](#cadence--how-often), [`applies_to`](#applies_to--where-each-occurrence-is-expected))
+- [ ] Nothing says `each project` meaning *a job site* — that is `per:`, and the check is whether the organisation keeps a register of them ([`applies_to`](#applies_to--where-each-occurrence-is-expected), [`per`](#per--one-occurrence-per-period-per-subject))
+- [ ] Every obligation with `per:` records into a register carrying a relation column onto the subject register ([`per`](#per--one-occurrence-per-period-per-subject))
+- [ ] Every `interval_basis` is `required` or `chosen`, and every interval the organisation picked itself says `chosen` — an interval with a citation beside it and no basis reads as imposed ([`authority` and `interval_basis`](#authority-and-interval_basis--whose-interval-is-it))
+- [ ] Every `for.due` matches `<n><h|d|w> (after|before) <field>`, and `<field>` names a column of the trigger register ([`for.due`](#fordue--the-deadline-on-a-triggered-record))
+- [ ] Every operation has a `schedule`, an `on:` or a `when:`; every `when.within` is `<n><h|d|w>` and at most `90d`; every `when.across` is `project`, `org` or `tenant`; every `when.count.at_least` is 1 or more ([`when`](#when--reacting-to-how-much-happened), [The refusals](#the-refusals))
+- [ ] Every `when.count.distinct` names a field the declared `event` actually carries — for `register.row_added` that is a **column of the register named in `where`** ([`when`](#when--reacting-to-how-much-happened))
+- [ ] Every `for.records` names a register **other than** the obligation's own `records:` ([The rules that are load-bearing](#the-rules-that-are-load-bearing))
+- [ ] Every `escalate` declares both `after` — `<n><h|d|w>`, no months — and `to` ([`escalate`](#escalate--who-it-becomes-the-problem-of), [`escalate.after`](#escalateafter--how-long-past-due))
+- [ ] Every obligation names `records:`, and some artifact produces that document ([`declares.obligation`](#declaresobligation), [The rules that are load-bearing](#the-rules-that-are-load-bearing))
+- [ ] Every declared register has at least one column, with unique keys, and a `target` on every `relation` ([Registers](#registers), [Columns](#columns))
+- [ ] `review`, `approvers` and `approval_order` appear only with `layout: form`, and only with their declared values ([Registers](#registers), [The single-valued ones](#the-single-valued-ones))
+- [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority` ([`retention`](#retention), [`retention.keep`](#retentionkeep--the-keeping-period))
+- [ ] Every `retention` on a register that is appended to says `from: modified`, and every `authority` either cites the instrument setting the period or says in words that none does ([`retention`](#retention))
+- [ ] `responsible`, `approved_by`, `approvers` and `escalate.to` name positions, no individual is named anywhere ([The rules that are load-bearing](#the-rules-that-are-load-bearing))
+- [ ] Every `artifact_scope` and column `scope` is a `ScopeLevel`, and every `custom_labels` sits beside a declared level ([Scope](#scope))
+- [ ] No spec writes a top-level `scope:` to mean the document it creates; that is `artifact_scope` ([`artifact_scope` is never spelled `scope`](#artifact_scope-is-never-spelled-scope))
+- [ ] Every register whose rows are about a person, as [Records about a person](#records-about-a-person) says which are, is `restricted` and labelled `pii` on each column about the person, and on its own spec when it is a standing register
+- [ ] Every form whose document is about one person carries `scope: restricted` and `scope_metadata: {custom_labels: [pii]}` under `frontmatter:`, and no form carries a top-level `scope:` meaning the document it creates ([Records about a person](#records-about-a-person), [A form's `frontmatter:`](#a-forms-frontmatter))
+- [ ] Every `creates` names a form in the programme's `templates/` and a relative `path` carrying `{key}` where its obligation has `per:` or `for:` and `{date}` where it has a `cadence` — and no shipped spec declares one until the programme loader places it ([`creates`](#creates--a-document-per-occurrence-not-a-row), [Known gaps](#known-gaps))
+- [ ] No map declares `agents:`; every agent is an `agent:` instruction on an operation or a workflow step, with its `needs:` ([Agents are instructions, never components](#agents-are-instructions-never-components))
 - [ ] Every workflow has an `id`, a `schedule`, `on:` or `when:`, and at least one step; every step has an `id` and exactly one of `task`, `approval`, `does` and `agent`; every `after` names a declared step and no steps form a cycle
-- [ ] Every `task` names an `activity`, a `responsible` position and a `due` of `<n><h|d|w>`; every `approval` names positions; no machine step approves, signs or closes anything
-- [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel
-- [ ] Every skill's `file` is under the programme's `skills/` and exists, and names no artifact id or register path
-- [ ] Every domain service names a `type: domain` blueprint under the programme's `domains/`, and says `why` an operation or a workflow would not do
-- [ ] Every agent a domain service's blueprint names in `depends_on` is published in the corpus's `agents/` or run by the tenant, and its `port` collides with no agent or domain the tenant runs and no other domain service the adoption requests
-- [ ] Every workflow starts on `schedule`, `on` or `when`, or on `for` alone; `adopted` appears only on a workflow's `on:`; and every step `patterns/workflow` cannot yet carry is reported at adoption rather than dropped
-- [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both
+- [ ] Every `task` names an `activity`, a `responsible` position and a `due` of `<n><h|d|w>`; every `approval` names positions; no machine step approves, signs or closes anything ([`workflows`](#workflows--multi-step-work-with-waits-and-approvals))
+- [ ] Every notice names its `on` events from the allow-list, the positions it goes `to`, and what it `says` — and never a person or a channel ([`notices`](#notices--who-is-told-what))
+- [ ] Every skill's `file` is under the programme's `skills/` and exists, and names no artifact id or register path ([`skills`](#skills--files-the-programme-brings))
+- [ ] Every domain service names a `type: domain` blueprint under the programme's `domains/`, and says `why` an operation or a workflow would not do ([`domain_services`](#domain_services--a-domain-service-the-programme-asks-to-have-built))
+- [ ] Every agent a domain service's blueprint names in `depends_on` is published in the corpus's `agents/` or run by the tenant, and its `port` collides with no agent or domain the tenant runs and no other domain service the adoption requests ([The package's refusals](#the-packages-refusals))
+- [ ] Every workflow starts on `schedule`, `on` or `when`, or on `for` alone; `adopted` appears only on a workflow's `on:`; and every step `patterns/workflow` cannot yet carry is reported at adoption rather than dropped ([What starts a run](#what-starts-a-run), [How a workflow maps onto `patterns/workflow`](#how-a-workflow-maps-onto-patternsworkflow))
+- [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both ([`operations`](#operations--the-standing-work-a-programme-installs), [The refusals](#the-refusals))
 - [ ] Every operation has a `schedule`, an `on:`, or both, and every `cadence`, `weekday` and `at` is in the declared vocabulary
-- [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document
-- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:`
-- [ ] Every operation that runs a model states what it may touch, even when that is only `read`
-- [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning
-- [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day
-- [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard
+- [ ] Every `does:` names an action the target installation actually runs — ask `GET /api/jobs/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
+- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
+- [ ] Every operation that runs a model states what it may touch, even when that is only `read` ([What is declared here](#what-is-declared-here-and-what-is-deliberately-not))
+- [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning ([`operations`](#operations--the-standing-work-a-programme-installs))
+- [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day ([`start` defaults to `paused`](#start-defaults-to-paused-and-that-is-the-design))
+- [ ] Every artifact's body is a brief for **this organisation** — not the document itself, and not a recital of the standard ([The artifact specification](#the-artifact-specification))
 - [ ] Every `structure` a shipped spec or form names is a family in [`documents/families/`](../documents/families/README.md), and every family there walks its template with no refused finding, lets no heading open two slots and carries no `authority` (`checks/families.py`)
 
 ---
@@ -2200,17 +2200,17 @@ What whatever installs a programme into a tenant owes. The
 [Verification Checklist](#verification-checklist) above is for a programme's
 files; these are acts of the tenant and the client that installs into it.
 
-- [ ] The scope's records repository is found once, at install, as the repository `GET /v1/content/repositories` reports with `records: true` for that `scope_path`
-- [ ] A register holding `pii`, and a document a form creates that holds `pii`, is created in the records repository, and nothing holding `pii` is created anywhere else
-- [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record
-- [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike
-- [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to
+- [ ] The scope's records repository is found once, at install, as the repository `GET /v1/content/repositories` reports with `records: true` for that `scope_path` ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
+- [ ] A register holding `pii`, and a document a form creates that holds `pii`, is created in the records repository, and nothing holding `pii` is created anywhere else ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
+- [ ] Where the scope has no records repository, nothing holding `pii` is created, each register and form not created is reported with `CONTENT_RECORDS_REPOSITORY_REQUIRED`, and every obligation that records into one is reported as unable to record ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
+- [ ] A register's `path`, an obligation's `records:`, a `for.records` and a `relation` column's `target` resolve in the records repository when the register named holds `pii`, and in the programme's repository otherwise, for install, derive and the occurrence engine alike ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
+- [ ] The records repository, and the repository that holds the rest of the programme, are declared before install creates anything, and every document install creates is written through the content service's write route into the repository its path resolves to ([Where a record holding `pii` lives](#where-a-record-holding-pii-lives))
 - [ ] The declaration of the repository that holds the rest of the programme carries a `scope_floor` a person chose, and every write install makes into it declares on the change the higher of the level the spec or form gives the document and the floor
-- [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope
+- [ ] The client writing a person's next change to a document created from a spec or a form adds `scope:` and `scope_metadata:` from the spec or form where the document lacks them, never on open, and never below the entry's recorded scope ([What the created document carries](#what-the-created-document-carries))
 - [ ] An install that copies a programme from a repository outside a tenant says with its answer that where the copy came from is not recorded in the tenant, because no field of `architecture/content` records it ([Repositories Outside a Tenant](../architecture/content.md#repositories-outside-a-tenant))
-- [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation
-- [ ] Every file an adoption writes goes under `programmes/<id>/` with the template's bytes and path, nothing already at a path is overwritten — a file there is reported *already there* or *edited* — and `adoption.md` is written after them in the same sitting, with `kind: reference`, `programme` (the template's id, unchanged), `source` and one `extends` entry whose `resolved` holds, for every file written, its `digest`, its own `version` or `unversioned`, the full `revision` it was read at, and the `repository` it went to
-- [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one into another directory or repository is refused, naming the adoption that exists; one under another id is recognised only through `formerly`
-- [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped
-- [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored
-- [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service
+- [ ] An adoption is made by a person, at an organisation; one asked for at a project is refused, naming the organisation ([One act, by a person, at the organisation](#one-act-by-a-person-at-the-organisation))
+- [ ] Every file an adoption writes goes under `programmes/<id>/` with the template's bytes and path, nothing already at a path is overwritten — a file there is reported *already there* or *edited* — and `adoption.md` is written after them in the same sitting, carrying every field [The adoption record](#the-adoption-record) requires, `programme` the template's id unchanged, and a `resolved` entry for every file written ([What is written](#what-is-written))
+- [ ] A second adoption of the same programme at the same organisation writes nothing and answers *already adopted*; one into another directory or repository is refused, naming the adoption that exists; one under another id is recognised only through `formerly` ([Adopting twice creates nothing](#adopting-twice-creates-nothing))
+- [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped ([The package](#the-package--what-a-programme-brings-besides-its-documents))
+- [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored ([Updates arrive as proposals](#updates-arrive-as-proposals), [The tenant's copy is the tenant's](#the-tenants-copy-is-the-tenants))
+- [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service ([Un-adopting](#un-adopting))
