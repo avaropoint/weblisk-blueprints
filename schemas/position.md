@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 kind: reference
 noun: position
 match: [positions/*.md]
@@ -204,33 +204,246 @@ a file the generator only reads.
 Both are honest gaps. A brief that read complete while four of its obligations
 recorded into nothing would have told the reader the opposite of the truth.
 
+---
+
+## Who holds a position
+
+Neither half above says who holds a position in one organisation. That is a
+fact about the customer's organisation, so it is the tenant's to hold and
+never a client's, and it is held in one register this schema declares: the
+**position-holders register**. A programme names positions; this register is
+where a tenant service finds the people.
+
+### The register
+
+It is a standing register
+([`programme.md`](programme.md#registers)) that no programme declares,
+because every programme that names a position relies on it, and none of them
+owns it.
+
+| | |
+|---|---|
+| id | `position-holders` |
+| path | `registers/position-holders.md` |
+| repository | the organisation's **records repository**: the one `GET /v1/content/repositories` reports with `records: true` for the organisation's `scope_path` |
+| scope | `restricted`, labelled `pii` |
+| layout | a table |
+
+**Its rows are about a person,** so it is `restricted` and labelled `pii`
+([`programme.md`](programme.md#records-about-a-person)), and kept in the
+records repository, the one repository
+[`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
+lets hold an entry labelled `pii`. Written anywhere else, it is refused with
+`CONTENT_RECORDS_REPOSITORY_REQUIRED`, as every such register is.
+
+**One per organisation.** A holding is recorded at the organisation, because
+a programme is adopted at the organisation
+([`programme.md`](programme.md#one-act-by-a-person-at-the-organisation)) and
+its positions are the organisation's. A holding limited to one project names
+that project in its row. A project keeps no register of its own.
+
+**Its file is a register's.** A person creates it, through content, in the
+organisation's records repository, and it is read by its columns' keys. An
+organisation with no such entry has no holder for any position. Its spec is
+the block below, which takes the fields
+[`programme.md`](programme.md#registers) gives a register:
+
+```yaml
+register:
+  title: Who holds each position
+  note: One row for each time a person holds a position. A holding that ends is given its last day, and is never removed.
+  artifact_scope: restricted
+  artifact_scope_metadata: {custom_labels: [pii]}
+  columns:
+    - {key: holding, label: Holding, type: text, required: true}
+    - {key: position, label: Position, type: text, required: true}
+    - {key: holder, label: Held by, type: user, required: true, scope: restricted, scope_metadata: {custom_labels: [pii]}}
+    - {key: project, label: Limited to project, type: text}
+    - {key: first_day, label: First day, type: date, required: true}
+    - {key: last_day, label: Last day, type: date}
+    - {key: note, label: Note, type: longtext, scope: restricted, scope_metadata: {custom_labels: [pii]}}
+    - {key: recorded_by, label: Recorded by, type: user, required: true}
+```
+
+| column | holds |
+|---|---|
+| `holding` | the row's key: 32 lowercase hex characters minted when the row is written, never changed and never reused. What a record of an act cites to say which holding it was made under |
+| `position` | a position id, as the programmes name it ([Format](#format)) |
+| `holder` | the person's identity id at the tenant: the id tokens and records name an operator by ([`protocol/types`](../protocol/types.md#operator)). Never a name or an address |
+| `project` | the scope path of a project in the organisation. Empty, the holding covers the whole organisation |
+| `first_day`, `last_day` | the first and last day held, both included, as calendar dates in UTC. An empty `last_day` is a holding that has not ended |
+| `note` | why, for a reader who was not there. It may describe the person, so it is labelled as `holder` is |
+| `recorded_by` | the identity id of the person who wrote the row: a person acting, not the person the row is about, so not labelled `pii` ([`programme.md`](programme.md#records-about-a-person)) |
+
+The `PositionHolding` type is one row as a tenant service reads it:
+
+```yaml
+types:
+  PositionHolding:
+    description: One row of the position-holders register
+    fields:
+      holding:
+        type: string
+        required: true
+        description: The row's key, 32 lowercase hex characters, never reused
+      position:
+        type: string
+        required: true
+      holder:
+        type: string
+        required: true
+        description: The holder's identity id at the tenant
+      project:
+        type: string
+        required: false
+        description: The scope path of the one project it covers. Absent, the whole organisation
+      first_day:
+        type: string
+        required: true
+        description: The first day held, a calendar date in UTC written YYYY-MM-DD
+      last_day:
+        type: string
+        required: false
+        description: The last day held, included, written as first_day is. Absent while the holding has not ended
+      note:
+        type: string
+        required: false
+      recorded_by:
+        type: string
+        required: true
+        description: The identity id of the person who wrote the row
+```
+
+### Resolving a position to its holders
+
+Every tenant service that turns a position named by a programme into people
+— notification for a notice's `to`, and whatever decides an `approved_by`, a
+register's `approvers`, an `escalate.to` or a `responsible` — resolves it by
+one rule, for a position, a day and a scope:
+
+1. A row **covers the day** when its `first_day` is on or before the day,
+   and its `last_day` is empty or on or after it.
+2. At a **project**, the holders are the people named by the covering rows
+   for the position whose `project` is that project. Where there are none,
+   they are the people named by the covering rows whose `project` is empty.
+3. At the **organisation**, the holders are the people named by the
+   covering rows whose `project` is empty.
+4. A person named by two covering rows is one holder.
+5. No covering row is **no holder**. It is reported as no holder, never as a
+   person, and never as an error.
+
+The day is the day the fact being resolved for became true, so a late
+answer still names whoever held the position then.
+
+### Who may read it
+
+Reading it is reading a `restricted` entry of the records repository through
+content: `content:read` on a request content admits at `restricted`
+([`architecture/content`](../architecture/content.md#read-flow)). Two kinds of
+reader do:
+
+- **A person**, on their own pass through the admin gateway, whose role
+  carries `content:read` ([`architecture/admin`](../architecture/admin.md#operator-roles)).
+- **A tenant service resolving a position for work nobody is present for**,
+  on a work pass under the work authorisation of that work, never on its own
+  registration
+  ([`protocol/identity`](../protocol/identity.md#the-work-pass)).
+  [`architecture/notification`](../architecture/notification.md#resolving-holders)
+  is the first. Content records each such read with the owner of the work as
+  `actor`, the service as `via`, and the authorisation and run.
+
+What it holds is never sent to a model provider: what may leave for one is
+[`patterns/scope`](../patterns/scope.md#model-providers)'s, and a register
+about people is `restricted`.
+
+### Changing who holds a position
+
+A holder is changed only by a person, as an entry of content changes, and
+never by a service or an agent acting alone:
+
+- **Directly**, by a person on their own pass, with `content:write`, which
+  is person only; or
+- **By proposal**: a person, a service or an agent proposes the change with
+  `content:propose`, and a person decides it with `content:decide`
+  ([`architecture/content`](../architecture/content.md#who-may-move-an-entry)).
+
+**A holding ends; it is never removed.** A person who stops holding a
+position is given a `last_day`. A row is never deleted and its `holding` never
+reused, because an act recorded under a holding — an approval, an
+attestation — is checked against who held the position on its day, and a
+removed row would leave that check unanswerable. A row written in error is
+ended on the day before its `first_day` and given a `note`.
+
+**The change log is the audit.** Every change is one change in the records
+repository's log: who made it, on which pass, the bytes before and after,
+and the scope, signed where the repository requires a statement
+([`architecture/content`](../architecture/content.md#the-change-log)). No
+second record of holdings is kept anywhere, so no second record can disagree
+with it.
+
+### Resources
+
+The kind a person sees a holding as, declared as
+[`schemas/resource`](resource.md) says. Content holds the register, and its
+blueprint does not yet serve a register's rows as items, so the kind is held
+here and is `declared-unavailable` until it does; until then a person reads
+and changes holdings as the register entry itself, through content's own
+routes.
+
+```yaml
+resources:
+  - kind: position-holder
+    owner: content
+    type: PositionHolding
+    identity: {field: holding, form: minted}
+    label: position
+    fields:
+      - {name: holding, access: read-only, present: text}
+      - {name: position, access: create, present: text}
+      - {name: holder, access: create, present: text}
+      - {name: project, access: create, present: text}
+      - {name: first_day, access: create, present: text}
+      - {name: last_day, access: settable, present: text}
+      - {name: note, access: settable, present: text}
+      - {name: recorded_by, access: read-only, present: text}
+    operations:
+      list: {capability: "content:read", filters: [position, holder, project]}
+      get: {capability: "content:read"}
+      create: {capability: "content:write"}
+      update: {capability: "content:write"}
+    events: [created, updated]
+    unavailable:
+      reason: owner-unspecified
+      says: content does not yet serve a register's rows as items; a holding is read and changed as the register entry, through content's routes
+```
+
+`delete` is not declared: a holding ends, and is never removed.
+
+---
+
 ## Known gaps
 
-**Nothing declares the register of who holds a position.** This schema covers
-what a position is (the programmes that name it) and how the job is done well
-(its guide). Who holds it in one organisation is neither: it is a fact about
-the customer's organisation, so it is the tenant's to hold and never a
-client's. Its home is decided: a register whose rows are
-[about a person](programme.md#records-about-a-person), so `restricted` and
-labelled `pii`, kept in the scope's
-[records repository](programme.md#where-a-record-holding-pii-lives), the one
-repository [`architecture/content`](../architecture/content.md#where-an-entry-labelled-pii-is-kept)
-lets hold it. What is not specified:
+**Content does not serve a register's rows as items.** The `position-holder`
+kind is declared-unavailable until it does ([Resources](#resources)); a
+holding is read and changed as the whole register entry.
 
-- the register's spec: its columns, its key, and how a row names a position
-  and a person;
-- the scope a holding is recorded at, and so which scope's records repository
-  holds it;
-- how a tenant service resolves a position an approval, escalation or
-  obligation names (`approved_by`, a register's `approvers`, `escalate.to`,
-  `responsible`) to a person against it.
+**Nothing refuses a person recording themselves as a holder.** A person with
+`content:write` may write a row naming themselves, including for a position
+that approves. A change made by proposal is held to content's
+[separation of duties](../architecture/content.md#separation-of-duties) where
+the records repository's `self_decision_ceiling` is below `restricted`, and
+a direct write is held to nothing but the log that records it.
 
-Until they are, nothing in the tenant resolves those names to a person, so
-nothing in the tenant can check that whoever acted held the position at the
-time. A client that records holdings is keeping the customer's org chart as
-the only copy, and says so, held by that client and not by the tenant, rather
-than presenting it as the tenant's record. Two clients of one tenant can
-disagree about who holds a position, and neither can settle it.
+**No act is checked against a holding yet.** The register says who held a
+position on a day, and nothing yet checks that whoever approved, attested or
+signed under a position held it then. The positions an approval, escalation
+or obligation names are resolved by [the rule above](#resolving-a-position-to-its-holders);
+which service resolves each, other than notification for a notice, is not
+specified.
+
+**No retention is declared.** The register declares no keeping period: how
+long a tenant keeps who held its positions is the tenant's to set, and no
+field yet lets a tenant set one for a register the corpus declares.
 
 ---
 
@@ -243,3 +456,13 @@ disagree about who holds a position, and neither can settle it.
 - [ ] No artifact id and no register path appears anywhere in the body ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
 - [ ] Prose naming a cadence, an authority, an escalation target or an approver is not refused; only the two patterns the section lists are ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
 - [ ] No individual is named, and no tenant, customer or project is named ([Format](#format))
+
+### The position-holders register
+
+- [ ] It is written at `registers/position-holders.md` in the organisation's records repository, and a write of it anywhere else is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` ([The register](#the-register))
+- [ ] Every column the block declares is present, `holder` and `note` are `restricted` and labelled `pii`, and `recorded_by` is not labelled ([The register](#the-register))
+- [ ] A row's `holder` is an identity id, never a name or an address ([The register](#the-register))
+- [ ] At a project with a covering row for the position, only that project's holders are answered; with none, the organisation's are ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
+- [ ] A position with no covering row resolves to no holder, never to a person and never to an error ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
+- [ ] A holding that ends is given a `last_day`, and no row is removed ([Changing who holds a position](#changing-who-holds-a-position))
+- [ ] A tenant service reads the register only on a work pass under the authorisation of the work it resolves for ([Who may read it](#who-may-read-it))

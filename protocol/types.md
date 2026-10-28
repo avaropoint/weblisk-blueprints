@@ -440,8 +440,10 @@ examples, such as `inventory:check`, are listings and are not listed here. An ow
 `content`, `fabric`, `enforcement`, `gateway`, `domain` and `execution` (each its
 `architecture/` blueprint). `programme` is
 [`architecture/programme-service`](../architecture/programme-service.md), which
-no tenant runs yet. Two owners have no blueprint in this
-corpus yet: `integrations` and `telemetry`. The names of these three guard no
+no tenant runs yet, and `notification` is
+[`architecture/notification`](../architecture/notification.md), which no
+tenant runs yet. Two owners have no blueprint in this
+corpus yet: `integrations` and `telemetry`. The names of these four guard no
 running route until a component built from their owner's blueprint runs. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
@@ -684,6 +686,23 @@ holds it only where [`architecture/admin`](../architecture/admin.md#operator-rol
 roles table names it. `work:exchange` is a component's: any registration may
 declare it, and it reaches nothing until a person names that registration as
 an actor in an authorisation.
+
+**Notification capabilities:**
+- `notification:send` (notification) — ask notification to tell the holders of positions, for a notice whose work authorisation the caller owns or acts under ([`architecture/notification`](../architecture/notification.md#who-may-do-what), rule 3). No role carries it
+- `notification:read` (notification) — read notifications and their deliveries: which positions were told, how many held each, the outcome, and each holder told by identity id, never an address
+- `notification:receive` (notification) — read and set one's own notification preference, and read what one was told. It reaches no other person's. *Person only*
+
+Which route needs which is
+[`architecture/notification`](../architecture/notification.md#endpoints)'s.
+`notification:send` is a component's: a person does not send a programme's
+notice, so no role carries it and a pass is refused on the route it guards.
+`notification:read` names people, by identity id, so
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table
+gives it to the roles that read people's records and not to `viewer`.
+`notification:receive` is person only because a preference and a received
+message are one person's own, and every role carries it. The service declares
+the first two and checks the third without holding it, as `content` does its
+own person-only capabilities.
 
 ### PassRoute
 

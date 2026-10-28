@@ -155,6 +155,10 @@ Not capabilities — values a kind declares.
 | `programme-adoption` | — | installation id | observed | — | *(none)* |
 | `installed-item` | — | installed item id | derived | — | *(none)* |
 | `occurrence` | — | obligation + occurrence key | derived | — | *(none)* |
+| `notification` | — | notification id | observed | runtime | *(none)* |
+| `delivery` | — | delivery id | observed | runtime | *(none)* |
+| `preference` | — | preference id | authored | — | *(none)* |
+| `position-holder` | — | organisation + holding key | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -230,6 +234,18 @@ may change. An occurrence is one period, subject or record an obligation owes,
 named by its obligation and its key; it is derived on every read and never
 stored, and is neither versioned nor evidence: the record that discharges it
 is ([`architecture/programme-service`](../architecture/programme-service.md#what-is-due)).
+
+**`notification`, `delivery`, `preference` and `position-holder` are a
+tenant's records about telling people, and drive nothing.** A notification
+and its deliveries are observed, as a run is: they say a person was told, and
+are corroboration, not evidence. A preference is what one person chose and
+is answered only to them. A position-holder is one row of the
+[position-holders register](position.md#who-holds-a-position), named by its
+own `holding` key and never by the person it names. None has a capability:
+none is versioned on its own, none is a chain member and none proves
+anything. They are declared so that
+[`architecture/notification`](../architecture/notification.md#resources) and
+[`position.md`](position.md#resources) can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task

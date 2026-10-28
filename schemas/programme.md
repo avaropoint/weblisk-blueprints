@@ -2182,9 +2182,12 @@ notification that would receive them
 `construction-ohs-ca` and `document-control` declare the first, so that the
 first tenant to run those services has work to receive; until something reads
 them, whatever adopts reports each as not installed. **Who
-holds a position** belongs to the customer rather than to a programme: a
-`pii` register in the scope's records repository, which no spec declares yet
-([`position.md`, Known gaps](position.md#known-gaps)).
+holds a position** belongs to the customer rather than to a programme: the
+`pii` [position-holders register](position.md#who-holds-a-position) in the
+organisation's records repository. Notification resolves a notice's `to`
+against it ([`architecture/notification`](../architecture/notification.md)),
+and nothing yet resolves an `approved_by`, `approvers`, `escalate.to` or
+`responsible` against it ([`position.md`, Known gaps](position.md#known-gaps)).
 
 **The run a row was written by is asserted where it was not carried on a
 work pass.** The chain [`for`](#for--one-run-per-record) relies on to stop a

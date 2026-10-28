@@ -20,6 +20,7 @@ specifications that all implementations must satisfy.
 | [fabric.md](fabric.md) | Relationship fabric — an append-only ledger of what implements what |
 | [execution.md](execution.md) | Execution — cron, task and workflow merged: every start, run, step, wait and timer in one ledger, a person's step decided only by a person holding its position, and the workflow runs group of the admin API |
 | [programme-service.md](programme-service.md) | Programme service — the operations, workflows and notices an adopted programme installs, who may switch them, and what execution, notification and the prompt worker are handed |
+| [notification.md](notification.md) | Notification — tells the people who hold a notice's positions, each their own way, and reports a notice that reached nobody as such |
 | [tenancy.md](tenancy.md) | Many hubs on shared infrastructure, without the host joining any tenant's trust boundary |
 | [mcp.md](mcp.md) | Model Context Protocol surface — how an external AI agent reaches a hub's capabilities |
 
