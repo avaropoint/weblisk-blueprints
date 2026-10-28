@@ -233,11 +233,11 @@ disagree about who holds a position, and neither can settle it.
 
 ## Verification Checklist
 
-- [ ] The filename, without `.md`, equals the declared `id`
-- [ ] The `id` is a position at least one programme in `programmes/` names
-- [ ] Every `##` heading is one of the five above, spelled exactly
+- [ ] The filename, without `.md`, equals the declared `id` ([Format](#format))
+- [ ] The `id` is a position at least one programme in `programmes/` names ([What is reported rather than refused](#what-is-reported-rather-than-refused))
+- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
 - [ ] At least one recognised section has content
-- [ ] No artifact id and no register path appears anywhere in the body
+- [ ] No artifact id and no register path appears anywhere in the body ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
 - [ ] Nothing in the body restates a cadence, an authority, an escalation target
       or an approver — all four are rendered from the programmes beside it
 - [ ] No individual is named, and no tenant, customer or project is named

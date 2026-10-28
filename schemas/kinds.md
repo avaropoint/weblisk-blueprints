@@ -542,14 +542,14 @@ not, the answer is a new relation in the table above, not a spelling.
 
 ## Verification Checklist
 
-- [ ] Every declared kind's `specializes` names a declared kind or is empty
-- [ ] Every capability a kind declares is one this schema declares
-- [ ] No specialisation removes a capability its parent declares
-- [ ] A kind without `chain-member` contributes nothing to an evidence chain and renders as unclassified
-- [ ] A kind without `counts-as-coverage` never raises a coverage figure
-- [ ] A kind without `opens-gap` never produces a finding by its absence
-- [ ] An undeclared kind is reported as undeclared and is granted no capability
-- [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites
-- [ ] No implementation switches on a kind name; capability is the only question asked
-- [ ] A relation asserted between kinds this file does not pair is reported as a producer fault
-- [ ] Two references to one artifact from different subsystems resolve to the same kind
+- [ ] Every declared kind's `specializes` names a declared kind or is empty ([Data facets](#data-facets))
+- [ ] Every capability a kind declares is one this schema declares ([Capabilities](#capabilities), [Rules](#rules) 3)
+- [ ] No specialisation removes a capability its parent declares ([Rules](#rules) 4)
+- [ ] A kind without `chain-member` contributes nothing to an evidence chain and renders as unclassified ([Evidence chain layers](#evidence-chain-layers), [Rules](#rules) 6)
+- [ ] A kind without `counts-as-coverage` never raises a coverage figure ([Capabilities](#capabilities), [Rules](#rules) 6)
+- [ ] A kind without `opens-gap` never produces a finding by its absence ([Capabilities](#capabilities), [Rules](#rules) 6)
+- [ ] An undeclared kind is reported as undeclared and is granted no capability ([Rules](#rules) 2)
+- [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites ([Declared kinds](#declared-kinds), [What the table says, in words](#what-the-table-says-in-words))
+- [ ] No implementation switches on a kind name; capability is the only question asked ([Rules](#rules) 1)
+- [ ] A relation asserted between kinds this file does not pair is reported as a producer fault ([Relations](#relations))
+- [ ] Two references to one artifact from different subsystems resolve to the same kind ([One implementation](#one-implementation), [Rules](#rules) 7)

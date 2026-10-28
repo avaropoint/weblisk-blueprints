@@ -176,11 +176,11 @@ families are exactly the declared ones.
 
 ## Verification Checklist
 
-- [ ] Every ref in [`vectors/ids.json`](../vectors/ids.json)'s `valid` set parses to exactly its listed fields, and every ref in its `invalid` set is refused ([`checks/ids.py`](../checks/ids.py))
-- [ ] Every valid ref reads back as the same string from YAML as a block-list item, a flow-list item and a mapping value
-- [ ] Every invalid ref marked `yaml_unsafe` does not read back as the same string, so the rule that refuses it answers a real fault
+- [ ] Every ref in [`vectors/ids.json`](../vectors/ids.json)'s `valid` set parses to exactly its listed fields, and every ref in its `invalid` set is refused ([`checks/ids.py`](../checks/ids.py)) ([The grammar](#the-grammar))
+- [ ] Every valid ref reads back as the same string from YAML as a block-list item, a flow-list item and a mapping value ([The grammar](#the-grammar) rule 1)
+- [ ] Every invalid ref marked `yaml_unsafe` does not read back as the same string, so the rule that refuses it answers a real fault ([The grammar](#the-grammar))
 - [ ] An accept-everything parser is reported on every invalid vector, so the check reaches what it claims to
-- [ ] The vectors' `families` are exactly the kinds of `schemas/kinds` and the families declared above
-- [ ] No file in this repository names a namespace that is neither reserved nor this repository's own, and a fixture naming another is reported ([`checks/names.py`](../checks/names.py))
-- [ ] A leading word is a family only when it is declared; nothing infers one from shape
-- [ ] Nothing records a `#` anchor as an identity
+- [ ] The vectors' `families` are exactly the kinds of `schemas/kinds` and the families declared above ([Families](#families), [Declaration](#declaration))
+- [ ] No file in this repository names a namespace that is neither reserved nor this repository's own, and a fixture naming another is reported ([`checks/names.py`](../checks/names.py)) ([Namespaces](#namespaces), [Where a namespace may appear](#where-a-namespace-may-appear))
+- [ ] A leading word is a family only when it is declared; nothing infers one from shape ([The grammar](#the-grammar) rule 2)
+- [ ] Nothing records a `#` anchor as an identity ([Three separators, three meanings](#three-separators-three-meanings))
