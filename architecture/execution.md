@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain]
 platform: any
 tier: free
@@ -371,7 +371,7 @@ and nowhere else.
 | DELETE | /v1/execution/schedules/{schedule} | WithdrawSchedule | yes | `execution:register` | Withdraw one of the caller's own starts. Starts nothing again; deletes no run. A registration token only |
 | POST | /v1/execution/schedules/{schedule}/pause | PauseSchedule | yes | `execution:register` | Start no new run from it. Runs already started continue. A registration token only |
 | POST | /v1/execution/schedules/{schedule}/resume | ResumeSchedule | yes | `execution:register` | Start runs from it again, delivering what it held while paused. A registration token only |
-| POST | /v1/execution/schedules/{schedule}/runs | RunScheduleNow | yes | `execution:register` | Start one run now, as its next firing would. A registration token only |
+| POST | /v1/execution/schedules/{schedule}/runs | RunScheduleNow | yes | `execution:register` | Start one run now, as its next firing would, or hold it for a later instant, with an optional `RunNow` body naming the run that asked for it. Answers `RunNowResult`. A registration token only ([Starting one run now](#starting-one-run-now)) |
 | POST | /v1/event | Event | yes | | Receive a delivered event: `workflow.trigger`, the allow-listed facts a start names, and the orchestrator's `system.agent.*` ([`protocol/spec`](../protocol/spec.md#post-v1event)) |
 | POST | /v1/services | Services | yes | | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service |
@@ -509,6 +509,7 @@ is read as the topic it is published on.
 | `EXECUTION_POSITION_UNRESOLVED` | Who holds the positions the wait names cannot be read, so nobody can be shown to hold one. Nothing is decided |
 | `EXECUTION_MUTED` | A decision on a wait of a muted run, which reaches nobody |
 | `EXECUTION_PASS_UNAVAILABLE` | `RunScheduleNow` or `RetryRun` needs a request carried on a work pass, and none can be obtained |
+| `EXECUTION_START_LOOP` | `RunScheduleNow` names a `parent` whose chain, or the parent itself, holds a run of the start's definition ([Starting one run now](#starting-one-run-now)) |
 | `STEP_UP_REQUIRED` | `CancelRun` without a recent re-confirmation: cancelling is destructive ([Resources](#resources); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`). The run continues |
 | `APPROVAL_SELF_DENIED` | An approval accepted by the person who started its run, or who completed a task it follows ([`patterns/approval`](../patterns/approval.md#error-handling)) |
 
@@ -570,6 +571,38 @@ one. A domain's `workflow.trigger` needs no registration.
    start as missed, naming the row.
 4. It fetches the definition from its owner with `get_workflow`, records its
    digest, and resolves its phases into levels.
+
+### Starting one run now
+
+An owner starts one run of a start it registered with `RunScheduleNow`, on
+its registration token. The programme service does so when a person runs an
+item, and when an `agent:` item's work asks it to
+([`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell)).
+The body is optional; absent, the run starts now, as the start's next firing
+would. A `RunNow` body says more:
+
+1. **`parent`** names the run that asked for this one. The service reads it
+   from its own ledger, and refuses a run it does not hold, or one another
+   owner's definition ran, with `NOT_FOUND`. The new run's `chain` is the
+   parent's chain with the parent added, `parent` the parent, `trigger`
+   `run` and `triggered_by` the parent's uid.
+2. **A loop starts nothing.** Where the parent, or any run in its chain, is a
+   run of this start's definition, the request is refused with
+   `EXECUTION_START_LOOP` and nothing is queued, as a `for` row on such a
+   chain starts nothing ([Firing](#firing) step 2).
+3. **Muted is never lowered.** The run is muted where the start is muted, the
+   body says `muted`, or the parent is muted. A muted run asking for work
+   gets muted work, so nothing it starts reaches a person.
+4. **`not_before`** holds the start for a later instant: a `timer` of kind
+   `start`, owed by the schedule, `pending` until that instant. When it
+   fires, the run is queued as a firing of a running start is; where the
+   start is paused or withdrawn then, the timer is `cancelled`, nothing runs,
+   and the start's `dropped` counts it. An instant not after now starts it at
+   once.
+5. The answer is a `RunNowResult`: the run queued, or the timer holding it.
+   The run's authority is the start's own definition's work authorisation,
+   never the asking run's: asking for work lends it nothing
+   ([Unattended authority](#unattended-authority)).
 
 ### Running a machine phase
 
@@ -1005,6 +1038,23 @@ types:
       muted: {type: bool, required: true}
       events: {type: int, required: false, description: How many facts this run covers, so a coalesced burst is never answered as one}
       record: {type: map, required: false}
+      programme: {type: string, required: false, description: "The id of the programme whose adopted map the instruction is declared in, as the owner put it in the phase's input. The prompt worker names it when it asks the owner to start or tell for this item"}
+      item: {type: string, required: false, description: "The id, within the programme, of the operation or workflow the instruction belongs to, as the owner put it in the phase's input"}
+
+  RunNow:
+    description: The optional body of POST /v1/execution/schedules/{schedule}/runs
+    fields:
+      parent: {type: string, required: false, description: The uid of the run that asked for this one. Its chain is carried, and a loop is refused}
+      not_before: {type: timestamp, required: false, description: Hold the start until this instant, as a pending start timer. Absent or past, the run starts now}
+      muted: {type: bool, required: false, description: True makes the run muted whatever the start is. False never unmutes one}
+      reason: {type: string, required: false, description: Why it was asked for, in the asker's words. Recorded on the run's first step; data, never acted on}
+
+  RunNowResult:
+    description: What RunScheduleNow answers. Exactly one of run and timer
+    fields:
+      run: {type: string, required: false, description: The uid of the run queued now}
+      timer: {type: string, required: false, description: The uid of the start timer holding it until not_before}
+      muted: {type: bool, required: true, description: Whether the run is, or will be, muted}
 
   ContentRef:
     description: Where an entry is in the tenant's content, by repository and path
@@ -1460,6 +1510,9 @@ security:
 - [ ] A `ScheduleRegistration` carrying both `clock` and `on` is refused with `INVALID_REQUEST` ([Error Handling](#error-handling), [Types](#types))
 - [ ] A paused `for` start holds each added row and delivers it on resume, one run per row; a paused `on` start drops facts and counts them in `dropped` ([Firing](#firing) step 3)
 - [ ] A `for` row whose chain already holds a run of the same definition starts nothing ([Firing](#firing) step 2)
+- [ ] `RunScheduleNow` naming a `parent` whose chain holds a run of the start's definition is refused with `EXECUTION_START_LOOP` and queues nothing; naming one that does not queues a run with `trigger` `run`, `parent` that run, and the parent's chain with the parent added ([Starting one run now](#starting-one-run-now), [Error Handling](#error-handling))
+- [ ] A `RunScheduleNow` whose parent is muted queues a muted run on an unmuted start ([Starting one run now](#starting-one-run-now) step 3)
+- [ ] A `RunScheduleNow` with a future `not_before` answers a `timer` and no `run`, and a `start` timer whose schedule is paused when it fires is `cancelled`, queues nothing, and counts in `dropped` ([Starting one run now](#starting-one-run-now) step 4)
 - [ ] A `workflow.trigger` whose envelope `source` differs from its `source_domain` starts no run ([Firing](#firing) step 1)
 - [ ] Where no live work authorisation names the definition, or the orchestrator refuses the work exchange, a phase is recorded `failed` with `EXECUTION_PASS_UNAVAILABLE` and the orchestrator's code, and is never sent on the service's own registration token ([Unattended authority](#unattended-authority))
 - [ ] `get_workflow`, and a `does:` phase of a programme workflow, are sent to the owner on `POST /v1/message` on a work pass addressed to the owner under the definition's authorisation, and never on the service's own registration token ([Unattended authority](#unattended-authority) rule 3, [Running a machine phase](#running-a-machine-phase) step 2)
