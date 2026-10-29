@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.2.0
+version: 6.3.0
 requires: []
 platform: any
 tier: free
@@ -240,6 +240,14 @@ Every owner of a kind answers them with these statuses and no other.
 | `RESOURCE_IF_MATCH_REQUIRED` | 428 | permanent | An `update`, a `delete` or a verb arrived with no `If-Match`. A write with no precondition acts on something its sender has not seen |
 | `RESOURCE_PRECONDITION_FAILED` | 412 | permanent | `If-Match` does not equal the item's ETag now. Nothing changes. The answer carries the current ETag; the client reads the item again |
 
+**Tenant structure codes** (produced by the orchestrator's organisations,
+projects and grants, [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `SCOPE_NAME_TAKEN` | 409 | permanent | An organisation, or a project of the same organisation, has held that name, retired ones included, so a `scope_path` naming it would name two things. Nothing is recorded |
+| `GRANT_SELF_REFUSED` | 403 | permanent | A grant made naming the person making it, or revoked by the person it names. Nothing changes ([A role held at an organisation or a project](../architecture/orchestrator.md#a-role-held-at-an-organisation-or-a-project)) |
+
 **Execution codes** (produced by [`architecture/execution`](../architecture/execution.md#error-handling)):
 
 | Code | HTTP | Category | Description |
@@ -280,7 +288,7 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, operator token, resource, destination, execution, identity, and common codes are
+  safety, operator token, resource, tenant structure, destination, execution, identity, and common codes are
   registered in this central table. These codes may appear in any
   component.
 - Agent-local codes (specific to a single agent's domain logic) are
@@ -4189,6 +4197,16 @@ error_codes:
     category: permanent
     retryable: false
     description: If-Match does not equal the item's ETag now. Nothing changes; the answer carries the current ETag
+  - code: SCOPE_NAME_TAKEN
+    status: 409
+    category: permanent
+    retryable: false
+    description: An organisation, or a project of the same organisation, has held that name, retired ones included. Nothing is recorded (architecture/orchestrator)
+  - code: GRANT_SELF_REFUSED
+    status: 403
+    category: permanent
+    retryable: false
+    description: A grant made naming the person making it, or revoked by the person it names. Nothing changes (architecture/orchestrator)
   - code: PHASE_FAILED
     status: 500
     category: varies

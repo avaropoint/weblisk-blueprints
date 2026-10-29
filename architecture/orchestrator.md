@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.2.0
+version: 4.3.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -428,6 +428,85 @@ declaration:
       path: "/v1/admin/events/lease"
       operation: AdminLeaseEvents
       auth: "admin:read"
+    # The tenant's organisations, projects and the roles operators hold at
+    # them (The tenant's organisations and projects; A role held at an
+    # organisation or a project), each served at the uniform address
+    - method: GET
+      path: "/v1/admin/r/organisation"
+      operation: AdminOrganisationList
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/r/organisation"
+      operation: AdminOrganisationCreate
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/r/organisation/{uid}"
+      operation: AdminOrganisationGet
+      auth: "admin:read"
+    - method: PATCH
+      path: "/v1/admin/r/organisation/{uid}"
+      operation: AdminOrganisationUpdate
+      auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/r/organisation/{uid}/retire"
+      operation: AdminOrganisationRetire
+      auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/r/organisation/{uid}/restore"
+      operation: AdminOrganisationRestore
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/events/organisation"
+      operation: AdminOrganisationEvents
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/r/project"
+      operation: AdminProjectList
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/r/project"
+      operation: AdminProjectCreate
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/r/project/{uid}"
+      operation: AdminProjectGet
+      auth: "admin:read"
+    - method: PATCH
+      path: "/v1/admin/r/project/{uid}"
+      operation: AdminProjectUpdate
+      auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/r/project/{uid}/retire"
+      operation: AdminProjectRetire
+      auth: "admin:*"
+    - method: POST
+      path: "/v1/admin/r/project/{uid}/restore"
+      operation: AdminProjectRestore
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/events/project"
+      operation: AdminProjectEvents
+      auth: "admin:read"
+    - method: GET
+      path: "/v1/admin/r/grant"
+      operation: AdminGrantList
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/r/grant"
+      operation: AdminGrantCreate
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/r/grant/{uid}"
+      operation: AdminGrantGet
+      auth: "admin:read"
+    - method: POST
+      path: "/v1/admin/r/grant/{uid}/revoke"
+      operation: AdminGrantRevoke
+      auth: "admin:*"
+    - method: GET
+      path: "/v1/admin/events/grant"
+      operation: AdminGrantEvents
+      auth: "admin:read"
   # The kinds a person sees and operates here (schemas/resource). Each
   # operation that binds an Operation above is served at that route; the
   # others at the uniform address, as architecture/admin's Resources says
@@ -488,6 +567,156 @@ declaration:
       events: [created, updated]
       relations:
         - {relation: held_by, to: agent, field: agent}
+    - kind: organisation
+      owner: orchestrator
+      type: Organisation
+      identity: {field: id, form: minted}
+      label: display_name
+      fields:
+        - {name: id, access: read-only, present: text}
+        - {name: name, access: create, present: text}
+        - {name: display_name, access: settable, present: text}
+        - {name: operates_in, access: settable, present: list}
+        - {name: state, access: read-only, present: choice}
+        - {name: created_by, access: read-only, present: text}
+        - {name: created_at, access: read-only, present: instant}
+        - {name: retired_at, access: read-only, present: instant}
+      operations:
+        list: {capability: "admin:read", filters: [state, name]}
+        get: {capability: "admin:read"}
+        create: {capability: "admin:*"}
+        update: {capability: "admin:*"}
+      verbs:
+        - name: retire
+          capability: "admin:*"
+          transition: retire
+          preconditions:
+            - every project in the organisation is retired
+          in_flight:
+            handling: continues
+            says: this orchestrator holds none of the organisation's content, adoptions or work; each runs on where it is held, and nothing it holds is changed by the retirement
+          effect: the organisation is retired and retired_at is set; its id and name stay recorded, and nothing that names it is changed or removed
+          reversible: {by: restore}
+        - name: restore
+          capability: "admin:*"
+          transition: restore
+          preconditions:
+            - the organisation is retired
+          in_flight:
+            handling: none
+            says: a retired organisation has no work this orchestrator holds
+          effect: the organisation is active again and retired_at is cleared
+          reversible: {by: retire}
+      states:
+        initial_state: active
+        entity_type: Organisation
+        state_field: state
+        states:
+          active: {description: in use}
+          retired: {description: no longer in use; kept so that every record naming it still resolves}
+        transitions:
+          - {name: retire, from: active, to: retired, trigger: manual, description: a person retires it}
+          - {name: restore, from: retired, to: active, trigger: manual, description: a person returns it to use}
+      events: [created, updated, retire, restore]
+      relations: []
+    - kind: project
+      owner: orchestrator
+      type: Project
+      identity: {field: id, form: minted}
+      label: display_name
+      fields:
+        - {name: id, access: read-only, present: text}
+        - {name: organisation, access: create, present: reference, kind: organisation}
+        - {name: name, access: create, present: text}
+        - {name: display_name, access: settable, present: text}
+        - {name: state, access: read-only, present: choice}
+        - {name: created_by, access: read-only, present: text}
+        - {name: created_at, access: read-only, present: instant}
+        - {name: retired_at, access: read-only, present: instant}
+      operations:
+        list: {capability: "admin:read", filters: [organisation, state, name]}
+        get: {capability: "admin:read"}
+        create: {capability: "admin:*"}
+        update: {capability: "admin:*"}
+      verbs:
+        - name: retire
+          capability: "admin:*"
+          transition: retire
+          preconditions:
+            - the project is active
+          in_flight:
+            handling: continues
+            says: this orchestrator holds none of the project's content or work; each runs on where it is held, and nothing it holds is changed by the retirement
+          effect: the project is retired and retired_at is set; its id and name stay recorded, and nothing that names it is changed or removed
+          reversible: {by: restore}
+        - name: restore
+          capability: "admin:*"
+          transition: restore
+          preconditions:
+            - the project's organisation is active
+          in_flight:
+            handling: none
+            says: a retired project has no work this orchestrator holds
+          effect: the project is active again and retired_at is cleared
+          reversible: {by: retire}
+      states:
+        initial_state: active
+        entity_type: Project
+        state_field: state
+        states:
+          active: {description: in use}
+          retired: {description: no longer in use; kept so that every record naming it still resolves}
+        transitions:
+          - {name: retire, from: active, to: retired, trigger: manual, description: a person retires it}
+          - {name: restore, from: retired, to: active, trigger: manual, description: a person returns it to use}
+      events: [created, updated, retire, restore]
+      relations:
+        - {relation: part_of, to: organisation, field: organisation}
+    - kind: grant
+      owner: orchestrator
+      type: RoleGrant
+      identity: {field: id, form: minted}
+      label: role
+      fields:
+        - {name: id, access: read-only, present: text}
+        - {name: identity_id, access: create, present: text}
+        - {name: role, access: create, present: choice}
+        - {name: organisation, access: create, present: reference, kind: organisation}
+        - {name: project, access: create, present: reference, kind: project}
+        - {name: status, access: read-only, present: choice}
+        - {name: granted_by, access: read-only, present: text}
+        - {name: granted_at, access: read-only, present: instant}
+        - {name: revoked_by, access: read-only, present: text}
+        - {name: revoked_at, access: read-only, present: instant}
+      operations:
+        list: {capability: "admin:read", filters: [identity_id, organisation, project, status]}
+        get: {capability: "admin:read"}
+        create: {capability: "admin:*", step_up: true}
+      verbs:
+        - name: revoke
+          capability: "admin:*"
+          step_up: true
+          transition: revoke
+          preconditions:
+            - the grant does not name the person revoking it
+          in_flight:
+            handling: continues
+            says: a grant is judged on each request; a request already admitted runs to its end, and the next is judged without it
+          effect: the grant is revoked, revoked_by and revoked_at are set, and the record stays; where it was the operator's last active grant, the operator is no longer confined and acts with their role across the tenant
+          reversible: false
+      states:
+        initial_state: active
+        entity_type: RoleGrant
+        state_field: status
+        states:
+          active: {description: held}
+          revoked: {description: no longer held; kept so that what was done under it can be checked against who held what, terminal: true}
+        transitions:
+          - {name: revoke, from: active, to: revoked, trigger: manual, description: a person revokes it}
+      events: [created, revoke]
+      relations:
+        - {relation: held_at, to: organisation, field: organisation}
+        - {relation: held_at, to: project, field: project}
   checks:
     - check: no-path-literals
       subject: route registration
@@ -1008,8 +1237,27 @@ service's route, which the same model gateway serves
 | GET | /v1/admin/r/lease/{name} | AdminLeaseGet | `admin:read` | One agent's lease, with its ETag |
 | GET | /v1/admin/events/agent | AdminAgentEvents | `admin:read` | The `agent` events after a position, as a `ResourceEventPage` ([`architecture/admin`](admin.md#the-feed)) |
 | GET | /v1/admin/events/lease | AdminLeaseEvents | `admin:read` | The `lease` events after a position, as a `ResourceEventPage` |
+| GET | /v1/admin/r/organisation | AdminOrganisationList | `admin:read` | Every organisation the tenant records, retired ones included, each an `Organisation`, as a `ResourceList` |
+| POST | /v1/admin/r/organisation | AdminOrganisationCreate | `admin:*` | Record a new organisation, minting its `id` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects)) |
+| GET | /v1/admin/r/organisation/{uid} | AdminOrganisationGet | `admin:read` | One organisation, with its ETag |
+| PATCH | /v1/admin/r/organisation/{uid} | AdminOrganisationUpdate | `admin:*` | Change its `display_name` or `operates_in` |
+| POST | /v1/admin/r/organisation/{uid}/retire | AdminOrganisationRetire | `admin:*` | Retire it, once every project in it is retired |
+| POST | /v1/admin/r/organisation/{uid}/restore | AdminOrganisationRestore | `admin:*` | Return a retired organisation to use |
+| GET | /v1/admin/events/organisation | AdminOrganisationEvents | `admin:read` | The `organisation` events after a position, as a `ResourceEventPage` |
+| GET | /v1/admin/r/project | AdminProjectList | `admin:read` | Every project the tenant records, retired ones included, each a `Project`, as a `ResourceList` |
+| POST | /v1/admin/r/project | AdminProjectCreate | `admin:*` | Record a new project in an active organisation, minting its `id` |
+| GET | /v1/admin/r/project/{uid} | AdminProjectGet | `admin:read` | One project, with its ETag |
+| PATCH | /v1/admin/r/project/{uid} | AdminProjectUpdate | `admin:*` | Change its `display_name` |
+| POST | /v1/admin/r/project/{uid}/retire | AdminProjectRetire | `admin:*` | Retire it |
+| POST | /v1/admin/r/project/{uid}/restore | AdminProjectRestore | `admin:*` | Return a retired project to use, in an organisation that is not retired |
+| GET | /v1/admin/events/project | AdminProjectEvents | `admin:read` | The `project` events after a position, as a `ResourceEventPage` |
+| GET | /v1/admin/r/grant | AdminGrantList | `admin:read` | Every grant, revoked ones included, each a `RoleGrant`, as a `ResourceList` |
+| POST | /v1/admin/r/grant | AdminGrantCreate | `admin:*` | Record a role one operator holds at one organisation or project, after step-up ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project)) |
+| GET | /v1/admin/r/grant/{uid} | AdminGrantGet | `admin:read` | One grant, with its ETag |
+| POST | /v1/admin/r/grant/{uid}/revoke | AdminGrantRevoke | `admin:*` | Revoke a grant, after step-up |
+| GET | /v1/admin/events/grant | AdminGrantEvents | `admin:read` | The `grant` events after a position, as a `ResourceEventPage` |
 
-The four routes marked "after step-up" MUST be served as
+The six routes marked "after step-up" MUST be served as
 [`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up` says,
 and `CredentialToken` MUST set `step_up_at` only as its
 `operator-token-issuance` says; this document restates neither.
@@ -1096,10 +1344,141 @@ watches leases reads `expires_at` from the last event and shows the lease
 `unknown` once it has passed, as this orchestrator would answer it.
 
 `AdminAgentEvents` and `AdminLeaseEvents` answer what
-[`architecture/admin`](admin.md#the-feed) asks of every owner's feed, and
-`AdminResourceCatalogue` answers this orchestrator's two `CatalogueEntry`
-values, each `available`, for the admin gateway to compose the tenant's
-catalogue from.
+[`architecture/admin`](admin.md#the-feed) asks of every owner's feed, as
+`AdminOrganisationEvents`, `AdminProjectEvents` and `AdminGrantEvents` do for
+the three kinds below, and `AdminResourceCatalogue` answers this
+orchestrator's five `CatalogueEntry` values, each `available`, for the admin
+gateway to compose the tenant's catalogue from.
+
+### The tenant's organisations and projects
+
+A tenant holds organisations, and an organisation holds projects
+([`architecture/tenancy`](tenancy.md#architecture)). Which of them exist, what
+each is called, which organisation a project is in, and the id a record joins
+on are facts about the customer's organisation. So the tenant holds them, and
+this orchestrator is where: it is the one component every tenant runs
+([What a tenant consists of](#what-a-tenant-consists-of-and-where-that-is-declared)),
+and the grants below are judged where operators are. No client and no host
+holds them: a client reads them here, and a host's control plane keeps no
+registry of them ([`architecture/tenancy`](tenancy.md#endpoints)). They are
+the `organisation` and `project` kinds of the [Declaration](#declaration)'s
+`resources:`, each an `Organisation` or a `Project`, held
+in this orchestrator's own store beside its operators, so a tenant's rebuild
+restores them with that store
+([`architecture/tenancy`](tenancy.md#what-a-tenant-is-rebuilt-from)).
+
+**The id is what a record joins on.** Each carries an `id`, 32 lowercase hex
+characters minted when a person creates it, never changed and never reused. A
+record that names an organisation or a project, whoever keeps it, names it by
+this id and never by its name.
+
+**The name is what a `scope_path` spells.** `name` is the segment the item
+holds in every `scope_path` a content repository is declared at
+([`architecture/content`](content.md#types)): `<tenant>/<organisation>` for an
+organisation and `<tenant>/<organisation>/<project>` for a project, each by
+its `name`. It is kebab-case, `[a-z][a-z0-9]*(-[a-z0-9]+)*`, set at creation
+and never changed, because every repository declared at a `scope_path` was
+declared at that name. No two organisations, and no two projects of one
+organisation, ever hold one name, retired ones included, so a `scope_path`
+never comes to name something else. A name already held is refused with
+`SCOPE_NAME_TAKEN`, and one outside the grammar with `INVALID_REQUEST`. What a
+person sees, and may change whenever they like, is `display_name`.
+
+**A project is in one organisation for good.** `organisation` is set at
+creation and never changed, so a project's records and its `scope_path` agree
+for as long as it exists. A project is made only in an active organisation; one
+asked for in a retired organisation is refused with `INVALID_STATE`.
+
+**Retired, never deleted.** Neither kind declares `delete`, because a record
+naming an id must still resolve. `retire` records that an item is no longer in
+use and changes nothing that names it — no repository, adoption, record or
+grant — and `restore` returns it to use. An organisation is retired only once
+every project in it is, and a project restored only into an active
+organisation; either asked for otherwise is refused with `INVALID_STATE`.
+
+**Where an organisation operates.** `operates_in` lists the places it operates
+in, in the grammar a standard's `applies_in` is written in
+([`schemas/standard`](../schemas/standard.md#applies_in--where-a-standard-has-force)):
+ISO 3166-1 alpha-2 and ISO 3166-2 codes, ascending, with no subdivision of a
+country it already lists, and never `international`, which is a standard's
+reach and nobody's place. A list outside that grammar is refused with
+`INVALID_REQUEST`. **Absent means nobody has said**, and narrows nothing; it
+is never read as everywhere or as nowhere. A client compares it with each
+standard's `applies_in` to suggest what an organisation might adopt. It is
+never an adoption, never hides a standard already adopted, and is never data
+residency, which is the `jurisdiction` of
+[`protocol/federation`](../protocol/federation.md) and a different question
+([`schemas/standard`](../schemas/standard.md#it-is-not-jurisdiction-and-not-by-accident)).
+
+**Who may change them.** Reading is `admin:read`; creating, updating, retiring
+and restoring is `admin:*`. Each write is audited in this orchestrator's audit
+log, admitted or refused, as every write at the uniform address is
+([`architecture/admin`](admin.md#writes-and-what-guards-them)). Each kind
+announces `created`, `updated`, `retire` and `restore`, so a client showing a
+`display_name` reads it again on the event rather than keeping its own.
+
+> **Gap — content does not check a `scope_path` against these records.** A
+> repository may still be declared at a `scope_path` whose segments name no
+> recorded organisation or project, or a retired one, and nothing refuses it
+> ([`architecture/content`](content.md#declaration-flow)). Until content
+> reads these records, a client reports such a repository as held at a scope
+> the tenant does not record, and never invents an organisation for it.
+
+### A role held at an organisation or a project
+
+An operator's `role` holds across the tenant
+([`architecture/admin`](admin.md#operator-roles)). A `RoleGrant` is
+the record that an operator holds a role at one organisation, or at one project
+of it: the `grant` kind of the [Declaration](#declaration)'s `resources:`, held
+in this orchestrator's own store beside the operators it names. Every person
+the tenant records is an operator ([`protocol/types`](../protocol/types.md#operator)):
+a person who acts at the tenant registers and is admitted, and a grant names
+that operator by `identity_id`. A person no operator record holds has no grant.
+
+What a grant means, once something judges it (the gap below):
+
+1. An operator with no active grant acts with their role across the tenant,
+   as every operator does today.
+2. An operator with one or more active grants is **confined**. At an
+   organisation or a project they act with the role of the most specific
+   active grant covering it — a project's grant over its organisation's — and
+   where no active grant covers it, not at all. A grant at an organisation
+   covers it and every project in it.
+3. A grant never raises an operator above their own role. What they may use
+   at a scope is what both the grant's role and their own role carry, judged
+   on each request, so lowering an operator's role lowers every grant they
+   hold.
+4. What is held at no organisation — agents, the model, operators, audit — is
+   judged on the operator's own role, confined or not.
+
+**Nobody grants or revokes for themselves.** A create naming the person making
+it, or a `revoke` of a grant naming the person revoking it, is refused with
+`GRANT_SELF_REFUSED` and changes nothing, whatever their role: a confined
+admin who could revoke their own last grant would release themselves.
+
+**A grant is made and revoked, never changed.** `create` and `revoke` take
+`admin:*` and a step-up, as changing an operator's role does
+([`architecture/admin`](admin.md#contracts), `destructive-action-step-up`).
+A role changed at a scope is a revoke and a new grant, so the records say who
+held what, where, and when. A revoked grant is kept and its `id` never reused.
+A grant naming an operator that is not `approved`, an organisation or project
+that is not active, or a project that is not in the organisation it names is
+refused with `INVALID_STATE`. **Revoking an operator's last active grant ends
+their confinement**: the `revoke` verb says so in its effect, and a client
+says so before a person confirms it. Each grant announces `created` and
+`revoke`.
+
+> **Gap — nothing judges a grant yet.** This orchestrator judges a person's
+> capabilities from their role, on its own routes and at the exchange for a
+> pass, and neither knows the organisation or project a request reaches: a
+> pass names a route and its capabilities
+> ([`protocol/identity`](../protocol/identity.md#the-pass)), and the owner
+> that knows a request's `scope_path` is given capabilities, not grants. So a
+> grant is recorded, listed and announced, and confines nobody. A client may
+> narrow what it shows a person by their grants, and says that the tenant
+> does not enforce it; it never presents that narrowing as the tenant's
+> refusal. Closing this is carrying a confined operator's grants on the pass,
+> and having the owner judge them against the scope of the request.
 
 ### The tenant's model
 
@@ -2233,6 +2612,11 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 - **Work Authorisations** — Map of id → `WorkAuthorisation`, persisted, with
   revoked ones kept and no id reused ([Work Exchange](#work-exchange-post-v1tokenwork)).
   Nothing about a work pass is stored: each is minted and forgotten.
+- **Organisations, projects and grants** — Maps of id → `Organisation`,
+  `Project` and `RoleGrant`, persisted and surviving restarts, with retired and
+  revoked ones kept, no id reused and no name held twice
+  ([The tenant's organisations and projects](#the-tenants-organisations-and-projects),
+  [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project)).
 
 ---
 
@@ -2525,6 +2909,126 @@ types:
       expires_at:
         type: timestamp
         description: The instant at which it lapses unless renewed
+
+  Organisation:
+    description: One organisation of the tenant, as the organisation kind answers it (The tenant's organisations and projects)
+    fields:
+      id:
+        type: string
+        required: true
+        description: 32 lowercase hex characters, minted at creation, never changed and never reused. What a record names the organisation by
+      name:
+        type: string
+        required: true
+        description: Its segment of every scope_path, kebab-case. Set at creation, never changed, and never held by a second organisation
+      display_name:
+        type: string
+        required: true
+        description: What a person sees. Changed freely
+      operates_in:
+        type: "[]string"
+        required: false
+        description: The places it operates in, ISO 3166-1 alpha-2 or ISO 3166-2 codes, ascending, as schemas/standard writes applies_in, never international. Absent means nobody has said
+      state:
+        type: string
+        required: true
+        description: Whether it is in use
+        constraints:
+          enum: [active, retired]
+      created_by:
+        type: string
+        required: true
+        description: The identity id of the person who created it
+      created_at:
+        type: timestamp
+        required: true
+      retired_at:
+        type: timestamp
+        required: false
+        description: Present while it is retired
+
+  Project:
+    description: One project of an organisation, as the project kind answers it (The tenant's organisations and projects)
+    fields:
+      id:
+        type: string
+        required: true
+        description: 32 lowercase hex characters, minted at creation, never changed and never reused. What a record names the project by
+      organisation:
+        type: string
+        required: true
+        description: The id of the organisation it is in. Set at creation and never changed
+      name:
+        type: string
+        required: true
+        description: Its segment of every scope_path, kebab-case. Set at creation, never changed, and never held by a second project of its organisation
+      display_name:
+        type: string
+        required: true
+        description: What a person sees. Changed freely
+      state:
+        type: string
+        required: true
+        description: Whether it is in use
+        constraints:
+          enum: [active, retired]
+      created_by:
+        type: string
+        required: true
+        description: The identity id of the person who created it
+      created_at:
+        type: timestamp
+        required: true
+      retired_at:
+        type: timestamp
+        required: false
+        description: Present while it is retired
+
+  RoleGrant:
+    description: A role one operator holds at one organisation or one project of it, as the grant kind answers it (A role held at an organisation or a project)
+    fields:
+      id:
+        type: string
+        required: true
+        description: 32 lowercase hex characters, minted at creation, never reused
+      identity_id:
+        type: string
+        required: true
+        description: The operator's identity id (protocol/types, Operator)
+      role:
+        type: string
+        required: true
+        description: The role held there, an OperatorRole (protocol/types)
+        constraints:
+          enum: [viewer, auditor, operator, admin]
+      organisation:
+        type: string
+        required: true
+        description: The id of the organisation it is held at
+      project:
+        type: string
+        required: false
+        description: The id of the one project of that organisation it is held at. Absent, it is held at the whole organisation
+      status:
+        type: string
+        required: true
+        description: Whether it is held
+        constraints:
+          enum: [active, revoked]
+      granted_by:
+        type: string
+        required: true
+        description: The identity id of the person who made it, never the operator it names
+      granted_at:
+        type: timestamp
+        required: true
+      revoked_by:
+        type: string
+        required: false
+        description: The identity id of the person who revoked it, never the operator it names
+      revoked_at:
+        type: timestamp
+        required: false
 ```
 
 ---
@@ -2738,6 +3242,13 @@ agents hold, which is theirs.
 - [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key` ([Auth Middleware](#auth-middleware) step 6)
 - [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure ([Security](#security), [A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`)
 - [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers ([Auth Middleware](#auth-middleware) step 9)
-- [ ] `GET /v1/admin/resources` answers `agent` and `lease`, each `available`, with the declarations the [Declaration](#declaration)'s `resources:` holds, and no other kind ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
+- [ ] `GET /v1/admin/resources` answers `agent`, `lease`, `organisation`, `project` and `grant`, each `available`, with the declarations the [Declaration](#declaration)'s `resources:` holds, and no other kind ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
+- [ ] `AdminOrganisationCreate` and `AdminProjectCreate` mint an `id` of 32 lowercase hex characters that no item has held, and refuse a `name` an organisation, or a project of the same organisation, has ever held, retired ones included, with `SCOPE_NAME_TAKEN` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects))
+- [ ] A `PATCH` of an organisation or a project naming `id`, `name` or a project's `organisation` changes nothing and is refused as a field not settable there ([The tenant's organisations and projects](#the-tenants-organisations-and-projects); [`architecture/admin`](admin.md#writes-and-what-guards-them))
+- [ ] An `operates_in` holding `international`, a code outside ISO 3166-1 alpha-2 and ISO 3166-2, a subdivision of a country it also lists, or codes out of ascending order is refused with `INVALID_REQUEST`; an organisation that has none answers no `operates_in`, never an empty list taken to mean everywhere ([The tenant's organisations and projects](#the-tenants-organisations-and-projects))
+- [ ] `AdminOrganisationRetire` with an active project in the organisation, `AdminProjectCreate` or `AdminProjectRestore` in a retired organisation, and `AdminGrantCreate` naming an operator that is not `approved` or a scope that is not active, are each refused with `INVALID_STATE` and change nothing ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
+- [ ] Neither `organisation`, `project` nor `grant` is answered at `DELETE`; a retired organisation or project and a revoked grant are still answered by `get` with their `id` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
+- [ ] `AdminGrantCreate` naming the person making it, and `AdminGrantRevoke` of a grant naming the person revoking it, are refused with `GRANT_SELF_REFUSED`, whatever that person's role, and change nothing ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
+- [ ] `AdminGrantCreate` and `AdminGrantRevoke` are refused without a recent re-confirmation, as `AdminAgentDeregister` is ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
 - [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
 - [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events))

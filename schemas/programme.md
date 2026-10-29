@@ -2016,8 +2016,10 @@ defines.
 - **Adoption is made at an organisation.** A project inherits every programme
   its organisation adopted, and is measured against it. A project does not
   adopt: an adoption asked for at a project is refused, naming the
-  organisation, and a project that needs a programme its organisation lacks
-  asks for an organisation adoption.
+  organisation — the project's `organisation` as the tenant's orchestrator
+  records it ([`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects))
+  — and a project that needs a programme its organisation lacks asks for an
+  organisation adoption.
 - **A project refines what it inherits** by keeping, in a repository at its own
   scope, a map or spec with the same `id`. It replaces the organisation's for
   that project only, in place, as any override does

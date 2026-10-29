@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.1
+version: 1.4.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -161,6 +161,9 @@ Not capabilities — values a kind declares.
 | `position-holder` | — | organisation + holding key | authored | — | *(none)* |
 | `completion` | — | completion id | observed | — | *(none)* |
 | `model` | — | tenant | authored | — | *(none)* |
+| `organisation` | — | organisation id | authored | — | *(none)* |
+| `project` | — | project id | authored | — | *(none)* |
+| `grant` | — | grant id | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -257,6 +260,17 @@ model configuration, which a person chooses; there is one per tenant, so the
 tenant is its identity. Neither has a capability. They are declared so that
 [`architecture/model-service`](../architecture/model-service.md#resources)
 and [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-model)
+can name them.
+
+**`organisation`, `project` and `grant` are the tenant's own structure, and
+govern nothing by being declared.** An organisation and a project are the
+places a tenant's content, adoptions and work are held at, and a grant is a
+role one operator holds at one of them. Each is named by an id the
+orchestrator mints when a person makes it, never by its name: a name is what a
+`scope_path` spells and a person may want to change, and the id is what a
+record joins on. None has a capability: an organisation is not evidence of
+anything, and a grant is authority, which is judged and never counted. They
+are declared so that [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects)
 can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
@@ -513,13 +527,16 @@ relation.
 | `starts` | `schedule` | `workflow-definition` | execution |
 | `installed_under` | `installed-item` | `programme-adoption` | programme |
 | `occurrence_of` | `occurrence` | `obligation` | programme |
+| `part_of` | `project` | `organisation` | orchestrator |
+| `held_at` | `grant` | `organisation`, `project` | orchestrator |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
 
 `held_by`, `run_by`, `spawned_by` and `part_of` are what a run's record and a
 lease say of themselves, as `fired_by`, `owed_by` and `starts` say of execution's
 other records: the owner of the record asserts them when it writes it,
 and a client reads them as a resource's relations
-([`resource.md`](resource.md#relations)). `execution` is the tenant's run
+([`resource.md`](resource.md#relations)). A project's `part_of` and a grant's
+`held_at` are the orchestrator's, said the same way. `execution` is the tenant's run
 ledger ([`architecture/execution`](../architecture/execution.md)), which no
 tenant runs yet, so nothing asserts the execution rows today.
 

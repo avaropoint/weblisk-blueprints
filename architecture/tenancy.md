@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 3.1.0
+version: 4.0.0
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning, patterns/namespace]
 platform: any
 tier: free
@@ -57,13 +57,24 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <5.0.0"
+    # 4.3.0 is where the orchestrator records organisations, projects and
+    # grants
+    version: ">=4.3.0 <5.0.0"
     bindings:
       types:
         # Provisioning binds a tenant's orchestrator to that tenant's own
         # stores, and an upgrade keeps the binding (Data Flow)
         - name: OrchestratorConfig
           fields_used: [storage_dsn]
+        # A tenant's organisations, projects and the roles its operators
+        # hold at them are its orchestrator's records, which an export names
+        # and a rebuild compares (Rebuilding a Tenant)
+        - name: Organisation
+          fields_used: [id, name, display_name, operates_in, state]
+        - name: Project
+          fields_used: [id, organisation, name, display_name, state]
+        - name: RoleGrant
+          fields_used: [id, identity_id, role, organisation, project, status]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -152,7 +163,9 @@ requires:
 ```
 
 **Tenant** is the durable top-level context. It holds one or more **orgs**, each holding
-one or more **projects**. Tenant is the outer boundary rather than org because
+one or more **projects**, which the tenant's own orchestrator records
+([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)).
+Tenant is the outer boundary rather than org because
 organisations are bought, sold, merged and wound up, and the context that survives those
 events is the one worth binding identity, billing and data ownership to.
 
@@ -169,9 +182,8 @@ so compromising it exposes billing metadata rather than any tenant's records.
 
 **Owns**
 
-- The host's provisioning registry of tenants, orgs and projects, and the lifecycle
-  state of each. It records what the host provisioned, not the tenant's own structure
-  (the gap under [Endpoints](#endpoints))
+- The host's provisioning registry of tenants, and the lifecycle state of each. It
+  holds no registry of a tenant's organisations or projects ([Endpoints](#endpoints))
 - Admission control — whether a new tenant may be created now
 - The artifact registry: which component versions exist, and their provenance
 - Fleet deployment: rolling a version across tenants, and pinning individual tenants
@@ -181,6 +193,8 @@ so compromising it exposes billing metadata rather than any tenant's records.
 **Does NOT own**
 
 - Any tenant's records, knowledge, agents or configuration — those belong to the tenant
+- A tenant's organisations and projects, and the roles its operators hold at them —
+  its orchestrator records them ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects))
 - Any tenant's identity or key material
 - Operator authority over a tenant. The host holds none by default and acquires it only
   by invitation (§Security)
@@ -201,31 +215,21 @@ so compromising it exposes billing metadata rather than any tenant's records.
 | POST | /v1/tenants/{tenant}/resume | ResumeTenant | yes | Resume a suspended tenant |
 | POST | /v1/tenants/{tenant}/export | ExportTenant | yes | Produce a portable copy of everything the tenant owns |
 | DELETE | /v1/tenants/{tenant} | DeleteTenant | yes | Destroy a tenant and every resource bound to it |
-| GET | /v1/tenants/{tenant}/orgs | ListOrgs | yes | Orgs within a tenant |
-| POST | /v1/tenants/{tenant}/orgs | CreateOrg | yes | Add an org |
 | GET | /v1/artifacts | ListArtifacts | yes | Artifact versions available to deploy |
 | POST | /v1/fleet/deployments | StartDeployment | yes | Roll an artifact version across tenants in batches |
 | GET | /v1/fleet/deployments/{id} | DeploymentStatus | yes | Progress, batch state, halt reason |
 | POST | /v1/tenants/{tenant}/pin | PinVersion | yes | Hold a tenant on a named artifact version |
 
-> **Gap — nothing inside a tenant declares its organisations and projects.** The
-> registry this blueprint owns is the host's: `ListOrgs` and `CreateOrg` answer,
-> under the host's authority, which orgs a host provisioned, and exist only where
-> a deployment is hosted at all. No route lists a tenant's projects, at either
-> plane. Inside the tenant an organisation or a project appears only as a segment
-> of a content repository's `scope_path` ([`architecture/content`](content.md)):
-> a name, which can move, never an identity a record can join on. So a tenant
-> cannot answer which organisations and projects it has, what durable id each
-> carries, or which organisation a project belongs to, which
-> [adoption at the organisation](../schemas/programme.md#one-act-by-a-person-at-the-organisation)
-> needs in order to refuse a project's adoption by naming it. The structure is
-> the customer's, so the answer belongs to the tenant's own hub, not to the
-> control plane and not to a client. Which component holds it, the routes and
-> capabilities that read and change it, and how the control plane's registry
-> relates to it are not specified. Until they are, a client that holds an
-> organisation or project the tenant does not declare says so, held by that
-> client and not by the tenant, rather than presenting it as the tenant's
-> record.
+**The host keeps no registry of a tenant's organisations or projects.** They
+are the customer's structure, so they are the tenant's records, held by its
+orchestrator, each with an id a record joins on and a name its `scope_path`
+spells ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)).
+A person makes them there, through the tenant's admin gateway, and a client
+reads them there. The control plane once listed and created a tenant's orgs
+at `/v1/tenants/{tenant}/orgs`, under the host's authority; those routes, and
+the `Org` and `Project` they answered, are withdrawn, because a host registry
+of them is a second home that can disagree with the tenant's and that the
+host could act on without the tenant.
 
 ---
 
@@ -366,7 +370,7 @@ the holder brings.
 | **The run statements** — what each build read and wrote | `provenance/runs/` ([`schemas/run-statement`](../schemas/run-statement.md#where-it-lives)) | the tenant | copied |
 | **The declared configuration** | `.weblisk/config.yaml` ([`schemas/config`](../schemas/config.md)) and `.weblisk/model.json` ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)) | the tenant | copied |
 | **The repositories** — each store and the git history on its line, which holds every entry, every adoption record (`adoption.md`, `standards/<id>.json`) and every register, the [position-holders register](../schemas/position.md#who-holds-a-position) among them | at its placement: a backend's root and a locator ([`architecture/content`](content.md#a-placement-names-a-backend-never-a-location)) | whoever holds the backend's root (`held_by`) | never copied; each named by id, `scope_path`, placement, line and head |
-| **The record stores** — each service's own records: the operator, credential and namespace registries and the audit log; the content service's repository registry, change logs, proposals, pseudonym map, anchors and record mirror; programme adoptions and installed items; execution's schedules and runs; notification's preferences; the fabric's ledger | each service's own store ([`architecture/storage`](storage.md)) under `.weblisk/data/` | the tenant | each captured at a consistent point by its store's `backup-restore` ([`architecture/storage`](storage.md#contracts)), as the platform formats it |
+| **The record stores** — each service's own records: the operator, credential and namespace registries, the organisations, projects and grants ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)) and the audit log; the content service's repository registry, change logs, proposals, pseudonym map, anchors and record mirror; programme adoptions and installed items; execution's schedules and runs; notification's preferences; the fabric's ledger | each service's own store ([`architecture/storage`](storage.md)) under `.weblisk/data/` | the tenant | each captured at a consistent point by its store's `backup-restore` ([`architecture/storage`](storage.md#contracts)), as the platform formats it |
 | **The keys** — the orchestrator's, whose fingerprint is the hub identity; each service key; the admin gateway's registration key and its TLS key and certificate; each remote's credential | `.weblisk/keys/`, `.weblisk/tls/`, or a secret source ([`patterns/secrets`](../patterns/secrets.md)) | a secret source, or the operator's own backup of the encrypted key ([`protocol/identity`](../protocol/identity.md#key-backup-policy)) | never; each named by its fingerprint and where it is held. The certificate, being public, is copied |
 | **The references to secrets** — every `key_passphrase` and every other `<source>:<reference>` the configuration holds | `.weblisk/config.yaml` | the secret source each names | the references only, never what they open |
 | **The operators** — each name, identity id, role and status | the orchestrator's operator store ([`architecture/admin`](admin.md#operator-storage)) | the tenant holds the records; each operator holds their own private key | listed, and carried in the orchestrator's record store |
@@ -485,6 +489,8 @@ rebuild began from. A rebuild is reported done only where every row holds:
 | Components | the same set of names registered with a live lease |
 | Conformance | the same verdict class at each level [`weblisk test conformance`](cli.md#weblisk-test-conformance) runs: `passed`, `failed` or `not-run` |
 | Operators | the same names, identity ids, roles and statuses |
+| Organisations and projects | the same set of ids, each with the same name, display name, state, and `operates_in` or organisation |
+| Grants | the same set of ids, each with the same operator, role, organisation, project and status |
 
 A row that differs is reported, naming both values, and the rebuild exits
 non-zero. The rebuilt tenant is left as it is for a person to look at, and is
@@ -498,8 +504,9 @@ The round trip is the test, run in a scratch directory:
    scratch directory and a `HOME` of its own, and every orchestrator address
    any step could fall back to set to one nothing listens on, so no step can
    reach a running tenant.
-2. Declare a repository, adopt a standard into it, admit a second operator,
-   and run conformance.
+2. Record an organisation and a project in it, declare a repository at the
+   organisation's `scope_path`, adopt a standard into it, admit a second
+   operator, grant them a role at the project, and run conformance.
 3. Export, stop the tenant and delete its directory, leaving its stores and
    the bundle.
 4. Rebuild into a new directory in the scratch directory, and require the
@@ -513,18 +520,17 @@ manifests alone with no tenant at all.
 
 ### Known gaps
 
-- **Nothing in the tenant declares its organisations and projects**
-  ([Endpoints](#endpoints), the gap). A manifest carries a repository's
-  `scope_path`, which names them and does not identify them, so a rebuild
-  restores the names and nothing a record could join on. Where a client holds
-  an organisation's or a project's durable id, that id is not rebuilt.
-- **Who may do what, beyond an operator's role, has no store in the tenant.**
-  The operator store holds operators and their roles
-  ([`architecture/admin`](admin.md#operator-storage)). A `Grant` scoped
-  narrower than the hub ([`patterns/principal-identity`](../patterns/principal-identity.md#types))
-  is specified and no hub store holds one, and a person who is not an operator
-  has no record at all, so a client that keeps either keeps what no rebuild
-  reads.
+- **Nothing judges a grant yet.** The roles operators hold at an organisation
+  or a project are the orchestrator's records, exported and rebuilt with its
+  store, and confine nobody until a request's scope is judged against them
+  ([`architecture/orchestrator`](orchestrator.md#a-role-held-at-an-organisation-or-a-project),
+  the gap there). A client that confines a person in the tenant's place holds
+  an enforcement no rebuild reads.
+- **A `scope_path` is not checked against the organisations recorded.** A
+  repository declared at a scope the orchestrator does not record is
+  restored as declared, and joins no organisation's id
+  ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects),
+  the gap there).
 - **The position-holders register has a home and may be empty.** It is the
   records repository's ([`schemas/position`](../schemas/position.md#the-register)),
   and the `position-holder` kind is declared-unavailable until content serves
@@ -535,8 +541,12 @@ manifests alone with no tenant at all.
   `preference` kinds ([`schemas/kinds`](../schemas/kinds.md)) live in
   execution, the programme service and notification. Until a tenant runs
   those services, standing work held anywhere else is not rebuilt.
-- **A tenant's presentation has no home.** No tenant service declares a
-  tenant's theme, and one held by a client is not rebuilt.
+- **A tenant's presentation begins at the organisation.** A theme, an
+  export layout and the filing of repositories are an organisation's files
+  in its repositories ([`schemas/presentation`](../schemas/presentation.md)),
+  and are rebuilt with them. No repository is held at the tenant alone, so a
+  layer above every organisation has no home, and one a client keeps is not
+  rebuilt.
 - **No record store declares `backup-restore` yet.** The contract is
   optional in [`architecture/storage`](storage.md#contracts), and the export
   refuses a store that cannot be captured at a consistent point.
@@ -592,44 +602,6 @@ types:
         name: CreatedAt
         type: timestamp
         required: true
-  Org:
-    description: An organisation within a tenant
-    fields:
-      org_id:
-        name: OrgID
-        type: string
-        required: true
-        description: "Unique within its tenant"
-      tenant_id:
-        name: TenantID
-        type: string
-        required: true
-        description: "Owning tenant"
-      display_name:
-        name: DisplayName
-        type: string
-        required: true
-        description: "Human-readable name"
-
-  Project:
-    description: A unit of work within an org
-    fields:
-      project_id:
-        name: ProjectID
-        type: string
-        required: true
-        description: "Unique within its org"
-      org_id:
-        name: OrgID
-        type: string
-        required: true
-        description: "Owning org"
-      display_name:
-        name: DisplayName
-        type: string
-        required: true
-        description: "Human-readable name"
-
   ArtifactVersion:
     description: A set of component builds produced from one blueprint revision
     fields:
@@ -761,6 +733,21 @@ types:
         type: "[]ManifestOperator"
         required: true
         description: "Every operator the orchestrator records, revoked included"
+      organisations:
+        name: Organisations
+        type: "[]Organisation"
+        required: true
+        description: "Every organisation the orchestrator records, retired ones included (architecture/orchestrator)"
+      projects:
+        name: Projects
+        type: "[]Project"
+        required: true
+        description: "Every project the orchestrator records, retired ones included"
+      grants:
+        name: Grants
+        type: "[]RoleGrant"
+        required: true
+        description: "Every grant the orchestrator records, revoked ones included"
       conformance:
         name: Conformance
         type: "map[string]string"
@@ -1101,6 +1088,8 @@ security:
 - [ ] A fleet deployment MUST halt when a batch's error rate exceeds the configured threshold ([Interfaces](#interfaces), [Configuration](#configuration))
 - [ ] Tenant creation MUST be refused when the admission ceiling is reached ([Design Principles](#design-principles) 7, [Configuration](#configuration))
 - [ ] Every host action against a tenant MUST appear in the control-plane audit with principal, tenant, action and time ([Security](#security))
+- [ ] The control plane MUST serve no route that lists or creates a tenant's organisations or projects, and MUST hold no record of them ([Endpoints](#endpoints))
+- [ ] An export's `TenantManifest` MUST carry every organisation, project and grant the orchestrator records, retired and revoked ones included, and a rebuild whose `organisations`, `projects` or `grants` differ from the manifest it began from MUST NOT be reported done ([A rebuild is accepted when](#a-rebuild-is-accepted-when))
 - [ ] An export's `TenantManifest` MUST name every item [What a tenant is rebuilt from](#what-a-tenant-is-rebuilt-from) lists, and its bundle MUST hold no private key, no passphrase and no file generation wrote ([What a tenant is rebuilt from](#what-a-tenant-is-rebuilt-from), [What is derived, and never kept](#what-is-derived-and-never-kept))
 - [ ] A generated file whose digest differs from its latest run statement's MUST be listed in `TenantManifest.unheld` with reason `edited-output` ([What is derived, and never kept](#what-is-derived-and-never-kept))
 - [ ] A rebuild MUST read every blueprint at the revision its component's `ManifestPin` names, never at a source's `HEAD` ([The rebuild, in order](#the-rebuild-in-order) step 2)
