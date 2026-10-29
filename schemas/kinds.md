@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.0
+version: 1.3.1
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -155,11 +155,11 @@ Not capabilities — values a kind declares.
 | `programme-adoption` | — | installation id | observed | — | *(none)* |
 | `installed-item` | — | installed item id | derived | — | *(none)* |
 | `occurrence` | — | obligation + occurrence key | derived | — | *(none)* |
-| `notification` | — | notification id | observed | runtime | *(none)* |
-| `delivery` | — | delivery id | observed | runtime | *(none)* |
+| `notification` | — | notification id | observed | — | *(none)* |
+| `delivery` | — | delivery id | observed | — | *(none)* |
 | `preference` | — | preference id | authored | — | *(none)* |
 | `position-holder` | — | organisation + holding key | authored | — | *(none)* |
-| `completion` | — | completion id | observed | runtime | *(none)* |
+| `completion` | — | completion id | observed | — | *(none)* |
 | `model` | — | tenant | authored | — | *(none)* |
 
 ### What the table says, in words
