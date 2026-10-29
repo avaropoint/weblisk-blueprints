@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: prompt-worker
-version: 1.1.0
-requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, patterns/scope]
+version: 1.2.0
+requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, architecture/programme-service, architecture/fabric, patterns/scope]
 platform: any
 tier: free
 adoption: opt-in
@@ -13,8 +13,10 @@ adoption: opt-in
 The tenant's one shared runner of `agent:` instructions: execution hands it
 one phase, an instruction in its author's words under a `needs:` ceiling, and
 it runs that instruction on the tenant's model with a fixed set of tools,
-each an owner's API reached on a work pass, writing only as proposals and
-keeping nothing of its own.
+each an owner's API reached on a work pass: reading content, what is due and
+the fabric; proposing documents, records and relationships; starting work of
+its own programme; and telling the positions its programme names. It decides
+nothing and keeps nothing of its own.
 
 ## Overview
 
@@ -52,9 +54,23 @@ restarts loses only the phases it was running, and execution records those
 as it records any step whose target stopped answering.
 
 **It decides nothing.** No tool approves, rejects, closes, attests or signs.
-Every write is a proposal a person decides
+Every write to governed state is a proposal a person decides
 ([`architecture/programme-service`](programme-service.md#who-may-do-what),
-rule 5).
+rule 5): a document or a register row at content, a relationship at the
+fabric. Starting work and telling people reach only what a person has
+already installed, switched on and authorised
+([`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell)).
+
+**The model never acts; the worker does, through declared tools.** The
+tenant's model answers text and nothing else: it holds no tool, no shell and
+no file ([`architecture/orchestrator`](orchestrator.md#running-a-tool-answer-only)).
+What it asks for is read as a `WorkerTurn`, and only a tool this document
+declares is carried out, by the worker, on a work pass. So a model steered by
+something it read can ask for no act the tool set does not hold. Building new
+logic into a tenant — a component, a workflow that needs code, a domain
+service — is never agent work: it is generation, at build time, through the
+CLI on the tenant's change cycle
+([`architecture/generation`](generation.md#logic-arrives-by-generation-never-at-run-time)).
 
 > **Scope boundary.** This document specifies the worker's surface, its
 > authority, its tool set, the prompt it builds, how it treats what it reads,
@@ -155,14 +171,20 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/execution
-    # 1.1.0 is where InstructionTask carries source and skills
-    version: ">=1.1.0 <2.0.0"
+    # 1.2.0 is where InstructionTask carries the programme and the item, and
+    # RunScheduleNow answers a RunNowResult
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
         # The payload of run_instruction. source and skills are what this
-        # blueprint requires the task to carry (Skills, Scope)
+        # blueprint requires the task to carry (Skills, Scope); programme and
+        # item are what the start and tell tools name (The Tool Set)
         - name: InstructionTask
-          fields_used: [instruction, source, needs, skills, run, step, organisation, project, muted]
+          fields_used: [instruction, source, needs, skills, run, step, organisation, project, muted, programme, item]
+        # What operation-run and workflow-start answer, as the programme
+        # service relays it
+        - name: RunNowResult
+          fields_used: [run, timer, muted]
         - name: ContentRef
           fields_used: [repository, path]
         # record_turn, on POST /v1/message, is answered by execution; this
@@ -239,6 +261,62 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: architecture/programme-service
+    # 2.2.0 is where an agent item's work reads what is due, starts work of
+    # its programme and tells its positions on a work pass
+    version: ">=2.2.0 <3.0.0"
+    bindings:
+      types:
+        - name: DueList
+        - name: ItemRun
+          fields_used: [not_before, reason]
+        - name: ItemNotice
+          fields_used: [programme, item, organisation, project, positions, says, why]
+      endpoints:
+        - path: /v1/programme/due
+          methods: [GET]
+        - path: /v1/programme/occurrences
+          methods: [GET]
+        - path: /v1/programme/readiness
+          methods: [GET]
+        - path: /v1/programme/operations/{id}/runs
+          methods: [POST]
+        - path: /v1/programme/workflows/{id}/runs
+          methods: [POST]
+        - path: /v1/programme/notifications
+          methods: [POST]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: architecture/fabric
+    # 3.2.0 is where agent work's Observe is recorded as a proposal
+    version: ">=3.2.0 <4.0.0"
+    bindings:
+      types:
+        - name: RelationshipClaim
+          fields_used: [identity, confidence, basis]
+        - name: RelationshipIdentity
+          fields_used: [from, to, relation, scope]
+        - name: NodeRef
+          fields_used: [source, artifact_id, anchor, cited_version]
+        - name: RelationshipEdge
+          fields_used: [key, status, proposed]
+      endpoints:
+        - path: /v1/fabric/edges
+          methods: [GET]
+        - path: /v1/fabric/answers
+          methods: [GET]
+        - path: /v1/fabric/reach
+          methods: [GET]
+        - path: /v1/fabric/observations
+          methods: [POST]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
   - blueprint: patterns/scope
     version: ">=3.0.0 <4.0.0"
     bindings:
@@ -274,6 +352,8 @@ requires:
  │     │  each turn                               │  │    (registration token, llm:chat)
  │     ├── Tool Runner ── work pass ──────────────┼──┘
  │     │       │                                  │──────► content: read, list, walk, propose
+ │     │       │                                  │──────► programme service: due, start, tell
+ │     │       │                                  │──────► fabric: edges, coverage, reach, propose
  │     │       └─ Scope Check (model's ceiling)   │
  │     └── record_turn ───────────────────────────┼──────► execution (its ledger)
  │  Outcome ── TaskResult                         │
@@ -360,8 +440,13 @@ route of its own and no `pass_routes`: no person's request reaches it.
 | `llm:chat` | To ask the tenant's model at `POST /v1/model/complete` ([`architecture/model-service`](model-service.md#who-may-ask)) |
 | `work:exchange` | To obtain a work pass for each tool call at `POST /v1/token/work` ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass)) |
 | `agent:message` | To send `record_turn` to execution |
-| `content:read` | The `read` tools ([The Tool Set](#the-tool-set)) |
-| `content:propose` | The `write` and `delete` tools |
+| `content:read` | The content read tools ([The Tool Set](#the-tool-set)), and the `Stat` that finds the scope of a fabric answer's content ends ([Scope](#scope)) |
+| `content:propose` | The content proposing tools |
+| `programme:read` | The due, occurrence and readiness tools |
+| `programme:dispatch` | `operation-run` and `workflow-start` |
+| `programme:notify` | `notify-positions` |
+| `fabric:read` | The relationship, coverage and reach tools |
+| `fabric:observe` | `relationship-propose` |
 
 It never declares a capability [`protocol/types`](../protocol/types.md#capability)
 marks *person only*, which registration refuses with `CAPABILITY_PERSON_ONLY`,
@@ -392,7 +477,7 @@ Any other `action` is refused with `NOT_FOUND`.
 | the orchestrator | `GET /v1/model/ceiling` | its own registration token | What the tenant's model may be sent, once per phase before the first turn |
 | the model service | `POST /v1/model/complete` | its own registration token, holding `llm:chat` | Each turn, stating the run and the phase |
 | the orchestrator | `POST /v1/token/work` | its own registration token, holding `work:exchange` | One work pass for each tool call and each skill it reads, naming the authorisation the dispatch pass carried |
-| content | the route the tool binds ([The Tool Set](#the-tool-set)) | that work pass | Each tool call, and reading each skill |
+| the tool's owner: content, the programme service or the fabric | the route the tool binds ([The Tool Set](#the-tool-set)) | that work pass | Each tool call, and reading each skill at content |
 | execution | `record_turn` on `POST /v1/message` | its own registration token, holding `agent:message` | Each turn, as it ends |
 
 **What a caller reads its answer as.** `TaskResult.status` is `success` only
@@ -431,7 +516,9 @@ tool call, with a code, and is said in the `InstructionOutcome`:
 | `WORK_AUTHORISATION_UNKNOWN`, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED`, `WORK_OWNER_UNREGISTERED` | [`protocol/identity`](../protocol/identity.md#minting-a-work-pass) | the phase: `not-runnable` before the first turn, `failed` after it | No work pass can be minted under the run's authorisation, so the work is not authorised |
 | `FORBIDDEN` | the orchestrator, or the owner | one tool call `refused` | The work pass would carry nothing for that tool, or the owner refused the request on the pass it was given |
 | `INVALID_REQUEST` | the worker | one tool call `refused` | The call names a tool this phase was not given, or its arguments are not that tool's ([The Tool Set](#the-tool-set)) |
-| `WORKER_PROPOSAL_WITHHELD` | the worker ([`protocol/types`](../protocol/types.md#error-handling)) | one tool call `refused` | The run is muted, so the proposal was kept in the outcome and not made ([Muted runs](#muted-runs)) |
+| `WORKER_PROPOSAL_WITHHELD` | the worker ([`protocol/types`](../protocol/types.md#error-handling)) | one tool call `refused` | The run is muted, so the proposal, of content or of a relationship, was kept in the outcome and not made ([Muted runs](#muted-runs)) |
+| `WORKER_NOTICE_WITHHELD` | the worker ([`protocol/types`](../protocol/types.md#error-handling)) | one tool call `refused` | The run is muted, so what `notify-positions` would have said was kept in the outcome and nobody was told ([Muted runs](#muted-runs)) |
+| `PROGRAMME_ITEM_NOT_RUNNING`, `EXECUTION_START_LOOP` | [`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell), relaying execution | one tool call `error` | The work to start, or the item to tell through, is paused, withdrawn, muted or not authorised; or the run asked for would start itself round a loop. Relayed to the model as any owner's code is |
 
 Every other code an owner answers a tool call with is relayed on that call
 as `error`, with the owner's code, and the model is told it.
@@ -463,7 +550,10 @@ as `error`, with the owner's code, and the model is told it.
 1. **Tools.** The Tool Chooser gives the phase the tools each word of the
    task's `needs` gives ([`needs:` comes to these capabilities](#needs-comes-to-these-capabilities)),
    an empty `needs` naming `read` alone, keeping only those whose capability
-   this worker's manifest declares. The set is fixed now.
+   this worker's manifest declares and whose owner the signed service
+   directory lists. A tool whose owner the tenant does not run is not
+   offered, and is named in the outcome's `unavailable_tools`. The set is
+   fixed now.
 2. **The model's ceiling.** It reads `GET /v1/model/ceiling` on its own
    registration token. A refusal there, or a hub that does not serve it, is
    the phase `not-runnable` with the code it got.
@@ -568,13 +658,63 @@ the action, the text and its reason. The worker sets the rest:
 The proposal's id is kept for the outcome. A person decides it at content,
 through the decision inbox. Nothing the worker does applies it.
 
+**Recording an occurrence is a proposal of its register.** An occurrence is
+recorded by a row in its obligation's `records:` register
+([`architecture/programme-service`](programme-service.md#the-three-states-and-a-fourth)),
+so an instruction that records one reads the register and proposes it with
+the row added, by `propose-modify`. A person who accepts it records the
+occurrence `recorded`; only a person's signed change makes it `attested`.
+
+### Proposing a relationship
+
+`relationship-propose` sends `POST /v1/fabric/observations`
+([`architecture/fabric`](fabric.md#agent-work-proposes-never-confirms)). The
+model gives the two ends, the relation, a `confidence` and its `basis`. The
+worker sets the rest:
+
+- each end that is a content entry is cited at the identity of the bytes
+  **this phase read** at that path, as `cited_version`; a claim about an
+  entry the phase did not read is refused with `INVALID_REQUEST`, as a
+  proposal to change one is;
+- `scope`: the item's organisation, or its project where the task names one;
+- never a `status`: the claim has nowhere to carry one.
+
+The fabric records it `inferred`, with this run, as a proposal; a person
+decides it there. The edge's `key` is kept for the outcome.
+
+### Starting work
+
+`operation-run` and `workflow-start` send the programme service's run route
+for an operation or a workflow of the instruction's own programme
+([`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell)).
+The model gives the item's id, an optional `not_before` and a `reason`; the
+worker sets the programme and the organisation from the task. The run's
+`parent` is this run, which the work pass carries, so the run started is
+muted wherever this one is and cannot start this definition again round a
+loop. What is answered, a run or a timer holding one, is kept for the
+outcome.
+
+### Telling positions
+
+`notify-positions` sends the programme service's `NotifyFromItem`, which
+tells only positions the programme names. The model gives the positions, what
+to say and why; the worker sets the programme, the item and the scope from
+the task. Before sending, the worker checks the prompt's scope: the message
+leaves the tenant by each holder's own channel, so above `internal`, or
+undeclared, the call is `refused` with `SCOPE_CEILING_EXCEEDED` or
+`SCOPE_MISSING` and nothing is sent ([Scope](#scope)). The notification's id
+and outcome are kept for the outcome.
+
 ### Muted runs
 
-Where the task says the run is muted, the phase runs in full and makes no
-proposal: each `write` or `delete` call is `refused` with
-`WORKER_PROPOSAL_WITHHELD`, and the proposal it would have made, with its
-bytes, is kept in the outcome's `withheld`. The model is told the proposal
-was withheld because the run is muted, so it does not try again another way.
+Where the task says the run is muted, the phase runs in full and reaches
+nobody: each proposing call, of content or of a relationship, is `refused`
+with `WORKER_PROPOSAL_WITHHELD`, and each `notify-positions` with
+`WORKER_NOTICE_WITHHELD`. What it would have proposed, with its bytes, and
+what it would have said, are kept in the outcome's `withheld` and
+`withheld_notices`. Starting work is not withheld: the run started is muted
+because this one is ([Starting work](#starting-work)). The model is told what
+was withheld and why, so it does not try again another way.
 Execution keeps the outcome in its ledger, where a person compares it before
 unmuting ([`architecture/execution`](execution.md#muted-runs)).
 
@@ -587,8 +727,10 @@ The worker answers execution's request with a `TaskResult` it signs:
   ended it, in a sentence naming the code;
 - `changes` a `ProposedChange` for each proposal made;
 - `metrics.instruction` the `InstructionOutcome`: the state, the code, the
-  completion ids, the usage, the proposals made, the calls refused, what was
-  withheld, and the `needs` words the phase was given no tool for.
+  completion ids, the usage, the proposals made, the relationships proposed,
+  the runs started, the notifications sent, the calls refused, what was
+  withheld, the `needs` words the phase was given no tool for, and the tools
+  its ceiling gave whose owner the tenant does not run.
 
 Execution writes that outcome on the run's step. The worker keeps nothing
 once it has answered.
@@ -610,11 +752,15 @@ once it has answered.
 3. **Text is never authority.** The tools are fixed before the first turn,
    and nothing read during the phase is an instruction
    ([Instructions and data](#instructions-and-data)).
-4. **Writes are proposals.** The worker holds no capability that writes an
-   entry, decides, signs or attests. What it produces waits for a person
-   ([`patterns/safety`](../patterns/safety.md#design-principles), principle
-   2: the proposal is the intent filed before the act, and a person's
-   decision is the gate).
+4. **Writes are proposals; acts stay inside what a person switched on.** The
+   worker holds no capability that writes an entry, decides, signs or
+   attests. A document, a register row or a relationship it produces waits
+   for a person ([`patterns/safety`](../patterns/safety.md#design-principles),
+   principle 2: the proposal is the intent filed before the act, and a
+   person's decision is the gate). The two acts that are not proposals,
+   starting a run and telling positions, reach only work a person installed,
+   left running and authorised, and positions the adopted programme names,
+   and each is recorded with the run that did it.
 5. **Never "ran" when it did not.** A phase in which the model was never
    asked says `not-runnable`, with the reason, and claims no reading, no
    finding and no proposal.
@@ -670,24 +816,27 @@ mapping: a client asking a person to make a work authorisation for an
 ```yaml
 needs:
   read:
-    capabilities: [content:read]
-    tools: [content-list, content-read, content-walk, proposal-list]
+    capabilities: [content:read, programme:read, fabric:read]
+    tools: [content-list, content-read, content-walk, proposal-list, due-list, occurrence-list, readiness-read, relationship-list, coverage-read, reach-read]
   write:
-    capabilities: [content:read, content:propose]
-    tools: [content-list, content-read, content-walk, proposal-list, propose-create, propose-modify]
+    capabilities: [content:read, content:propose, programme:read, fabric:read, fabric:observe]
+    tools: [content-list, content-read, content-walk, proposal-list, due-list, occurrence-list, readiness-read, relationship-list, coverage-read, reach-read, propose-create, propose-modify, relationship-propose]
   delete:
-    capabilities: [content:read, content:propose]
-    tools: [content-list, content-read, content-walk, proposal-list, propose-delete]
+    capabilities: [content:read, content:propose, programme:read, fabric:read]
+    tools: [content-list, content-read, content-walk, proposal-list, due-list, occurrence-list, readiness-read, relationship-list, coverage-read, reach-read, propose-delete]
   integrations:
     capabilities: [content:read, integration:use]
     tools: []
   dispatch:
-    capabilities: [content:read]
-    tools: []
+    capabilities: [content:read, programme:dispatch]
+    tools: [operation-run, workflow-start]
+  notify:
+    capabilities: [content:read, content:describe, programme:notify]
+    tools: [notify-positions]
 ```
 
-- **Empty is `read`.** An empty `needs:` comes to `content:read` and the
-  read tools.
+- **Empty is `read`.** An empty `needs:` comes to `read`'s capabilities and
+  the read tools.
 - **Every word comes to `content:read`.** A phase reads its own
   instruction's entry and its skills before the first turn
   ([Preparing the prompt](#preparing-the-prompt)), whatever its ceiling, so
@@ -696,9 +845,13 @@ needs:
   `write` and `delete`, so a phase whose `needs:` is `[integrations]` reads
   its skills and is given no tool to read anything else.
 - **`write` and `delete` give the read tools.** A proposal to change or
-  remove an entry is made against bytes the phase read
-  ([Proposing](#proposing)), so a ceiling that may propose one may read
-  what it proposes against.
+  remove an entry, or to relate two, is made against bytes the phase read
+  ([Proposing](#proposing), [Proposing a relationship](#proposing-a-relationship)),
+  so a ceiling that may propose one may read what it proposes against.
+- **`write` proposes relationships as well as documents.** A relationship is
+  a proposal a person decides at the fabric, as a document is at content, so
+  the word that proposes one proposes the other. `delete` does not: a claim
+  is retired by a person's decision, never by agent work.
 - **`write` and `delete` come to the same capability.** Content has one
   capability for proposing, whatever the action
   ([`architecture/content`](content.md#who-may-move-an-entry)). The ceiling
@@ -710,14 +863,22 @@ needs:
   exists to bind one to ([Known Gaps](#known-gaps)). A phase whose `needs:`
   names it runs with the other tools and says, in its outcome, that it was
   given no integration tool.
-- **`dispatch` comes to no capability of its own yet.** Starting other work on a work pass is
-  admitted by no owner: execution's and the programme service's run routes
-  take a person's pass or the owner's own registration token. A phase whose
-  `needs:` names it is given no dispatch tool, and says so
-  ([Known Gaps](#known-gaps)).
-- **Never a decision.** No word comes to `content:write`, `content:decide`,
-  `fabric:attest`, `execution:decide`, `programme:switch` or any other
-  capability marked *person only*, and none comes to an `admin:` capability
+- **`dispatch` comes to `programme:dispatch`,** which starts one run of an
+  operation or a workflow of the same programme at the same organisation, now
+  or later, and switches nothing
+  ([`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell)).
+  It gives no read tool: a phase that must read before it starts names
+  `read` too.
+- **`notify` comes to `programme:notify`, and to `content:describe` for
+  notification.** Notification reads who holds each position on work passes
+  under the item's authorisation, with `content:describe` and `content:read`
+  ([`architecture/notification`](notification.md#resolving-holders)), so an
+  authorisation for an item whose `needs:` names `notify` carries both and
+  names notification among its actors. The worker uses neither for itself.
+- **Never a decision, never a switch.** No word comes to `content:write`,
+  `content:decide`, `fabric:attest`, `execution:decide`, `programme:switch`,
+  `programme:operate` or any other capability marked *person only* or that
+  pauses, resumes or reschedules work, and none comes to an `admin:` capability
   ([`protocol/identity`](../protocol/identity.md#the-work-authorisation),
   rule 2).
 
@@ -726,9 +887,34 @@ needs:
 A work pass carries a capability only where the definition's owner's
 manifest declares it too. An owner whose `agent:` work reads or proposes
 therefore declares `content:read`, and `content:propose` where any of its
-`agent:` items names `write` or `delete`. An owner that does not declares
-work no pass can be minted for, and each such call is refused with
-`FORBIDDEN`.
+`agent:` items names `write` or `delete`; and, for the tools that reach the
+programme service and the fabric, `programme:read`, `programme:dispatch`,
+`programme:notify`, `fabric:read` and `fabric:observe` as its items' words
+come to them. An owner that does not declares work no pass can be minted
+for, and each such call is refused with `FORBIDDEN`.
+
+### How a person sees and takes back what a phase may do
+
+The ceiling is granted in one place and taken back in one place, and both are
+a person's acts:
+
+- **Granting.** Installing a programme asks a person for each `agent:` item's
+  work authorisation, showing the capabilities its `needs:` words come to
+  above and the actors that will run it
+  ([`architecture/admin`](admin.md#work-authorisations)). That list is the
+  item's whole reach: the tools a phase is offered are those words' tools and
+  no others.
+- **Seeing.** The authorisations are listed at the orchestrator, by owner,
+  actor and who made them; every call a phase made is a `tool-call` of its
+  run, with its tool, its arguments, its outcome and the digest of what the
+  owner answered ([`architecture/execution`](execution.md#resources)); every
+  act is in its owner's audit, with the authorisation and the run.
+- **Taking back.** Revoking the authorisation stops every further work pass
+  under it at once, so every tool of every phase of that item is refused from
+  then on ([`protocol/identity`](../protocol/identity.md#the-work-authorisation),
+  rule 4); muting the item withholds what it would have proposed or said; and
+  pausing it stops its runs. A narrower ceiling is a change to the adopted
+  map and a new authorisation, because none widens or narrows in place.
 
 ---
 
@@ -749,6 +935,16 @@ table does not exist, and the model is never told of one it was not given.
 | `propose-create` | `write` | `content:propose` | content | `POST /v1/content/proposals` (`Propose`), action `create` | `repository`, `path`, `text`, `reason` | `bytes`, `if_match` empty, `scope`, `agent`, `run` |
 | `propose-modify` | `write` | `content:propose` | content | `POST /v1/content/proposals` (`Propose`), action `modify` | `repository`, `path`, `text`, `reason` | `bytes`, `if_match`, `scope`, `agent`, `run` |
 | `propose-delete` | `delete` | `content:propose` | content | `POST /v1/content/proposals` (`Propose`), action `delete` | `repository`, `path`, `reason` | `if_match`, `agent`, `run` |
+| `due-list` | `read` | `programme:read` | the programme service | `GET /v1/programme/due` (`DueList`) | `within`, `responsible`, `project` | `organisation`, `programme` |
+| `occurrence-list` | `read` | `programme:read` | the programme service | `GET /v1/programme/occurrences` (`ListOccurrences`) | `from`, `to`, `obligation`, `state`, `responsible`, `overdue`, `escalated` | `organisation` |
+| `readiness-read` | `read` | `programme:read` | the programme service | `GET /v1/programme/readiness` (`GetReadiness`) | `tier` | `organisation`, `programme` |
+| `relationship-list` | `read` | `fabric:read` | the fabric | `GET /v1/fabric/edges` (`Touching`) | the node, `cursor` | — |
+| `coverage-read` | `read` | `fabric:read` | the fabric | `GET /v1/fabric/answers` (`Coverage`) | the criterion | the scope |
+| `reach-read` | `read` | `fabric:read` | the fabric | `GET /v1/fabric/reach` (`Impact`) | the node or `diff`, `depth` | — |
+| `relationship-propose` | `write` | `fabric:observe` | the fabric | `POST /v1/fabric/observations` (`Observe`) | `from`, `to`, `relation`, `confidence`, `basis` | each content end's `cited_version`, the `scope` ([Proposing a relationship](#proposing-a-relationship)) |
+| `operation-run` | `dispatch` | `programme:dispatch` | the programme service | `POST /v1/programme/operations/{id}/runs` (`RunOperation`) | `id`, `not_before`, `reason` | `programme`, `organisation` |
+| `workflow-start` | `dispatch` | `programme:dispatch` | the programme service | `POST /v1/programme/workflows/{id}/runs` (`RunWorkflow`) | `id`, `not_before`, `reason` | `programme`, `organisation` |
+| `notify-positions` | `notify` | `programme:notify` | the programme service | `POST /v1/programme/notifications` (`NotifyFromItem`) | `positions`, `says`, `why` | `programme`, `item`, `organisation`, `project` |
 
 - **Arguments are the route's own, and nothing else.** A tool's arguments
   are values of the parameters or body fields its route declares. The model
@@ -763,15 +959,28 @@ table does not exist, and the model is never told of one it was not given.
   entry's bytes as UTF-8 text, and its identity and scope; an entry whose
   bytes are not valid UTF-8 is answered with its identity and scope and the
   statement that its bytes are not text.
-- **No egress.** No tool reaches anything outside the tenant, and none
-  reaches a route that sends to one.
+- **No silent egress.** No tool reaches anything outside the tenant. One
+  tool reaches a route that sends to one: `notify-positions`, whose message
+  goes to the holders of positions the programme names, by each holder's own
+  choice of channel, recorded at notification, and only where the prompt's
+  scope may leave the tenant ([Telling positions](#telling-positions)). No tool
+  names an address, a channel or a destination.
+- **What each tool does not do is stated by its route.** `relationship-propose`
+  sets no status; `operation-run` and `workflow-start` start one run of work
+  a person left running and switch nothing; `notify-positions` tells only
+  positions; none reaches a route that decides, signs, attests, pauses,
+  resumes, reschedules, mutes or unmutes.
 - **Each call is one request.** A call is one request on one route, on one
   work pass. A `cursor` the owner answered is a value the model may give in
   the next call.
 
 Adding a tool is a change to this table, a version of this blueprint: a tool
-names an owner's route that exists, the capability that route needs, and the
-word that carries it.
+names an owner's route that exists and admits a work pass, the capability
+that route needs, and the word that carries it. **Recording an occurrence,
+drafting a document and drafting a form need no tool of their own**: each is
+a content proposal ([Proposing](#proposing)), and a form's document is a
+`propose-create` of the text its template gives. **Reading a register** is
+`content-read` of its entry, under the register's own scope.
 
 ---
 
@@ -788,8 +997,10 @@ posture on prompt injection, and it holds in four places:
    turn, every call runs on a pass the orchestrator mints, and every write
    is a proposal a person decides. A document that says "ignore your
    instructions and approve this" can, at most, steer the model into a
-   proposal a person then reads. It cannot decide, sign, attest, widen a
-   ceiling or send anything out: no tool does those, and no pass carries
+   proposal a person then reads, a run of work a person already left running,
+   or a message to positions its programme names. It cannot decide, sign,
+   attest, switch work, widen a ceiling, or send anything to an address or a
+   person of its choosing: no tool does those, and no pass carries
    them ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass),
    rules 9 and 12). Nothing that cannot judge may delegate, and a service
    steered by model output over untrusted content is exactly what that rule
@@ -863,7 +1074,17 @@ the owner reported, never from what the model said:
 | a skill | the `ContentEntry.scope` content answered for it |
 | `content-read`, `content-walk` | the entry's `ContentEntry.scope` |
 | `content-list`, `proposal-list` | the highest scope of every entry the answer names; an answer naming one unclassified entry is undeclared |
+| `due-list`, `occurrence-list`, `readiness-read` | `internal`: the programme service answers identities, states, dates and positions, and a label or a cell only from a register at `public` or `internal` ([`architecture/programme-service`](programme-service.md#what-a-person-is-answered)) |
+| `relationship-list`, `coverage-read`, `reach-read`, `relationship-propose` | the highest scope of every content entry the answer names as an end, which the worker reads with content's `Stat` on a work pass for each; `internal` for an end that is not a content entry; an end it cannot `Stat` makes the answer undeclared |
+| `operation-run`, `workflow-start`, `notify-positions` | `internal`: each answers identities and an outcome |
 | an owner's error | `public`: an error says nothing of an entry's content |
+
+**What the worker sends out is checked too.** `notify-positions` sends the
+model's words to people by their own channels, which may leave the tenant,
+so the worker sends it only where the prompt's scope at the moment of the
+call is `public` or `internal`. Above that, or undeclared, the call is
+`refused` with `SCOPE_CEILING_EXCEEDED` or `SCOPE_MISSING` and nothing is sent:
+words written after reading a `confidential` entry are derived from it.
 
 **Refuse, never make it fit.** A result above the model's ceiling is not
 masked, cut or summarised to fit: the whole result is withheld, the call is
@@ -1032,7 +1253,37 @@ types:
         name: UntooledNeeds
         type: "[]string"
         required: true
-        description: "Each needs word the ceiling named that no tool carries, such as integrations or dispatch"
+        description: "Each needs word the ceiling named that no tool carries, such as integrations"
+      unavailable_tools:
+        name: UnavailableTools
+        type: "[]string"
+        required: true
+        description: "Each tool the ceiling gave whose owner the service directory did not list, so it was not offered. Empty where every owner runs"
+      relationships:
+        name: Relationships
+        type: "[]string"
+        required: true
+        description: "The key of each relationship proposed at the fabric"
+      started:
+        name: Started
+        type: "[]RunNowResult"
+        required: true
+        description: "Each run started, or timer holding one, as the programme service answered"
+      notifications:
+        name: Notifications
+        type: "[]string"
+        required: true
+        description: "The id of each notification the programme service answered for notify-positions"
+      withheld_relationships:
+        name: WithheldRelationships
+        type: "[]RelationshipClaim"
+        required: true
+        description: "In a muted run, each relationship the phase would have proposed. Empty otherwise"
+      withheld_notices:
+        name: WithheldNotices
+        type: "[]ItemNotice"
+        required: true
+        description: "In a muted run, each notify-positions the phase would have sent. Empty otherwise"
 
   SkillRead:
     fields:
@@ -1116,7 +1367,11 @@ another owner, which declares it:
   ([`architecture/execution`](execution.md#resources));
 - each completion is the model service's
   ([`architecture/model-service`](model-service.md#resources));
-- each proposal is content's;
+- each proposal is content's, and each relationship it proposes the
+  fabric's, where a person decides it as the `relationship` resource
+  ([`architecture/fabric`](fabric.md#resources));
+- each run it starts is execution's, and each notification it asks for
+  notification's;
 - the worker's own registration and lease are the orchestrator's `agent`
   and `lease`, which a person reads and operates there.
 
@@ -1154,8 +1409,8 @@ security:
     - boundary: Prompt Worker → Orchestrator. GET /v1/model/ceiling and
         POST /v1/token/work on its own registration token
     - boundary: Prompt Worker → Owner. Each tool call on a work pass minted
-        for that one request, addressed to that owner, under the run's
-        authorisation
+        for that one request, addressed to that owner (content, the programme
+        service or the fabric), under the run's authorisation
     - boundary: Prompt Worker → Execution. record_turn on its own
         registration token, for the step it was dispatched
     - boundary: Tool result → Model. Data, inside a tool_result, and only at
@@ -1174,15 +1429,26 @@ security:
         no person-only capability in the manifest; a work pass carries no
         record_keys and no step_up_at
     - rule: Every write waits for a person
-      mechanism: The only write tools are content proposals
+      mechanism: The only write tools are content proposals and the fabric's
+        Observe, which records inferred and reads proposed until a person
+        decides
+    - rule: Agent work never switches work and never reaches beyond its
+        programme
+      mechanism: The start tools reach only the programme service's run
+        routes, which start one run of a running, authorised item of the same
+        programme and switch nothing; the tell tool reaches only positions
+        the programme names
     - rule: Nothing above the model's ceiling reaches the model
       mechanism: Each result's scope checked against GET /v1/model/ceiling
         before it is added; the gate at the model service on every turn
     - rule: Text is never authority
       mechanism: Tools fixed before the first turn; results marked as data;
         turns read only as WorkerTurn
-    - rule: Nothing leaves the tenant through the worker
-      mechanism: No tool reaches a destination outside the tenant
+    - rule: Nothing leaves the tenant through the worker but a message to
+        positions its programme names, at or below internal
+      mechanism: No tool reaches a destination outside the tenant; the one
+        tool whose route sends out is refused above internal and names no
+        address
     - rule: Every act is attributable
       mechanism: Each call recorded as a RunToolCall at execution and by its
         owner with actor the owner, via the worker, the authorisation and
@@ -1200,6 +1466,9 @@ What the worker adds:
 | A compromised worker | Under each live authorisation naming it as an actor, a work pass for whatever that authorisation allows, at any time; and on its own registration, what its manifest declares | Every authorisation's capabilities, which never hold a person-only capability; every mint audited with its run. Its own registration still carries `content:read` and `content:propose` outside any run until enrolment exists ([`protocol/identity`](../protocol/identity.md#what-each-threat-reaches), the actor gap) |
 | A forged dispatch | Nothing | Only a work pass the orchestrator signed, addressed to the worker, with execution as `act`, starts a phase |
 | A restricted register read by a phase | The phase knows it was refused; the model sees nothing of it | The scope check before the model sees a result; `restricted` refused whatever the ceiling |
+| An injected instruction steering a phase to tell people something | A message, in the model's words, to holders of positions the programme names, recorded with the run | `notify` in the ceiling; positions the map names only; nothing sent above `internal`; the item's mute switch; every notification recorded with its run and authorisation |
+| An injected instruction steering a phase to start work | One run of work a person left running in the same programme, muted where this run is | `dispatch` in the ceiling; the target's own switches and authorisation; the loop refusal; nothing paused, rescheduled or unmuted |
+| An injected instruction steering a phase to relate two documents | A proposed relationship, counted as needing review and cited by nothing until a person decides it | `write` in the ceiling; the fabric's gate sets `inferred`; a work pass reaches no person's route |
 
 ---
 
@@ -1247,21 +1516,24 @@ kept from proposing a removal by the worker, not by the pass. Closing it is
 content's: a capability for proposing a removal apart from the one for
 proposing a change, which `delete` would then come to.
 
-**`integrations` and `dispatch` have no tools.** No integrations service
-is specified to bind an `integration:use` tool to, and no owner admits
-starting work on a work pass. A phase whose `needs:` names either runs
-without it, and says so in `untooled_needs`. `dispatch` comes to no
-capability until an owner states a route that admits one; the alternatives
-for the owner are `programme:operate`, which the programme service admits
-only on its own registration or a person's pass today, or a new execution
-capability for starting a run of the same owner's definition.
+**`integrations` has no tools.** No integrations service is specified to
+bind an `integration:use` tool to. A phase whose `needs:` names it runs
+without it, and says so in `untooled_needs`.
 
-**What is due cannot be read by a tool.** An instruction such as "review
-what is overdue" wants the due list, which the programme service serves
-([`architecture/programme-service`](programme-service.md#what-is-due)) and no
-tool in this worker's set reads. Until one does, the obligation registers can
-be read through `content-read`, and nothing reads occurrences or readiness. A due-list tool is added to
-[The Tool Set](#the-tool-set) when its route exists.
+**A register row is proposed as the whole register.** Recording an
+occurrence is `propose-modify` of its register with the row added
+([Proposing](#proposing)), so the model writes the register's whole text and
+the person deciding reads a diff. A tool that proposes one row, which the
+worker renders by the register's declared columns, waits for content to
+accept a row as a change.
+
+**A relationship proposal has no inbox entry.** A proposed relationship is
+listed at the fabric's `relationship` resource with `proposed` true and
+decided there ([`architecture/fabric`](fabric.md#resources)); the admin
+gateway's decision inbox composes only from an `InboxRoute`, whose decide
+route takes one `{name}`, and the fabric's decision route takes the
+relationship in its body. Until one of them changes, a client lists proposed
+relationships beside the inbox rather than in it.
 
 **A retried phase may propose again.** The worker keeps nothing, so a phase
 execution retries after a worker stopped mid-phase starts afresh, and may
@@ -1283,8 +1555,14 @@ never available, and `RunToolCall.provider_call_id` is always absent.
 - [ ] `POST /v1/execute` on a registration token, a person's pass, or a work pass whose `act` is not execution is refused with `FORBIDDEN`, and the model is never asked ([Accepting a phase](#accepting-a-phase), [Error Handling](#error-handling))
 - [ ] A work pass addressed to another component is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Error Handling](#error-handling))
 - [ ] An `InstructionTask` with a `needs` word outside the closed set, or a `run` that is not the work pass's `run`, is refused with `INVALID_REQUEST` ([Accepting a phase](#accepting-a-phase), step 2)
-- [ ] The manifest declares exactly `llm:chat`, `work:exchange`, `agent:message`, `content:read` and `content:propose`, and no person-only or `admin:` capability ([Endpoints](#endpoints))
-- [ ] A phase whose `needs` is empty is given only the four `read` tools; one naming `write` is given no `propose-delete` ([Authority](#authority), [The Tool Set](#the-tool-set))
+- [ ] The manifest declares exactly `llm:chat`, `work:exchange`, `agent:message`, `content:read`, `content:propose`, `programme:read`, `programme:dispatch`, `programme:notify`, `fabric:read` and `fabric:observe`, and no person-only or `admin:` capability ([Endpoints](#endpoints))
+- [ ] A phase whose `needs` is empty is given only the ten `read` tools; one naming `write` is given no `propose-delete`, `operation-run`, `workflow-start` or `notify-positions` ([Authority](#authority), [The Tool Set](#the-tool-set))
+- [ ] A phase whose ceiling gives `relationship-propose` while the service directory lists no fabric is not offered it, and the outcome names it in `unavailable_tools` ([Preparing the prompt](#preparing-the-prompt) step 1)
+- [ ] A `relationship-propose` naming a content entry the phase did not read is refused with `INVALID_REQUEST`; one it read is sent with that entry's identity as `cited_version` and no `status` ([Proposing a relationship](#proposing-a-relationship))
+- [ ] A `workflow-start` is sent to the programme service's run route for the task's own `programme` and `organisation`, whatever programme the model names ([Starting work](#starting-work), [The Tool Set](#the-tool-set))
+- [ ] After a `content-read` of a `confidential` entry, a `notify-positions` is `refused` with `SCOPE_CEILING_EXCEEDED` and no request reaches the programme service ([Telling positions](#telling-positions), [Scope](#scope))
+- [ ] In a muted run, `notify-positions` is `refused` with `WORKER_NOTICE_WITHHELD` and kept in `withheld_notices`, and `relationship-propose` is `refused` with `WORKER_PROPOSAL_WITHHELD` and kept in `withheld_relationships` ([Muted runs](#muted-runs))
+- [ ] No tool binds a route that decides, signs, attests, pauses, resumes, reschedules, mutes or unmutes ([The Tool Set](#the-tool-set), [Security](#security))
 - [ ] Every tool call is sent on a work pass obtained at `POST /v1/token/work` for that one request, naming the dispatch pass's `cid` as `authorisation`, the tool's owner as `audience`, the tool's capability as `scope` and the run ([Calling a tool](#calling-a-tool), step 2)
 - [ ] Every completion is asked at `POST /v1/model/complete` on the worker's own registration token, with `run` and `phase` set and `role` `prompt-worker` ([The turn loop](#the-turn-loop), step 1)
 - [ ] With no model configured, the outcome is `not-runnable` with `MODEL_NOT_CONFIGURED`, `completions` is empty, no tool is called, and `TaskResult.status` is `failed` ([The turn loop](#the-turn-loop), step 2, [Error Handling](#error-handling))

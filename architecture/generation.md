@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.5.0
+version: 1.6.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -35,6 +35,34 @@ models will name and structure things differently. What must not differ is what
 a caller can observe: the files that exist, the symbols they expose, the
 endpoints served, the properties asserted by every blueprint's Verification
 Checklist, and the conformance result.
+
+### Logic arrives by generation, never at run time
+
+A tenant gains behaviour two ways, and they are never the same act.
+
+| | At run time | At build time |
+|---|---|---|
+| **What it is** | A programme's `agent:` instruction, run by the prompt worker | A component — a service the tenant's build plan names, a domain service a programme asks for, a published agent — generated from its blueprint |
+| **What the model may do** | Answer text. It holds no tool, file or shell; the worker carries out only the calls its closed tool set declares, on work passes ([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)) | Answer one file's text at a time. It holds no tool, file or shell either; the CLI validates every path and writes every file ([`architecture/cli`](cli.md#generated-output-is-untrusted)) |
+| **What it produces** | Proposals a person decides, runs of work a person left running, messages to positions | Code, built, started and gated by the four layers below before it is called finished |
+| **Who starts it** | Execution, under a work authorisation a person made | A person, through a change: `weblisk change plan --adopt <ref>`, approved by a person, applied in the tenant ([`architecture/cli`](cli.md#changes); [`schemas/change`](../schemas/change.md#executors)) |
+| **What it may never do** | Add a route, a component, a capability, a workflow that needs a `does:` action the programme service does not run, or any code | Run against the tenant's content, keys or state: generation's inputs are blueprints and a platform specification alone ([Security](#security)) |
+
+So **building logic into a tenant is generation**: a new agent, a new kind of
+workflow step, a rule over a programme's records, an integration. A programme
+asks for it by declaring a domain service, and a tenant is told what it lacks
+by its build plan
+([`schemas/programme`](../schemas/programme.md#adoption-emits-a-build-plan));
+a person applies the change, and the CLI generates, writes, builds and
+verifies it in the tenant under the tenant's `generation` credential, with
+the tenant's model given no tool, no MCP server and no session
+([`architecture/cli`](cli.md#generated-output-is-untrusted)).
+**The sandbox is the pipeline, not the model**: the CLI writes nothing until
+every file succeeds, refuses any path that escapes the target, builds and
+starts the result in its target directory, and repairs it by asking the model
+for whole files again; the model never touches the target itself. An
+instruction that needs logic no tool expresses is a reason to change the
+programme, never something the prompt worker may improvise.
 
 ---
 
@@ -1764,6 +1792,7 @@ and "nothing contradicted it".
 ---
 
 ## Verification Checklist
+- [ ] A component a tenant's build plan names is generated only by a change a person approved, applied in the tenant, and no run-time `agent:` phase produces a file, a route or a component ([Logic arrives by generation, never at run time](#logic-arrives-by-generation-never-at-run-time))
 - [ ] A transient provider failure inside a call is retried across a window measured in minutes, not seconds ([Surviving a provider outage](#surviving-a-provider-outage))
 - [ ] A transient failure of the run resumes it, reusing every completed file from cache ([Surviving a provider outage](#surviving-a-provider-outage))
 - [ ] A session or quota limit is never retried, and is recognised before the retryable status codes ([Surviving a provider outage](#surviving-a-provider-outage))
