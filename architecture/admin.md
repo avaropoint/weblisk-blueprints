@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.2.0
+version: 5.2.1
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -2250,6 +2250,11 @@ a failed registration. <!-- wl:id operators-list-pending -->
 | **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest`, `work:authorise`, `notification:read`, `notification:receive` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
 | **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:receive` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything but their own notification preference |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:read`, `notification:receive` | Read-only plus full audit log access with export capability, and whom notices told |
+
+A role in this table holds across the tenant. A role an operator holds at one
+organisation or one project is a grant, the orchestrator's record
+([`architecture/orchestrator`](orchestrator.md#a-role-held-at-an-organisation-or-a-project)),
+which never raises them above the role they hold here.
 
 A role is held by an operator, and an operator is always a person
 ([`protocol/types`](../protocol/types.md#operator)), so a role may carry a

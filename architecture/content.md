@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.1.0
+version: 5.1.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -3506,7 +3506,10 @@ types:
       scope_path:
         type: string
         required: true
-        description: tenant/org/project confinement this repository belongs to
+        description: tenant/org/project confinement this repository belongs to.
+          Each segment after the tenant's is the name of an organisation or a
+          project the orchestrator records (architecture/orchestrator, The
+          tenant's organisations and projects)
       placement:
         type: Placement
         required: true

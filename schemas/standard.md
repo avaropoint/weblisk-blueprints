@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 noun: standard
 capabilities: [author, versioned]
 ---
@@ -180,6 +180,13 @@ The ruler, never the measurement, applies here too. `applies_in` says where the
 standard *has* force, not that any organisation there has adopted it, is
 certified to it, or is being measured against it. Which standards an
 organisation is held to is tenant content, in the customer's own repositories.
+
+Where an organisation operates is its own fact, `operates_in`, held with the
+organisation by the tenant's orchestrator
+([`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects))
+in the grammar this field uses. A client compares the two to suggest what to
+adopt, and the comparison decides nothing: an absent `operates_in` narrows
+nothing, and an adopted standard is never hidden by it.
 
 ---
 
