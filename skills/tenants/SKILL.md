@@ -53,7 +53,8 @@ start-and-claim.
 
 `tenant create` generates **one** component. Everything else a tenant needs —
 the content service that lets it hold authored text, a gateway, agents, domain
-controllers — is added afterwards, one at a time, into the same module.
+controllers, and the services an adopted programme's build plan names — is
+added afterwards, one at a time, into the same module.
 
 ```
 weblisk component help                 # what this installation can add

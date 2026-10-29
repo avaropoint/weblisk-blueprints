@@ -41,6 +41,11 @@ This replaced three separate `default:` arms that placed unrecognised kinds into
 an evidence chain — one as `standard`, one as `blueprint`, one as `reference`.
 All three scored unknown documents as compliance.
 
+**A kind without `chain-member` has no layer.** Write `—` in its layer
+column. A row that gives a layer to a kind that is not a chain member breaks
+the declaration's own rule, and a reader that refuses the declaration falls
+back to whatever copy it holds — `schemas/kinds.md`, "Evidence chain layers".
+
 ## The two capabilities most often got wrong
 
 `counts-as-coverage` and `opens-gap` are **separate**. A guideline has **neither**:
