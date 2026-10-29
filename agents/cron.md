@@ -13,6 +13,12 @@ tier: free
 
 # Cron Agent
 
+> **Superseded by [`architecture/execution`](../architecture/execution.md)**,
+> which merges cron, task and workflow into one service with one run ledger.
+> This blueprint is kept as the interim description of the runner and is not
+> retired; it serves no person's step, no approvers by position, no
+> `escalate`, no pass on any route and no `/v1/admin/workflows`.
+
 Scheduled task execution with cron-style expressions. Supports
 one-time and recurring tasks with retry logic, execution history,
 and event-driven dispatch.

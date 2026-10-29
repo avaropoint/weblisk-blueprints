@@ -13,6 +13,12 @@ tier: free
 
 # Workflow Agent
 
+> **Superseded by [`architecture/execution`](../architecture/execution.md)**,
+> which merges cron, task and workflow into one service with one run ledger.
+> This blueprint is kept as the interim description of the runner and is not
+> retired; it serves no person's step, no approvers by position, no
+> `escalate`, no pass on any route and no `/v1/admin/workflows`.
+
 Infrastructure agent that owns the workflow execution engine. Receives
 `workflow.trigger` events, resolves DAG definitions from source
 domains, dispatches phases via `task.submit` events, tracks execution
@@ -1049,6 +1055,9 @@ overridable_behaviors:
     audit: logged
 
 manual_actions:
+  # cancel_execution and retry_execution are declared on the wire as the run
+  # kind's cancel and retry verbs (architecture/execution, Resources); they
+  # stay listed here because this agent is kept as the interim description
   - action: cancel_execution
     description: Cancel an in-flight workflow
     allowed: operator

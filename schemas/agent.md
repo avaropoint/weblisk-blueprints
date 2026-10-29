@@ -195,6 +195,7 @@ after the section they extend:
 |---------|-------------|-------------|
 | `## Cron Expression Format` | Execute Workflow | Agents with schedule-based triggers |
 | `## Restore Procedure` | Storage | Agents with backup/restore |
+| `## Resources` | Types | Agents holding or running something a person may see and operate ([`schemas/resource`](resource.md)) |
 | `## Examples` | Any section | Extended examples beyond test fixtures |
 
 ---
@@ -524,6 +525,17 @@ direct_messages:
 5. Every subscribed event must have `topic`, `payload`, and `action`
 
 ### Manual Overrides (`## Manual Overrides`)
+
+**`manual_actions` is not a route.** An entry names an act and an allowed
+role, and states no capability, precondition, effect or route, so no entry
+exists on the wire. An act a person performs on something the agent holds is
+a **verb** of that kind in a `## Resources` section
+([`schemas/resource`](resource.md#verbs)), declared with its capability,
+preconditions, in-flight handling, effect and reversibility, and an entry
+moves there when its kind is declared, leaving this list. An entry that acts
+on no item — pausing a whole queue, a sweep, a tick loop — waits for the
+component it belongs to to declare itself as a kind, and is not invented as a
+verb on something else.
 
 ```yaml
 override_policy: full-auto|supervised|manual-only

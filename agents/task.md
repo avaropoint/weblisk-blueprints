@@ -13,6 +13,12 @@ tier: free
 
 # Task Agent
 
+> **Superseded by [`architecture/execution`](../architecture/execution.md)**,
+> which merges cron, task and workflow into one service with one run ledger.
+> This blueprint is kept as the interim description of the runner and is not
+> retired; it serves no person's step, no approvers by position, no
+> `escalate`, no pass on any route and no `/v1/admin/workflows`.
+
 Infrastructure agent that owns task dispatch and tracking. Receives
 `task.submit` events, dispatches work to target agents via
 `POST /v1/execute`, tracks completion, and publishes `task.completed`

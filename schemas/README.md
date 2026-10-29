@@ -92,6 +92,7 @@ declarations with no `kind`, which no file is walked against.
 | [run-statement.md](run-statement.md) | What one generation run read and wrote, the model the backend reported, and what each output traces to: an in-toto statement with a SLSA Provenance predicate | The CLI writing a run's record; the fabric's `generation-statements` producer reading it |
 | [change.md](change.md) | One change to what a tenant is built from: its plan and verdicts, the conflicts it introduces and clears, its approval, the executor of each change verb, and when one is well formed. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The CLI and the tenant's change service writing a change; every client rendering one |
 | [build-lock.md](build-lock.md) | The tenant's one lock: resolved versions only, never roots or reasons. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The change service writing `.weblisk/build.lock`; every plan reading it |
+| [resource.md](resource.md) | What a tenant holds or runs that a person may see and operate: the Resources block an owner's blueprint declares each kind in — fields, operations, verbs, authority, states, events, relations — and when one is well formed. Its vectors are [`vectors/resources/`](../vectors/resources/README.md) | Every component a person operates; the admin gateway, the CLI and every console reading the catalogue |
 
 ### kinds.md is different from the others
 
@@ -132,7 +133,8 @@ common.md (inherited by all)
 ├── blocks.md (the typed blocks a slot may hold, and the field type vocabulary)
 ├── run-statement.md (what one generation run read, wrote and traced — the fabric's declared source)
 ├── change.md (one change to what a tenant is built from — plan, approval, executors, bound by vectors/change/)
-└── build-lock.md (the tenant's resolved versions, and nothing else)
+├── build-lock.md (the tenant's resolved versions, and nothing else)
+└── resource.md (what a person may see and operate of a tenant — declared by each owner, bound by vectors/resources/)
 ```
 
 Every type-specific schema inherits all rules from `common.md`. Type-specific

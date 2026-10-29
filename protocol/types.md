@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.0.0
+version: 6.2.0
 requires: []
 platform: any
 tier: free
@@ -189,13 +189,31 @@ pass). Every such component MUST answer it with this status and no other.
 |------|------|----------|-------------|
 | `STEP_UP_REQUIRED` | 401 | permanent | A destructive act arrived without the step-up it needs. Nothing changes. When it is answered, what it carries and how a client answers it are [`architecture/admin`](../architecture/admin.md#contracts)'s `destructive-action-step-up`, stated nowhere else. The admin gateway returns it as the provider gave it |
 
+**Work pass codes** (produced by the orchestrator's judgement of a work
+authorisation at `POST /v1/token/work`, and answered in
+`WorkExchangeResponse.code`, [`protocol/identity`](identity.md#the-work-pass)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `WORK_AUTHORISATION_UNKNOWN` | 404 | permanent | The orchestrator holds no such work authorisation, or it does not name the caller among its actors. The two are answered alike |
+| `WORK_AUTHORISATION_REVOKED` | 403 | permanent | The work authorisation was revoked. Nothing is minted |
+| `WORK_AUTHORISATION_EXPIRED` | 403 | permanent | The work authorisation is past its `not_after`. Nothing is minted until a person renews it |
+| `WORK_OWNER_UNREGISTERED` | 409 | transient | The work authorisation's owner is not registered now under the identity id it names. Nothing is minted |
+
+**Programme service codes** (produced by the programme service,
+[`architecture/programme-service`](../architecture/programme-service.md#error-handling)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `PROGRAMME_NOT_ADOPTED` | 404 | permanent | An installation named a programme the organisation holds no `adoption.md` for in any of its repositories. Nothing is installed; a person adopts it first |
+
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
 
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `PASS_REQUIRED` | 401 | permanent | A component other than the orchestrator and the admin gateway was presented an operator token, which no holder may present there ([`protocol/identity`](identity.md#the-pass), rule 4). A person's request goes to the tenant's admin gateway, which carries it on a pass, and a tool call to the MCP surface on a credential [`patterns/auth-oauth`](../patterns/auth-oauth.md) issued for it ([`architecture/mcp`](../architecture/mcp.md)). Logged as a security event |
-| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
+| `PASS_AUDIENCE_MISMATCH` | 401 | permanent | A pass or a work pass was presented to a component its `aud` does not name, the orchestrator included. Logged as a security event |
 
 **Destination codes** (produced by the destination gate of `patterns/scope`,
 and answered by every sender it binds):
@@ -207,6 +225,30 @@ and answered by every sender it binds):
 
 What the gate refuses, and what a `DestinationRefusal` carries, are
 `patterns/scope`'s.
+
+**Resource codes** (produced by the owner of a resource kind, and by the admin
+gateway at the uniform address, [`schemas/resource`](../schemas/resource.md);
+when each is answered is
+[`architecture/admin`](../architecture/admin.md#writes-and-what-guards-them)'s).
+Every owner of a kind answers them with these statuses and no other.
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `RESOURCE_KIND_UNDECLARED` | 404 | permanent | The kind is not one the tenant's catalogue declares. An undeclared kind does not exist on the wire |
+| `RESOURCE_OPERATION_UNDECLARED` | 405 | permanent | The kind is declared and the operation or verb is not one its declaration names. The answer's `Allow` header names the methods the address does serve |
+| `RESOURCE_FIELD_NOT_SETTABLE` | 400 | permanent | A write names a field its declaration does not let a person set there: a `read-only` field, or a `create` field on `update`. `detail.fields` names each. Nothing changes |
+| `RESOURCE_IF_MATCH_REQUIRED` | 428 | permanent | An `update`, a `delete` or a verb arrived with no `If-Match`. A write with no precondition acts on something its sender has not seen |
+| `RESOURCE_PRECONDITION_FAILED` | 412 | permanent | `If-Match` does not equal the item's ETag now. Nothing changes. The answer carries the current ETag; the client reads the item again |
+
+**Execution codes** (produced by [`architecture/execution`](../architecture/execution.md#error-handling)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `EXECUTION_NOT_A_HOLDER` | 403 | permanent | The person deciding a wait does not hold the position the decision names, or that position is not one the wait still awaits. Nothing is decided |
+| `EXECUTION_DECISION_OUT_OF_ORDER` | 409 | permanent | A sequential approval decided as a position whose turn has not come. Nothing is decided |
+| `EXECUTION_POSITION_UNRESOLVED` | 503 | transient | Who holds the positions a wait names cannot be read, so no decider can be shown to hold one. Nothing is decided |
+| `EXECUTION_MUTED` | 409 | permanent | A decision on a wait of a muted run, which reaches nobody |
+| `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A request of a run must be carried on a work pass under its definition's work authorisation and none can be obtained. The step is not dispatched |
 
 **Identity error codes** (produced by `protocol/identity`):
 
@@ -238,7 +280,7 @@ originating subsystem.
 
 **Registry vs. local codes:**
 - All protocol-level, enforcement, policy, contract, federation,
-  safety, operator token, destination, identity, and common codes are
+  safety, operator token, resource, destination, execution, identity, and common codes are
   registered in this central table. These codes may appear in any
   component.
 - Agent-local codes (specific to a single agent's domain logic) are
@@ -358,6 +400,11 @@ types:
         type: "[]PassRoute"
         required: false
         description: "Every route at which this component admits a person's request on a pass, with every capability each requires. Absent or empty: the admin gateway carries no person's request here. See [PassRoute](#passroute)"
+      resources:
+        name: Resources
+        type: "[]ResourceDeclaration"
+        required: false
+        description: "Each kind this component's blueprint declares in its Resources block, and no other. Absent or empty: it owns no kind a person may operate. See [Resources](#resources)"
 ```
 
 ### Capability
@@ -390,12 +437,14 @@ publishes it and is not part of it, so `architecture/hub`'s federation
 examples, such as `inventory:check`, are listings and are not listed here. An owner is named as a unit: `orchestrator`
 ([`architecture/orchestrator`](../architecture/orchestrator.md), with
 [`architecture/admin`](../architecture/admin.md) its administrative surface),
-`content`, `fabric`, `enforcement`, `gateway` and `domain` (each its
+`content`, `fabric`, `enforcement`, `gateway`, `domain` and `execution` (each its
 `architecture/` blueprint). `programme` is
 [`architecture/programme-service`](../architecture/programme-service.md), which
-no component blueprint implements yet. Two owners have no blueprint in this
-corpus yet: `integrations` and `telemetry`. The names of these three guard no
-running route until a component implements their owner's blueprint. Five names have a nominated owner
+no tenant runs yet, and `notification` is
+[`architecture/notification`](../architecture/notification.md), which no
+tenant runs yet. Two owners have no blueprint in this
+corpus yet: `integrations` and `telemetry`. The names of these four guard no
+running route until a component built from their owner's blueprint runs. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
 Those five are judged by no rule until their owner's blueprint states one. All
@@ -405,7 +454,7 @@ refused ([`protocol/spec`](spec.md#post-v1register)).
 **Standard capabilities:**
 - `file:read` (enforcement) — read files (resources: glob patterns)
 - `file:write` (enforcement) — write/modify files
-- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
+- `llm:chat` (orchestrator) — use a language model. A person's request needs it to ask the tenant's model for a completion at `POST /v1/admin/complete` ([`architecture/orchestrator`](../architecture/orchestrator.md#administrative-endpoints)), and `architecture/admin`'s roles table says which roles carry it. A registered component needs it, declared on its own manifest, to ask the tenant's model at `POST /v1/model/complete`, the model service's route ([`architecture/model-service`](../architecture/model-service.md#who-may-ask)). It is the one capability a requester needs to ask a model, and no other is minted for that: the model capabilities below are for recording an agreement (`model:attest`) and for serving the tenant's model route (`model:route`)
 - `agent:message` (orchestrator) — communicate with other agents
 - `workflow:execute` (domain) — execute multi-agent workflows (domain controllers)
 - `http:get` (enforcement) — make external HTTP requests
@@ -448,7 +497,7 @@ which also says whom the two grants separate today).
 
 **Model capabilities:**
 - `model:attest` (orchestrator) — record and withdraw an agreement attestation, which raises what a model provider may be sent ([`patterns/scope`](../patterns/scope.md#model-providers)). *Person only*
-- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` is the orchestrator's own route and is served by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
+- `model:route` (enforcement) — send to a model provider's endpoint as the tenant's model route ([`patterns/scope`](../patterns/scope.md#the-gate)). Declared by a component that serves `patterns/api-ai`'s endpoints, and by nothing else. `POST /v1/admin/complete` and `POST /v1/model/complete` are served by the model gateway in the orchestrator's own process and by no component, so nothing declares it there ([`patterns/scope`](../patterns/scope.md#the-gate), Where the tenant applies it)
 
 `model:route` is how [`architecture/enforcement`](../architecture/enforcement.md#external-proxy)'s
 external boundary tells the model route from a call made around it. It
@@ -489,19 +538,31 @@ for every person-only capability. `fabric:produce` and `fabric:observe` are a
 producer's, which is a registered component.
 
 **Programme capabilities:**
-- `programme:read` (programme) — read a programme's installed operations and what they have produced
+- `programme:read` (programme) — read a programme's installations and installed items and what they have produced, and what is due: obligations in force, their occurrences, the due list and readiness
 - `programme:install` (programme) — install a programme's operations at a scope
-- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation
-- `programme:switch` (programme) — decide whether an operation's runs reach people: mute, unmute, and who hears them. *Person only*
+- `programme:operate` (programme) — pause, resume, run and reschedule an installed operation or workflow
+- `programme:switch` (programme) — decide whether an installed item's runs and advances reach people: mute and unmute. Who hears an item is not switched by it: that is the positions the map names and who holds them, each changed where it is held ([`architecture/programme-service`](../architecture/programme-service.md#rescheduling)). *Person only*
 
 Which route needs which is
 [`architecture/programme-service`](../architecture/programme-service.md#endpoints)'s.
-No component implements that document yet, so these names guard no running
-route. The programme
+No tenant runs a component built from that document yet, so these names guard
+no running route. The programme
 service is to declare the first three, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own
 person-only capabilities.
+
+**Execution capabilities:**
+- `execution:read` (execution) — read runs, their steps, waits and timers, registered starts, and the definitions execution fetched
+- `execution:operate` (execution) — cancel a run, and retry a failed one. A registration token reaches only runs of definitions its own identity owns
+- `execution:register` (execution) — register, change, pause, resume, run now and withdraw the caller's own starts. A component's, on its registration token; no role carries it
+- `execution:decide` (execution) — decide a wait: complete or decline a person's task, accept or reject an approval, as a holder of a position the wait awaits. *Person only*
+
+Which route needs which is [`architecture/execution`](../architecture/execution.md#endpoints)'s.
+`execution:decide` is person only for the reason `content:decide` is: a
+machine that could hold it could close a person's step. Holding it is not
+enough to decide a wait that names a position; the decider must also hold
+the position ([`architecture/execution`](../architecture/execution.md#who-holds-a-position)).
 
 **Integration capabilities:**
 - `integration:read` (integrations) — read the tenant's integrations: provider, account, method, scopes, owner, purposes, expiry and status, and never a secret
@@ -527,9 +588,12 @@ carries it.
 - `action:invoke` (orchestrator) — invoke an operator action a component's blueprint declares, where the action names no capability of that component's own family. *Person only*
 - `scope:admit` (orchestrator) — admit the operational scope a component declares, the highest classification it may reach. *Person only*
 
-Neither guards a route yet: no blueprint declares an operator action, and
-`AgentManifest` has no operational scope. Both are listed so that each act has
-one name before it is specified.
+`action:invoke` is what a verb in a Resources block names when its act is in
+no capability family its owner holds ([`schemas/resource`](../schemas/resource.md#verbs)).
+The first such verbs are execution's on a run, held until execution's
+blueprint is written, so it guards no running route yet. `scope:admit` guards
+none either: `AgentManifest` has no operational scope. Both are listed so that
+each act has one name before it is specified.
 
 No capability is listed here for a component recording into the one audit
 ledger. No route for that write exists yet; whether it needs a capability is
@@ -610,6 +674,36 @@ declare it, and with a person's stolen token have it exchanged for a pass to
 any component, carrying everything that person may use there and passing none
 of the admin gateway's network controls.
 
+**Work capabilities:**
+- `work:authorise` (orchestrator) — make, renew and revoke a work authorisation: allow a registered component's definition to run with nobody present, under that component's authority and within capabilities the person may use themselves ([`protocol/identity`](identity.md#the-work-pass), rules 1 and 2). *Person only*
+- `work:exchange` (orchestrator) — have the orchestrator mint a work pass under a work authorisation that names this registration among its actors ([`protocol/identity`](identity.md#the-work-pass); `architecture/orchestrator`, `work-exchange`). No role carries it
+
+`work:authorise` is person only because allowing work that runs with nobody
+present is a judgement, and nothing that cannot judge may delegate
+([`patterns/principal-identity`](../patterns/principal-identity.md#implementation-notes)).
+It is not in the `admin` family, so `admin:*` does not carry it, and a person
+holds it only where [`architecture/admin`](../architecture/admin.md#operator-roles)'s
+roles table names it. `work:exchange` is a component's: any registration may
+declare it, and it reaches nothing until a person names that registration as
+an actor in an authorisation.
+
+**Notification capabilities:**
+- `notification:send` (notification) — ask notification to tell the holders of positions, for a notice whose work authorisation the caller owns or acts under ([`architecture/notification`](../architecture/notification.md#who-may-do-what), rule 3). No role carries it
+- `notification:read` (notification) — read notifications and their deliveries: which positions were told, how many held each, the outcome, and each holder told by identity id, never an address
+- `notification:receive` (notification) — read and set one's own notification preference, and read what one was told. It reaches no other person's. *Person only*
+
+Which route needs which is
+[`architecture/notification`](../architecture/notification.md#endpoints)'s.
+`notification:send` is a component's: a person does not send a programme's
+notice, so no role carries it and a pass is refused on the route it guards.
+`notification:read` names people, by identity id, so
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table
+gives it to the roles that read people's records and not to `viewer`.
+`notification:receive` is person only because a preference and a received
+message are one person's own, and every role carries it. The service declares
+the first two and checks the third without holding it, as `content` does its
+own person-only capabilities.
+
 ### PassRoute
 
 A route at which a component admits a person's request on a pass, and every
@@ -641,6 +735,11 @@ types:
         type: "[]BodyRequirement"
         required: false
         description: "Each capability the route requires because of what a request's body carries, beside `capabilities`"
+      inbox:
+        name: Inbox
+        type: InboxRoute
+        required: false
+        description: "Present only on the one `GET` route that lists this component's open decisions for the admin gateway's decision inbox. See [InboxRoute](#inboxroute)"
 ```
 
 ### BodyRequirement
@@ -695,6 +794,51 @@ that the gateway never sends a person's request to a route two entries
 declare, to a route of the orchestrator's own, or to an address
 `architecture/orchestrator`'s Presenting a credential to a component does not
 allow.
+
+### InboxRoute
+
+How the admin gateway composes its decision inbox from an owner's own list,
+without a line of code for that owner
+([`architecture/admin`](../architecture/admin.md#decision-inbox)). An owner
+declares it on the `PassRoute` of the one route that lists its open
+decisions, and declares the decision route it names as a pass route too.
+
+```yaml
+types:
+  InboxRoute:
+    fields:
+      query:
+        name: Query
+        type: string
+        required: false
+        description: "The query string the gateway sends with the list request, without its `?`, such as `state=open`. Absent: none"
+      items:
+        name: Items
+        type: string
+        required: true
+        description: "The top-level member of the list's answer that holds the records, each an object carrying `id`. The gateway returns each record unchanged"
+      withheld:
+        name: Withheld
+        type: string
+        required: false
+        description: "The top-level member holding the owner's count of open decisions it omitted because the person may not read them. Absent: the owner omits none"
+      decide_method:
+        name: DecideMethod
+        type: string
+        required: true
+        description: "The method of the route a record is decided at, in upper case"
+      decide_path:
+        name: DecidePath
+        type: string
+        required: true
+        description: "The path of that route, with exactly one `{name}` segment, which the gateway fills with the record's `id`. The same manifest MUST declare it among its `pass_routes`"
+```
+
+A manifest declares `inbox` on at most one route, and only on a `GET` route.
+The gateway asks that route on a pass naming its `capabilities`, and pages
+through it by the answer's `next_cursor` where it carries one. A record whose
+`id` is missing is not listed, and the owner's answer is then reported
+incomplete, never quietly shortened.
 
 ### IOSpec
 
@@ -779,13 +923,33 @@ types:
       agent:
         name: Agent
         type: string
-        required: true
-        description: "Target agent name"
+        required: false
+        description: "Target agent name. Required on a machine phase; absent on a person's ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase))"
       action:
         name: Action
         type: string
-        required: true
-        description: "`HandleMessage` action to invoke"
+        required: false
+        description: "`HandleMessage` action to invoke. Required with `agent`"
+      task:
+        name: Task
+        type: WorkflowTask
+        required: false
+        description: "A person's work, by position. Exclusive with `agent` and `approvers`"
+      approvers:
+        name: Approvers
+        type: "[]string"
+        required: false
+        description: "Positions whose holders must each accept. Exclusive with `task`; beside `agent` only with `approval: required`"
+      approval_order:
+        name: ApprovalOrder
+        type: string
+        required: false
+        description: "`sequential`, or absent for any order. Only with `approvers`"
+      escalate:
+        name: Escalate
+        type: WorkflowEscalation
+        required: false
+        description: "Only on a phase with `task` or `approvers`"
       input:
         name: Input
         type: map
@@ -851,18 +1015,18 @@ types:
       domain_name:
         name: DomainName
         type: string
-        required: true
-        description: "Executing domain controller"
+        required: false
+        description: "The domain controller whose definition ran. Absent on a run whose definition another owner declares, such as the programme service"
       task_id:
         name: TaskID
         type: string
-        required: true
-        description: "Originating task ID"
+        required: false
+        description: "Originating task ID. Absent on a run no task started, such as one a start fired"
       status:
         name: Status
         type: string
         required: true
-        description: "A state of patterns/workflow's Workflow State Machine: `pending`, `running`, `pending_approval`, `completed`, `failed`"
+        description: "A state of patterns/workflow's Workflow State Machine: `pending`, `running`, `waiting`, `completed`, `failed`, `cancelled`, `withheld`"
       phases:
         name: Phases
         type: "[]PhaseResult"
@@ -900,7 +1064,7 @@ types:
         name: Status
         type: string
         required: true
-        description: "`pending`, `running`, `completed`, `failed`, `skipped`"
+        description: "`pending`, `running`, `waiting`, `completed`, `failed`, `skipped`"
       output:
         name: Output
         type: map
@@ -924,6 +1088,821 @@ types:
         type: int
         required: false
         description: "Number of retry attempts"
+```
+
+### WorkflowTask
+
+A person's work on a phase ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase)).
+
+```yaml
+types:
+  WorkflowTask:
+    fields:
+      activity:
+        name: Activity
+        type: string
+        required: true
+        description: "What the person does, in the author's words"
+      responsible:
+        name: Responsible
+        type: string
+        required: true
+        description: "The position whose holder does it. Never a person"
+      due:
+        name: Due
+        type: string
+        required: false
+        description: "`<n><h|d|w>` from the moment the wait opens"
+```
+
+### WorkflowEscalation
+
+Where a person's phase left open goes ([`patterns/workflow`](../patterns/workflow.md#a-persons-phase)).
+
+```yaml
+types:
+  WorkflowEscalation:
+    fields:
+      after:
+        name: After
+        type: string
+        required: true
+        description: "`<n><h|d|w>` past a task's due, or past an approval's opening"
+      to:
+        name: To
+        type: string
+        required: true
+        description: "The position it then also belongs to. Never a person"
+```
+
+---
+
+## Resources
+
+The wire form of a component's Resources block
+([`schemas/resource`](../schemas/resource.md)), and what the admin gateway
+answers for the one API every kind is served at
+([`architecture/admin`](../architecture/admin.md#resources-one-api-for-every-kind)).
+What each field means is `schemas/resource`'s; these types say only how it is
+carried.
+
+### ResourceDeclaration
+
+One kind, as its owner declares it. A component's manifest carries one for
+each kind its blueprint declares (`AgentManifest.resources`), and the
+catalogue answers it for each kind it reports. It is the block with
+`operations` written as a list, each entry carrying its key as `name`, since
+this vocabulary cannot declare a map's value shape.
+
+```yaml
+types:
+  ResourceDeclaration:
+    fields:
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "A kind schemas/kinds declares"
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The name of the component that holds the kind's items"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "The type an item is answered as, by its name in the owner's blueprint or one it requires"
+      list_type:
+        name: ListType
+        type: string
+        required: false
+        description: "The type of one list item, where it differs from `type`"
+      identity:
+        name: Identity
+        type: ResourceIdentity
+        required: true
+        description: "The field that carries the item's identity, and its form"
+      label:
+        name: Label
+        type: string
+        required: false
+        description: "The field a client shows as the item's name. Never its identity"
+      fields:
+        name: Fields
+        type: "[]ResourceField"
+        required: true
+        description: "Every field a client may render or set"
+      operations:
+        name: Operations
+        type: "[]ResourceOperation"
+        required: true
+        description: "Each operation the kind serves, and no other"
+      verbs:
+        name: Verbs
+        type: "[]ResourceVerb"
+        required: false
+        description: "Each verb the kind serves, and no other"
+      states:
+        name: States
+        type: object
+        required: false
+        description: "The kind's state machine, as patterns/state-machine declares one"
+      events:
+        name: Events
+        type: "[]string"
+        required: false
+        description: "What the owner announces when an item changes"
+      relations:
+        name: Relations
+        type: "[]ResourceRelation"
+        required: false
+        description: "Each relation an item holds, by the field that holds its target"
+      unavailable:
+        name: Unavailable
+        type: ResourceUnavailable
+        required: false
+        description: "Present only where the block itself declares the kind unavailable: `owner-unspecified`"
+
+  ResourceIdentity:
+    fields:
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "The field of `type` that carries the identity, as a dotted path where it is nested"
+      form:
+        name: Form
+        type: string
+        required: true
+        description: "`minted` or `declared-name`"
+
+  ResourceField:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "A field of `type`, as a dotted path where it is nested"
+      access:
+        name: Access
+        type: string
+        required: true
+        description: "`read-only`, `create` or `settable`"
+      present:
+        name: Present
+        type: string
+        required: false
+        description: "One presentation schemas/resource declares. Absent: rendered read-only, as its value"
+      sensitive:
+        name: Sensitive
+        type: bool
+        required: false
+        description: "True: never answered, in any answer, list or event"
+      volatile:
+        name: Volatile
+        type: bool
+        required: false
+        description: "True: changes by observation, and is left out of the item's ETag"
+      kind:
+        name: Kind
+        type: string
+        required: false
+        description: "For `present: reference`, the kind of the item the field names"
+
+  ResourceOperation:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "`list`, `get`, `create`, `update` or `delete`"
+      capability:
+        name: Capability
+        type: string
+        required: true
+        description: "The one capability a request must be able to use"
+      step_up:
+        name: StepUp
+        type: bool
+        required: false
+        description: "True: a destructive act, governed by architecture/admin's destructive-action-step-up"
+      approval:
+        name: Approval
+        type: object
+        required: false
+        description: "Who must approve the act before it is applied (schemas/resource, Authority)"
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "The method the owner serves the operation at"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The path the owner serves it at: the route its `binds` names, or the uniform address. A `{name}` segment matches any one non-empty segment, as in PassRoute"
+      filters:
+        name: Filters
+        type: "[]string"
+        required: false
+        description: "For `list`: the fields a list may be narrowed by, each by equality"
+      items:
+        name: Items
+        type: string
+        required: false
+        description: "For a `list` served at a bound route: the member of its answer that holds the items. Absent: `items`, as ResourceList answers"
+
+  ResourceVerb:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "The verb, kebab-case"
+      capability:
+        name: Capability
+        type: string
+        required: true
+        description: "The one capability a request must be able to use"
+      step_up:
+        name: StepUp
+        type: bool
+        required: false
+        description: "True: a destructive act"
+      approval:
+        name: Approval
+        type: object
+        required: false
+        description: "Who must approve the act before it is applied"
+      method:
+        name: Method
+        type: string
+        required: true
+        description: "The method the owner serves the verb at, POST unless a bound route says otherwise"
+      path:
+        name: Path
+        type: string
+        required: true
+        description: "The path the owner serves it at"
+      transition:
+        name: Transition
+        type: string
+        required: false
+        description: "The transition of `states` the verb fires"
+      body:
+        name: Body
+        type: string
+        required: false
+        description: "The type of the request's body. Absent: the body is empty"
+      preconditions:
+        name: Preconditions
+        type: "[]string"
+        required: true
+        description: "What the owner checks before acting"
+      in_flight:
+        name: InFlight
+        type: object
+        required: true
+        description: "`handling` (`none`, `drains`, `cancels` or `continues`) and `says`"
+      effect:
+        name: Effect
+        type: string
+        required: true
+        description: "What is true once it is answered"
+      reversible:
+        name: Reversible
+        type: string
+        required: true
+        description: "`false`, or the verb of the kind that undoes it"
+
+  ResourceRelation:
+    fields:
+      relation:
+        name: Relation
+        type: string
+        required: true
+        description: "A relation schemas/kinds declares from this kind"
+      to:
+        name: To
+        type: string
+        required: true
+        description: "The kind of its target"
+      field:
+        name: Field
+        type: string
+        required: true
+        description: "The field that holds the target's identity"
+
+  ResourceUnavailable:
+    fields:
+      reason:
+        name: Reason
+        type: string
+        required: true
+        description: "One reason schemas/resource declares"
+      says:
+        name: Says
+        type: string
+        required: true
+        description: "Why, in a sentence a client shows as it is"
+```
+
+### ResourceCatalogue
+
+What `GET /v1/admin/resources` answers: every kind the tenant declares,
+available or not ([`architecture/admin`](../architecture/admin.md#the-catalogue)).
+
+```yaml
+types:
+  ResourceCatalogue:
+    fields:
+      kinds:
+        name: Kinds
+        type: "[]CatalogueEntry"
+        required: true
+        description: "One entry per declared kind, available or not, sorted by kind"
+      corpus:
+        name: Corpus
+        type: string
+        required: false
+        description: "The corpus revision the declared kinds were read from, where the tenant's declared catalogue names one"
+
+  CatalogueEntry:
+    fields:
+      kind:
+        name: Kind
+        type: string
+        required: true
+        description: "The kind"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`available` or `declared-unavailable`"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "For `declared-unavailable`: one reason schemas/resource declares"
+      says:
+        name: Says
+        type: string
+        required: false
+        description: "For `declared-unavailable`: why, in a sentence"
+      declaration:
+        name: Declaration
+        type: ResourceDeclaration
+        required: true
+        description: "The kind's declaration: the registered owner's, where one is registered, and otherwise the tenant's declared one"
+```
+
+### ResourceList
+
+What a `list` served at the uniform address answers. A list bound to an
+existing route answers that route's own shape, and its declaration names the
+member holding the items (`ResourceOperation.items`).
+
+```yaml
+types:
+  ResourceList:
+    fields:
+      items:
+        name: Items
+        type: "[]object"
+        required: true
+        description: "The items, each of the kind's list type, no sensitive field among them"
+      next_cursor:
+        name: NextCursor
+        type: string
+        required: false
+        description: "Where the next page starts. Absent or empty: there is none"
+      has_more:
+        name: HasMore
+        type: bool
+        required: true
+        description: "Whether a next page exists"
+```
+
+### ResourceEvent
+
+One change to one item, as the feed carries it. Its attributes are the
+required and the `subject` and `time` attributes of CloudEvents 1.0, so a
+general tool reads it without knowing Weblisk.
+
+```yaml
+types:
+  ResourceEvent:
+    fields:
+      specversion:
+        name: SpecVersion
+        type: string
+        required: true
+        description: "`1.0`"
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "The event's id, unique at its owner"
+      source:
+        name: Source
+        type: string
+        required: true
+        description: "The kind's uniform address, `/v1/admin/r/<kind>`"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`weblisk.<kind>.<event>`, the event one of the kind's declared events"
+      subject:
+        name: Subject
+        type: string
+        required: true
+        description: "The item's identity"
+      time:
+        name: Time
+        type: timestamp
+        required: true
+        description: "When the change happened"
+      datacontenttype:
+        name: DataContentType
+        type: string
+        required: true
+        description: "`application/json`"
+      data:
+        name: Data
+        type: map
+        required: true
+        description: "The fields that changed, by name, with their values now, no sensitive field among them. A `deleted` event carries none"
+      position:
+        name: Position
+        type: string
+        required: true
+        description: "Where this event sits in its owner's feed of the kind: opaque, and only ever rising"
+      traceparent:
+        name: TraceParent
+        type: string
+        required: false
+        description: "The W3C traceparent of the request or work that made the change ([TraceContext](#tracecontext))"
+
+  ResourceEventPage:
+    fields:
+      events:
+        name: Events
+        type: "[]ResourceEvent"
+        required: true
+        description: "The events after the position asked for, in order, that the request may read"
+      position:
+        name: Position
+        type: string
+        required: true
+        description: "The position to ask after next"
+      gap:
+        name: Gap
+        type: bool
+        required: true
+        description: "True: the owner no longer holds every event after the position asked for, so the reader has missed some and reads the items again"
+```
+
+---
+
+## Runs
+
+What execution keeps of a run: one record per run, of every step it took and
+every tool call each step made, with the model each step ran, what the backend
+reported it used and cost, the decisions it recorded and the approvals it
+waited on. The kinds are `run`, `run-step` and `tool-call`
+([`schemas/kinds`](../schemas/kinds.md#declared-kinds)); how a person reads
+and stops one is their Resources block, in
+[`architecture/execution`](../architecture/execution.md#resources).
+
+A run's record holds what its steps said. It is classified at the scope of the
+work it ran on, and is answered only to a request that may receive that scope
+([`patterns/scope`](../patterns/scope.md)). Nothing in it is a secret: a
+credential a step used is named by the integration it came through, never
+carried.
+
+### Run
+
+```yaml
+types:
+  Run:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The run's id, minted by execution: 32 lowercase hex characters, never reused"
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "What ran: the workflow's name, the task's action, or the operation or step an `agent:` instruction belongs to"
+      definition_kind:
+        name: DefinitionKind
+        type: string
+        required: true
+        description: "What sort of thing `definition` names"
+        enum: [workflow, task, agent-instruction]
+      agent:
+        name: Agent
+        type: string
+        required: false
+        description: "The agent that ran it: a work agent, or the prompt worker for an `agent:` instruction. Absent while queued, and on a workflow run"
+      owner:
+        name: Owner
+        type: string
+        required: false
+        description: "The identity id of the component whose definition it ran: a domain controller or the programme service"
+      organisation:
+        name: Organisation
+        type: string
+        required: false
+        description: "The organisation the run's work belongs to"
+      project:
+        name: Project
+        type: string
+        required: false
+        description: "The project, where the work belongs to one"
+      schedule:
+        name: Schedule
+        type: string
+        required: false
+        description: "The uid of the registered start that fired it, where one did"
+      chain:
+        name: Chain
+        type: "[]string"
+        required: false
+        description: "The runs that, through a `for` start, started it, oldest first. A row a run writes carries it, so that no run starts itself round a loop"
+      muted:
+        name: Muted
+        type: bool
+        required: false
+        description: "True when the start that fired it was muted: what it produces reaches nobody"
+      parent:
+        name: Parent
+        type: string
+        required: false
+        description: "The run that started this one, where one did"
+      trigger:
+        name: Trigger
+        type: string
+        required: true
+        description: "What started it"
+        enum: [schedule, event, person, run]
+      triggered_by:
+        name: TriggeredBy
+        type: string
+        required: false
+        description: "Who or what: a person's identity id, an event's id, or the parent run's uid"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "A state of the run's state machine"
+        enum: [queued, running, waiting, completed, failed, cancelled, withheld]
+      queued_at:
+        name: QueuedAt
+        type: timestamp
+        required: true
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: false
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      usage:
+        name: Usage
+        type: RunUsage
+        required: false
+        description: "The sum of its steps' usage, over the steps whose backend reported one"
+      error:
+        name: Error
+        type: ErrorResponse
+        required: false
+        description: "Why it failed, where it did"
+      cancelled_by:
+        name: CancelledBy
+        type: string
+        required: false
+        description: "The identity id of the person who cancelled it"
+      trace_id:
+        name: TraceID
+        type: string
+        required: true
+        description: "The trace it ran under ([TraceContext](#tracecontext))"
+```
+
+### RunStep
+
+One stage of a run: a workflow phase, a model's turn, a decision the run
+recorded, or a wait on an approval.
+
+```yaml
+types:
+  RunStep:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The step's id, minted by execution, never reused"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The run it is part of"
+      seq:
+        name: Seq
+        type: int
+        required: true
+        description: "Its place in the run, from 1"
+      step_type:
+        name: StepType
+        type: string
+        required: true
+        description: "What sort of stage it is"
+        enum: [phase, model-turn, decision, approval, task]
+      name:
+        name: Name
+        type: string
+        required: false
+        description: "A phase's name, as its definition declares it"
+      status:
+        name: Status
+        type: string
+        required: true
+        enum: [pending, running, waiting, completed, failed, skipped]
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: false
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      backend:
+        name: Backend
+        type: string
+        required: false
+        description: "For a model's turn: the backend it ran on, as the tenant's model configuration names it"
+      model:
+        name: Model
+        type: string
+        required: false
+        description: "For a model's turn: the model, as the backend reported it ran, never as it was asked for"
+      usage:
+        name: Usage
+        type: RunUsage
+        required: false
+        description: "What the backend reported this turn used. Absent where it reported nothing, which is never read as zero"
+      content:
+        name: Content
+        type: text
+        required: false
+        description: "What the step said: a model's answer, or a decision as the run stated it"
+      reason:
+        name: Reason
+        type: text
+        required: false
+        description: "For a decision: the reason the run gave for it"
+      approval:
+        name: Approval
+        type: string
+        required: false
+        description: "For an approval gated by an `ApprovalRequest`: its id"
+      wait:
+        name: Wait
+        type: string
+        required: false
+        description: "For a `task` or `approval` step held for a person: the uid of the wait execution holds ([`architecture/execution`](../architecture/execution.md#a-persons-phase))"
+      error:
+        name: Error
+        type: ErrorResponse
+        required: false
+      span_id:
+        name: SpanID
+        type: string
+        required: false
+        description: "The step's span ([TraceContext](#tracecontext))"
+```
+
+### RunToolCall
+
+One call a step made to a tool: an owner's API, an MCP tool, a declared action.
+
+```yaml
+types:
+  RunToolCall:
+    fields:
+      uid:
+        name: UID
+        type: string
+        required: true
+        description: "The call's id, minted by execution, never reused"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The run it was made in"
+      step:
+        name: Step
+        type: string
+        required: true
+        description: "The step that made it"
+      tool:
+        name: Tool
+        type: string
+        required: true
+        description: "The tool's name, as the step called it"
+      provider_call_id:
+        name: ProviderCallID
+        type: string
+        required: false
+        description: "The id the model's backend gave the call, where it gave one. Not an identity here"
+      arguments:
+        name: Arguments
+        type: map
+        required: false
+        description: "The arguments as the step sent them"
+      outcome:
+        name: Outcome
+        type: string
+        required: false
+        description: "How it ended. `refused`: a boundary refused it before the tool ran"
+        enum: [ok, error, refused]
+      refused_with:
+        name: RefusedWith
+        type: string
+        required: false
+        description: "For `refused`: the code the boundary refused it with"
+      result_digest:
+        name: ResultDigest
+        type: string
+        required: false
+        description: "The digest of what the tool answered, written sha256:<hex>"
+      started_at:
+        name: StartedAt
+        type: timestamp
+        required: true
+      ended_at:
+        name: EndedAt
+        type: timestamp
+        required: false
+      span_id:
+        name: SpanID
+        type: string
+        required: false
+        description: "The call's span ([TraceContext](#tracecontext))"
+```
+
+### RunUsage
+
+What a backend reported a turn used, with the token counts named as
+[`patterns/api-ai`](../patterns/api-ai.md)'s `Usage` names them. A field the
+backend did not report is absent, never zero; the tenant computes no cost from
+a price list of its own, because a figure it made up would read as one the
+backend charged.
+
+```yaml
+types:
+  RunUsage:
+    fields:
+      prompt_tokens:
+        name: PromptTokens
+        type: int64
+        required: false
+        description: "Input tokens, as the backend reported them"
+      completion_tokens:
+        name: CompletionTokens
+        type: int64
+        required: false
+        description: "Output tokens, as the backend reported them"
+      total_tokens:
+        name: TotalTokens
+        type: int64
+        required: false
+        description: "Total tokens, as the backend reported them"
+      cost:
+        name: Cost
+        type: RunCost
+        required: false
+        description: "What the backend reported the turn cost, where it reported a cost"
+
+  RunCost:
+    fields:
+      amount:
+        name: Amount
+        type: string
+        required: true
+        description: "A decimal number, as the backend wrote it, so no rounding is introduced"
+      currency:
+        name: Currency
+        type: string
+        required: true
+        description: "An ISO 4217 code"
 ```
 
 ---
@@ -1937,6 +2916,11 @@ types:
         type: "[]PassRoute"
         required: false
         description: "The `pass_routes` this component's manifest declared, as its registration recorded them. Absent or empty: no person's request is carried here. See [PassRoute](#passroute)"
+      resources:
+        name: Resources
+        type: "[]ResourceDeclaration"
+        required: false
+        description: "The `resources` this component's manifest declared, as its registration recorded them. See [Resources](#resources)"
 ```
 
 **`url` is what a registrant claimed; `address_provenance` is how much that is worth.**
@@ -2585,6 +3569,195 @@ types:
         description: "Present when issued: the capabilities the pass carries, which are those scope named that the person may use now"
 ```
 
+### WorkAuthorisation
+
+A person's allowance for one registered component's definition to run with
+nobody present, under that component's authority, held by the orchestrator
+([`protocol/identity`](identity.md#the-work-pass)). It is
+`patterns/principal-identity`'s agent authorisation for a service subject.
+
+```yaml
+types:
+  WorkAuthorisation:
+    fields:
+      id:
+        name: ID
+        type: string
+        required: true
+        description: "Minted by the orchestrator, never reused. A work pass carries it as `cid`"
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The identity id of the registered component whose definition it covers, and whose authority the work uses"
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "The one definition it covers, as its owner names it. Opaque to the orchestrator; the owner checks it (protocol/identity, The work pass, rule 11)"
+      actors:
+        name: Actors
+        type: "[]string"
+        required: true
+        description: "The identity ids of the registered components that may obtain a work pass under it, at least one"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Its ceiling, by the names the Capability list gives them, at least one. None is person only or in the admin family, and none is token:exchange, work:exchange or work:authorise"
+      authorised_by:
+        name: AuthorisedBy
+        type: string
+        required: true
+        description: "The identity id of the person who made it, or who last renewed it"
+      created_at:
+        name: CreatedAt
+        type: timestamp
+        required: true
+      not_after:
+        name: NotAfter
+        type: timestamp
+        required: true
+        description: "When it ends: no more than 90 days after it was made or last renewed"
+      status:
+        name: Status
+        type: string
+        required: true
+        description: "`active` or `revoked`. One past its not_after is answered `active` with that not_after, and mints nothing"
+      revoked_at:
+        name: RevokedAt
+        type: timestamp
+        required: false
+      revoked_by:
+        name: RevokedBy
+        type: string
+        required: false
+        description: "The identity id of the person, or of the owner component, that revoked it"
+      reason:
+        name: Reason
+        type: string
+        required: false
+        description: "Why it was revoked, as its revoker gave it"
+```
+
+### WorkAuthorisationRequest
+
+What a person's client sends the orchestrator to make work authorisations,
+one for each definition, in one act
+(`POST /v1/admin/work-authorisations`, `architecture/admin`).
+
+```yaml
+types:
+  WorkAuthorisationRequest:
+    fields:
+      owner:
+        name: Owner
+        type: string
+        required: true
+        description: "The identity id of the registered component whose definitions they cover"
+      definitions:
+        name: Definitions
+        type: "[]WorkDefinitionCeiling"
+        required: true
+        description: "One entry for each definition to authorise, at least one"
+      actors:
+        name: Actors
+        type: "[]string"
+        required: true
+        description: "The identity ids of the registered components that may act under each"
+      not_after:
+        name: NotAfter
+        type: timestamp
+        required: true
+        description: "When each ends, no more than 90 days ahead"
+```
+
+### WorkDefinitionCeiling
+
+```yaml
+types:
+  WorkDefinitionCeiling:
+    fields:
+      definition:
+        name: Definition
+        type: string
+        required: true
+        description: "The definition, as its owner names it"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: true
+        description: "Its ceiling, at least one capability"
+```
+
+### WorkExchangeRequest
+
+What an actor sends the orchestrator for a work pass (`POST /v1/token/work`,
+`architecture/orchestrator`). The actor authenticates with its own
+registration token, in the `Authorization` header and nowhere else.
+
+```yaml
+types:
+  WorkExchangeRequest:
+    fields:
+      authorisation:
+        name: Authorisation
+        type: string
+        required: true
+        description: "The id of the work authorisation to act under"
+      audience:
+        name: Audience
+        type: string
+        required: true
+        description: "The identity id of the one component the work pass is for: the fingerprint of the public key that component's directory entry carries"
+      scope:
+        name: Scope
+        type: "[]string"
+        required: true
+        description: "The capabilities the request needs at that component. May be empty only where the audience is the authorisation's owner (protocol/identity, The work pass, rule 11)"
+      run:
+        name: Run
+        type: string
+        required: true
+        description: "The id of the run the request belongs to, which the work pass carries for every receiver to record"
+```
+
+### WorkExchangeResponse
+
+Every answer about the authorisation is a 200 carrying this, so a status other
+than 200 only ever judged the actor's own request.
+
+```yaml
+types:
+  WorkExchangeResponse:
+    fields:
+      issued:
+        name: Issued
+        type: bool
+        required: true
+        description: "True when a work pass was minted"
+      code:
+        name: Code
+        type: string
+        required: false
+        description: "Present when issued is false: one of the work pass codes (Errors), or FORBIDDEN where the intersection is empty"
+      pass:
+        name: Pass
+        type: string
+        required: false
+        description: "Present when issued: the work pass, a WLT of type work addressed to the audience (protocol/identity, The work pass)"
+      expires_at:
+        name: ExpiresAt
+        type: timestamp
+        required: false
+        description: "Present when issued: the work pass's exp, no more than 30 seconds after it was minted"
+      capabilities:
+        name: Capabilities
+        type: "[]string"
+        required: false
+        description: "Present when issued: the capabilities the work pass carries"
+```
+
 ### AuditEntry
 
 ```yaml
@@ -2609,7 +3782,17 @@ types:
         name: Via
         type: string
         required: false
-        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass). Absent, and omitted from the canonical JSON, otherwise"
+        description: "Where a pass carried the request, the identity id of the gateway that obtained it, the pass's act.identity_id (protocol/identity, The pass); where a work pass did, the actor's, its act.identity_id (The work pass). Absent, and omitted from the canonical JSON, otherwise"
+      authorisation:
+        name: Authorisation
+        type: string
+        required: false
+        description: "Where a work pass carried the request, the work authorisation it was minted under, its cid. Absent, and omitted from the canonical JSON, otherwise"
+      run:
+        name: Run
+        type: string
+        required: false
+        description: "Where a work pass carried the request, its run. Absent, and omitted from the canonical JSON, otherwise"
       action:
         name: Action
         type: string
@@ -2640,7 +3823,9 @@ types:
 **Action types:** `register`, `deregister`, `channel`, `message`,
 `event`, `namespace_grant`, `namespace_release`, and the model routes'
 `model_set`, `model_complete`, `model_agreement_record` and
-`model_agreement_withdraw`. The orchestrator's
+`model_agreement_withdraw`, and the work pass's `work_authorise`,
+`work_authorisation_renew`, `work_authorisation_revoke`,
+`work_authorisation_rekey` and `work_exchange`. The orchestrator's
 [Audit Actions](../architecture/orchestrator.md#audit-actions) table says what
 each one it writes records
 
@@ -2850,7 +4035,12 @@ probes are, and which say nothing a version could change ([Health](#health)).
 | `/v1/audit` | GET | yes | orchestrator | Audit log |
 | `/v1/rotate-key` | POST | yes | orchestrator | Key rotation (see identity.md) |
 | `/v1/token/exchange` | POST | yes | orchestrator | Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component (`TokenExchangeResponse`). The admin gateway's alone |
+| `/v1/token/work` | POST | yes | orchestrator | Mint a work pass under a work authorisation that names the caller as an actor (`WorkExchangeResponse`) |
+| `/v1/work/authorisations` | GET | yes | orchestrator | The work authorisations that name the caller as owner or actor |
+| `/v1/work/authorisations/{id}` | DELETE | yes | orchestrator | Revoke a work authorisation that names the caller as owner |
 | `/v1/model/ceiling` | GET | yes | orchestrator | What a model backend may be sent now, and where it is reached. Platform-provided (architecture/orchestrator) |
+| `/v1/model/complete` | POST | yes | orchestrator | A completion on the tenant's model for a registered component holding `llm:chat`, on its own registration token. Platform-provided, the model service's (architecture/model-service) |
+| `/v1/model/audit` | POST | yes | orchestrator | Append a registered component's completion's entry to the audit log, for the model gateway inside the orchestrator's process alone (architecture/orchestrator) |
 
 ---
 
@@ -2934,6 +4124,11 @@ error_codes:
     category: transient
     retryable: true
     description: The model a request names is on an unhealthy provider and no other provider lists it under the same name. No other model runs instead (patterns/api-ai, Provider Health-Aware Routing)
+  - code: MODEL_BACKEND_LIMITED
+    status: 429
+    category: transient
+    retryable: true
+    description: The tenant's model backend refused a completion under its own rate or quota limit, and nothing ran. retry_after is the seconds until the backend said its window resets, and is absent where it said nothing; the model service sets no limit of its own (architecture/model-service, Limits)
   - code: UNSUPPORTED_VERSION
     status: 400
     category: permanent
@@ -2969,6 +4164,31 @@ error_codes:
     category: permanent
     retryable: false
     description: Event envelope is malformed or topic is unowned
+  - code: RESOURCE_KIND_UNDECLARED
+    status: 404
+    category: permanent
+    retryable: false
+    description: The kind is not one the tenant's catalogue declares (schemas/resource)
+  - code: RESOURCE_OPERATION_UNDECLARED
+    status: 405
+    category: permanent
+    retryable: false
+    description: The operation or verb is not one the kind's declaration names. Allow names what the address serves
+  - code: RESOURCE_FIELD_NOT_SETTABLE
+    status: 400
+    category: permanent
+    retryable: false
+    description: A write names a field its declaration does not let a person set there. Nothing changes
+  - code: RESOURCE_IF_MATCH_REQUIRED
+    status: 428
+    category: permanent
+    retryable: false
+    description: An update, a delete or a verb arrived with no If-Match
+  - code: RESOURCE_PRECONDITION_FAILED
+    status: 412
+    category: permanent
+    retryable: false
+    description: If-Match does not equal the item's ETag now. Nothing changes; the answer carries the current ETag
   - code: PHASE_FAILED
     status: 500
     category: varies
@@ -2979,6 +4199,11 @@ error_codes:
     category: partial
     retryable: varies
     description: Some phases succeeded, some failed
+  - code: WORKER_PROPOSAL_WITHHELD
+    status: 409
+    category: permanent
+    retryable: false
+    description: The prompt worker did not make a proposal an agent instruction asked for, because the run is muted. The proposal is kept, with its bytes, in the phase's outcome and nowhere else, and reaches no person. Recorded on the refused tool call; never an HTTP answer (architecture/prompt-worker, Muted runs)
 ```
 All errors across the protocol use the `ErrorResponse` type defined in the
 Errors section above. Error categories (`transient`, `permanent`, `partial`)

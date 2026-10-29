@@ -94,8 +94,9 @@ operations:
     title: Escalated work, and whether escalation is working
     agent: >
       Report on the health-and-safety work that has escalated in this project.
-      Use the governance and search tools to read the obligation registers and
-      the current due list. For each occurrence that has passed its declared
+      Read the escalations this run was started on, where it was started on
+      any, and the obligation registers, which show what is still open past
+      its grace. For each occurrence that has passed its declared
       grace and become another position's problem, say what the activity was,
       which position it belonged to, which position it escalated to, and how
       many days late it is now.
@@ -168,6 +169,110 @@ operations:
       week to week, and a report that says the same thing four times a month is
       one nobody reads by the second. It reports; it never drafts the documents
       it finds missing.
+
+# What starts work in this programme, besides the clocks above, and who is
+# told. Each is the first of its kind in the corpus: a workflow a person takes
+# part in, a one-off at adoption, and a notice. Which tenant services each
+# needs, and the build plan adopting it emits, are derived from these blocks
+# (../../schemas/programme.md, "What a programme runs on").
+workflows:
+  - id: incident-investigation
+    title: From a reported incident to an approved investigation
+    for: {records: registers/project-incidents.md}
+    steps:
+      - id: secure
+        title: Secure the scene and complete the report
+        task:
+          activity: >
+            Make the scene safe and keep it as it is until what an
+            investigation needs has been seen, complete the incident's row in
+            the register, and say whether it is also a notifiable event. If it
+            is, the statutory notice procedure starts now, on its own clock.
+          responsible: site-supervisor
+          due: 24h
+        escalate: {after: 24h, to: health-safety-lead}
+      - id: brief
+        title: The investigator's brief
+        agent: >
+          Prepare a brief for whoever investigates this incident. Read the
+          incident's row, the project's hazard assessments and site inspections
+          for the fourteen days before it, and the incident register for the
+          same project and the same hazard over the last year. Say what was
+          planned for the task, what the inspections recorded, and whether
+          this hazard has been recorded on this project before, citing each
+          record by its reference. Say plainly what you could not read. Do not
+          name a cause and do not propose an action: that is the
+          investigation's, and a brief that pre-judges it is worse than none.
+          Write nothing; your whole output is the brief.
+        needs: [read]
+      - id: investigate
+        title: Investigate and record
+        task:
+          activity: >
+            Investigate the incident, and record the investigation — its
+            causes, and each corrective action it calls for — in the project
+            incident investigation register.
+          responsible: health-safety-lead
+          due: 3d
+        escalate: {after: 2d, to: site-supervisor}
+      - id: approve
+        title: The investigation is accepted
+        approval:
+          approvers: [senior-management]
+    why: >
+      An incident is one record, and its investigation is a chain of people's
+      work with a wait at each link: the site secures it, the lead investigates
+      it, management accepts it. The obligation already says the investigation
+      is owed in three days; this says how the work moves, and who it waits for
+      at each step. One run per incident, never pooled, so twelve incidents in a
+      bad week are twelve investigations.
+
+  - id: setting-up
+    title: What adopting this programme owes on the first day
+    on: [adopted]
+    steps:
+      - id: name-holders
+        title: Name who holds each position
+        task:
+          activity: >
+            Name, in the register of position holders, who holds each position
+            this programme names: the health and safety lead, the site
+            supervisors, and the senior management who receive what escalates.
+            Until a position has a holder, everything owed to it reaches
+            nobody, and is reported so.
+          responsible: senior-management
+          due: 7d
+      - id: first-readiness
+        title: Where the programme stands on adoption
+        does: programme-readiness
+    why: >
+      Adopting changes nothing until somebody holds the positions the work is
+      owed to. This is the one piece of set-up that cannot be derived, and the
+      readiness report after it is the baseline every later one is read against.
+
+notices:
+  - id: escalation-to-management
+    on: [obligation.escalated]
+    to: [senior-management]
+    says: >
+      Health and safety work on a project has passed its escalation point
+      without being done: say what it was, which position it belonged to and
+      which it has escalated to, and how late it is.
+    why: >
+      Escalation hands late work to a second position; senior management are
+      told once, when it happens, because an escalation nobody above the site
+      hears about is a safety net with no one holding it.
+
+# Published components this programme relies on being run, beyond the
+# services its blocks need. Named, never brought (schemas/programme.md,
+# "depends_on").
+depends_on:
+  - agent: email-send
+    why: >
+      Statutory notices here run in hours — a critical injury's notice and a
+      work refusal's — and the positions they are owed to are on site, not at
+      a console. Without an email adapter notification can reach them only on
+      screen, and a notice that waits to be read is not one sent in time.
 
 artifacts:
   # ── essential: lawful to put a worker on a project ─────────────────────────

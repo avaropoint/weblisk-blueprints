@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -130,7 +130,13 @@ requires:
         # Where a component records a person's request a pass carried, and
         # the gateway that carried it (The pass, rule 5)
         - name: AuditEntry
-          fields_used: [actor, via]
+          fields_used: [actor, via, authorisation, run]
+        # A person's authorisation of unattended work, and the exchange that
+        # mints a work pass under it (The work pass)
+        - name: WorkAuthorisation
+          fields_used: [id, owner, definition, actors, capabilities, authorised_by, not_after, status]
+        - name: WorkExchangeRequest
+          fields_used: [authorisation, audience, scope, run]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -682,19 +688,28 @@ Fields:
   ([`architecture/admin`](../architecture/admin.md#obtaining-a-token)), and says
   it is one in its `type` claim, so a verifier never takes a channel's id for a
   credential's. A pass carries the `cid` of the operator token it was
-  exchanged for
+  exchanged for, and a work pass the id of the work authorisation it was
+  minted under ([The work pass](#the-work-pass))
 - `type`: what the token is for, where one issuer mints more than one kind
   (optional). `operator` administers a hub. `attestation` does one thing: it
   submits an attestation for its subject
   ([`architecture/admin`](../architecture/admin.md#operator-token)). `pass`
   carries one person's request from the admin gateway to one component
-  ([The pass](#the-pass)). An agent token and a channel token carry none, so a
+  ([The pass](#the-pass)). `work` carries one request of a run nobody is
+  present for, on its owner's authority, to one component
+  ([The work pass](#the-work-pass)). An agent token and a channel token carry none, so a
   verifier that requires a `type` refuses them. An empty `type` is no `type`
-- `aud` (audience): on a pass alone, the identity id of the one component it
-  is addressed to ([The pass](#the-pass)). No other token carries one
-- `act` (actor): on a pass alone, the gateway that obtained it, as an object
-  carrying that gateway's `sub` and `identity_id`, as RFC 8693 §4.1 shapes
-  `act`
+- `aud` (audience): on a pass and a work pass alone, the identity id of the
+  one component it is addressed to ([The pass](#the-pass),
+  [The work pass](#the-work-pass)). No other token carries one
+- `act` (actor): on a pass, the gateway that obtained it, and on a work pass,
+  the component doing the run's work, each as an object carrying that
+  component's `sub` and `identity_id`, as RFC 8693 §4.1 shapes `act`. No
+  other token carries one
+- `definition`: on a work pass alone, the definition its work authorisation
+  names, as its owner wrote it ([The work pass](#the-work-pass))
+- `run`: on a work pass alone, the run the request belongs to, as the actor
+  named it when the pass was minted ([The work pass](#the-work-pass))
 - `identity_key`: on a pass alone, the fingerprint of its person's identity
   public key when the pass was minted
 - `step_up_at`: when the subject last completed a step-up, a NumericDate
@@ -716,8 +731,9 @@ Fields:
   change of identity key the issuer accepts
   ([`architecture/admin`](../architecture/admin.md#changing-an-identity-key)).
   A registration token carries the fingerprint of the public key its manifest
-  registered, and a pass the `identity_id` of the operator token it was
-  exchanged for. It is the issuer's statement, under its
+  registered, a pass the `identity_id` of the operator token it was
+  exchanged for, and a work pass its owner's: the component whose authority
+  the run uses, never the actor's and never a person's. It is the issuer's statement, under its
   signature, of who the subject is. A verifier that records who acted records
   this claim and never `sub`, which is a name
   ([`patterns/principal-identity`](../patterns/principal-identity.md) Design
@@ -759,6 +775,7 @@ Fields:
 - Channel tokens: 1 hour
 - Operator tokens: [`architecture/admin`](../architecture/admin.md#operator-token) states theirs
 - Passes: 30 seconds at most ([The pass](#the-pass))
+- Work passes: 30 seconds at most ([The work pass](#the-work-pass))
 
 ### The pass
 
@@ -837,7 +854,198 @@ signed as every WLT is, under ML-DSA-65, and carries:
    the component's log is the place the pass exists to keep it out of.
 
 This is the one statement of the rule. A blueprint whose client holds operator
-tokens, or whose component serves people, points here.
+tokens, or whose component serves people, points here. Work nobody is present
+for is carried on a work pass instead, below.
+
+### The work pass
+
+Some work runs with nobody present: a programme's schedule firing, a
+workflow started by an event, an `agent:` instruction the prompt worker runs,
+a notice told to the people who hold its positions. No person's operator token
+exists for that work, so no pass can be minted for it (rule 2 above), and none
+should be: work that runs unattended is never a person's
+([`architecture/programme-service`](../architecture/programme-service.md#who-may-do-what),
+rule 4). Nor is it the authority of the component that does the work.
+Execution and the prompt worker are runners, which
+[`patterns/principal-identity`](../patterns/principal-identity.md) Design
+Principle 13 calls agents: they act under a subject and are never one.
+
+The subject is the definition's **owner**: the registered component whose
+definition is running, such as the programme service for an installed
+operation or a domain controller for its workflow. The component doing the
+work is the **actor**. A **work pass** carries one request of a run from its
+actor to one component, on the owner's authority, as far as a person allowed
+it and no further. It rests on a **work authorisation**: a record the
+orchestrator holds, made by a person. It is principal-identity's
+`agent-delegation` for a service subject, with the orchestrator as the hub
+that holds the authorisation.
+
+#### The work authorisation
+
+A `WorkAuthorisation` ([`protocol/types`](types.md#workauthorisation)) names
+its owner, the one definition it covers, the actors that may act under it,
+its `capabilities`, the person who made it and when it ends.
+
+1. **Only a person makes one.** A person makes a work authorisation at the
+   orchestrator, on their own operator token, able to use `work:authorise`
+   ([`architecture/admin`](../architecture/admin.md#work-authorisations)). No
+   registration token, pass or work pass makes, renews or widens one, because
+   nothing that cannot judge may delegate
+   ([`patterns/principal-identity`](../patterns/principal-identity.md#implementation-notes)).
+   The person is recorded as `authorised_by`: the voucher and the named
+   human owner that `service-subject-constraints` requires of a service. Their
+   authority is not lent. The work runs on the owner's, and the person is
+   recorded as who allowed it, never as who ran it.
+2. **Its ceiling is no wider than its maker's.** Every capability it names is
+   one the person may use when they make it: their role carries it then, and
+   their token's `cap` names it. It names no capability
+   [`protocol/types`](types.md#capability) marks *person only*, refused with
+   `CAPABILITY_PERSON_ONLY`. It names no `admin:` capability, and none of
+   `token:exchange`, `work:exchange` and `work:authorise`, refused with
+   `INVALID_REQUEST`, because a work pass reaches no administrative route and
+   delegates nothing. Authority is delegated, never invented
+   (`principal-invitation`).
+3. **It always ends.** `not_after` is required, and is no more than 90 days
+   after the authorisation was made or last renewed. Renewing it is a
+   person's act under rules 1 and 2, judged against what that person may use
+   at the renewal. Past its `not_after`, it mints nothing, and its owner
+   reports the definition as not authorised rather than run. Neglect then
+   ends in work visibly not running, never in a standing authority nobody
+   remembers (principal-identity, Service accounts drift).
+4. **Revoking it is immediate, and narrows.** A person revokes one on their
+   own operator token: the person it records as `authorised_by`, who made or
+   last renewed it, able to use `work:authorise`, or a person able to use
+   `admin:*`. Its owner may revoke one that names it
+   as owner, on its own registration token, because revoking only narrows; it
+   does so when the work it covers is withdrawn
+   ([`architecture/programme-service`](../architecture/programme-service.md#withdrawing)).
+   A revoked authorisation mints nothing from that moment, so no work pass
+   under it outlives the revocation by more than its 30 seconds. The record
+   is kept, with who revoked it, when and why, and its id is never reused.
+5. **A person who leaves does not stop the work.** Removing an operator
+   revokes none of the authorisations they made, because the authority those
+   use was never theirs. The orchestrator surfaces them instead: removing the
+   operator records each live authorisation they made, and the list of
+   authorisations can be filtered to them
+   ([`architecture/admin`](../architecture/admin.md#work-authorisations)), as
+   `service-subject-constraints` requires of a service whose human owner is
+   offboarded. Each still ends at its `not_after` unless another person, under
+   rules 1 and 2, renews it.
+6. **It names components by identity id, and follows a rotation.** Owner and
+   actors are named by identity id, never by name. When a component it names
+   changes its key through `POST /v1/rotate-key`, which the old key and the
+   new one both sign ([`protocol/spec`](spec.md#post-v1rotate-key)), the
+   orchestrator replaces that identity id in every authorisation that names
+   it, and records each replacement. A component that registers under a new
+   key without rotating is a new subject, and no authorisation names it.
+
+#### Minting a work pass
+
+An actor obtains a work pass from the orchestrator for each request of a run
+it sends to a component, at `POST /v1/token/work`
+([`architecture/orchestrator`](../architecture/orchestrator.md#work-exchange-post-v1tokenwork),
+`work-exchange`). It authenticates with its own registration token, whose
+registration declares `work:exchange`, and names the authorisation, the
+audience, the capabilities the request needs and its run
+(`WorkExchangeRequest`). The orchestrator mints one only while the
+authorisation is live, names the caller among its actors, and names an owner
+registered there now under the identity id it records. Otherwise it answers
+`WORK_AUTHORISATION_UNKNOWN` for an authorisation it does not hold or that
+does not name the caller, alike, `WORK_AUTHORISATION_REVOKED` or
+`WORK_AUTHORISATION_EXPIRED` for one that has ended, and
+`WORK_OWNER_UNREGISTERED` for one whose owner is not registered now, and mints
+nothing. Each answer tells the actor a different remedy, so a run it could
+not carry out is reported as not authorised for that reason, never as run.
+
+A work pass is a WLT the orchestrator signs, under ML-DSA-65 as every WLT is,
+and carries:
+
+| Claim | On a work pass |
+|---|---|
+| `type` | `work` |
+| `aud` | The identity id of the one component it is addressed to |
+| `sub`, `identity_id` | The owner's registered name and identity id |
+| `act` | The actor that obtained it, as `{ "sub": <its registered name>, "identity_id": <its registration's identity id> }` |
+| `cid` | The id of the work authorisation it was minted under |
+| `definition` | The definition that authorisation names |
+| `run` | The run the actor named |
+| `cap` | The intersection of what the request asked for, the authorisation's `capabilities`, and what the owner's, the actor's and the audience's registered manifests each declare. A work pass that would carry nothing is not minted, except one addressed to the owner itself (rule 11) |
+| `iat`, `exp` | `exp` no more than 30 seconds after `iat` |
+
+It carries no `identity_key`, `record_keys`, `step_up_at` or `role`. Those are
+a person's, and a work pass carries nobody's.
+
+The intersection is the one [`schemas/programme`](../schemas/programme.md#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does)
+states for an agent: its ceiling, the worker's own declaration and what the
+identity underneath may do. Here the identity underneath is the owner's
+registration, narrowed by what a person allowed for that one definition.
+
+7. **A work pass is never exchanged again, and the orchestrator is the
+   audience of none.** Neither exchange takes one as its subject, and the
+   orchestrator refuses one on every route with `PASS_AUDIENCE_MISMATCH`,
+   logged as a security event.
+8. **A component accepts a work pass only when it verifies under its own
+   orchestrator's key**, its `type` is `work`, its `aud` is that component's
+   own identity id, and it has not expired. One addressed to another
+   component is refused with `PASS_AUDIENCE_MISMATCH` and logged as a
+   security event, named by its claims as rule 7 of
+   [The pass](#the-pass) names a refused token, with its `run`.
+9. **A work pass is admitted only where its receiver admits a registered
+   component acting in its own right.** It is refused with `FORBIDDEN` on
+   every `/v1/admin/*` route, on every route that admits only a person's
+   pass, and for every act a blueprint reserves to a person, whatever its
+   `cap`. A person-only capability never counts on one: rule 6 of
+   [The pass](#the-pass) counts it on a person's tokens alone.
+10. **A component authorises a work pass's request against its `cap` alone,
+    and records it in full.** Its audit entry's `actor` is the pass's
+    `identity_id`, the owner; `via` is `act.identity_id`, the actor;
+    `authorisation` is its `cid`; and `run` is its `run`
+    ([`protocol/types`](types.md#auditentry)). It never records either `sub`.
+    The authorisation names the person who allowed the work, so an auditor
+    joins any act of a run to that person through the orchestrator's records.
+11. **An owner presented a work pass under its own name checks the
+    definition.** Where the pass's `identity_id` is the receiving component's
+    own, it accepts the request only when `definition` names a definition it
+    holds now, and refuses it with `NOT_FOUND` otherwise, as it answers a
+    withdrawn definition. On that check it admits the work that definition is
+    its own to do, fetching it and running an action it names, whatever the
+    pass's `cap`, which may be empty: that work is the owner's own authority,
+    and the pass is the proof that a person allowed it to be fired. This is
+    how execution proves to an owner that it is firing that owner's
+    definition: only a person can make the authorisation that names it, and
+    only the orchestrator signs the pass.
+12. **No work pass decides, signs or attests.** It carries no `record_keys`,
+    so a record signature presented with one is refused
+    ([`patterns/principal-identity`](../patterns/principal-identity.md),
+    `record-signing`), and no `step_up_at`, so it never satisfies a step-up.
+13. **An actor holds a work pass in memory, for the one request it was minted
+    for.** It never writes one to disk or to a log, and never presents one to
+    any component but its audience. It is a short-lived operating credential
+    under rule 7 of [Service Key Protection](#service-key-protection), and the
+    long-lived key that attests it is the orchestrator's, held under rule 8.
+
+#### What each threat reaches
+
+| Threat | What it reaches | What bounds it |
+|---|---|---|
+| A compromised actor | A work pass under each live authorisation that names it, at any time, not only while a run is firing | Each authorisation's `capabilities`, which a person chose and which never hold a person-only capability, so no direct write to content, no decision, no signature and no attestation (rules 2, 9 and 12). Every mint is audited at the orchestrator with its run. Revoking the authorisation, or deregistering the actor, stops every further mint at once, and the last pass expires within 30 seconds |
+| A compromised owner | Nothing it did not hold. It cannot make, renew or widen an authorisation (rule 1). It can serve execution a changed definition, which still runs within the `capabilities` a person allowed for that definition, never wider | Rule 1, and the intersection in every pass's `cap` |
+| A stolen work pass | One request's worth at one component | Its `aud`, its `cap`, and at most 30 seconds. It cannot be exchanged (rule 7) |
+| A stale authorisation: the adopted map changed, or the work was withdrawn and the authorisation not revoked | At most what it allowed when made, until its `not_after` | 90 days at most (rule 3). The owner refuses a definition it no longer holds (rule 11), and revokes what it withdraws (rule 4). A wider `needs:` in a changed map needs a new authorisation, because none widens |
+| A person who leaves | Nothing of theirs: the work never ran on their authority | Their authorisations are surfaced when they are removed, and each ends at its `not_after` unless another person renews it (rules 3 and 5) |
+| A person's stolen credential | Authorisations within what that person may use, which their own token already reaches directly | Rule 2, and the record: each authorisation names who made it, and the person who made it, or an admin, revokes it (rule 4) |
+
+> **Gap — an actor's own registration still carries what it declares.**
+> A registration is not yet an enrolment
+> ([`protocol/spec`](spec.md#post-v1register)), so an actor's registration
+> token carries whatever its signed manifest declares, and an actor that
+> declares `content:read` or `content:propose` for its work under an
+> authorisation can use them on its own token too, with no authorisation and
+> no run behind them. The work pass therefore bounds each run to what a
+> person allowed for that definition, and records it, but does not yet
+> confine an actor that sets out to act outside its runs. That confinement
+> is enrolment's: a registration admitted by a person, with what it may hold
+> on its own token decided then.
 
 ### ID Generation
 ```
@@ -909,8 +1117,9 @@ types:
             type: string
             description: The record the issuer minted this token under and can
               withdraw — a channel for a channel token, a credential for an
-              operator token, and for a pass the credential of the operator
-              token it was exchanged for
+              operator token, for a pass the credential of the operator
+              token it was exchanged for, and for a work pass the work
+              authorisation it was minted under
             required: false
           type:
             type: string
@@ -918,23 +1127,33 @@ types:
               tokens
             required: false
             constraints:
-              enum: [operator, attestation, pass]
+              enum: [operator, attestation, pass, work]
           aud:
             type: string
-            description: On a pass alone, the identity id of the one component
-              it is addressed to
+            description: On a pass and a work pass alone, the identity id of
+              the one component it is addressed to
             required: false
           act:
             type: object
-            description: On a pass alone, the gateway that obtained it
+            description: On a pass, the gateway that obtained it; on a work
+              pass, the actor that obtained it
             required: false
             fields:
               sub:
                 type: string
-                description: The gateway's registered name
+                description: That component's registered name
               identity_id:
                 type: string
-                description: The identity id of the gateway's registration
+                description: The identity id of that component's registration
+          definition:
+            type: string
+            description: On a work pass alone, the definition its work
+              authorisation names
+            required: false
+          run:
+            type: string
+            description: On a work pass alone, the run the request belongs to
+            required: false
           identity_key:
             type: string
             description: On a pass alone, the fingerprint of its person's
@@ -956,7 +1175,8 @@ types:
               the identity_id of the credential cid names, which the issuer
               keeps across a change of the operator's identity key. On a
               registration token, the fingerprint of the key the manifest
-              registered. What a verifier records as who acted, never sub
+              registered. On a work pass, its owner's. What a verifier records
+              as who acted, never sub
             required: false
           record_keys:
             type: "list<string>"
@@ -1060,7 +1280,7 @@ authentication:
     structure: base64url(header).base64url(payload).base64url(signature)
     fields: [sub, iss, iat, exp, cap, cid]
     signing: ML-DSA-65
-    expiry: 24 hours (agent auth), 1 hour (channel), 30 seconds at most (pass)
+    expiry: 24 hours (agent auth), 1 hour (channel), 30 seconds at most (pass, work pass)
     verification: >
       Split on ".", decode header, verify alg == "ML-DSA-65",
       verify signature against issuer public key, check expiry
@@ -1293,6 +1513,28 @@ error_codes:
       orchestrator and the admin gateway (The pass, rule 4). Logged as a
       security event
     retryable: false
+  - code: WORK_AUTHORISATION_UNKNOWN
+    status: 404
+    description: A work pass asked under an authorisation the orchestrator
+      does not hold, or one that does not name the caller among its actors.
+      The two are answered alike, so a caller learns nothing of an
+      authorisation it may not use (The work pass)
+    retryable: false
+  - code: WORK_AUTHORISATION_REVOKED
+    status: 403
+    description: A work pass asked under a revoked authorisation (The work
+      pass, rule 4). Nothing is minted
+    retryable: false
+  - code: WORK_AUTHORISATION_EXPIRED
+    status: 403
+    description: A work pass asked under an authorisation past its not_after
+      (The work pass, rule 3). Nothing is minted until a person renews it
+    retryable: false
+  - code: WORK_OWNER_UNREGISTERED
+    status: 409
+    description: A work pass asked under an authorisation whose owner is not
+      registered now under the identity id it names. Nothing is minted
+    retryable: true
 ```
 
 Each is registered with its HTTP status in [`protocol/types`](types.md),
@@ -1386,6 +1628,16 @@ Implementation MUST:
 - [ ] The security event for a refused operator token or a foreign pass names the token by the claims [The pass](#the-pass) rule 7 gives, and holds no part of the token or the `Authorization` header
 - [ ] A component records a person's act by the pass's `identity_id` and the gateway that carried it by `act.identity_id`, as its audit entry's `actor` and `via` ([The pass](#the-pass), rule 5)
 - [ ] The orchestrator never presents a token it received to any party ([The pass](#the-pass))
+- [ ] A work authorisation is made and renewed only on a person's operator token able to use `work:authorise`, names no capability that person may not use then, and is refused with `CAPABILITY_PERSON_ONLY` for a person-only capability and `INVALID_REQUEST` for an `admin:` or exchange capability ([The work pass](#the-work-pass), rules 1 and 2)
+- [ ] A work authorisation always carries a `not_after` no more than 90 days after it was made or renewed, and mints nothing past it or once revoked ([The work pass](#the-work-pass), rules 3 and 4)
+- [ ] Removing an operator revokes none of the work authorisations they made, and records each live one ([The work pass](#the-work-pass), rule 5)
+- [ ] A component's key rotation through `POST /v1/rotate-key` replaces its identity id in every work authorisation that names it, and records each replacement ([The work pass](#the-work-pass), rule 6)
+- [ ] A work pass is minted only at `POST /v1/token/work`, for an actor the authorisation names, carries the claims and the intersected `cap` [The work pass](#the-work-pass) gives it, and expires no more than 30 seconds after it was issued
+- [ ] A work pass presented to the orchestrator, or to a component its `aud` does not name, is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([The work pass](#the-work-pass), rules 7 and 8)
+- [ ] A work pass is refused with `FORBIDDEN` on every `/v1/admin/*` route, on every route that admits only a person's pass, and for every act reserved to a person ([The work pass](#the-work-pass), rule 9)
+- [ ] A component records a work pass's request with the pass's `identity_id` as `actor`, `act.identity_id` as `via`, `cid` as `authorisation` and `run` as `run` ([The work pass](#the-work-pass), rule 10)
+- [ ] An owner presented a work pass under its own identity id refuses it with `NOT_FOUND` unless its `definition` names a definition the owner holds now ([The work pass](#the-work-pass), rule 11)
+- [ ] An actor holds a work pass in memory for the one request it was minted for, and never writes it to disk or a log ([The work pass](#the-work-pass), rule 13)
 - [ ] Enforce the replay protection window on registration that [Registration Signature Flow](#registration-signature-flow) and [Security](#security) give
 - [ ] Validate public key and signature sizes as [Verify Signature](#verify-signature) does
 - [ ] Use constant-time comparison for signature verification ([Security](#security))

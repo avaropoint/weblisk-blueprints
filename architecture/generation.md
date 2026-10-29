@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -655,6 +655,69 @@ second called a constructor written fifth.
 A reader's order and a generator's order are different. A layout in a platform
 blueprint is written for a person, entry point first; a plan is ordered for
 production, dependencies first.
+
+### Resources
+
+A component's Resources block ([`schemas/resource`](../schemas/resource.md))
+is a `yaml:resources` contract, so every key is required output
+([How a blueprint is read](#how-a-blueprint-is-read)), and the plan places
+each of these as a requirement like any endpoint:
+
+1. **A handler for every operation and verb that binds nothing**, at the
+   uniform address the admin gateway carries it to
+   ([`architecture/admin`](admin.md#the-uniform-address)), declared among the
+   component's `pass_routes` with the capability the declaration gives it. A
+   route the blueprint's endpoint table already declares keeps the operation
+   name it declares there, which is binding
+   ([`schemas/common`](../schemas/common.md#declared-names)); one it does not
+   is named the same way every time: the kind in PascalCase, then the
+   operation or verb, so `run`'s `cancel` is `RunCancel` and `tool-call`'s
+   `list` is `ToolCallList`. An operation that `binds` gets no second handler: the
+   bound route gains the `ETag` and the `If-Match` comparison `resource-api`
+   requires, and nothing else changes.
+2. **The feed route** `GET /v1/admin/events/{kind}` for every kind that
+   declares `events`, named as the first item names a route (`RunEvents`), with the
+   positions it answers kept as long as the component can keep them.
+3. **The manifest's `resources`**, carrying each declaration in its wire form
+   ([`protocol/types`](../protocol/types.md#resourcedeclaration)) with the
+   method and path each operation and verb is served at, so the admin gateway
+   learns them from the directory as it learns every pass route.
+4. **The audit of every write**, admitted or refused, as `resource-api`
+   requires of every owner.
+
+**The tenant's declared catalogue.** Whenever the CLI generates a component,
+creates a tenant or adds a component to one, it writes
+`.weblisk/resources.json`: every Resources block in the corpus revision the
+build resolved, each with the owner and whether the tenant's configuration
+declares that owner ([`schemas/config`](../schemas/config.md)). The admin
+gateway reads it to report every kind that should be there and is not
+([`architecture/admin`](admin.md#the-catalogue)). It names the corpus
+revision it was read from, holds no item and no secret, and is rewritten whole
+on every write, never edited.
+
+**Conformance holds the tenant to its declarations, with real tokens.** Once a
+component that declares a kind is built and started in a tenant, its
+conformance run, through the admin gateway:
+
+- reads `GET /v1/admin/resources` and holds every kind the corpus declares to
+  be in it, with the status its owner's registration gives it;
+- performs every declared operation and verb of every available kind on a
+  person's operator token minted for the run, one able to use the capability
+  the declaration names, and holds each answer to the declaration: the fields
+  it carries, no sensitive field, an `ETag` on `get`, and the refusals
+  `resource-api` names for no `If-Match`, a stale one, an undeclared verb and
+  a token whose `cap` leaves the capability out;
+- subscribes to every kind that declares `events`, performs a write, and holds
+  the feed to the event it declares.
+
+**A probe without a token is not this check.** A route answered `401` to an
+unauthenticated probe proves the route exists and nothing about what it does
+for a person. On 2026-10-28 the admin overview passed every probe while the
+gateway forwarded no token to the orchestrator behind it, so every person's
+request failed and no check saw it. Each operation is exercised as a person
+exercises it, on the token a person's client would send, or it is reported not
+exercised, never as passed
+([`architecture/testing`](testing.md#a-check-that-cannot-read-the-artifact-must-say-so)).
 
 ---
 
@@ -1789,3 +1852,6 @@ and "nothing contradicted it".
 - [ ] A breaking change outside a dependant's range plans `blocked` naming it, and a removal plans `halt` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] A component reached through `adoption: opt-in` is a refusal naming the root; one added by a dependency is planned as such and built only on approval ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] `apply` refuses a plan whose corpus revision, lock digest or fabric tip has moved ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] A component whose blueprint declares a kind is generated with a handler at the uniform address for every operation and verb that binds nothing, a feed route for every kind with `events`, each among its `pass_routes`, and its manifest's `resources`; a bound operation gains no second handler ([Resources](#resources))
+- [ ] Creating a tenant, generating a component and adding one each leave a `.weblisk/resources.json` naming the corpus revision it was read from and every Resources block in it, with whether the tenant declares each owner ([Resources](#resources))
+- [ ] Conformance performs every declared operation and verb through the admin gateway on an operator token minted for the run, and reports an operation it could not perform that way as not exercised, never as passed ([Resources](#resources))

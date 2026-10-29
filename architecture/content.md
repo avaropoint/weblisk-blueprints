@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.0.0
+version: 5.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -66,6 +66,8 @@ requires:
           fields_used: [method, path, capabilities, body]
         - name: BodyRequirement
           fields_used: [field, equals, capabilities]
+        - name: InboxRoute
+          fields_used: [query, items, withheld, decide_method, decide_path]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, via, action, target, status]
         - name: ProposedChange
@@ -723,6 +725,7 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_PROPOSAL_UNKNOWN` | validation | No proposal of that id in the caller's scope | Refuse without disclosing whether it exists elsewhere |
 | `CONTENT_PROPOSAL_DECIDED` | conflict | A decision arrived for a proposal that is no longer `open`, including the second of two decisions that raced | Refuse, returning the proposal as recorded. A proposal leaves `open` once |
 | `CONTENT_SEPARATION_REQUIRED` | policy | A decision to apply was made by the identity the proposal names as its `actor` or its `on_behalf_of`, and the change's scope is above the repository's `self_decision_ceiling`, the change has no scope, or the repository declares no ceiling. Or a repository declaration whose `self_decision_ceiling` is `critical`. See [Separation of duties](#separation-of-duties) | Refuse, naming the scope, or that there is none, and the ceiling. Nothing is recorded and the proposal stays `open` |
+| `CONTENT_SELF_HOLDING_REFUSED` | policy | A change to an organisation's `registers/position-holders.md` that records somebody as a holder of a position, where that is a direct write recording the writer, by a person not able to use `admin:*`; or a decision to apply it made by the person it records, or by its requester whatever `self_decision_ceiling` says. See [`schemas/position`](../schemas/position.md#changing-who-holds-a-position) | Refuse, naming the position. Nothing is written; the refusal is recorded in an `AuditEntry`, and a proposal stays `open` |
 | `CONTENT_IDENTITY_REQUIRED` | auth | A write, removal, proposal, decision, remote declaration or retirement arrived on a token that carries no `identity_id` | Refuse. Never record a name, an address or a token's `sub` in its place |
 | `CONTENT_STATEMENT_INVALID` | auth | A write, removal or decision carried a `ChangeStatement` that does not verify: the attestation's `purpose` is not `sign-records`, its `identity_id` is not the token's, its identity key is not the operator's current one, its signature fails, its credential key is not ML-DSA-65, or its `not_after` has passed or is more than 90 days ahead; its credential key is not one of the token's `record_keys`, or is the credential the token's `cid` names; `signed_at` is more than 300 seconds from the service's clock; or the signature does not verify over the statement rebuilt from the change. See [The change statement](#the-change-statement) | Refuse, naming the check that failed. Nothing is written and a proposal stays `open`. The change is never recorded unsigned instead. Log as a security event |
 | `CONTENT_WRITE_UNCONFIRMED` | io | The digest of the bytes read back after a write is not the digest of the decoded bytes submitted | Refuse. The reservation is settled as one whose path holds neither `before` nor the reserved `after`: an `observe` entry under shared custody, an integrity anomaly under exclusive custody. No `change` entry records the write, because a statement over the submitted bytes could not be checked against other ones. See [Write Flow](#write-flow) |
@@ -1140,6 +1143,22 @@ body:
   - {field: disposition, equals: establish, capabilities: [content:establish]}
   - {field: scope_floor, capabilities: [content:decide]}
   - {field: self_decision_ceiling, capabilities: [content:decide]}
+```
+
+`GET /v1/content/proposals` is the route the admin gateway's decision inbox
+lists content's open proposals from, so its entry also carries an `inbox`
+([`protocol/types`](../protocol/types.md#inboxroute)):
+
+```yaml
+method: GET
+path: /v1/content/proposals
+capabilities: [content:read]
+inbox:
+  query: state=open
+  items: proposals
+  withheld: withheld
+  decide_method: POST
+  decide_path: /v1/content/proposals/{id}/decision
 ```
 
 The admin gateway carries a person's request here only on a route this list
@@ -2902,6 +2921,15 @@ self-decided, whatever a repository declares:
   level, so a requester's decision to apply one is refused with
   `CONTENT_SEPARATION_REQUIRED`, whatever `self_decision_ceiling` says. In a
   repository with a `scope_floor` there is no such change.
+
+**A change recording somebody as a holder of a position is never
+self-decided.** The position-holders register holds authority, so for a
+change to it that records a holder the exception above does not apply: its
+requester's decision is refused, and so is a decision by the person it
+records, and a direct write recording the writer is admitted only from a
+person able to use `admin:*`. Each is refused with
+`CONTENT_SELF_HOLDING_REFUSED`
+([`schemas/position`](../schemas/position.md#changing-who-holds-a-position)).
 
 It never lets a service or an agent decide. A decider holds `content:decide`,
 which is person only, so the exception can only ever let a person agree with
@@ -5501,7 +5529,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded ([Who a change was for](#who-a-change-was-for))
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH` ([Who may move an entry](#who-may-move-an-entry), [The pass](../protocol/identity.md#the-pass))
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds ([Registration and Standalone Operation](#registration-and-standalone-operation))
-- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`, and `GET /v1/content/proposals` with the `inbox` that section shows; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded ([Declaration Flow](#declaration-flow) step 4)
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry` ([Decision Flow](#decision-flow) step 2)
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED` ([Separation of duties](#separation-of-duties))

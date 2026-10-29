@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.3.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -145,6 +145,22 @@ Not capabilities — values a kind declares.
 | `workflow` | — | namespace + path | authored | — | versioned, has-custody |
 | `programme` | — | namespace + path | published | — | versioned |
 | `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |
+| `lease` | — | tenant + agent name | observed | — | *(none)* |
+| `run-step` | — | step id | observed | — | *(none)* |
+| `tool-call` | — | call id | observed | — | *(none)* |
+| `wait` | — | wait id | observed | — | *(none)* |
+| `timer` | — | timer id | observed | — | *(none)* |
+| `schedule` | — | schedule id | observed | — | *(none)* |
+| `workflow-definition` | — | definition id | observed | — | *(none)* |
+| `programme-adoption` | — | installation id | observed | — | *(none)* |
+| `installed-item` | — | installed item id | derived | — | *(none)* |
+| `occurrence` | — | obligation + occurrence key | derived | — | *(none)* |
+| `notification` | — | notification id | observed | runtime | *(none)* |
+| `delivery` | — | delivery id | observed | runtime | *(none)* |
+| `preference` | — | preference id | authored | — | *(none)* |
+| `position-holder` | — | organisation + holding key | authored | — | *(none)* |
+| `completion` | — | completion id | observed | runtime | *(none)* |
+| `model` | — | tenant | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -194,6 +210,54 @@ by `deployed_as`. A skill or a workflow is a file, versioned, which an agent
 language, platform, framework or interface binding), named
 like a requirement by its file and part id, so an output can cite the rule it
 was made with.
+
+**`wait`, `timer`, `schedule` and `workflow-definition` are execution's
+records too.** A wait is a step held for a person, a timer an instant
+something is owed, a schedule a start an owner registered, and a
+workflow-definition the copy of a definition execution fetched and ran, kept
+with its digest. Each is named by an id execution mints; none governs
+anything. A `workflow-definition` is not a `workflow`: the file is the
+owner's, and this is the record of what was run.
+
+**`lease`, `run-step` and `tool-call` are records of something running, and
+govern nothing.** A lease is the presence a registered agent holds, one at a
+time, so it is named as its agent is. A step is one stage of a run, and a tool
+call one call a step made; each is named by an id its owner mints, because a
+step's position in its run is not a name. None is versioned, and none is a
+chain member: the run they belong to is the execution record
+([`resource.md`](resource.md) declares how a person reads each).
+
+**`programme-adoption`, `installed-item` and `occurrence` are what the
+programme service holds or derives, and govern nothing.** An adoption is the
+record of one programme installed at one organisation, and an installed item
+is one operation, workflow or notice under it; each is named by an id the
+service mints, because a programme's `id` and an item's `id` are names a map
+may change. An occurrence is one period, subject or record an obligation owes,
+named by its obligation and its key; it is derived on every read and never
+stored, and is neither versioned nor evidence: the record that discharges it
+is ([`architecture/programme-service`](../architecture/programme-service.md#what-is-due)).
+
+**`notification`, `delivery`, `preference` and `position-holder` are a
+tenant's records about telling people, and drive nothing.** A notification
+and its deliveries are observed, as a run is: they say a person was told, and
+are corroboration, not evidence. A preference is what one person chose and
+is answered only to them. A position-holder is one row of the
+[position-holders register](position.md#who-holds-a-position), named by its
+own `holding` key and never by the person it names. None has a capability:
+none is versioned on its own, none is a chain member and none proves
+anything. They are declared so that
+[`architecture/notification`](../architecture/notification.md#resources) and
+[`position.md`](position.md#resources) can name them.
+
+**`completion` and `model` are the tenant's model, and govern nothing.** A
+completion is the record of one completion the tenant's model ran, named by
+the id the model gateway mints, and observed as a run is: it says the model
+was asked, and is corroboration, not evidence. `model` is the tenant's one
+model configuration, which a person chooses; there is one per tenant, so the
+tenant is its identity. Neither has a capability. They are declared so that
+[`architecture/model-service`](../architecture/model-service.md#resources)
+and [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-model)
+can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
@@ -438,7 +502,26 @@ relation.
 | `copied_from` | policy, procedure, sop, standard, guideline, reference, document | the same kind | adoption |
 | `satisfies` | `specification` | `control` | declared |
 | `conforms_to` | `programme` | `standard` | declared |
+| `held_by` | `lease` | `agent` | registry |
+| `run_by` | `run` | `agent` | execution |
+| `spawned_by` | `run` | `run` | execution |
+| `part_of` | `run-step` | `run` | execution |
+| `part_of` | `tool-call` | `run-step` | execution |
+| `part_of` | `wait` | `run-step` | execution |
+| `fired_by` | `run` | `schedule` | execution |
+| `owed_by` | `timer` | `run`, `wait`, `schedule` | execution |
+| `starts` | `schedule` | `workflow-definition` | execution |
+| `installed_under` | `installed-item` | `programme-adoption` | programme |
+| `occurrence_of` | `occurrence` | `obligation` | programme |
 | `contains` | any | itself, unanchored | **synthesised, never stored** |
+
+`held_by`, `run_by`, `spawned_by` and `part_of` are what a run's record and a
+lease say of themselves, as `fired_by`, `owed_by` and `starts` say of execution's
+other records: the owner of the record asserts them when it writes it,
+and a client reads them as a resource's relations
+([`resource.md`](resource.md#relations)). `execution` is the tenant's run
+ledger ([`architecture/execution`](../architecture/execution.md)), which no
+tenant runs yet, so nothing asserts the execution rows today.
 
 `implements` accepting `control` as a target is what allows an author to state
 which control a document answers, instead of leaving it to keyword inference.
