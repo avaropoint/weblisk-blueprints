@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -273,8 +273,9 @@ for the full enforcement rules.
 | Namespace | Owner | Description |
 |-----------|-------|-------------|
 | `system` | orchestrator | Agent lifecycle (registered, deregistered, shutdown) |
-| `workflow` | workflow agent | Workflow triggers, phases, completion |
-| `task` | task agent | Task submission, dispatch, tracking |
+| `workflow` | execution ([`architecture/execution`](../architecture/execution.md#interfaces)); the workflow agent in the interim form | Workflow triggers, phases, completion |
+| `execution` | execution | Waits opened, escalated and closed |
+| `task` | task agent, in the interim form only: execution dispatches a step directly and publishes no `task.*` | Task submission, dispatch, tracking |
 | `lifecycle` | lifecycle agent | Strategies, observations, recommendations |
 
 Domain controllers and work agents own their own namespaces
@@ -506,7 +507,10 @@ The orchestrator validates scope at registration:
 ### Scope Propagation in Execution Chains
 
 Infrastructure agents propagate scope through event chains so that
-results return to the correct invoker:
+results return to the correct invoker. The chain below is the interim
+two-agent form; [`architecture/execution`](../architecture/execution.md)
+holds the engine and the dispatcher in one service, so steps 2 and 3 happen
+inside it, and the scopes of steps 1 and 4 are unchanged:
 
 ```
 1. SEO domain → workflow.trigger  (scope: "workflow")

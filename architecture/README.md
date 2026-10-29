@@ -7,6 +7,11 @@ specifications that all implementations must satisfy.
 
 ## Core Components
 
+Which of these a tenant needs for a programme it adopts, and the order they are
+built in, is [`schemas/programme` → What a programme runs on](../schemas/programme.md#what-a-programme-runs-on).
+The whole chain, standard to rebuild, is mapped in the
+[top-level README](../README.md#the-chain-end-to-end).
+
 | Blueprint | Purpose |
 |-----------|---------|
 | [orchestrator.md](orchestrator.md) | Trust anchor — registration, namespaces, security, directory |
@@ -18,7 +23,7 @@ specifications that all implementations must satisfy.
 | [storage.md](storage.md) | Abstract persistence interface, and how a chained log is sealed so anyone can verify it offline |
 | [content.md](content.md) | Content repository — authored text held as files whose bytes are their identity, with a sealed change log per repository |
 | [prompt-worker.md](prompt-worker.md) | Prompt worker — the tenant's one runner of `agent:` instructions: the tools a `needs:` ceiling gives, each an owner's API on a work pass, the model asked through the model service, and writes only as proposals |
-| [fabric.md](fabric.md) | Relationship fabric — an append-only ledger of what implements what |
+| [fabric.md](fabric.md) | Relationship fabric — the tenant's one append-only ledger of what implements what; agent work proposes a relationship and a person decides it, and a client's copy is a cache |
 | [execution.md](execution.md) | Execution — cron, task and workflow merged: every start, run, step, wait and timer in one ledger, a person's step decided only by a person holding its position, and the workflow runs group of the admin API |
 | [programme-service.md](programme-service.md) | Programme service — the operations, workflows and notices an adopted programme installs, who may switch them, and what execution, notification and the prompt worker are handed |
 | [notification.md](notification.md) | Notification — tells the people who hold a notice's positions, each their own way, and reports a notice that reached nobody as such |

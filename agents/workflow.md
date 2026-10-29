@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 3.0.0
+version: 3.0.1
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -113,6 +113,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
+    # Below 4.0.0 on purpose: 4.0.0's person's phase is served by
+    # architecture/execution, and this interim description serves none
     version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.2.1
+version: 5.3.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -122,8 +122,9 @@ requires:
     # 4.0.0 is where token:exchange, the one capability the gateway's
     # registration declares, is admitted for the tenant's declared admin
     # gateway alone; STEP_UP_REQUIRED, which Error Handling refuses a
-    # destructive act with, exists from 3.1.0
-    version: ">=4.0.0 <6.0.0"
+    # destructive act with, exists from 3.1.0; PassRoute.inbox and the
+    # resource codes the uniform API answers with are 6.2.0's
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         # The admin gateway serves the two probes and renews its lease
@@ -176,8 +177,12 @@ requires:
   - blueprint: architecture/orchestrator
     # 3.0.0 is where the registry holds each agent's lease; the overview's
     # lease-state counts and the agents' lease_state, lease and
-    # last_renewal are read from it, and a 2.x orchestrator holds none
-    version: ">=3.0.0 <4.0.0"
+    # last_renewal are read from it, and a 2.x orchestrator holds none.
+    # 4.2.0 is where it serves its part of the resource API and the work
+    # authorisations, 4.3.0 where it records organisations, projects
+    # and grants, and 4.4.0 where it resolves one identity id to an
+    # operator's name for a role carrying content:read
+    version: ">=4.4.0 <5.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a
@@ -189,10 +194,11 @@ requires:
         # /v1/admin/ that architecture/orchestrator's Administrative
         # endpoints lists but POST /v1/admin/model/audit, its model
         # gateway's alone, which the admin gateway forwards on the person's
-        # own token (admin-gateway-authorization). Programme objectives,
-        # decisions, workflows and federation would be bound from their own providers,
-        # and none specifies its routes yet — see the gap under "The admin
-        # API is an aggregate".
+        # own token (admin-gateway-authorization). Every other group is bound
+        # from its own provider: the decision inbox from each owner's
+        # InboxRoute, workflow runs from architecture/execution; programme
+        # objectives and federation specify no routes yet — see the gap under
+        # "The admin API is an aggregate".
         - path: /v1/admin/operators
         - path: /v1/admin/credentials
         - path: /v1/admin/hub/proof
@@ -205,12 +211,16 @@ requires:
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
+        - path: /v1/admin/work-authorisations
         # Its part of the resource API (Resources: one API for every kind):
         # its catalogue entries, the lease reads and the feeds of its kinds
         - path: /v1/admin/resources
           methods: [GET]
         - path: /v1/admin/r/lease
           methods: [GET]
+        - path: /v1/admin/r/organisation
+        - path: /v1/admin/r/project
+        - path: /v1/admin/r/grant
         - path: /v1/admin/events
           methods: [GET]
         # Read by GET alone, at the gateway's anchor. POST /v1/services is an
@@ -2242,6 +2252,16 @@ ones. An admin who cannot see who is waiting cannot approve them, and a list
 that quietly filters to approved operators makes a waiting colleague look like
 a failed registration. <!-- wl:id operators-list-pending -->
 
+A person whose role carries `content:read` MAY resolve an identity id to an
+operator's name through `GET /v1/admin/operators?identity_id=<id>`, on a
+request that can use `admin:read`, and it is answered with that operator's
+`name` and `identity_id` only: no other field of the record, and no other
+operator. Every other form of `GET /v1/admin/operators` stays `admin`'s, and
+another role is refused it with `FORBIDDEN`. A
+register that names people by identity id — the position-holders register
+([`schemas/position`](../schemas/position.md#the-register)) is one — is
+otherwise unreadable to the people it names. <!-- wl:id operators-resolve-identity -->
+
 ### Operator Roles
 
 | Role | Capabilities | Description |
@@ -2620,6 +2640,7 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 | `/v1/admin/operators/{name}/credentials` | GET | viewer+ | List an operator's credentials, revoked included |
 | `/v1/admin/operators/{name}/credentials/{cid}` | DELETE | the operator, or admin | Revoke one credential |
 | `/v1/admin/operators` | GET | admin | List all operators |
+| `/v1/admin/operators?identity_id=<id>` | GET | a role carrying `content:read`, on `admin:read` | Resolve one identity id to that operator's `name` and `identity_id`, and nothing else ([Admitting the operators after the first](#admitting-the-operators-after-the-first)) |
 | `/v1/admin/operators/{name}` | GET | viewer+ | Get operator details |
 | `/v1/admin/operators/{name}` | DELETE | admin | Remove an operator: its status becomes `revoked`, its record stays, and its credentials are revoked. After step-up (`destructive-action-step-up`) |
 | `/v1/admin/operators/{name}/approve` | POST | admin | Admit a registered operator (see *Admitting the operators after the first*). After step-up |
@@ -3730,6 +3751,7 @@ The rest SHOULD be:
 - [ ] An orchestrator with an empty operator store emits one bootstrap secret of at least 256 random bits, and compares a presented secret in constant time ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-secret-strong covers bootstrap-secret-generated bootstrap-secret-presented -->
 - [ ] A registration refused for want of an admin, for a signature that does not verify, and for a missing or wrong bootstrap secret is answered with three different codes, each naming its case ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-refusals-told-apart covers bootstrap-refusals-distinct bootstrap-refusal-named -->
 - [ ] `POST /v1/admin/operators/{name}/approve` by an admin approves a pending operator, answers success and changes nothing for one already approved, returns no token, and is audited with the approver's name; `GET /v1/admin/operators` lists pending operators beside approved ones ([Contracts](#contracts), `operator-approval`; [Admitting the operators after the first](#admitting-the-operators-after-the-first)) <!-- wl:check approval-served covers approve-route operators-list-pending-rule approve-idempotent-rule approve-no-token approve-audited approve-orchestrator-steps approve-idempotent operators-list-pending -->
+- [ ] `GET /v1/admin/operators?identity_id=<id>` by a viewer answers that operator's `name` and `identity_id` and no other field, and `GET /v1/admin/operators` without it is still refused to a viewer with `FORBIDDEN` ([Admitting the operators after the first](#admitting-the-operators-after-the-first)) <!-- wl:check identity-resolved covers operators-resolve-identity -->
 - [ ] No component, and no console, registers or is approved as an operator: a service reaches a hub only through `POST /v1/register` ([Contracts](#contracts), `operator-approval`) <!-- wl:check operators-are-people covers operator-is-person -->
 - [ ] A client signs a token request, or a credential's answer, only for a `hub_id` it recorded from a registration answer or attested its credential for, never a payload naming no hub, and treats a challenge naming another `hub_id` as a hub it holds no credential for ([Contracts](#contracts), `attestation-token-issuance`, `operator-token-issuance`) <!-- wl:check client-signs-recorded-hub covers attestation-client-hub-id client-signs-credential-hub-id -->
 - [ ] `POST /v1/admin/operators/{name}/credentials` accepts an attestation token or an operator token for the operator the path names, refuses another operator's with `OPERATOR_SUBJECT_MISMATCH` and any other token with `CREDENTIAL_REQUIRED`, and refuses with `CREDENTIAL_ATTESTATION_INVALID` an attestation that does not verify under the operator's own recorded key or names another `identity_id` ([Contracts](#contracts), `operator-credential-attestation`) <!-- wl:check credentials-route-subject covers credentials-route-tokens attestation-verifies-own-key attestation-names-identity -->

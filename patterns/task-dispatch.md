@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -32,8 +32,9 @@ This pattern covers:
 - **Tracking**: Full lifecycle from submission to completion/failure
 - **Dead-letter**: Capture of failed tasks after retry exhaustion
 
-The Task Agent (`agents/task`) is the canonical implementation of
-this pattern. Other agents interact with task dispatch exclusively
+The executor is [`architecture/execution`](../architecture/execution.md),
+which dispatches each machine step of a run as this pattern says;
+[`agents/task`](../agents/task.md) is the interim description it supersedes. Other agents interact with task dispatch exclusively
 through the event and type contracts defined here.
 
 ---

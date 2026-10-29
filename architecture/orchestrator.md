@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.3.0
+version: 4.4.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -62,7 +62,8 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.4 <4.0.0"
+      # 3.1.0 is where the work pass this orchestrator mints is specified
+      version: ">=3.1.0 <4.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -77,8 +78,9 @@ declaration:
         removed: halt-immediately
     - blueprint: protocol/types
       # 4.0.0 is where token:exchange is admitted for the declared admin
-      # gateway alone (Registration Flow, step 1)
-      version: ">=4.0.0 <7.0.0"
+      # gateway alone (Registration Flow, step 1); the work pass's types are
+      # 6.2.0's, and SCOPE_NAME_TAKEN and GRANT_SELF_REFUSED 6.3.0's
+      version: ">=6.3.0 <7.0.0"
       bindings:
         types:
           - name: RegisterRequest
@@ -1208,7 +1210,7 @@ service's route, which the same model gateway serves
 | POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, able to use `admin:read`, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
 | DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, able to use `admin:read`, or `admin:*` | Revoke one credential |
-| GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
+| GET | /v1/admin/operators | OperatorList | `admin:*`; with `identity_id`, `admin:read` | List operators; with `identity_id`, that one operator's `name` and `identity_id` alone, to a role carrying `content:read` ([`architecture/admin`](admin.md#admitting-the-operators-after-the-first)) |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator, after step-up (`destructive-action-step-up`) |
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator, after step-up |

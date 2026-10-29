@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.5.0
+version: 4.5.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -141,7 +141,7 @@ requires:
     # command's re-confirmation signs, is registered and step_up_at is set
     # only through one (Authentication Flow). The CLI never reads step_up_at:
     # it obtains a token carrying it and presents it
-    version: ">=2.2.0 <3.0.0"
+    version: ">=2.2.0 <4.0.0"
     bindings:
       types:
         - name: WLToken
@@ -176,8 +176,9 @@ requires:
     # TOKEN_REQUEST_REPLAYED, the code a replayed token request is refused
     # with, exists there too. No command reads a directory
     # entry's lease state: server verify and status read lease states from
-    # the admin API (architecture/admin below)
-    version: ">=3.1.0 <6.0.0"
+    # the admin API (architecture/admin below). The resource commands answer
+    # the resource codes, which are 6.2.0's
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         - name: Operator

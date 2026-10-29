@@ -6,7 +6,11 @@ description: Create, start, and list Weblisk agents with the CLI. Use when addin
 # Agents
 
 What an agent must do is `architecture/agent.md`. Infrastructure agents
-(workflow, task, lifecycle, …) have their own files under `agents/`. This
+(alerting, webhook, email-send, …) have their own files under `agents/`;
+the workflow, task and cron agents there are superseded by the execution
+service, `architecture/execution.md`, built as a tenant component rather
+than with this command. A programme's `agent:` instruction is not an agent
+either: the prompt worker runs it (`architecture/prompt-worker.md`). This
 skill is the command.
 
 ## Default

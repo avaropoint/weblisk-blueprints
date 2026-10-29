@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: notification
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/retry, patterns/secrets]
 platform: any
 tier: free
@@ -31,6 +31,12 @@ notification mechanism into a shared contract:
 
 Agents `extends: patterns/notification` when they send notifications.
 The alerting agent is a consumer of this pattern, not the owner.
+
+Telling the people who hold a programme's positions is one tenant service's,
+[`architecture/notification`](../architecture/notification.md), which
+implements this pattern's email and in-app channels and resolves each
+position to its holders; a component asks it rather than sending to them
+itself.
 
 ---
 

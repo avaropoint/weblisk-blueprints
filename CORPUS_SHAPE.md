@@ -88,9 +88,11 @@ appears instead of two hundred gaps at once.
 Obligations and registers, yes — including a register's column schema — and,
 since step 6a, the rest of the package: workflows with their tasks and
 approvals, notices, skills, the domain services a programme asks to have built,
-and a card per occurrence through `creates`. What is still missing is anything
-that **reads** those declarations or **receives** them: no programme loader places them,
-and no tenant runs the services that own them. That is the gap between what
+and a card per occurrence through `creates`. The services that receive them are
+specified ([`schemas/programme` → What a programme runs on](schemas/programme.md#what-a-programme-runs-on)).
+What is still missing is anything that **reads** those declarations or
+**receives** them: no programme loader places them, and no tenant runs the
+services that own them. That is the gap between what
 exists and the sentence at the top of this section, and it is the substance of
 the work rather than a detail of the move.
 
@@ -272,10 +274,10 @@ is under active work.**
 
 **4 — `standards/` repurposed to industry standards. DONE.** 37 authored
 standards moved from Studio's Go packages — 167 families, 951 controls — with
-`schemas/standard.md` written from the data rather than ahead of it. Studio keeps
-an embedded copy so a fresh install needs no network call, guarded against drift,
-which is the fourth use of that pattern after skills, the kind declaration and
-the fabric.
+`schemas/standard.md` written from the data rather than ahead of it. Studio
+kept an embedded copy at the time, so a fresh install needed no network call;
+it keeps none now, and an installation with no framework source reports a
+framework as unscoreable rather than as a zero.
 
 `weblisk_framework.json` stayed: it is generated from `schemas/`, and copying a
 derived artifact into the corpus would create a second copy free to drift from
@@ -432,9 +434,11 @@ here.
 
 **6b — reading and receiving them. NOT DONE.** No programme loader reads the
 four new blocks or `creates` (Studio's obligation engine reads `creates` from a
-document, not from a programme), no shipped map declares one, and none of the programme
-service, execution or notification that would receive them is specified here
-yet.
+document, not from a programme). `construction-ohs-ca` and `document-control`
+declare the package, and the services that would receive it — the programme
+service, execution, notification, the prompt worker and the model service —
+are specified in [`architecture/`](architecture/README.md); no tenant runs
+them yet.
 
 **7 — `positions/`, and the audience the corpus did not have. DONE.**
 

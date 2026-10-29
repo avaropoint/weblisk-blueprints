@@ -69,6 +69,24 @@ agent gets wrong:
   answer, not as an error to retry or work around — see `architecture/content.md`,
   "Declaring a Repository".
 
+## A programme names what to build
+
+Adopting a programme answers a **build plan**: the services it needs that the
+tenant does not run, each with its blueprint, in build order.
+`schemas/programme.md`, "What a programme runs on", is the one home of which
+service each block needs, the name each registers under and the order; do not
+keep a list of your own.
+
+- Build each from its own blueprint, in that order. A service marked
+  `adoption: opt-in` — the fabric — is never pulled in as another's
+  dependency, so name it when the plan does.
+- The specified way is a change: `weblisk change plan --adopt <ref>`,
+  approved by a person, then `change apply` in the tenant
+  (`architecture/cli.md`, "Changes"). Where this CLI does not build `change`
+  yet, `component <kind> init` is how a service is added.
+- A programme is not running because it was adopted. Only an empty plan says
+  the tenant runs everything the programme needs.
+
 ## Decide before you build
 
 The rebuild decision is **per file**, and the default answer is KEEP.

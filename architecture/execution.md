@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain]
 platform: any
 tier: free
@@ -67,7 +67,9 @@ them from the corpus is an owner decision this blueprint does not make
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=6.1.0 <7.0.0"
+    # 6.4.0 is where EXECUTION_START_LOOP, which a run asking for its own
+    # chain's definition is refused with, is registered; PassRoute.inbox is 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -121,7 +123,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.1.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
@@ -867,10 +870,10 @@ until an organisation's records repository holds it, every wait naming a
 position is listed and cannot be decided
 ([Who holds a position](#who-holds-a-position)).
 
-**A wait is announced to nobody.** Notification's `NotifyByPosition` tells a
-notice or an occurrence, and its request has no way to name a wait
-([Notification](#notification)). A wait opens with `announced: false`, is
-listed in the inbox, and is published as `execution.wait.opened`.
+**A wait is announced to nobody.** A wait opens with `announced: false`, is
+listed in the inbox, and is published as `execution.wait.opened`; the gap is
+notification's request, which cannot name a wait
+([`architecture/notification`](notification.md#known-gaps)).
 
 **No content entry records the run that wrote it.** Execution carries a
 run's chain in every dispatch's context, and nothing yet writes it beside the

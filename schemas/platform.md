@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.0.1
 kind: specification
 noun: platform
 match: [platforms/*.md]
@@ -115,7 +115,7 @@ describes itself — `name: node` implies `platform: node`.
 | 8 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependencies, build tools |
 | 9 | Build and Run | `## Build and Run` | table | **Yes** | Build commands, run commands, environment setup |
 | 10 | Platform-Specific Conventions | `## Platform-Specific Conventions` | table | **Yes** | Language idioms, concurrency model, IO patterns |
-| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | Transitional: kept required so today's validation still reads it; the spelling is a language mapping's (see [Type Mapping](#type-mapping-type-mapping)) |
+| 11 | Type Mapping | `## Type Mapping` | table | **Yes** | Transitional: kept required so today's validation still reads it; the spelling is a language mapping's (see [Type Mapping](#type-mapping--type-mapping)) |
 | 12 | Security | `## Security` | narrative | **Yes** | Platform-specific security practices |
 | 13 | Testing | `## Testing` | narrative | **Yes** | Test framework, test structure, CI guidance |
 | 14 | Implementation Notes | `## Implementation Notes` | narrative | **Yes** | Practical guidance |

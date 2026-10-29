@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.3.1
+version: 1.3.2
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
 platform: any
 tier: free
@@ -165,7 +165,7 @@ contracts.
 
 The boundary between framework and application security is detailed in
 [What the Framework Secures](#what-the-framework-secures) and
-[What the Framework Does NOT Do](#what-the-framework-does-not-do).
+[Does NOT Own](#does-not-own).
 
 ### Owns
 

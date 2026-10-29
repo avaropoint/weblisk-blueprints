@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification]
 platform: any
 tier: free
@@ -58,7 +58,10 @@ not restated here.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <7.0.0"
+    # 6.4.0 is where programme:dispatch, programme:notify and
+    # PROGRAMME_ITEM_NOT_RUNNING are registered; AuditEntry's authorisation
+    # and run are 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -93,7 +96,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.0.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
@@ -176,7 +180,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <5.0.0"
+    # 4.2.0 is where the orchestrator holds work authorisations and mints
+    # work passes (work-exchange)
+    version: ">=4.2.0 <5.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. Relied on, never called
@@ -1259,12 +1265,8 @@ registration failure is fatal.
 notification and the prompt worker are each specified, and no tenant runs
 any of them, so an adoption today hands no block to an owner, and says so.
 
-**A person's step can wait and not yet be decided.** Execution holds a
-workflow's `task` and `approval` steps as waits and lists them in the
-inbox, and decides one only for a person shown to hold a position it awaits
-([`architecture/execution`](execution.md#who-holds-a-position)). Until the
-position-holders register is held in a tenant, each such decision is refused
-with `EXECUTION_POSITION_UNRESOLVED`.
+**A person's step can wait and not yet be decided**, until a tenant holds
+the position-holders register ([`architecture/execution`](execution.md#known-gaps)).
 
 **An `on:` start hears every obligation at its organisation.** A notice hears
 only its own programme's obligations ([Starting on a fact](#starting-on-a-fact)),
@@ -1282,24 +1284,15 @@ Starting another programme's work, or telling a position no adopted
 programme names, has no route: each would let one programme's agent work act
 on authority a person granted for another, and is the owner's to decide.
 
-**An agent records an occurrence only as a proposal of a whole register.**
-An occurrence is recorded by a row in its obligation's `records:` register
-([The three states, and a fourth](#the-three-states-and-a-fourth)), and the
-prompt worker proposes rows only by proposing the register's whole text
-([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)). A row a
-person accepts that way reads `recorded`, never `attested`. A proposal of one
-row, which the person deciding sees as one row, waits for content to accept
-a row as a change.
+**An agent records an occurrence only as a proposal of a whole register**
+([`architecture/prompt-worker`](prompt-worker.md#known-gaps)). A row a person
+accepts that way reads `recorded`, never `attested`
+([The three states, and a fourth](#the-three-states-and-a-fourth)).
 
-**No hub serves the prompt worker's model route yet.** The route is
-specified: [`architecture/model-service`](model-service.md) gives the tenant's
-one model service a route for a registered component, `POST /v1/model/complete`,
-on its own registration token holding `llm:chat`, on the same configuration,
-gate and audit as a person's completion. The model gateway the CLI installs
-does not serve it yet, and no tenant runs the prompt worker
-([`architecture/prompt-worker`](prompt-worker.md)). So an `agent:` operation
-or step installs, and cannot run until both run. It is
-reported as not runnable, never as having run.
+**An `agent:` operation or step installs and cannot run yet.** No hub serves
+the model service's route ([`architecture/model-service`](model-service.md#known-gaps))
+and no tenant runs the prompt worker, so it is reported as not runnable, never
+as having run.
 
 **An attestation is not yet checked against the positions that must give
 it.** `attested` needs a person's signed change

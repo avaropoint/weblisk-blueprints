@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: model-service
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, architecture/orchestrator, patterns/scope]
 platform: any
 tier: free
@@ -96,7 +96,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=4.1.0 <5.0.0"
+    # 4.2.0 is where the orchestrator serves POST /v1/model/audit
+    version: ">=4.2.0 <5.0.0"
     bindings:
       types:
         # The one configuration that chooses the backend and the model

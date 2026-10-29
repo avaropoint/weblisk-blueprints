@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: prompt-worker
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, architecture/programme-service, architecture/fabric, patterns/scope]
 platform: any
 tier: free
@@ -90,8 +90,9 @@ CLI on the tenant's change cycle
 ```yaml
 requires:
   - blueprint: protocol/types
-    # 6.1.0 carries the run record's types and MODEL_BACKEND_LIMITED
-    version: ">=6.1.0 <7.0.0"
+    # 6.4.0 is where WORKER_NOTICE_WITHHELD and programme:notify are
+    # registered; the run record's types and MODEL_BACKEND_LIMITED are 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -113,6 +114,12 @@ requires:
           fields_used: [prompt_tokens, completion_tokens, total_tokens, cost]
         - name: RunCost
           fields_used: [amount, currency]
+        # The exchange a work pass for one request of a run is minted at
+        # (protocol/identity, The work pass), whose types are declared here
+        - name: WorkExchangeRequest
+          fields_used: [authorisation, audience, scope, run]
+        - name: WorkExchangeResponse
+          fields_used: [issued, code, pass, expires_at, capabilities]
         - name: Liveness
           fields_used: [live]
         - name: Readiness
@@ -125,7 +132,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=3.0.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # A work pass: type work, aud this worker, act the component that
@@ -133,10 +141,6 @@ requires:
         # authorisation, definition and run
         - name: WLToken
           fields_used: [type, aud, act, sub, identity_id, cid, cap, definition, run, exp]
-        - name: WorkExchangeRequest
-          fields_used: [authorisation, audience, scope, run]
-        - name: WorkExchangeResponse
-          fields_used: [issued, code, pass, expires_at, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -197,7 +201,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/model-service
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.1.0 <2.0.0"
     bindings:
       types:
         - name: ServiceCompletionRequest
@@ -213,7 +217,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=4.1.0 <5.0.0"
+    # 4.2.0 is where /v1/token/work and /v1/model/ceiling are served
+    version: ">=4.2.0 <5.0.0"
     bindings:
       types:
         - name: CompletionRequest

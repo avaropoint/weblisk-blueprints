@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: domain
-version: 3.1.0
+version: 3.1.1
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
@@ -97,7 +97,7 @@ requires:
           methods: [POST]
       types:
         - name: TaskRequest
-          fields_used: [task_id, action, payload, context]
+          fields_used: [id, action, payload, context]
         - name: TaskResult
           fields_used: [task_id, agent_name, status, summary]
         - name: AgentManifest

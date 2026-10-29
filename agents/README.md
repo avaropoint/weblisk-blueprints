@@ -12,7 +12,7 @@ configuration, and operational behavior.
 |---|---|---|
 | **Scope** | Hub-wide services | Domain-specific tasks |
 | **Defined by** | These blueprints | Domain controller specs |
-| **Examples** | Workflow engine, alerting, scheduling | Invoice processor, chat responder |
+| **Examples** | Alerting, webhooks, email | Invoice processor, chat responder |
 | **Deployed** | Once per hub | Per domain as needed |
 
 ## Agent Blueprints
@@ -22,7 +22,7 @@ configuration, and operational behavior.
 | [workflow.md](workflow.md) | Workflow execution engine — DAG resolution, phase coordination. Superseded by [`architecture/execution`](../architecture/execution.md) and kept as the interim description |
 | [task.md](task.md) | Task dispatch and tracking — priority queue, concurrency control. Superseded by [`architecture/execution`](../architecture/execution.md) and kept as the interim description |
 | [lifecycle.md](lifecycle.md) | Continuous optimization — strategies, observations, approvals |
-| [alerting.md](alerting.md) | Notification routing and delivery |
+| [alerting.md](alerting.md) | Operational alert routing and delivery. Telling the people who hold a programme's positions is [`architecture/notification`](../architecture/notification.md)'s |
 | [incident-response.md](incident-response.md) | Automated incident detection, runbooks, remediation |
 | [health-monitor.md](health-monitor.md) | Retiring, and not what decides whether a component is live or present: liveness is the supervisor's, through [`GET /livez`](../protocol/spec.md#get-livez-and-get-readyz), and presence is the orchestrator's, through [leases](../architecture/orchestrator.md#presence) |
 | [hub.md](hub.md) | Registry hub — indexing, search, metrics, verification |
