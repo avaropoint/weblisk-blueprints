@@ -104,6 +104,27 @@ what a namespace is, is [`schemas/names.md`](schemas/names.md)'s.
 The names it has stopped using, and what replaced each, are listed once, in
 [`RETIRED.md`](RETIRED.md).
 
+### The chain, end to end
+
+What a tenant does with this corpus, read downward, and where each step is
+specified. Each row links to the one home of its rules; nothing here restates
+them.
+
+| step | what happens | its home |
+|---|---|---|
+| **Standard** | A published body of requirements — controls, grouped in families, with where each has force | [`standards/`](standards/README.md), [`schemas/standard`](schemas/standard.md) |
+| **Adoption** | An organisation takes a standard or a programme as its own, by a person's act recorded in its repositories | [`schemas/standard` → Adopting a standard](schemas/standard.md#adopting-a-standard), [`schemas/programme` → Adopting a programme](schemas/programme.md#adopting-a-programme) |
+| **Programme** | What a body of work requires: documents, obligations, registers, workflows, notices, agent instructions | [`programmes/`](programmes/README.md), [`schemas/programme`](schemas/programme.md) |
+| **Build plan** | What adoption answers: the services the programme needs that the tenant does not run, in the order they are built | [`schemas/programme` → What a programme runs on](schemas/programme.md#what-a-programme-runs-on) |
+| **Components** | Each service built from its blueprint, through a change a person approves, applied in the tenant | [`architecture/`](architecture/README.md), [`architecture/cli` → Changes](architecture/cli.md#changes), [`architecture/generation`](architecture/generation.md) |
+| **Agents and tools** | Unattended work runs on a work pass a person authorised; an `agent:` instruction reaches each service only through the prompt worker's declared tools, proposing and never deciding | [`protocol/identity` → The work pass](protocol/identity.md#the-work-pass), [`architecture/execution`](architecture/execution.md), [`architecture/prompt-worker` → The Tool Set](architecture/prompt-worker.md#the-tool-set) |
+| **Fabric** | The tenant's one ledger of what implements and answers what, from which coverage and reach are read | [`architecture/fabric`](architecture/fabric.md) |
+| **Evidence** | Records written to registers and the documents they cite, attested by a person; what is due is answered from them | [`architecture/programme-service` → The three states, and a fourth](architecture/programme-service.md#the-three-states-and-a-fourth), [`architecture/content`](architecture/content.md) |
+| **Rebuild** | What a tenant is rebuilt from, what is derived again, and what cannot come back | [`architecture/tenancy` → Rebuilding a Tenant](architecture/tenancy.md#rebuilding-a-tenant) |
+
+Read upward, the same rows are assurance: evidence answers an obligation, an
+obligation answers a control, and the fabric is where each answer is recorded.
+
 ### Architecture Hierarchy
 
 ```

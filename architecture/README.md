@@ -7,6 +7,11 @@ specifications that all implementations must satisfy.
 
 ## Core Components
 
+Which of these a tenant needs for a programme it adopts, and the order they are
+built in, is [`schemas/programme` → What a programme runs on](../schemas/programme.md#what-a-programme-runs-on).
+The whole chain, standard to rebuild, is mapped in the
+[top-level README](../README.md#the-chain-end-to-end).
+
 | Blueprint | Purpose |
 |-----------|---------|
 | [orchestrator.md](orchestrator.md) | Trust anchor — registration, namespaces, security, directory |
