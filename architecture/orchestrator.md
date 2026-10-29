@@ -1210,7 +1210,7 @@ service's route, which the same model gateway serves
 | POST | /v1/admin/operators/{name}/credentials | CredentialAttest | the operator's own token, able to use `admin:read`, or an attestation token for them | Attest a credential for that operator |
 | GET | /v1/admin/operators/{name}/credentials | CredentialList | `admin:read` | That operator's credentials, revoked included |
 | DELETE | /v1/admin/operators/{name}/credentials/{cid} | CredentialRevoke | the operator, able to use `admin:read`, or `admin:*` | Revoke one credential |
-| GET | /v1/admin/operators | OperatorList | `admin:*` | List operators |
+| GET | /v1/admin/operators | OperatorList | `admin:*`; with `identity_id`, `admin:read` | List operators; with `identity_id`, that one operator's `name` and `identity_id` alone, to a role carrying `content:read` ([`architecture/admin`](admin.md#admitting-the-operators-after-the-first)) |
 | GET | /v1/admin/operators/{name} | OperatorGet | `admin:read` | Operator detail |
 | DELETE | /v1/admin/operators/{name} | OperatorDelete | `admin:*` | Remove an operator, after step-up (`destructive-action-step-up`) |
 | POST | /v1/admin/operators/{name}/approve | OperatorApprove | `admin:*` | Admit a registered operator, after step-up |

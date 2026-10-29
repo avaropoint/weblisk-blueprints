@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.2.0
+version: 1.3.0
 kind: reference
 noun: position
 match: [positions/*.md]
@@ -240,7 +240,7 @@ lets hold an entry labelled `pii`. Written anywhere else, it is refused with
 a programme is adopted at the organisation
 ([`programme.md`](programme.md#one-act-by-a-person-at-the-organisation)) and
 its positions are the organisation's. A holding limited to one project names
-that project in its row. A project keeps no register of its own.
+that project in its row, by its id. A project keeps no register of its own.
 
 **Its file is a register's.** A person creates it, through content, in the
 organisation's records repository, and it is read by its columns' keys. An
@@ -270,7 +270,7 @@ register:
 | `holding` | the row's key: 32 lowercase hex characters minted when the row is written, never changed and never reused. What a record of an act cites to say which holding it was made under |
 | `position` | a position id, as the programmes name it ([Format](#format)) |
 | `holder` | the person's identity id at the tenant: the id tokens and records name an operator by ([`protocol/types`](../protocol/types.md#operator)). Never a name or an address |
-| `project` | the scope path of a project in the organisation. Empty, the holding covers the whole organisation |
+| `project` | the id of a project in the organisation: the `id` the tenant's orchestrator records it by ([`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects)), never its scope path or its name. A row joins on the id, which is never changed or reused; a client shows the project's path. Empty, the holding covers the whole organisation |
 | `first_day`, `last_day` | the first and last day held, both included, as calendar dates in UTC. An empty `last_day` is a holding that has not ended |
 | `note` | why, for a reader who was not there. It may describe the person, so it is labelled as `holder` is |
 | `recorded_by` | the identity id of the person who wrote the row: a person acting, not the person the row is about, so not labelled `pii` ([`programme.md`](programme.md#records-about-a-person)) |
@@ -296,7 +296,7 @@ types:
       project:
         type: string
         required: false
-        description: The scope path of the one project it covers. Absent, the whole organisation
+        description: The id of the one project it covers, as the orchestrator records it, never its scope path. Absent, the whole organisation
       first_day:
         type: string
         required: true
@@ -324,7 +324,7 @@ one rule, for a position, a day and a scope:
 1. A row **covers the day** when its `first_day` is on or before the day,
    and its `last_day` is empty or on or after it.
 2. At a **project**, the holders are the people named by the covering rows
-   for the position whose `project` is that project. Where there are none,
+   for the position whose `project` is that project's id. Where there are none,
    they are the people named by the covering rows whose `project` is empty.
 3. At the **organisation**, the holders are the people named by the
    covering rows whose `project` is empty.
@@ -454,6 +454,28 @@ resources:
 kind is declared-unavailable until it does ([Resources](#resources)); a
 holding is read and changed as the whole register entry.
 
+**No tenant route answers which positions an organisation has.** The
+positions an organisation has are those named by the programmes adopted at it,
+at the tier it targets; no service serves that projection, so a client derives
+it from the programmes it can read, which may not be the tenant's adopted set.
+Until the programme service serves
+`GET /v1/programmes/positions?scope_path=<org>`, a client says its list is its
+own reading.
+
+**A service that names a project by its scope path has no route to its id.**
+A row names a project by the id the orchestrator records it by
+([The register](#the-register)), while notification's request and a wait name
+the project they resolve at by its scope path
+([`architecture/notification`](../architecture/notification.md#resolving-holders)).
+How a service reads the id for a path, on a work pass, is not specified. A
+service that cannot match a project's rows says its holders are not known,
+never answering the organisation's in their place.
+
+**A client that raises its own approvals resolves a holder only to the
+accounts it knows to act as that identity.** A holder with none is reported,
+never dropped. This ends when the approving service in the tenant resolves
+`approvers` itself.
+
 **No act is checked against a holding yet.** The register says who held a
 position on a day, and nothing yet checks that whoever approved, attested or
 signed under a position held it then. The positions an approval, escalation
@@ -484,6 +506,7 @@ field yet lets a tenant set one for a register the corpus declares.
 - [ ] It is written at `registers/position-holders.md` in the organisation's records repository, and a write of it anywhere else is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` ([The register](#the-register))
 - [ ] Every column the block declares is present, `holder` and `note` are `restricted` and labelled `pii`, and `recorded_by` is not labelled ([The register](#the-register))
 - [ ] A row's `holder` is an identity id, never a name or an address ([The register](#the-register))
+- [ ] A row's `project` is the id the orchestrator records the project by, never its scope path or name ([The register](#the-register))
 - [ ] At a project with a covering row for the position, only that project's holders are answered; with none, the organisation's are ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
 - [ ] A position with no covering row resolves to no holder, never to a person and never to an error ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
 - [ ] A holding that ends is given a `last_day`, and no row is removed ([Changing who holds a position](#changing-who-holds-a-position))

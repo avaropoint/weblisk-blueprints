@@ -734,6 +734,10 @@ fields a person can set differently is how that happens.
 An artifact may not be a standing register **and** declare a record log: a
 register's own rows are not its obligation's records.
 
+**A standing register's file carries its id.** It is written as
+`register: <id>` in the file's frontmatter when the file is created, and never
+changed, so the register is found by its id wherever its path moves.
+
 | field | type | required | means |
 |---|---|---|---|
 | `title` | string | no | what the document is called. Defaults to the obligation's activity, or the spec's title |
@@ -2376,6 +2380,7 @@ than naming a statute that does not exist.
 - [ ] Every `escalate` declares both `after` — `<n><h|d|w>`, no months — and `to` ([`escalate`](#escalate--who-it-becomes-the-problem-of), [`escalate.after`](#escalateafter--how-long-past-due))
 - [ ] Every obligation names `records:`, and some artifact produces that document ([`declares.obligation`](#declaresobligation), [The rules that are load-bearing](#the-rules-that-are-load-bearing))
 - [ ] Every declared register has at least one column, with unique keys, and a `target` on every `relation` ([Registers](#registers), [Columns](#columns))
+- [ ] A standing register's file, once created, carries `register: <id>` in its frontmatter, and no later change alters it ([Registers](#registers))
 - [ ] `review`, `approvers` and `approval_order` appear only with `layout: form`, and only with their declared values ([Registers](#registers), [The single-valued ones](#the-single-valued-ones))
 - [ ] Every `retention.keep` is `<n>y`, `<n>m` or `<n>d`, and declares its `authority` ([`retention`](#retention), [`retention.keep`](#retentionkeep--the-keeping-period))
 - [ ] Every `retention` on a register that is appended to says `from: modified`, and every `authority` either cites the instrument setting the period or says in words that none does ([`retention`](#retention))
