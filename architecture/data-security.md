@@ -165,7 +165,7 @@ contracts.
 
 The boundary between framework and application security is detailed in
 [What the Framework Secures](#what-the-framework-secures) and
-[What the Framework Does NOT Do](#what-the-framework-does-not-do).
+[Does NOT Own](#does-not-own).
 
 ### Owns
 

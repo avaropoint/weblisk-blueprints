@@ -240,7 +240,7 @@ See [common.md](common.md) Configuration Section for full specification.
 `/readyz`). Those seven are the protocol's and are not restated here.
 
 Same table, same required `Operation` column, and the same rules — defined once
-in [`schemas/architecture.md`](architecture.md#endpoints-endpoints). A serving
+in [`schemas/architecture.md`](architecture.md#endpoints--endpoints). A serving
 component is a serving component: an agent that publishes an administrative
 surface declares it exactly as a component in `architecture/` does, or the two
 schemas disagree about the same question and tooling has to know which kind of
