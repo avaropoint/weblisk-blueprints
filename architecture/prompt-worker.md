@@ -114,6 +114,12 @@ requires:
           fields_used: [prompt_tokens, completion_tokens, total_tokens, cost]
         - name: RunCost
           fields_used: [amount, currency]
+        # The exchange a work pass for one request of a run is minted at
+        # (protocol/identity, The work pass), whose types are declared here
+        - name: WorkExchangeRequest
+          fields_used: [authorisation, audience, scope, run]
+        - name: WorkExchangeResponse
+          fields_used: [issued, code, pass, expires_at, capabilities]
         - name: Liveness
           fields_used: [live]
         - name: Readiness
@@ -135,10 +141,6 @@ requires:
         # authorisation, definition and run
         - name: WLToken
           fields_used: [type, aud, act, sub, identity_id, cid, cap, definition, run, exp]
-        - name: WorkExchangeRequest
-          fields_used: [authorisation, audience, scope, run]
-        - name: WorkExchangeResponse
-          fields_used: [issued, code, pass, expires_at, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
