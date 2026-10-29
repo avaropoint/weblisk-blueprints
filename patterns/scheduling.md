@@ -13,8 +13,10 @@ Declarative schedule registration and execution contract for
 time-based work across all Weblisk agents and domains. This pattern
 defines the platform-wide specification for cron expressions, schedule
 lifecycle, overlap control, missed-tick handling, and distributed
-locking. The cron agent is the executor — this pattern is the
-contract that all schedule producers and consumers share.
+locking. The executor is [`architecture/execution`](../architecture/execution.md),
+which holds and fires every start; [`agents/cron`](../agents/cron.md) is the
+interim description it supersedes. This pattern is the contract that all
+schedule producers and consumers share.
 
 ## Overview
 

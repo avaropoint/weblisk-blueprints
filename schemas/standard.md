@@ -550,9 +550,11 @@ same way: the project's link reads `behind`, and the project takes it.
   `standards/*.json` expect the [required fields](#required-fields) and do not
   resolve `extends`, so a generated standard is unreadable to them until they
   do.
-- **No schema declares a scope's characteristics.** Places, work and data held
-  are named here by what they are; the tenant has no declared place to keep
-  them, so `basis.characteristic` is a name nothing checks.
+- **Only a scope's places are declared.** Where an organisation operates is
+  its `operates_in`, held by the tenant's orchestrator
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects)).
+  The work it does and the data it holds have no declared place in the
+  tenant, so a `basis.characteristic` naming either is a name nothing checks.
 - **Nothing generates or adopts a standard yet**, and a tenant whose content
   service is not running cannot hold one.
 - **Nothing records a link.** [Linking without adopting](#linking-without-adopting)

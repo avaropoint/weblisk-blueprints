@@ -122,7 +122,9 @@ local checkout, then `WL_BLUEPRINT_SOURCES`, then the shared cache.
 
 **The specification moves; the implementation does not.** Studio keeps its
 planner and its engine and reads the maps from here. Anything else is a rewrite
-wearing a move's clothes.
+wearing a move's clothes. In a tenant, what is due is answered by the tenant's own
+[programme service](../architecture/programme-service.md); a client's engine is
+that client's reading of the documents, never the tenant's record.
 
 ## Vertical neutrality is a property of the product, not of this directory
 

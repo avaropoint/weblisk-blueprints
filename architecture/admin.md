@@ -193,10 +193,11 @@ requires:
         # /v1/admin/ that architecture/orchestrator's Administrative
         # endpoints lists but POST /v1/admin/model/audit, its model
         # gateway's alone, which the admin gateway forwards on the person's
-        # own token (admin-gateway-authorization). Programme objectives,
-        # decisions, workflows and federation would be bound from their own providers,
-        # and none specifies its routes yet — see the gap under "The admin
-        # API is an aggregate".
+        # own token (admin-gateway-authorization). Every other group is bound
+        # from its own provider: the decision inbox from each owner's
+        # InboxRoute, workflow runs from architecture/execution; programme
+        # objectives and federation specify no routes yet — see the gap under
+        # "The admin API is an aggregate".
         - path: /v1/admin/operators
         - path: /v1/admin/credentials
         - path: /v1/admin/hub/proof
@@ -209,12 +210,16 @@ requires:
           methods: [POST]
         - path: /v1/admin/overview
           methods: [GET]
+        - path: /v1/admin/work-authorisations
         # Its part of the resource API (Resources: one API for every kind):
         # its catalogue entries, the lease reads and the feeds of its kinds
         - path: /v1/admin/resources
           methods: [GET]
         - path: /v1/admin/r/lease
           methods: [GET]
+        - path: /v1/admin/r/organisation
+        - path: /v1/admin/r/project
+        - path: /v1/admin/r/grant
         - path: /v1/admin/events
           methods: [GET]
         # Read by GET alone, at the gateway's anchor. POST /v1/services is an

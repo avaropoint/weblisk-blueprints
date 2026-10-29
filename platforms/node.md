@@ -237,13 +237,13 @@ blueprint rather than look for a binding that does not exist.
 | In-process cache | `patterns/caching` | module scope in a long-lived process | `PLATFORM` |
 | File and asset storage | `patterns/file-upload`, `architecture/content` | `node:fs` | `PLATFORM` |
 | Client TLS to third parties | `patterns/security` | `node:tls` | `PLATFORM` |
-| Scheduled execution | `patterns/scheduling`, `agents/cron` | `node:timers` in a resident process | `ADAPTER` |
+| Scheduled execution | `patterns/scheduling`, `architecture/execution`, `agents/cron` | `node:timers` in a resident process | `ADAPTER` |
 | Bidirectional realtime transport | `patterns/realtime-chat` | HTTP upgrade; the WebSocket implementation is a choice | `ADAPTER` |
 | Service-to-service invocation | `protocol/spec` | HTTP over the loopback or network interface | `ADAPTER` |
 | Strongly consistent registry | `architecture/orchestrator`, `architecture/storage` | single-process state, persisted to the filesystem | `ADAPTER` |
 | Queryable records, audit, observations | `architecture/storage`, `patterns/storage` | no managed store; SQLite is a dependency, not a runtime facility | `IMPLEMENT` |
-| Asynchronous task dispatch | `patterns/task-dispatch`, `agents/task` | — | `IMPLEMENT` |
-| Multi-phase execution with durable state | `patterns/workflow`, `agents/workflow` | — | `IMPLEMENT` |
+| Asynchronous task dispatch | `patterns/task-dispatch`, `architecture/execution`, `agents/task` | — | `IMPLEMENT` |
+| Multi-phase execution with durable state | `patterns/workflow`, `architecture/execution`, `agents/workflow` | — | `IMPLEMENT` |
 | Retry and backoff | `patterns/retry` | — | `IMPLEMENT` |
 | Rate limiting | `patterns/rate-limiting`, `architecture/gateway` | — | `IMPLEMENT` |
 | Vector storage and similarity search | `patterns/api-ai` | — | `IMPLEMENT` |

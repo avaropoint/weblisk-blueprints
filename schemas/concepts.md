@@ -106,10 +106,10 @@ concepts:
   service/process-execution: {text: "Operating-system process execution.", required_by: [patterns/command]}
   service/log-emission: {text: "Structured log emission.", required_by: [patterns/logging]}
   service/client-tls: {text: "Client TLS to third parties.", required_by: [patterns/security]}
-  service/scheduling: {text: "Scheduled execution.", required_by: [patterns/scheduling, agents/cron]}
+  service/scheduling: {text: "Scheduled execution.", required_by: [patterns/scheduling, architecture/execution, agents/cron]}
   service/realtime: {text: "Bidirectional realtime transport.", required_by: [patterns/realtime-chat]}
-  service/task-dispatch: {text: "Asynchronous task dispatch.", required_by: [patterns/task-dispatch, agents/task]}
-  service/workflow: {text: "Multi-phase execution with durable state.", required_by: [patterns/workflow, agents/workflow]}
+  service/task-dispatch: {text: "Asynchronous task dispatch.", required_by: [patterns/task-dispatch, architecture/execution, agents/task]}
+  service/workflow: {text: "Multi-phase execution with durable state.", required_by: [patterns/workflow, architecture/execution, agents/workflow]}
   service/retry: {text: "Retry and backoff.", required_by: [patterns/retry]}
   service/rate-limiting: {text: "Rate limiting.", required_by: [patterns/rate-limiting, architecture/gateway]}
   service/vector-search: {text: "Vector storage and similarity search.", required_by: [patterns/api-ai]}

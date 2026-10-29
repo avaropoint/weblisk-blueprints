@@ -10,7 +10,7 @@ gateway implements these specs regardless of platform or language.
 | Spec | Purpose |
 |------|---------|
 | [spec.md](spec.md) | Full protocol specification — 6 agent + 6 orchestrator endpoints |
-| [identity.md](identity.md) | ML-DSA-65 cryptography, tokens, signing, key rotation |
+| [identity.md](identity.md) | ML-DSA-65 cryptography, tokens, signing, key rotation, the pass a person's request is carried on, and the work pass unattended work runs on |
 | [secret-source.md](secret-source.md) | Where secrets are held — an identity's, an installation's master key, a service's passphrase — in any vault or none, and the helper protocol that reaches them |
 | [types.md](types.md) | Canonical type definitions — all JSON shapes |
 | [conventions.md](conventions.md) | Wire conventions, each stated once: instants, UUIDs, durations, integers, attempts, backoff, path parameters, task timeout |

@@ -188,9 +188,9 @@ reason to generate for it.
 | Vector storage and similarity search | `patterns/api-ai` | Vectorize | `PLATFORM` |
 | Inference and embedding generation | `patterns/api-ai` | Workers AI | `PLATFORM` |
 | Model provider abstraction, response caching, cost attribution | `patterns/api-ai` | AI Gateway | `PLATFORM` |
-| Scheduled execution | `patterns/scheduling`, `agents/cron` | Cron Triggers; Durable Object alarms for per-entity timers | `PLATFORM` |
-| Asynchronous task dispatch | `patterns/task-dispatch`, `agents/task` | Queues | `ADAPTER` |
-| Multi-phase execution with durable state | `patterns/workflow`, `agents/workflow` | Workflows | `ADAPTER` |
+| Scheduled execution | `patterns/scheduling`, `architecture/execution`, `agents/cron` | Cron Triggers; Durable Object alarms for per-entity timers | `PLATFORM` |
+| Asynchronous task dispatch | `patterns/task-dispatch`, `architecture/execution`, `agents/task` | Queues | `ADAPTER` |
+| Multi-phase execution with durable state | `patterns/workflow`, `architecture/execution`, `agents/workflow` | Workflows | `ADAPTER` |
 | Retry and backoff | `patterns/retry` | Queue retry policy; Workflow step retries | `PLATFORM` |
 | Rate limiting | `patterns/rate-limiting`, `architecture/gateway` | Rate Limiting binding | `PLATFORM` |
 | Bidirectional realtime transport | `patterns/realtime-chat` | Durable Objects with WebSocket Hibernation | `PLATFORM` |

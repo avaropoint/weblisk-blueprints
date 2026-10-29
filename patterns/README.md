@@ -63,7 +63,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 
 | Pattern | Purpose |
 |---------|---------|
-| [workflow.md](workflow.md) | Workflow declaration, event-driven DAG execution, approval gates |
+| [workflow.md](workflow.md) | Workflow declaration, event-driven DAG execution, a person's phase decided only by a person, approval gates; run by [`architecture/execution`](../architecture/execution.md) |
 | [state-machine.md](state-machine.md) | Declarative state machines — transitions, guards, side effects |
 | [task-dispatch.md](task-dispatch.md) | Task submission, priority queuing, dispatch protocol, dead-letter |
 | [scheduling.md](scheduling.md) | Cron expressions, overlap policy, missed-tick handling, distributed locking |

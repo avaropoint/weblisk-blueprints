@@ -127,13 +127,20 @@ Hub (self-sovereign deployment)
        └── Domain Controllers (directors)
             └── Work Agents (task executors)
        └── Infrastructure Agents (system utilities)
-            ├── Workflow Agent (DAG execution engine)
-            ├── Task Agent (dispatch + priority queue)
+            ├── Workflow Agent, Task Agent, Cron Agent (superseded by Execution; kept as the interim description)
             ├── Lifecycle Agent (retiring: strategies are programme objectives, approvals the decision inbox)
-            ├── Alerting Agent (notification routing)
+            ├── Alerting Agent (operational alert routing; telling a position's holders is Notification's)
             ├── Incident Response Agent (remediation; a runbook runs as an execution)
             ├── Health Monitor Agent (internal hub health)
             └── Hub Agent (registry — indexing, search, metrics, verification, alerting)
+  └── Tenant Services (siblings of the orchestrator, each registering with it)
+       ├── Content (authored text as files, a sealed change log per repository)
+       ├── Execution (every start, run, step, wait and timer in one ledger)
+       ├── Programme Service (what is due, and the work an adopted programme installs)
+       ├── Notification (tells the people who hold a position, each their own way)
+       ├── Prompt Worker (runs agent: instructions on a work pass, proposing only)
+       ├── Model Service (the one place a component asks the tenant's model)
+       └── Fabric (the one ledger of what implements what)
   └── Marketplace (buy, sell, share capabilities, blueprints, templates)
   └── Enforcement (non-bypassable boundary inspection, rogue agent detection)
   └── Data Security (transport encryption, scope-aware boundaries, opt-in data primitives)
@@ -149,7 +156,7 @@ Hub (self-sovereign deployment)
        ├── Governance (compliance profiles, evidence, directives)
        ├── Security (transport, input validation, zero-trust, threat events)
        ├── Observability (health, metrics, state tracking, alerts)
-       ├── Workflow (declaration, execution engine, approval gates)
+       ├── Workflow (declaration, a person's phase, approval gates; run by execution)
        ├── Notification (multi-channel delivery, templates, throttling)
        └── and the rest — see patterns/README.md
 ```
@@ -166,8 +173,9 @@ Hub (self-sovereign deployment)
 - **Data Security** — Transport encryption, ML-DSA-65 message integrity, scope-aware federation boundaries, response sanitization, framework audit trail. Provides opt-in data-level primitives (scope, policy, privacy, enforcement) for agents handling sensitive data
 - **Threat Model** — 5-boundary attack surface analysis (38+ vectors), OWASP Top 10 mapping, attack chain analysis, residual risk register
 - **Domains** — Own a business function, define workflows, publish workflow triggers, receive results via scoped events
-- **Work Agents** — Perform specific tasks dispatched by the Task Agent (see the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter) for a working example)
-- **Infrastructure Agents** — Provide system services (workflow execution, task dispatch, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
+- **Work Agents** — Perform specific tasks dispatched by execution (see the [starter template](https://github.com/avaropoint/weblisk-templates/tree/main/server/starter) for a working example)
+- **Tenant Services** — The components a tenant runs besides its orchestrator and admin gateway, each from its own blueprint in [`architecture/`](architecture/README.md); which a programme needs, and the order they are built in, is [`schemas/programme` → What a programme runs on](schemas/programme.md#what-a-programme-runs-on)
+- **Infrastructure Agents** — Provide system services (workflow execution and task dispatch in their interim form, lifecycle optimization, alerting, incident response, health monitoring, hub registry, sync, cron, email, webhooks) used by any domain
 - **Marketplace** — Built into the hub — buy, sell, and share capabilities, blueprints, agents, and templates. Supports live services (invoked over federation) and installable assets (generated into your own hub). [weblisk.dev](https://weblisk.dev) serves as the public directory
 - **Patterns** — Cross-cutting concerns (scope, policy, safety, approval, privacy, contract, security, governance, observability, workflow, task dispatch, alerting, scheduling, data sync, incident response, notification, HTTP-based pub/sub messaging, retry, rate limiting, storage, caching, state machines, secrets, logging, versioning, command, interop adapters) and API patterns (REST, AI, auth, webhooks, real-time, file upload, user management, deployment) that apply across all agents via `extends` inheritance. Every infrastructure agent has a matching pattern that formalizes its platform-wide contract — the pattern defines WHAT, the agent implements HOW. The full list is [patterns/README.md](patterns/README.md)
 - **Federation** — Hub-to-hub trust, data contracts, and cross-boundary task execution

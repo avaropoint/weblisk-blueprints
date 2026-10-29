@@ -81,7 +81,7 @@ declarations with no `kind`, which no file is walked against.
 | [standard.md](standard.md) | Industry standards — ISO, SOC 2, NIST, CSA — as JSON, and how a tenant adopts one: generated as a link and its own adjustments, never copied | `standards/` directory |
 | [programme.md](programme.md) | Programmes — which artifacts a body of work requires, what each answers, the recurring work it commits an organisation to, what else adopting it brings, and what an adoption records | `programmes/` directory |
 | [programme-map.md](programme-map.md), [programme-spec.md](programme-spec.md), [programme-template.md](programme-template.md) | The declarations of the three programme file families (grammar 1), in migration mode; their strict variants are in [strict/](strict/), applied once the files are migrated. What each field means stays in [programme.md](programme.md) | `programmes/*/map.md`, `programmes/*/specs/`, `programmes/*/templates/` |
-| [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive | `positions/` directory |
+| [position.md](position.md) | Positions — the hand-written judgement a role brief cannot derive; and the position-holders register, the tenant's record of who holds each position | `positions/` directory; `registers/position-holders.md` in an organisation's records repository |
 | [policy-domain.md](policy-domain.md) | Policy domains — what a subject area covers, where it stops, and what a programme claiming it must provide | `policy-domains/` directory |
 | [kinds.md](kinds.md) | What sorts of thing the platform can talk about, what each drives, and which relations join them | Every tool that classifies, relates or scores content |
 | [names.md](names.md) | How anything is named: the id grammar, families, namespaces and how a short ref resolves. Its vectors are [`vectors/ids.json`](../vectors/ids.json) | Every ref, in every file and every tool |
@@ -126,7 +126,7 @@ common.md (inherited by all)
 ├── programme.md (programmes/ — programme maps and artifact specifications)
 │   ├── programme-map.md, programme-spec.md, programme-template.md (their file families)
 │   └── strict/ (the strict variants, applied after the migration)
-├── position.md (positions/ — the hand-written half of a role brief)
+├── position.md (positions/ — the hand-written half of a role brief, and the register of who holds each position)
 ├── policy-domain.md (policy-domains/ — what a subject area covers and requires)
 ├── kinds.md (what sorts of thing exist — read at runtime, not checked against a document)
 ├── names.md (how anything is named — the id grammar, bound by vectors/ids.json)
