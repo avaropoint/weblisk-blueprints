@@ -548,6 +548,8 @@
     "specified, not built: objectives describe",
     "specified, not built: objectives list",
     "specified, not built: operator attest",
+    "specified, not built: tenant export",
+    "specified, not built: tenant rebuild",
     "built, not specified: build status",
     "built, not specified: cache prune",
     "built, not specified: cache status",

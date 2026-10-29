@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.3.0
+version: 4.4.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -572,6 +572,8 @@ command_surface:
   - {noun: secret, verb: rotate, executor: local}
   - {noun: tenant, verb: create, executor: cli-in-tenant}
   - {noun: tenant, verb: accept, executor: cli-in-tenant}
+  - {noun: tenant, verb: export, executor: cli-in-tenant}
+  - {noun: tenant, verb: rebuild, executor: cli-in-tenant}
   - {noun: providers, verb: "", executor: local}
   - {noun: component, verb: init, executor: cli-in-tenant}
   - {noun: component, verb: start, executor: cli-in-tenant}
@@ -989,6 +991,92 @@ registered component is present is a question for an operator's token, which
 A failed non-essential check does not fail the tenant. It is a capability that
 tenant does not have, and **saying so is the point** — "created" must not mean
 only that the generator returned without an error.
+
+### `weblisk tenant export`
+
+Write what this tenant is rebuilt from into a bundle. What that is, who holds
+each part and why nothing else is in it is
+[`architecture/tenancy`](tenancy.md#rebuilding-a-tenant)'s, and is not
+restated here.
+
+```bash
+$ weblisk tenant export --out ../bundles/2026-10-29
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dir <path>` | The tenant's directory. Default: the working directory |
+| `--out <path>` | The bundle's directory. It must not exist |
+| `--json` | One progress object per line, the last carrying the manifest's path and digest |
+
+It runs on the tenant's host, with the tenant running, on the person's
+operator token, which must carry the `admin` role
+([`architecture/admin`](admin.md#operator-roles)): the bundle holds every
+record the tenant keeps. It reads the configuration, the lock and the run
+statements from the directory; the live components, the operators and every
+repository with its log head through the admin gateway; runs
+[`weblisk test conformance`](#weblisk-test-conformance) for the verdict at each
+level; and captures each record store last, so that nothing the manifest names
+is newer than what the bundle holds. It writes `manifest.json` last of all,
+and a directory without one is not a bundle.
+
+It never copies a private key, a passphrase, a store or a file generation
+wrote. A key held only in `.weblisk/keys/`, and every generated file a person
+edited, is named in `TenantManifest.unheld` and printed: the export succeeds,
+and says what a rebuild from it will not bring back.
+
+### `weblisk tenant rebuild`
+
+Stand a tenant up again from a bundle, in the order
+[`architecture/tenancy`](tenancy.md#the-rebuild-in-order) gives.
+
+```bash
+$ weblisk tenant rebuild ../bundles/2026-10-29 --dir ./tenant
+```
+
+| Flag | Description |
+|------|-------------|
+| `--dir <path>` | Where to rebuild it. It must be empty or absent |
+| `--root <backend>=<path>` | A backend's root on this host, where it is not the one the configuration names. Repeatable. A placement never changes |
+| `--keys <path>` | A directory holding the person's own copy of each key whose holder is `tenant-directory` |
+| `--port <n>` | As [`weblisk tenant create`](#weblisk-tenant-create-name) takes it |
+| `--json` | One progress object per line, one per step, the last carrying the comparison |
+
+Its steps are a contract its progress objects name, as `create`'s are:
+
+    bundle · corpus · files · keys · stores · records · generate · start · accept · done
+
+Each step completes or the command stops there, refused, with nothing
+started. `generate` builds each component as `create` and
+[`weblisk component <name> init`](#weblisk-component-name-init) do, from the
+blueprints at that component's pin, read from a clone at that revision and
+never from a source's `HEAD`; the refresh rules of
+[Where blueprints come from](#where-blueprints-come-from) do not move it.
+`accept` exports the rebuilt tenant and compares the two manifests
+([`architecture/tenancy`](tenancy.md#a-rebuild-is-accepted-when)), and only a
+comparison that finds nothing ends in `done`.
+
+Every passphrase is read as `create` reads one, from stdin and never from
+argv.
+
+#### Tenant export and rebuild codes
+
+Both commands refuse with these, printing the code and, with `--json`, giving
+it as the last object's `code`. Each exits with the status in
+[Exit Codes](#exit-codes) that its row gives.
+
+| Code | Exit | Refused when |
+|------|------|--------------|
+| `TENANT_BUNDLE_EXISTS` | 1 | `export`'s `--out` already exists. Nothing is written |
+| `TENANT_PIN_DIRTY` | 1 | `export` finds a component built from a corpus revision carrying `-dirty`, which no commit reproduces ([`weblisk server init`](#weblisk-server-init)). It names the component |
+| `TENANT_RECORDS_UNCAPTURED` | 1 | `export` cannot capture a service's record store at a consistent point, because the store does not offer `backup-restore` ([`architecture/storage`](storage.md#contracts)). It names the service |
+| `TENANT_MANIFEST_INVALID` | 1 | `rebuild` finds no manifest, one that is not a `TenantManifest`, or a bundle file whose digest is not the manifest's |
+| `TENANT_REBUILD_NOT_EMPTY` | 1 | `rebuild`'s `--dir` holds anything |
+| `TENANT_PIN_UNAVAILABLE` | 3 | A source a pin names cannot be reached, or does not hold the revision |
+| `TENANT_KEY_UNAVAILABLE` | 1 | A key the manifest names is not at its holder, or its fingerprint is not the manifest's. No key is minted in its place |
+| `TENANT_STORE_MISMATCH` | 1 | A repository's store is absent at its placement, is not on its line, or its line is not at the manifest's head. No store is adopted in its place |
+| `TENANT_RECORDS_UNRESTORED` | 1 | A record store cannot be restored from the bundle |
+| `TENANT_REBUILD_DIFFERS` | 1 | The rebuilt tenant's manifest differs from the bundle's in a row the comparison holds. Each row is printed with both values, and the tenant is left as it is |
 
 ### `weblisk providers`
 
@@ -3925,6 +4013,12 @@ security:
 - [ ] `weblisk domain start` builds and runs a single domain controller ([`weblisk domain start`](#weblisk-domain-start))
 - [ ] `weblisk gateway create` generates gateway code from hub configuration ([`weblisk gateway create`](#weblisk-gateway-create))
 - [ ] `weblisk gateway start` builds and runs the application gateway ([`weblisk gateway start`](#weblisk-gateway-start))
+- [ ] `weblisk tenant export` refuses an existing `--out` with `TENANT_BUNDLE_EXISTS`, a component built from a `-dirty` revision with `TENANT_PIN_DIRTY`, and a record store without `backup-restore` with `TENANT_RECORDS_UNCAPTURED`, each writing no `manifest.json` ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant export` writes no private key, passphrase, store or generated file into the bundle, and writes `manifest.json` last ([`weblisk tenant export`](#weblisk-tenant-export))
+- [ ] `weblisk tenant rebuild` refuses a non-empty `--dir` with `TENANT_REBUILD_NOT_EMPTY` and a bundle file whose digest is not the manifest's with `TENANT_MANIFEST_INVALID`, before anything is written ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant rebuild` reads each component's blueprints from a clone at its pinned revision, never from a source's `HEAD`, and exits 3 with `TENANT_PIN_UNAVAILABLE` where the revision cannot be read ([`weblisk tenant rebuild`](#weblisk-tenant-rebuild), [Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant rebuild` refuses a missing or mismatched key with `TENANT_KEY_UNAVAILABLE` and a store not at its head with `TENANT_STORE_MISMATCH`, minting no key and adopting no store ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant rebuild` ends in `done` only where the comparison of the two manifests finds nothing, and otherwise exits 1 with `TENANT_REBUILD_DIFFERS`, printing each differing row with both values ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
 
 ### Blueprint Management
 - [ ] `weblisk blueprint update` re-fetches all cached blueprint sources and resets each clone to the commit fetched, so an edit made in a clone to a file its source holds does not survive; a source it cannot reach keeps the last version fetched, and the command says so ([`weblisk blueprint update`](#weblisk-blueprint-update))
