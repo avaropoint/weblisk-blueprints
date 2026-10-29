@@ -113,6 +113,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: patterns/workflow
+    # Below 4.0.0 on purpose: 4.0.0's person's phase is served by
+    # architecture/execution, and this interim description serves none
     version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:

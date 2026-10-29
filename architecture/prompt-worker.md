@@ -90,8 +90,9 @@ CLI on the tenant's change cycle
 ```yaml
 requires:
   - blueprint: protocol/types
-    # 6.1.0 carries the run record's types and MODEL_BACKEND_LIMITED
-    version: ">=6.1.0 <7.0.0"
+    # 6.4.0 is where WORKER_NOTICE_WITHHELD and programme:notify are
+    # registered; the run record's types and MODEL_BACKEND_LIMITED are 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -125,7 +126,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=3.0.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # A work pass: type work, aud this worker, act the component that
@@ -197,7 +199,7 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/model-service
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.1.0 <2.0.0"
     bindings:
       types:
         - name: ServiceCompletionRequest
@@ -213,7 +215,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=4.1.0 <5.0.0"
+    # 4.2.0 is where /v1/token/work and /v1/model/ceiling are served
+    version: ">=4.2.0 <5.0.0"
     bindings:
       types:
         - name: CompletionRequest

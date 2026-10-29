@@ -67,7 +67,9 @@ them from the corpus is an owner decision this blueprint does not make
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=6.1.0 <7.0.0"
+    # 6.4.0 is where EXECUTION_START_LOOP, which a run asking for its own
+    # chain's definition is refused with, is registered; PassRoute.inbox is 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -121,7 +123,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.1.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass

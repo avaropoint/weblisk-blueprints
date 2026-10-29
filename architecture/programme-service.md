@@ -58,7 +58,10 @@ not restated here.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <7.0.0"
+    # 6.4.0 is where programme:dispatch, programme:notify and
+    # PROGRAMME_ITEM_NOT_RUNNING are registered; AuditEntry's authorisation
+    # and run are 6.2.0's
+    version: ">=6.4.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -93,7 +96,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.0.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
@@ -176,7 +180,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <5.0.0"
+    # 4.2.0 is where the orchestrator holds work authorisations and mints
+    # work passes (work-exchange)
+    version: ">=4.2.0 <5.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. Relied on, never called

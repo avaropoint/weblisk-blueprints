@@ -76,7 +76,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=1.14.4 <4.0.0"
+    # 3.1.0 is where the work pass agent work proposes on, and its run
+    # claim, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass

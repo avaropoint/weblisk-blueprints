@@ -118,7 +118,8 @@ of hash functions.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.15.0 <7.0.0"
+    # 6.2.0 is where AuditEntry carries the authorisation and the run
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest

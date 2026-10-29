@@ -49,7 +49,8 @@ long, and the rule that a notice reaching nobody is reported as such.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <7.0.0"
+    # 6.2.0 is where AuditEntry carries the authorisation and the run
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
@@ -87,7 +88,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: protocol/identity
-    version: ">=2.0.0 <4.0.0"
+    # 3.1.0 is where the work pass, and its definition and run claims, exist
+    version: ">=3.1.0 <4.0.0"
     bindings:
       types:
         # On a pass: a person, by identity_id, carried by the gateway in act.
@@ -176,7 +178,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <5.0.0"
+    # 4.2.0 is where the orchestrator holds work authorisations and mints
+    # work passes (work-exchange)
+    version: ">=4.2.0 <5.0.0"
     bindings:
       behaviors:
         - name: work-exchange

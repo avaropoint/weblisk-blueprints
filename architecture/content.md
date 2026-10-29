@@ -44,7 +44,8 @@ organisation can open.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=3.0.0 <7.0.0"
+    # 6.2.0 is where InboxRoute, which this service's proposal list declares, exists
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         # The service serves the two probes and renews its lease

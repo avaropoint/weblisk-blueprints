@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.2.1
+version: 5.3.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -122,8 +122,9 @@ requires:
     # 4.0.0 is where token:exchange, the one capability the gateway's
     # registration declares, is admitted for the tenant's declared admin
     # gateway alone; STEP_UP_REQUIRED, which Error Handling refuses a
-    # destructive act with, exists from 3.1.0
-    version: ">=4.0.0 <6.0.0"
+    # destructive act with, exists from 3.1.0; PassRoute.inbox and the
+    # resource codes the uniform API answers with are 6.2.0's
+    version: ">=6.2.0 <7.0.0"
     bindings:
       types:
         # The admin gateway serves the two probes and renews its lease
@@ -176,8 +177,11 @@ requires:
   - blueprint: architecture/orchestrator
     # 3.0.0 is where the registry holds each agent's lease; the overview's
     # lease-state counts and the agents' lease_state, lease and
-    # last_renewal are read from it, and a 2.x orchestrator holds none
-    version: ">=3.0.0 <4.0.0"
+    # last_renewal are read from it, and a 2.x orchestrator holds none.
+    # 4.2.0 is where it serves its part of the resource API and the work
+    # authorisations, and 4.3.0 where it records organisations, projects
+    # and grants
+    version: ">=4.3.0 <5.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a

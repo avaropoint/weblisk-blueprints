@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.3.0
+version: 6.4.0
 requires: []
 platform: any
 tier: free

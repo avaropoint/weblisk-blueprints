@@ -62,7 +62,8 @@ this replaces.
 declaration:
   requires:
     - blueprint: protocol/identity
-      version: ">=1.14.4 <4.0.0"
+      # 3.1.0 is where the work pass this orchestrator mints is specified
+      version: ">=3.1.0 <4.0.0"
       bindings:
         types:
           - name: SigningKeyPair
@@ -77,8 +78,9 @@ declaration:
         removed: halt-immediately
     - blueprint: protocol/types
       # 4.0.0 is where token:exchange is admitted for the declared admin
-      # gateway alone (Registration Flow, step 1)
-      version: ">=4.0.0 <7.0.0"
+      # gateway alone (Registration Flow, step 1); the work pass's types are
+      # 6.2.0's, and SCOPE_NAME_TAKEN and GRANT_SELF_REFUSED 6.3.0's
+      version: ">=6.3.0 <7.0.0"
       bindings:
         types:
           - name: RegisterRequest
