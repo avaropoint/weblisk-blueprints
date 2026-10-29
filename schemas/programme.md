@@ -53,6 +53,20 @@ A `.yaml` or `.yml` file is accepted for a generated programme, with `brief:` or
 frontmatter `brief:`/`overview:`, because the body is the form a person edits
 and a file carrying both answers the same question twice.
 
+### One programme, found in several places
+
+A reader may find one programme in the published corpus, in an installation's
+own catalogue and in one or more of a tenant's repositories. It is one
+programme, listed once: its identity is its map's ref —
+`programme://<namespace>/<path>` — and, for a copy adopted into a tenant, the
+published ref its adoption record pins (`resolved:`), so the published
+programme and every adopted copy of it join on that pin rather than on a
+directory name or a legacy `id:`. The copy a scope holds is the one it
+operates; a copy merely published is offered, never operated. Of several held
+copies the narrowest placement wins; of two published copies the corpus wins. A
+reader names every place a programme was found, and never presents two of them
+as two programmes.
+
 ### Three file kinds, and where a file sits decides
 
     programmes/<programme>/map.md                a programme map
@@ -2295,6 +2309,7 @@ than naming a statute that does not exist.
 
 ## Verification Checklist
 
+- [ ] A programme found in the corpus, an installation catalogue and a tenant's repositories is listed once, joined on its map's ref or its adoption's pinned `resolved:` ref, the held copy is the one operated and every place it was found is named ([One programme, found in several places](#one-programme-found-in-several-places))
 - [ ] The map is `map.md` at the programme's root, every spec is directly under `specs/`, every form directly under `templates/`, and nothing relies on a `type:` field to say which it is ([Three file kinds](#three-file-kinds-and-where-a-file-sits-decides))
 - [ ] Every map and every spec carries an `id`, unique within the pack ([The programme map](#the-programme-map), [The artifact specification](#the-artifact-specification))
 - [ ] Every `version:` is `MAJOR.MINOR.PATCH` and nothing else — no `v`, no two-part number, no pre-release suffix ([Unversioned is a real answer](#unversioned-is-a-real-answer-and-is-never-100))

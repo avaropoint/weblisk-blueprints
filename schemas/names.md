@@ -81,6 +81,14 @@ file is written to, and the major it is written to
 | Namespace-qualified | `//example/ohs/policy` | A reference into another namespace |
 | Full | `requirement://weblisk/architecture/orchestrator:register-claims-namespace` | Anywhere without a typed field: the fabric's ledger, a run statement, an export, a prompt's manifest |
 
+A node whose kind's identity includes its namespace — a requirement, a check,
+a mapping rule, a listing — is recorded by its **full** ref, family included,
+with its anchor and version removed:
+`requirement://weblisk/architecture/orchestrator:register`. A short ref to one is
+completed with the namespace of the file that wrote it before it is recorded,
+and a ref into a namespace nothing in scope declares names no node: it is
+reported, never recorded.
+
 ## Families
 
 A family says what sort of thing a ref names. Every kind
@@ -101,6 +109,10 @@ declares its own once, in a `catalog.yaml` at its root (this corpus's is
 [`catalog.yaml`](../catalog.yaml), `namespace: weblisk`), and **no file states
 its own id**: a file's id is its path under that root. A tenant's namespace is
 chosen when the tenant is created and appears only in that tenant's own files.
+
+A `catalog.yaml` is at the root of the repository. A reader whose root is a
+directory inside one reads no namespace from it, since that directory's local
+ids would not be the repository's.
 
 **Reserved names** are declared below. They can never be claimed, and they are
 the only namespaces, besides a repository's own, that may appear in a
@@ -184,3 +196,5 @@ families are exactly the declared ones.
 - [ ] No file in this repository names a namespace that is neither reserved nor this repository's own, and a fixture naming another is reported ([`checks/names.py`](../checks/names.py)) ([Namespaces](#namespaces), [Where a namespace may appear](#where-a-namespace-may-appear))
 - [ ] A leading word is a family only when it is declared; nothing infers one from shape ([The grammar](#the-grammar) rule 2)
 - [ ] Nothing records a `#` anchor as an identity ([Three separators, three meanings](#three-separators-three-meanings))
+- [ ] A node whose kind is named in a namespace is recorded by its full ref with its anchor and version removed, a short ref is completed with its writer's namespace first, and a ref into a namespace nothing in scope declares is reported and never recorded ([Three written forms](#three-written-forms))
+- [ ] A namespace is read only from a `catalog.yaml` at a repository's root, never from one found by a reader rooted inside the repository ([Namespaces](#namespaces))
