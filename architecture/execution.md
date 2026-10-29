@@ -870,10 +870,10 @@ until an organisation's records repository holds it, every wait naming a
 position is listed and cannot be decided
 ([Who holds a position](#who-holds-a-position)).
 
-**A wait is announced to nobody.** Notification's `NotifyByPosition` tells a
-notice or an occurrence, and its request has no way to name a wait
-([Notification](#notification)). A wait opens with `announced: false`, is
-listed in the inbox, and is published as `execution.wait.opened`.
+**A wait is announced to nobody.** A wait opens with `announced: false`, is
+listed in the inbox, and is published as `execution.wait.opened`; the gap is
+notification's request, which cannot name a wait
+([`architecture/notification`](notification.md#known-gaps)).
 
 **No content entry records the run that wrote it.** Execution carries a
 run's chain in every dispatch's context, and nothing yet writes it beside the

@@ -2271,14 +2271,8 @@ orchestrator signed; one a client sends under its own identity carries a `run`
 nobody checked. A row whose writer cannot be read starts nothing.
 
 **A workflow with a person's step installs, and its step cannot yet be
-decided.** [`patterns/workflow`](../patterns/workflow.md#a-persons-phase)
-carries `task`, approvers by position and `escalate`, and
-[`architecture/execution`](../architecture/execution.md#who-holds-a-position)
-holds each as a wait listed in the decision inbox. The register of who holds
-a position is declared ([`position.md`](position.md#who-holds-a-position));
-until an organisation's records repository holds it, nobody can be shown to
-hold one, so every such wait is listed and refused, never decided by
-capability alone.
+decided**, until an organisation's records repository holds the
+position-holders register ([`architecture/execution`](../architecture/execution.md#known-gaps)).
 
 **A programme's domain blueprint has no ref a change resolves yet.** A domain
 service is built by a change that adopts its blueprint
