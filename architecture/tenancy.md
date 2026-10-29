@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 4.0.0
+version: 4.1.0
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning, patterns/namespace]
 platform: any
 tier: free
@@ -80,13 +80,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: architecture/storage
-    version: ">=1.0.0 <3.0.0"
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
     bindings:
       behaviors:
         # A tenant's records outlive its components: an upgrade replaces
         # them and a suspension stops serving, and neither loses a record
         # (Data Flow, Verification Checklist)
         - name: durable-records
+        # An export captures each record store at a consistent point
+        # (What a tenant is rebuilt from, A stopped-tenant export)
+        - name: backup-restore
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -370,7 +374,7 @@ the holder brings.
 | **The run statements** — what each build read and wrote | `provenance/runs/` ([`schemas/run-statement`](../schemas/run-statement.md#where-it-lives)) | the tenant | copied |
 | **The declared configuration** | `.weblisk/config.yaml` ([`schemas/config`](../schemas/config.md)) and `.weblisk/model.json` ([`architecture/orchestrator`](orchestrator.md#the-tenants-model)) | the tenant | copied |
 | **The repositories** — each store and the git history on its line, which holds every entry, every adoption record (`adoption.md`, `standards/<id>.json`) and every register, the [position-holders register](../schemas/position.md#who-holds-a-position) among them | at its placement: a backend's root and a locator ([`architecture/content`](content.md#a-placement-names-a-backend-never-a-location)) | whoever holds the backend's root (`held_by`) | never copied; each named by id, `scope_path`, placement, line and head |
-| **The record stores** — each service's own records: the operator, credential and namespace registries, the organisations, projects and grants ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)) and the audit log; the content service's repository registry, change logs, proposals, pseudonym map, anchors and record mirror; programme adoptions and installed items; execution's schedules and runs; notification's preferences; the fabric's ledger | each service's own store ([`architecture/storage`](storage.md)) under `.weblisk/data/` | the tenant | each captured at a consistent point by its store's `backup-restore` ([`architecture/storage`](storage.md#contracts)), as the platform formats it |
+| **The record stores** — each service's own records: the operator, credential and namespace registries, the organisations, projects and grants ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)) and the audit log; the content service's repository registry, change logs, proposals, pseudonym map, anchors and record mirror; programme adoptions and installed items; execution's schedules and runs; notification's preferences; the fabric's ledger | each service's own store ([`architecture/storage`](storage.md)) under `.weblisk/data/` | the tenant | each captured at a consistent point by its store's `backup-restore`: through its service's snapshot route while the tenant runs ([`architecture/storage`](storage.md#backing-up-a-record-store)), or copied while the tenant is stopped where a person asked for that ([A stopped-tenant export](#a-stopped-tenant-export)) |
 | **The keys** — the orchestrator's, whose fingerprint is the hub identity; each service key; the admin gateway's registration key and its TLS key and certificate; each remote's credential | `.weblisk/keys/`, `.weblisk/tls/`, or a secret source ([`patterns/secrets`](../patterns/secrets.md)) | a secret source, or the operator's own backup of the encrypted key ([`protocol/identity`](../protocol/identity.md#key-backup-policy)) | never; each named by its fingerprint and where it is held. The certificate, being public, is copied |
 | **The references to secrets** — every `key_passphrase` and every other `<source>:<reference>` the configuration holds | `.weblisk/config.yaml` | the secret source each names | the references only, never what they open |
 | **The operators** — each name, identity id, role and status | the orchestrator's operator store ([`architecture/admin`](admin.md#operator-storage)) | the tenant holds the records; each operator holds their own private key | listed, and carried in the orchestrator's record store |
@@ -442,6 +446,64 @@ Stated so that nobody learns it on the day:
 What a person does again even when the set is whole: unlocks each secret
 source, signs in, and starts a build, which asks the model the CLI resolves at
 that moment.
+
+### A stopped-tenant export
+
+**The owner's decision of 2026-10-29: an export may stop the tenant for the
+minutes it takes to copy the record stores it cannot capture live, and starts
+it again.** Downtime is the price, and a person asks for it. What is never
+taken in its place is a copy of a store its service is writing, which is no
+consistent point at all ([`architecture/storage`](storage.md#contracts),
+`backup-restore`). The decision has an exit: a service that serves its
+snapshot route ([`architecture/storage`](storage.md#the-snapshot-route)) is
+captured without being stopped, and once every service with a record store
+does, nothing is stopped and an export can run nightly.
+
+It is asked for with
+[`weblisk tenant export --stopped`](cli.md#weblisk-tenant-export) and never
+chosen by default. Without it, an export that finds a record store it cannot
+capture live refuses with `TENANT_RECORDS_UNCAPTURED`, naming each service,
+and stops nothing. With it, in order:
+
+1. **Read the running tenant.** Everything the manifest names but the record
+   stores is read with the tenant up, as any export reads it.
+2. **Capture live what can be.** Each service that serves its snapshot route
+   is captured through it, and is captured by nothing else.
+3. **Check that what stops can start again.** Before anything stops, every
+   running component must be one the CLI started and holds a run record of,
+   and every component whose service key is encrypted must name a
+   `key_passphrase` ([`schemas/config`](../schemas/config.md#service-key-passphrases))
+   whose source answers now. Each passphrase is fetched once here, held in
+   memory only, and zeroised once the tenant is running again. Anything else
+   refuses with `TENANT_STOP_REFUSED`, naming it, and nothing is stopped.
+4. **Tell the person.** Before it stops anything, the export says which
+   components it will stop, that the tenant answers nobody until they are
+   started again, and that it will start them.
+5. **Stop** every running component, in the reverse of the order
+   [`weblisk server start`](cli.md#weblisk-server-start) starts them, each
+   asked and given its grace. A component that has not exited when its grace
+   ends may have been stopped mid-write: nothing is copied, everything that
+   was stopped is started again, no bundle is written, and the export refuses
+   with `TENANT_STOP_FAILED`, naming it.
+6. **Copy** each record store not captured live, once its service's process
+   is known to have exited, from its directory under `.weblisk/data/`. With no
+   writer, the copy is the consistent point.
+7. **Start again** every component it stopped, in start order, each given its
+   passphrase on its standard input as `weblisk server start` gives it, and
+   waited on until it answers live and, for the orchestrator, ready. A
+   component that was not running before the export is not started.
+8. **Report** how long the tenant was stopped. Where a component does not
+   answer after its start, the bundle is still written, because it holds a
+   whole capture, and the export exits non-zero with `TENANT_RESTART_FAILED`,
+   naming each component that did not answer and its log.
+
+**A tenant is never left stopped silently.** From the first stop, any failure
+and any interruption starts again everything the export stopped before it
+reports. Only a component that will not start is left down, and it is named.
+
+Each `ManifestRecordStore` says how its store was captured, `snapshot` or
+`stopped`, so a person reading a bundle knows which tenant was stopped to
+make it.
 
 ### The rebuild, in order
 
@@ -547,9 +609,12 @@ manifests alone with no tenant at all.
   and are rebuilt with them. No repository is held at the tenant alone, so a
   layer above every organisation has no home, and one a client keeps is not
   rebuilt.
-- **No record store declares `backup-restore` yet.** The contract is
-  optional in [`architecture/storage`](storage.md#contracts), and the export
-  refuses a store that cannot be captured at a consistent point.
+- **No running service serves its snapshot route yet.** Every component
+  that owns a record store now binds `backup-restore` and specifies its
+  route ([`architecture/storage`](storage.md#which-services-serve-it)), and
+  none built from those blueprints serves it yet. Until one does, an export
+  of it stops the tenant ([A stopped-tenant export](#a-stopped-tenant-export)),
+  or refuses.
 - **A store lost from its placement cannot be brought back from the record
   mirror.** The mirror holds every commit the service recorded, and nothing
   specifies restoring a store from it.
@@ -900,6 +965,11 @@ types:
         name: CapturedAt
         type: timestamp
         required: true
+      captured_by:
+        name: CapturedBy
+        type: string
+        required: true
+        description: "`snapshot`, through the service's snapshot route while it ran, or `stopped`, copied while the tenant was stopped (A stopped-tenant export)"
 
   ManifestKey:
     description: One key, named and never carried
@@ -1097,3 +1167,8 @@ security:
 - [ ] A rebuilt tenant's orchestrator MUST emit no bootstrap secret, and its content service MUST reconcile every configured repository rather than establish it ([The rebuild, in order](#the-rebuild-in-order) step 8)
 - [ ] A rebuild MUST be reported done only where every row of the comparison holds, and a differing row MUST be reported with both values ([A rebuild is accepted when](#a-rebuild-is-accepted-when))
 - [ ] The round trip in a scratch directory MUST reach no running tenant, and each of its three controls MUST be refused at its own step ([Proving it with no live hub](#proving-it-with-no-live-hub))
+- [ ] An export without `--stopped` stops nothing, and refuses a record store it cannot capture through its service's snapshot route with `TENANT_RECORDS_UNCAPTURED`, naming each service ([A stopped-tenant export](#a-stopped-tenant-export))
+- [ ] An export with `--stopped` captures each service that serves its snapshot route through that route, refuses with `TENANT_STOP_REFUSED` before anything stops where a running component has no run record or an encrypted key names no `key_passphrase` whose source answers, and tells the person what it will stop before it stops it ([A stopped-tenant export](#a-stopped-tenant-export) steps 2 to 4)
+- [ ] A stopped-tenant export stops components in the reverse of start order, copies a store only once its service has exited, starts again every component it stopped and no other, each given its passphrase on its standard input, and after any failure or interruption once the first component is stopped, starts them before it reports ([A stopped-tenant export](#a-stopped-tenant-export) steps 5 to 8)
+- [ ] A component that has not exited when its grace ends refuses the export with `TENANT_STOP_FAILED` and writes no bundle; a component that does not answer after its start leaves the bundle written and exits non-zero with `TENANT_RESTART_FAILED`, naming it ([A stopped-tenant export](#a-stopped-tenant-export) steps 5 and 8)
+- [ ] Every `ManifestRecordStore` carries `captured_by`, `snapshot` or `stopped`, as its store was captured ([A stopped-tenant export](#a-stopped-tenant-export), [Types](#types))

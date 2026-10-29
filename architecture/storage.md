@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -194,7 +194,10 @@ Encrypting data in motion, which is `architecture/data-security`.
   blueprint that owns the log)
 - Agent-level schema declarations (owned by patterns/storage)
 - Encryption key management (owned by architecture/data-security)
-- Backup scheduling and execution (platform-specific, out of scope)
+- When a backup runs and where it is kept (owned by whoever runs
+  [`weblisk tenant export`](cli.md#weblisk-tenant-export)); what a capture
+  is and how a running service answers for one is owned here
+  ([Backing Up a Record Store](#backing-up-a-record-store))
 - Business logic that reads/writes stores (owned by respective agents)
 
 ---
@@ -304,12 +307,17 @@ contracts:
         - Removal MUST be recorded where the store is audited
 
     - name: backup-restore
-      description: A store can be captured and returned to a known state
+      description: A store can be captured and returned to a known state.
+        Bound by every component that owns a record store (Backing Up a
+        Record Store)
       required: false
       rules:
         - A backup MUST capture a consistent point, not a smear across writes
         - A restore MUST return the store to exactly the captured state
         - The format is the platform's; the guarantee is not
+        - A running service MUST capture its stores through its own snapshot route, GET /v1/admin/records/{service}/snapshot, on a request that can use admin:*, at one instant between writes, answered as a ustar archive led by a RecordSnapshot (Backing Up a Record Store, The snapshot route)
+        - A second snapshot request while one is being written MUST be refused with RECORDS_SNAPSHOT_BUSY, writing nothing
+        - A service MUST NOT serve any route that restores, replaces or truncates its store while it runs. A restore MUST write into an empty store of a stopped service, and MUST refuse a file whose digest is not the capture's (Putting a store back)
 
     - name: sealed-log
       description: A chained log its owner signs, which anyone can verify
@@ -1028,6 +1036,121 @@ types:
 
 ---
 
+## Backing Up a Record Store
+
+A tenant is rebuilt from its record stores
+([`architecture/tenancy`](tenancy.md#what-a-tenant-is-rebuilt-from)), so each
+must be capturable at a consistent point while the tenant goes on serving. A
+copy of a store's files taken while its service writes is a smear across
+writes, which `backup-restore` forbids. This section is how a running service
+is asked for a capture instead, and how one is put back.
+
+### Which services serve it
+
+**Every component that owns a record store MUST bind `backup-restore` and
+serve the snapshot route below for it.** A component that owns none binds
+nothing and serves no snapshot route.
+
+| Component | Record store | Snapshot route |
+|---|---|---|
+| Orchestrator ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)) | the agent, operator, credential and namespace registries, organisations, projects and grants, channels and the audit log | `GET /v1/admin/records/orchestrator/snapshot` |
+| Content ([`architecture/content`](content.md#endpoints)) | the repository registry, change logs, proposals, pseudonym map, anchors and record mirror | `GET /v1/admin/records/content/snapshot` |
+| Execution ([`architecture/execution`](execution.md#endpoints)) | the run ledger: starts, runs, steps, waits and timers | `GET /v1/admin/records/execution/snapshot` |
+| Notification ([`architecture/notification`](notification.md#endpoints)) | notifications, deliveries and preferences | `GET /v1/admin/records/notification/snapshot` |
+| Programme service ([`architecture/programme-service`](programme-service.md#endpoints)) | installations, installed items and what it has announced | `GET /v1/admin/records/programme-service/snapshot` |
+| Fabric ([`architecture/fabric`](fabric.md#endpoints)) | the ledger | `GET /v1/admin/records/fabric-service/snapshot` |
+| Admin gateway ([`architecture/admin`](admin.md#the-admin-gateway-as-a-component)) | none: it holds no standing access to data | none |
+| Prompt worker ([`architecture/prompt-worker`](prompt-worker.md#overview)) | none: it keeps nothing of its own | none |
+
+A component this table does not name follows the rule above: a blueprint that
+gives its component a record store adds its row here and its route to its own
+Endpoints.
+
+### The snapshot route
+
+`GET /v1/admin/records/{service}/snapshot`, where `{service}` is the name the
+service registers under, which is also the directory its store is kept in
+under `.weblisk/data/` ([Flat-File Storage Tiers](#flat-file-storage-tiers)).
+Each service writes its route with its own name, never the `{service}`
+pattern, so no two services' routes match one request.
+
+1. **Who may ask.** A person whose request can use `admin:*`, because a
+   snapshot is every record the service keeps. The orchestrator serves its
+   route on the person's operator token, as it does every route under
+   `/v1/admin/` ([`architecture/orchestrator`](orchestrator.md#administrative-endpoints)).
+   Every other service serves its route on a pass the admin gateway exchanged
+   for that token, and declares it among its manifest's `pass_routes` with
+   `[admin:*]` ([`protocol/types`](../protocol/types.md#passroute)). A
+   registration token is refused: no component backs up another's store.
+2. **A consistent point.** The snapshot is every store the service owns as it
+   stood at one instant between writes. The service stops admitting writes to
+   its stores for as long as it takes to fix that instant, which is how long
+   it takes to note each file's length for a store that only appends, or to
+   copy it for one that does not. A write that arrives then waits and is not
+   refused, and reads go on. Every chained log in it ends at a whole entry,
+   and a sealed log is captured as it stands: a snapshot is not a checkpoint,
+   and requires none.
+3. **The format.** The answer is `200` with `Content-Type: application/x-tar`,
+   a POSIX ustar archive. Its first member is `snapshot.json`, a
+   `RecordSnapshot` as RFC 8785 canonical bytes; then one member
+   `store/<path>` for each file `RecordSnapshot.files` lists, in that order,
+   holding the file's bytes as the backend keeps them. `store_format` names
+   the backend's format, so the format stays the platform's and the
+   guarantee does not ([Contracts](#contracts), `backup-restore`). A backend
+   that keeps no files writes the export its platform blueprint names as one
+   member, `store/<name>`, and says so in `store_format`.
+4. **One at a time.** A second request while a snapshot of the same service
+   is being written is answered `409` `RECORDS_SNAPSHOT_BUSY` with
+   `retry_after`, and writes nothing.
+5. **Recorded, never cached.** The answer carries `Cache-Control: no-store`.
+   The service logs each snapshot it answers as a security event naming the
+   person's identity id and the `taken_at` instant, and the orchestrator
+   also appends an `AuditEntry` for its own.
+
+A client that reads a snapshot checks every member against `snapshot.json`:
+the same paths, in order, each with the `digest` and `bytes` listed, and no
+member that is not listed. A snapshot that fails any of those is not a
+capture, and is discarded whole.
+
+A service that serves no snapshot route answers it as any route it does not
+serve: the admin gateway answers `ADMIN_GROUP_UNAVAILABLE` where no directory
+entry declares the route, and the orchestrator `404`. That is how a client
+tells a service that cannot yet be captured live from one that can, service
+by service ([`architecture/cli`](cli.md#weblisk-tenant-export)).
+
+### Putting a store back
+
+**No service serves a route that restores, replaces or truncates its store
+while it runs.** A route that did would be a way to rewrite a tenant's records
+behind their own chains. A restore is a file operation on a service that is
+not running:
+
+1. The service is stopped, and its directory under `.weblisk/data/` is empty
+   or absent. A restore into a store that holds anything is refused, and
+   nothing is written.
+2. Each file the capture holds is written there with the bytes it was
+   captured with, owner-only, and a file whose digest is not the capture's
+   is refused, leaving nothing.
+3. The service is started. It checks every sealed log it owns from its
+   latest checkpoint before it appends ([An owner checks its own
+   log](#an-owner-checks-its-own-log)), so a restored log that does not verify
+   is served for reading and never added to.
+
+A capture taken by the snapshot route and one copied from a stopped service
+are restored alike, because each is the store's own files.
+
+### Known gaps
+
+- **No service built from these blueprints serves the route yet.** Until one
+  does, a running service cannot be captured without stopping it, and
+  [`weblisk tenant export --stopped`](cli.md#weblisk-tenant-export) stops the
+  tenant for the copy: the owner's decision of 2026-10-29
+  ([`architecture/tenancy`](tenancy.md#a-stopped-tenant-export)).
+- **A capture is as large as the store.** One answer carries the whole store,
+  and nothing pages it or sends only what changed since the last capture.
+
+---
+
 ## Sealing a Chained Log
 
 A chained log ([Hash Chain Integrity](#hash-chain-integrity)) shows that no
@@ -1407,6 +1530,52 @@ types:
         required: true
         description: ML-DSA-65 signature by that log key over the
           weblisk/log-checkpoint/v2 statement, base64url
+
+  RecordSnapshot:
+    description: What a snapshot route's archive holds, as its first member,
+      snapshot.json. See Backing Up a Record Store
+    fields:
+      snapshot:
+        type: string
+        required: true
+        description: The form, `weblisk-record-snapshot-v1`
+      service:
+        type: string
+        required: true
+        description: The name the service registers under, and the directory
+          its store is kept in under .weblisk/data/
+      taken_at:
+        type: timestamp
+        required: true
+        description: The instant between writes the snapshot holds the store at
+      store_format:
+        type: string
+        required: true
+        description: The backend's format, as its platform blueprint names it,
+          `jsonl` for flat-file JSONL
+      files:
+        type: "[]RecordSnapshotFile"
+        required: true
+        description: Every file of the store, in the order the archive's
+          members follow, sorted by path
+
+  RecordSnapshotFile:
+    description: One file of a store in a snapshot
+    fields:
+      path:
+        type: string
+        required: true
+        description: The file's path under the service's store directory,
+          slash-separated, never absolute and never holding `..`. Its member
+          in the archive is store/<path>
+      digest:
+        type: string
+        required: true
+        description: "sha256:<hex> of the file's bytes as captured"
+      bytes:
+        type: int
+        required: true
+        description: The number of bytes captured
 ```
 
 ---
@@ -1488,8 +1657,11 @@ security:
 - **Encryption**: Agents MAY encrypt data files at rest using
   AES-256-GCM with a key derived from the agent's signing secret.
   See [data-security.md](data-security.md) for key management.
-- **Backup**: Production deployments SHOULD implement storage backup.
-  This is platform-specific and outside the scope of this interface.
+- **Backup**: A running service is captured through its snapshot route and
+  restored only while stopped ([Backing Up a Record Store](#backing-up-a-record-store)).
+  An append-only JSONL file is captured by noting its length under the
+  write lock and streaming that many bytes after it is released, so writes
+  wait only for the noting.
 - **Concurrency**: All operations MUST be safe for concurrent access.
   Implementations use platform-appropriate mechanisms (mutex, Durable
   Object single-writer, database transactions).
@@ -1525,3 +1697,8 @@ security:
 - [ ] With the log key unavailable, appends continue, no checkpoint is written, and the reported count of unsealed entries rises ([The checkpoint](#the-checkpoint))
 - [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2` or `weblisk/log-succession/v1`, the owner, which signs those statements, and a verifier of them each pass the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs and one that verifies
 - [ ] Changing one byte of an entry a checkpoint covers fails verification — the chain is `broken` at the next entry's `seq`, or, for the entry the checkpoint names, its `tip` no longer matches — and the failure is reported rather than repaired ([Verifying a sealed log](#verifying-a-sealed-log))
+- [ ] Every component that owns a record store binds `backup-restore` and serves `GET /v1/admin/records/{service}/snapshot` under its own registered name, and a component that owns none serves no snapshot route ([Which services serve it](#which-services-serve-it))
+- [ ] A snapshot answered while writes arrive holds every store at one instant between writes: every chained log in it ends at a whole entry, and a write that arrived while the instant was fixed is in the store after it and not in the snapshot ([The snapshot route](#the-snapshot-route) rule 2)
+- [ ] A snapshot is a ustar archive whose first member is `snapshot.json`, a `RecordSnapshot` in RFC 8785 bytes, followed by one `store/<path>` member for each file it lists, in order, each with the listed digest and byte count ([The snapshot route](#the-snapshot-route) rule 3)
+- [ ] A snapshot request on a registration token, or on a token or pass that cannot use `admin:*`, is refused, and a second request while one is being written is answered `409` `RECORDS_SNAPSHOT_BUSY` with `retry_after` ([The snapshot route](#the-snapshot-route) rules 1 and 4)
+- [ ] No service serves a route that restores, replaces or truncates its store while it runs; a restore into a store that holds anything, or of a file whose digest is not the capture's, writes nothing ([Putting a store back](#putting-a-store-back))

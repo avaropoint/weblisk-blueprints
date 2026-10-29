@@ -149,13 +149,18 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.0.0 <3.0.0"
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
     bindings:
+      types:
+        - name: RecordSnapshot
+          fields_used: [snapshot, service, taken_at, store_format, files]
       behaviors:
         - name: durable-records
         - name: concurrent-access
         - name: cursor-pagination
         - name: retention
+        - name: backup-restore
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -356,8 +361,17 @@ unattributable zero reads as a finding.
 | GET | /v1/fabric/projection | Graph | yes | `fabric:read` | The byte-stable graph of the live ledger |
 | GET | /v1/fabric/chain | Verify | yes | `fabric:read` | Verify the hash chain over a range of sequence numbers |
 | GET | /v1/fabric/producers | Producers | yes | `fabric:read` | Producers in scope, their partitions, watermarks and last run |
+| GET | /v1/admin/records/fabric-service/snapshot | RecordSnapshot | yes | `admin:*` | Every store this service owns — the ledger — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). A pass only. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service. Served with or without an orchestrator |
 | GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start. Served with or without an orchestrator |
+
+**Its snapshot route is guarded by `admin:*`, which it never holds.**
+`GET /v1/admin/records/fabric-service/snapshot` hands over every record this service
+keeps, so it needs what an administrator may use
+([`architecture/storage`](storage.md#the-snapshot-route)). Its manifest
+declares the route among its `pass_routes` with `capabilities: [admin:*]`,
+and never declares `admin:*` among its own capabilities: a registration token
+that carried it would be an administrator's reach held by a service.
 
 **On the operation names.** `Sync`, `Observe`, `Attest`, `Decide` and
 `Relocate` echo their paths, which
@@ -2183,3 +2197,4 @@ verifies:
 - [ ] An attestation, decision or relocation on a work pass is refused with `FORBIDDEN` whatever its `cap` ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms), [Registration and Standalone Operation](#registration-and-standalone-operation))
 - [ ] An `Observe` on a work pass at the highest confidence is refused with `INVALID_REQUEST` and appends nothing ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms))
 - [ ] Two readers holding the same ledger derive the same `key` for every relationship, and the uniform address serves the `relationship` kind by it with `list`, `get` and `decide` ([Resources](#resources), [Types](#types))
+- [ ] `GET /v1/admin/records/fabric-service/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))

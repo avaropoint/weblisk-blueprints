@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.5.0
+version: 4.6.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1012,12 +1012,14 @@ restated here.
 
 ```bash
 $ weblisk tenant export --out ../bundles/2026-10-29
+$ weblisk tenant export --out ../bundles/2026-10-29 --stopped
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--dir <path>` | The tenant's directory. Default: the working directory |
 | `--out <path>` | The bundle's directory. It must not exist |
+| `--stopped` | Stop the tenant to copy each record store whose service serves no snapshot route, and start it again ([`architecture/tenancy`](tenancy.md#a-stopped-tenant-export)). Without it, such a store refuses the export |
 | `--json` | One progress object per line, the last carrying the manifest's path and digest |
 
 It runs on the tenant's host, with the tenant running, on the person's
@@ -1030,6 +1032,27 @@ repository with its log head through the admin gateway; runs
 level; and captures each record store last, so that nothing the manifest names
 is newer than what the bundle holds. It writes `manifest.json` last of all,
 and a directory without one is not a bundle.
+
+**Each record store is captured live where its service can be asked.** For
+each directory under `.weblisk/data/`, the export asks the service of that
+name for `GET /v1/admin/records/{service}/snapshot` through the admin gateway
+on the person's token, and checks the archive against its `snapshot.json`
+([`architecture/storage`](storage.md#the-snapshot-route)). A service that
+answers the route `ADMIN_GROUP_UNAVAILABLE` or `404` serves none, and is the
+one case the export may fall back from; any other refusal, and an archive that
+fails its check, refuses the export. A store whose service serves no route is
+copied with the tenant stopped where `--stopped` was given, in the order
+[`architecture/tenancy`](tenancy.md#a-stopped-tenant-export) gives, and
+otherwise refuses with `TENANT_RECORDS_UNCAPTURED`. Before it stops anything
+it prints which components it will stop and that it will start them; after,
+how long the tenant was stopped. A tenant this command stopped is never left
+stopped by a failure of this command: it starts again what it stopped, each
+with its passphrase from its `key_passphrase` source on its standard input, as
+[`weblisk server start`](#weblisk-server-start) does, before it reports.
+
+An encrypted service key's fingerprint is taken with the passphrase its
+component's `key_passphrase` source returns, and, for a key no reference
+names, with one the person types on stdin. Never from argv.
 
 It never copies a private key, a passphrase, a store or a file generation
 wrote. A key held only in `.weblisk/keys/`, and every generated file a person
@@ -1080,7 +1103,10 @@ it as the last object's `code`. Each exits with the status in
 |------|------|--------------|
 | `TENANT_BUNDLE_EXISTS` | 1 | `export`'s `--out` already exists. Nothing is written |
 | `TENANT_PIN_DIRTY` | 1 | `export` finds a component built from a corpus revision carrying `-dirty`, which no commit reproduces ([`weblisk server init`](#weblisk-server-init)). It names the component |
-| `TENANT_RECORDS_UNCAPTURED` | 1 | `export` cannot capture a service's record store at a consistent point, because the store does not offer `backup-restore` ([`architecture/storage`](storage.md#contracts)). It names the service |
+| `TENANT_RECORDS_UNCAPTURED` | 1 | `export` cannot capture a service's record store at a consistent point: its service serves no snapshot route ([`architecture/storage`](storage.md#the-snapshot-route)) and `--stopped` was not given, or it answered one with an archive that fails its check. It names the service. Nothing is stopped |
+| `TENANT_STOP_REFUSED` | 1 | `export --stopped` would stop a component it could not start again: one running with no run record of this CLI's, or one whose service key is encrypted and whose `key_passphrase` is absent or names a source that did not answer. It names each. Nothing is stopped and nothing is written |
+| `TENANT_STOP_FAILED` | 1 | `export --stopped` asked a component to stop and it had not exited when its grace ended. Nothing is copied, everything stopped is started again, and no bundle is written |
+| `TENANT_RESTART_FAILED` | 1 | `export --stopped` copied every store and a component it stopped did not answer after its start. The bundle is written; each component that did not answer is named with its log |
 | `TENANT_MANIFEST_INVALID` | 1 | `rebuild` finds no manifest, one that is not a `TenantManifest`, or a bundle file whose digest is not the manifest's |
 | `TENANT_REBUILD_NOT_EMPTY` | 1 | `rebuild`'s `--dir` holds anything |
 | `TENANT_PIN_UNAVAILABLE` | 3 | A source a pin names cannot be reached, or does not hold the revision |
@@ -4024,8 +4050,10 @@ security:
 - [ ] `weblisk domain start` builds and runs a single domain controller ([`weblisk domain start`](#weblisk-domain-start))
 - [ ] `weblisk gateway create` generates gateway code from hub configuration ([`weblisk gateway create`](#weblisk-gateway-create))
 - [ ] `weblisk gateway start` builds and runs the application gateway ([`weblisk gateway start`](#weblisk-gateway-start))
-- [ ] `weblisk tenant export` refuses an existing `--out` with `TENANT_BUNDLE_EXISTS`, a component built from a `-dirty` revision with `TENANT_PIN_DIRTY`, and a record store without `backup-restore` with `TENANT_RECORDS_UNCAPTURED`, each writing no `manifest.json` ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant export` refuses an existing `--out` with `TENANT_BUNDLE_EXISTS`, a component built from a `-dirty` revision with `TENANT_PIN_DIRTY`, and a record store it can neither capture through a snapshot route nor, with `--stopped`, copy from a stopped tenant with `TENANT_RECORDS_UNCAPTURED`, each writing no `manifest.json` ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
 - [ ] `weblisk tenant export` writes no private key, passphrase, store or generated file into the bundle, and writes `manifest.json` last ([`weblisk tenant export`](#weblisk-tenant-export))
+- [ ] `weblisk tenant export` captures a record store through its service's snapshot route where the service serves one, checking each member against `snapshot.json`, falls back only from `ADMIN_GROUP_UNAVAILABLE` or `404`, and without `--stopped` refuses a store it cannot capture live with `TENANT_RECORDS_UNCAPTURED`, stopping nothing ([`weblisk tenant export`](#weblisk-tenant-export), [Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
+- [ ] `weblisk tenant export --stopped` refuses with `TENANT_STOP_REFUSED` before stopping anything it could not start again, refuses with `TENANT_STOP_FAILED` and writes no bundle where a component does not exit within its grace, and exits with `TENANT_RESTART_FAILED`, the bundle written, where one it stopped does not answer after its start; after any failure or interruption it starts again what it stopped before it reports ([`weblisk tenant export`](#weblisk-tenant-export), [Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
 - [ ] `weblisk tenant rebuild` refuses a non-empty `--dir` with `TENANT_REBUILD_NOT_EMPTY` and a bundle file whose digest is not the manifest's with `TENANT_MANIFEST_INVALID`, before anything is written ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
 - [ ] `weblisk tenant rebuild` reads each component's blueprints from a clone at its pinned revision, never from a source's `HEAD`, and exits 3 with `TENANT_PIN_UNAVAILABLE` where the revision cannot be read ([`weblisk tenant rebuild`](#weblisk-tenant-rebuild), [Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
 - [ ] `weblisk tenant rebuild` refuses a missing or mismatched key with `TENANT_KEY_UNAVAILABLE` and a store not at its head with `TENANT_STORE_MISMATCH`, minting no key and adopting no store ([Tenant export and rebuild codes](#tenant-export-and-rebuild-codes))
