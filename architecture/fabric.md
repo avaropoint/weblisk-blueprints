@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -1017,7 +1017,18 @@ person's identity key never signs one in its place.
 | `moved` | an endpoint is gone from its address, and content matching the cited version is elsewhere | correct the address |
 | `broken` | an endpoint no longer exists anywhere in scope | investigate |
 | `unreachable` | the endpoint could not be read from here at all | connect the source, grant access, or accept it is unverifiable |
+| `unloaded` | the endpoint is a criterion of a standard the asking scope has not loaded, so what it requires cannot be read here | load the standard (connect a source that supplies it), or accept it cannot be checked here |
 | `unversioned` | there is nothing to compare — the end cites no version: its kind declares none and it cites no projection digest | nothing |
+
+`unloaded` is about the other end from `unreachable`: the content may be fine,
+but the standard that says what the criterion requires is not in reach. The
+claim stays in the ledger as made; only reads change. An answer whose health is
+`unloaded` is its own coverage state: never answered, never needing review
+(there is nothing here to review it against), and never unanswered. It MUST NOT
+be counted toward coverage or readiness, and MUST NOT be cited by an export or
+evidence package. Every reader that omits it says so, naming the standard.
+Coverage of a standard the scope has not loaded at all reports every control
+`unloaded` and none as a gap — a confident zero is the fault this prevents.
 
 `moved` is not a sixth coverage state and MUST NOT disturb the status. The
 content matches what was confirmed byte for byte, so the confirmation still means
@@ -1445,7 +1456,7 @@ types:
     fields:
       state:
         type: enum
-        values: [current, stale, moved, broken, unreachable, unversioned]
+        values: [current, stale, moved, broken, unreachable, unloaded, unversioned]
         required: true
       endpoint:
         type: enum
@@ -1965,6 +1976,7 @@ verifies:
 - [ ] A `Sync` naming a partition the producer has not declared refuses the whole batch rather than retiring anything ([Error Handling](#error-handling), [Security](#security))
 - [ ] Editing one endpoint of a confirmed relationship leaves the relationship recorded, its status unchanged, and its health `stale` ([Health](#health))
 - [ ] An endpoint that cannot be read yields health `unreachable`, never `broken` and never `current`, and coverage counts it as needing review ([The Custody Question](#the-custody-question), [Health](#health))
+- [ ] A relationship onto a control of a standard the scope has not loaded has health `unloaded`; coverage reports the control `unloaded` — not answered, not needing review, not a gap — and no export cites it ([Health](#health))
 - [ ] Moving a file to which a confirmed relationship points yields health `moved`, and the status is not demoted ([Health](#health))
 - [ ] An artifact carrying its own durable identifier keeps its relationships across a move with no repair, and its recorded address is refreshed on the next claim ([What makes two claims the same claim](#what-makes-two-claims-the-same-claim))
 - [ ] A relocation whose content matches in two places is refused with both candidates named, and nothing is written ([Relocation Flow](#relocation-flow), [Security](#security))
