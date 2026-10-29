@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.2.0
+version: 3.2.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free

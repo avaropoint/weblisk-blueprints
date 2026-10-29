@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.0.1
 kind: specification
 noun: platform
 match: [platforms/*.md]

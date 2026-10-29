@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.5.0
+version: 4.5.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free

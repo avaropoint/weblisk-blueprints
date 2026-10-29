@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 4.0.0
+version: 4.0.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free

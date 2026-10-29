@@ -179,9 +179,10 @@ requires:
     # lease-state counts and the agents' lease_state, lease and
     # last_renewal are read from it, and a 2.x orchestrator holds none.
     # 4.2.0 is where it serves its part of the resource API and the work
-    # authorisations, and 4.3.0 where it records organisations, projects
-    # and grants
-    version: ">=4.3.0 <5.0.0"
+    # authorisations, 4.3.0 where it records organisations, projects
+    # and grants, and 4.4.0 where it resolves one identity id to an
+    # operator's name for a role carrying content:read
+    version: ">=4.4.0 <5.0.0"
     bindings:
       behaviors:
         # Called by the admin gateway for each request it carries to a

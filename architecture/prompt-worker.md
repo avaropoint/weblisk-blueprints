@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: prompt-worker
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, architecture/programme-service, architecture/fabric, patterns/scope]
 platform: any
 tier: free

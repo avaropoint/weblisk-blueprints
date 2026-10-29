@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 3.0.0
+version: 3.0.1
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]

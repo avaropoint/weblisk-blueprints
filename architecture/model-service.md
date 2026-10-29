@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: model-service
-version: 1.1.0
+version: 1.1.1
 requires: [protocol/types, protocol/identity, architecture/orchestrator, patterns/scope]
 platform: any
 tier: free

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free

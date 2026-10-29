@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scheduling
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/messaging, patterns/state-machine, patterns/storage]
 platform: any
 tier: free

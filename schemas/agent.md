@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.1
+version: 2.0.2
 kind: blueprint
 noun: agent
 match: [agents/*.md]

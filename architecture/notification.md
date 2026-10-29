@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send]
 platform: any
 tier: free

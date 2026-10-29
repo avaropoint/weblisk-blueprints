@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.2.0
+version: 1.2.1
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain]
 platform: any
 tier: free
