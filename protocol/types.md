@@ -206,6 +206,7 @@ authorisation at `POST /v1/token/work`, and answered in
 | Code | HTTP | Category | Description |
 |------|------|----------|-------------|
 | `PROGRAMME_NOT_ADOPTED` | 404 | permanent | An installation named a programme the organisation holds no `adoption.md` for in any of its repositories. Nothing is installed; a person adopts it first |
+| `PROGRAMME_ITEM_NOT_RUNNING` | 409 | permanent | Agent work asked to start an operation or a workflow, or to tell positions, through an item a person has paused, withdrawn or not authorised. Nothing starts and nobody is told ([`architecture/programme-service`](../architecture/programme-service.md#what-agent-work-may-start-and-tell)) |
 
 **Pass codes** (produced by a component that a person's request reaches,
 [`protocol/identity`](identity.md#the-pass)):
@@ -249,6 +250,7 @@ Every owner of a kind answers them with these statuses and no other.
 | `EXECUTION_POSITION_UNRESOLVED` | 503 | transient | Who holds the positions a wait names cannot be read, so no decider can be shown to hold one. Nothing is decided |
 | `EXECUTION_MUTED` | 409 | permanent | A decision on a wait of a muted run, which reaches nobody |
 | `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A request of a run must be carried on a work pass under its definition's work authorisation and none can be obtained. The step is not dispatched |
+| `EXECUTION_START_LOOP` | 409 | permanent | A run asked to start a definition that the asking run's chain already holds a run of. Nothing starts, as a `for` row on such a chain starts nothing ([`architecture/execution`](../architecture/execution.md#starting-one-run-now)) |
 
 **Identity error codes** (produced by `protocol/identity`):
 
@@ -535,19 +537,31 @@ an agent holding it would reach `confirmed` without a person. A person holds it,
 and `fabric:read`, only through a role that
 [`architecture/admin`](../architecture/admin.md)'s roles table gives it to, as
 for every person-only capability. `fabric:produce` and `fabric:observe` are a
-producer's, which is a registered component.
+producer's, which is a registered component. `fabric:observe` is also what an
+`agent:` item's work proposes a relationship with, on a work pass
+([`architecture/fabric`](../architecture/fabric.md#agent-work-proposes-never-confirms)):
+a work authorisation names only capabilities its maker may use, so the roles
+that authorise work carry it, and no person's request reaches the route it
+guards, which is no pass route.
 
 **Programme capabilities:**
 - `programme:read` (programme) — read a programme's installations and installed items and what they have produced, and what is due: obligations in force, their occurrences, the due list and readiness
 - `programme:install` (programme) — install a programme's operations at a scope
 - `programme:operate` (programme) — pause, resume, run and reschedule an installed operation or workflow
 - `programme:switch` (programme) — decide whether an installed item's runs and advances reach people: mute and unmute. Who hears an item is not switched by it: that is the positions the map names and who holds them, each changed where it is held ([`architecture/programme-service`](../architecture/programme-service.md#rescheduling)). *Person only*
+- `programme:dispatch` (programme) — start one run of an installed operation or workflow of the same programme at the same organisation, now or at a later instant, from an `agent:` item's work, on a work pass. Pauses, resumes and reschedules nothing ([`architecture/programme-service`](../architecture/programme-service.md#what-agent-work-may-start-and-tell))
+- `programme:notify` (programme) — have the programme service tell the holders of positions what an `agent:` item's work says, on a work pass under that item's authorisation ([`architecture/programme-service`](../architecture/programme-service.md#what-agent-work-may-start-and-tell))
 
 Which route needs which is
 [`architecture/programme-service`](../architecture/programme-service.md#endpoints)'s.
 No tenant runs a component built from that document yet, so these names guard
-no running route. The programme
-service is to declare the first three, because a grant to a caller is the
+no running route. `programme:dispatch` and `programme:notify` are what an
+`agent:` item's `needs:` words `dispatch` and `notify` come to
+([`architecture/prompt-worker`](../architecture/prompt-worker.md#needs-comes-to-these-capabilities)):
+neither is person only, because each reaches people only through work a
+person installed, unmuted and authorised, and each is admitted only on a work
+pass. The programme
+service is to declare the first three and these two, because a grant to a caller is the
 intersection of what it holds and what the serving manifest declares, and to
 check `programme:switch` without ever holding it, as `content` does its own
 person-only capabilities.
@@ -1633,7 +1647,7 @@ types:
         name: Chain
         type: "[]string"
         required: false
-        description: "The runs that, through a `for` start, started it, oldest first. A row a run writes carries it, so that no run starts itself round a loop"
+        description: "The runs that, through a `for` start or by asking for it to start, started it, oldest first. A row a run writes carries it, and a run another run asked for inherits it, so that no run starts itself round a loop"
       muted:
         name: Muted
         type: bool
@@ -4204,6 +4218,11 @@ error_codes:
     category: permanent
     retryable: false
     description: The prompt worker did not make a proposal an agent instruction asked for, because the run is muted. The proposal is kept, with its bytes, in the phase's outcome and nowhere else, and reaches no person. Recorded on the refused tool call; never an HTTP answer (architecture/prompt-worker, Muted runs)
+  - code: WORKER_NOTICE_WITHHELD
+    status: 409
+    category: permanent
+    retryable: false
+    description: The prompt worker did not ask the programme service to tell positions what an agent instruction said, because the run is muted. What it would have said is kept in the phase's outcome and nowhere else, and reaches no person. Recorded on the refused tool call; never an HTTP answer (architecture/prompt-worker, Muted runs)
 ```
 All errors across the protocol use the `ErrorResponse` type defined in the
 Errors section above. Error categories (`transient`, `permanent`, `partial`)
