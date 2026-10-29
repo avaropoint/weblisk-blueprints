@@ -164,6 +164,7 @@ Not capabilities — values a kind declares.
 | `organisation` | — | organisation id | authored | — | *(none)* |
 | `project` | — | project id | authored | — | *(none)* |
 | `grant` | — | grant id | authored | — | *(none)* |
+| `relationship` | — | from + to + relation + scope | derived | — | *(none)* |
 
 ### What the table says, in words
 
@@ -272,6 +273,17 @@ record joins on. None has a capability: an organisation is not evidence of
 anything, and a grant is authority, which is judged and never counted. They
 are declared so that [`architecture/orchestrator`](../architecture/orchestrator.md#the-tenants-organisations-and-projects)
 can name them.
+
+**`relationship` is one claim in a tenant's fabric, folded from its ledger
+entries, and governs nothing by itself.** Its identity is what makes two claims
+the same claim — both ends, the relation and the scope
+([`architecture/fabric`](../architecture/fabric.md#what-makes-two-claims-the-same-claim)) —
+written as one key, so a status, a version or an actor is never part of it.
+It has no capability: it is not a node of a chain but the edge between two,
+and what it counts toward is decided by the kinds at its ends and by who
+vouched for it. It is declared so that
+[`architecture/fabric`](../architecture/fabric.md#resources) can name it, and a
+person can read and decide one through the tenant's one API.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task

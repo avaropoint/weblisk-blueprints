@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.4.0
+version: 4.5.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -475,6 +475,17 @@ table, as is what a change holds; how it is
 resolved is [`architecture/generation`](generation.md#resolving-a-request-of-many-roots)'s.
 `change apply` runs in the tenant, never on the client (D26). A plan with no
 entries is rendered as a fault, never as clean.
+
+**This is how logic arrives in a tenant.** A service an adoption's build plan
+names ([`schemas/programme`](../schemas/programme.md#adoption-emits-a-build-plan)),
+a domain service a programme asks for, and a published agent are each built by
+a change: `change plan --adopt <ref>` names the blueprint, a person approves,
+and `change apply` generates, builds and verifies it in the tenant
+([`architecture/generation`](generation.md#logic-arrives-by-generation-never-at-run-time)).
+Nothing a programme's `agent:` work does at run time adds a component, a route
+or code: the prompt worker acts only through its declared tools
+([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)). A client that
+shows a build plan offers each entry as the `change plan` that builds it.
 
 ### Who may approve a change
 

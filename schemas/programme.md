@@ -1392,7 +1392,14 @@ actions is reported at install in the tenant like any other unknown name.
 
 ### `needs` is a ceiling on an agent, and is refused beside `does`
 
-The closed set is `read`, `write`, `delete`, `integrations`, `dispatch`.
+The closed set is `read`, `write`, `delete`, `integrations`, `dispatch`,
+`notify`. What each word comes to, and which tools it gives a run, is stated
+once, by the prompt worker that runs every instruction
+([`architecture/prompt-worker`](../architecture/prompt-worker.md#needs-comes-to-these-capabilities)):
+in short, `read` reads documents, registers, what is due and the
+relationships between things; `write` and `delete` propose changes to them
+for a person to decide; `dispatch` starts work the same programme installed;
+`notify` tells the positions the programme names.
 
 **Empty means read, and nothing else.** An author who forgets a capability gets
 an operation that cannot do the thing and will notice; the other default gives
@@ -1607,6 +1614,18 @@ under a `needs:` ceiling. The tenant's shared prompt worker runs it. A model is
 a worker and never an owner, so an agent keeps no state of its own: what it
 produces is written through an owner's API, as a proposal where the owner
 requires one.
+
+**What an instruction can do is a closed set of tools**, each an owner's
+route the prompt worker carries on a work pass: read documents, registers,
+what is due and the fabric; propose a document, a form's document, a register
+row or a relationship for a person to decide; start a run of an operation or
+a workflow this programme installed; tell the positions this programme names
+([`architecture/prompt-worker`](../architecture/prompt-worker.md#the-tool-set)).
+The model behind it answers text and acts through nothing else. **An
+instruction never builds anything.** Logic that needs code — a rule over
+records, a scoring, an integration — is a domain service or a published
+agent, built at build time through the CLI
+([`architecture/generation`](../architecture/generation.md#logic-arrives-by-generation-never-at-run-time)).
 
 **There is no `agents:` block, and a programme never asks for an agent to be
 generated or registered.** Expertise is data and authority is code: a
@@ -1829,10 +1848,13 @@ a blueprint the programme brings.
 
 **Asking is not building** — the reading of the owner's decision this schema
 takes, **for the owner to confirm**. Adoption delivers the blueprint with the
-programme and reports each domain service as *requested, not built*. A build is
-a person's act, to be made through the CLI (`weblisk domain create`) on the
-tenant's change cycle: it is model-written, at a build's cost, and the
-component it produces registers like any other component. Adopting a
+programme and reports each domain service as *requested, not built*, in its
+[build plan](#adoption-emits-a-build-plan). A build is a person's act, made
+through the CLI on the tenant's change cycle: a change that adopts the
+domain's blueprint, approved by a person and applied in the tenant
+([`architecture/cli`](../architecture/cli.md#changes)). It is model-written, at
+a build's cost, and the component it produces registers like any other
+component. Adopting a
 programme never starts a build, and un-adopting one never removes a component.
 `weblisk domain create` cannot yet be pointed at a blueprint a programme
 delivered ([Known gaps](#known-gaps)).
@@ -1888,6 +1910,8 @@ in the tenant, and which blueprint that service is built from:
 | an `operations` or `workflows` entry | execution, which holds and fires every start and holds the runs, waits and timers | [`architecture/execution`](../architecture/execution.md) |
 | a `notices` entry; an obligation with a `responsible` or an `escalate.to`; a workflow step with a `task` or an `approval` | notification, which tells each position's holders their own way | [`architecture/notification`](../architecture/notification.md) |
 | an `agent:`, on an operation or a step | the prompt worker, which runs the instruction, and the model service, which it asks | [`architecture/prompt-worker`](../architecture/prompt-worker.md), [`architecture/model-service`](../architecture/model-service.md) |
+| an `agent:` whose `needs:` names `notify` | notification, which tells the positions the work names | [`architecture/notification`](../architecture/notification.md) |
+| an artifact whose spec `satisfies` a control; a `conforms_to` entry; a `programme-readiness` operation | the fabric, which records what answers what, so coverage and readiness can be read; it is also where an `agent:`'s relationship proposals wait, and without it those tools are not offered | [`architecture/fabric`](../architecture/fabric.md) |
 | a `domain_services` entry | that domain controller | the programme's `domains/<id>.md`, under [`architecture/domain`](../architecture/domain.md) |
 | a `depends_on` entry | that published agent | `agents/<agent>.md` ([below](#depends_on--published-agents-a-programme-relies-on)) |
 | a position named anywhere — `approved_by`, `responsible`, `approvers`, `escalate.to`, a notice's `to` | the register of who holds each position, in content | [`schemas/position`](position.md) |
@@ -1910,6 +1934,7 @@ needs running first. A build plan is ordered by it.
 | 6 | `model-service` | [`architecture/model-service`](../architecture/model-service.md) | `orchestrator` |
 | 7 | `prompt-worker` | [`architecture/prompt-worker`](../architecture/prompt-worker.md) | `execution`, `model-service`, `content` |
 | 8 | `programme-service` | [`architecture/programme-service`](../architecture/programme-service.md) | `content`, `execution`, `notification` |
+| 9 | `fabric-service` | [`architecture/fabric`](../architecture/fabric.md) | `orchestrator`, `content` |
 | — | a domain service | the programme's `domains/<id>.md` | `execution`, and every agent its blueprint names in `depends_on` |
 | — | a published agent | `agents/<agent>.md` | every agent its blueprint names in `depends_on` |
 
@@ -1979,6 +2004,18 @@ whose lease is live.
   service the tenant does not run is in it, and every service with no
   blueprint is in it as `unspecified`. An empty plan means the tenant runs
   everything the programme needs, and nothing else.
+- **It is applied as changes.** A person acts on a plan with the CLI's change
+  cycle: `weblisk change plan --adopt` naming each service's blueprint, or a
+  domain service's, approved by a person and applied in the tenant
+  ([`architecture/cli`](../architecture/cli.md#changes)). A service marked
+  `adoption: opt-in` is built only when named as a root, never pulled in as
+  another's dependency, so the plan names every one
+  ([`architecture/generation`](../architecture/generation.md#resolving-a-request-of-many-roots)).
+- **A standard plans the fabric too.** A standard is measured through the
+  fabric's coverage, so adopting one, by the same act
+  ([Adopting a programme](#adopting-a-programme)), answers a plan naming the
+  fabric where the tenant does not run it, and a coverage figure read without
+  it is reported as unmeasured, never as zero.
 - **It is computed by whatever adopts**, from the adopted map and the tenant's
   service directory, because the first plan is needed before the programme
   service runs. Once it does, it answers the same plan with each installation
@@ -2239,12 +2276,16 @@ until an organisation's records repository holds it, nobody can be shown to
 hold one, so every such wait is listed and refused, never decided by
 capability alone.
 
-**`weblisk domain create` takes no blueprint path.** It is given a domain's
-name and resolves the spec itself
-([`architecture/cli`](../architecture/cli.md#weblisk-domain-create)), and
-nothing says it looks in a programme's `domains/` in the tenant's content. So a
-domain service a programme requests cannot yet be built from the blueprint the
-programme delivered; the verb needs a way to be given one.
+**A programme's domain blueprint has no ref a change resolves yet.** A domain
+service is built by a change that adopts its blueprint
+([`domain_services`](#domain_services--a-domain-service-the-programme-asks-to-have-built)),
+and a change names what it adopts by ref
+([`architecture/generation`](../architecture/generation.md#resolving-a-request-of-many-roots)).
+Nothing yet gives a blueprint at a programme's `domains/<id>.md` an id the
+resolver reads, and `weblisk domain create` takes a domain's name and no
+blueprint ([`architecture/cli`](../architecture/cli.md#weblisk-domain-create)).
+Until one does, a domain service a programme requests is planned and cannot
+be built from the blueprint the programme delivered.
 
 **`formerly` is not declared here yet.** [Adopting twice](#adopting-twice-creates-nothing)
 recognises a renamed template only through the earlier ids its map lists, and
@@ -2356,7 +2397,7 @@ than naming a statute that does not exist.
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both ([`operations`](#operations--the-standing-work-a-programme-installs), [The refusals](#the-refusals))
 - [ ] Every operation has a `schedule`, an `on:` or a `when:`, and every `cadence`, `weekday` and `at` is in the declared vocabulary ([The refusals](#the-refusals), [`schedule`](#schedule--a-small-closed-vocabulary-and-not-the-obligations))
 - [ ] Every `does:` names an action the target tenant's programme service actually runs — ask it, at `GET /v1/programme/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
-- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations` or `dispatch`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
+- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations`, `dispatch` or `notify`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
 - [ ] Every operation that runs a model states what it may touch, even when that is only `read` ([What is declared here](#what-is-declared-here-and-what-is-deliberately-not))
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning ([`operations`](#operations--the-standing-work-a-programme-installs))
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day ([`start` defaults to `paused`](#start-defaults-to-paused-and-that-is-the-design))

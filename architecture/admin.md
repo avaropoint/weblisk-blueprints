@@ -2246,8 +2246,8 @@ a failed registration. <!-- wl:id operators-list-pending -->
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, authorise work that runs with nobody present, and read whom notices told. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest`, `work:authorise`, `notification:read`, `notification:receive` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `fabric:observe`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, authorise work that runs with nobody present, and read whom notices told. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest`, `fabric:observe`, `work:authorise`, `notification:read`, `notification:receive` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
 | **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:receive` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything but their own notification preference |
 | **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:read`, `notification:receive` | Read-only plus full audit log access with export capability, and whom notices told |
 
@@ -2318,6 +2318,16 @@ role carries it; it reaches no other person's. `notification:read` answers
 whom each notice told, by identity id, which is a record about people, so
 `admin`, `operator` and `auditor` carry it and `viewer` does not.
 `notification:send` is a component's, and no role carries it.
+
+`fabric:observe` reaches no person's request: the fabric's observation
+route is no pass route ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)).
+`admin` and `operator` carry it so that a person who authorises a
+programme's `agent:` work may let it propose relationships, because a work
+authorisation names only capabilities its maker may use
+([`protocol/identity`](../protocol/identity.md#the-work-authorisation),
+rule 2). What that work proposes is `inferred` until a person decides it.
+`programme:dispatch` and `programme:notify` reach them with the rest of the
+`programme:` family, for the same reason.
 
 `fabric:attest` is the person-only capability the fabric's person routes
 require ([`architecture/fabric`](fabric.md#registration-and-standalone-operation)):

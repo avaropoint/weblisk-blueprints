@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.1.0
+version: 1.2.0
 requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send]
 platform: any
 tier: free
@@ -398,7 +398,11 @@ fault in the request.
    `due-sweep` operation that observed it, under that operation's
    authorisation, with the obligation's `activity` as `says` and its
    `responsible` or `escalate.to` position as `positions`, and nothing in the
-   request's shape changes for it.
+   request's shape changes for it. Agent work is told the same way: an
+   `agent:` item's work asks the programme service, which sends
+   `NotifyByPosition` naming the item as `notice`, under the item's
+   authorisation, with the work's words as `says` and the event
+   `instruction` ([`architecture/programme-service`](programme-service.md#what-agent-work-may-start-and-tell)).
 2. This service checks the token and the authorisation
    ([Who May Do What](#who-may-do-what), rule 3). It looks the authorisation
    up in `GET /v1/work/authorisations`. An authorisation it does not find
@@ -598,7 +602,11 @@ This service holds data about people, and follows
   `GetPreference`, and to no one else, and it reaches no event, log line or
   `AuditEntry`. The message is worded from `says`, `why` and the fact's
   `event`, `obligation`, `subject` and `due_at`, which are ids and instants;
-  any other field a fact carries is not put in the message. No row of the
+  any other field a fact carries is not put in the message. `says` from agent
+  work is a model's words, which the prompt worker sends only where what the
+  model was shown may leave the tenant
+  ([`architecture/prompt-worker`](prompt-worker.md#scope)); this service words
+  it as it words any `says`, and reads nothing in it as an instruction. No row of the
   register is kept (`patterns/privacy` Design Principle 3).
 - **A person's own act.** A person's addresses are given by that person, on
   their own pass, for this purpose alone. Clearing the preference is
@@ -628,7 +636,7 @@ types:
       authorisation:
         type: string
         required: true
-        description: The id of the notice's work authorisation, which names notification among its actors. For an occurrence, the due-sweep operation's
+        description: The id of the notice's work authorisation, which names notification among its actors. For an occurrence, the due-sweep operation's; for agent work, the agent item's
       run:
         type: string
         required: true
@@ -651,7 +659,7 @@ types:
       says:
         type: string
         required: true
-        description: The notice's says, as the adopted map gives it, or an occurrence's obligation's activity
+        description: The notice's says, as the adopted map gives it, an occurrence's obligation's activity, or what an agent item's work asked to say
       why:
         type: string
         required: false
@@ -660,7 +668,7 @@ types:
         type: NoticeFact
         required: true
   NoticeRef:
-    description: The notice a notification tells, or for an occurrence the due-sweep operation that observed it
+    description: The notice a notification tells, for an occurrence the due-sweep operation that observed it, or for agent work the agent item whose work asked
     fields:
       programme:
         type: string
@@ -668,14 +676,14 @@ types:
       id:
         type: string
         required: true
-        description: The notice's id, local to its programme, or the due-sweep operation's for an occurrence
+        description: The notice's id, local to its programme, the due-sweep operation's for an occurrence, or the agent item's for agent work
   NoticeFact:
     description: The fact a notice is about. Ids and instants only
     fields:
       event:
         type: string
         required: true
-        description: The on event that became true, such as obligation.overdue
+        description: The on event that became true, such as obligation.overdue, or instruction where an agent item's work asked
       occurred_at:
         type: timestamp
         required: true
@@ -1113,6 +1121,7 @@ there). Rule 4 is this blueprint's, and nothing outside it enforces it yet.
 - [ ] `NotifyByPosition` on a pass is refused with `FORBIDDEN`, and tells nobody ([Who May Do What](#who-may-do-what) rule 3, [Error Handling](#error-handling))
 - [ ] `NotifyByPosition` on a registration token whose `identity_id` is not the named authorisation's `owner` is refused with `FORBIDDEN`; on a work pass whose `cid` is that authorisation and whose `identity_id` is its owner, it is admitted ([Who May Do What](#who-may-do-what) rule 3)
 - [ ] A request naming as `notice` a programme's `due-sweep` operation, under that operation's authorisation, for an occurrence is admitted and told exactly as a notice is, with no field the request shape does not declare ([Notifying](#notifying))
+- [ ] A request naming as `notice` an `agent:` item, under that item's authorisation, with `fact.event` `instruction`, is admitted and told exactly as a notice is ([Notifying](#notifying))
 - [ ] An authorisation that is revoked, past its `not_after`, or does not list this service among its `actors` answers `200` with outcome `not_authorised`, and no request is made of content ([Notifying](#notifying), [Outcomes](#outcomes))
 - [ ] Every request this service makes of content is on a work pass minted under the request's authorisation, a new one for each retry, and none is on its own registration token ([Who May Do What](#who-may-do-what) rule 4, [Retrying](#retrying))
 - [ ] Where no named position has a holder, the answer's outcome is `reached_nobody`, `unheld` names every position, and `notification.unreached` is published ([Outcomes](#outcomes))

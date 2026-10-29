@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification]
 platform: any
 tier: free
@@ -203,8 +203,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/execution
-    # 1.1.0 is where InstructionTask carries source and skills
-    version: ">=1.1.0 <2.0.0"
+    # 1.2.0 is where RunScheduleNow takes a RunNow, and InstructionTask
+    # carries the programme and the item
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
         # Every installed operation's and workflow's start is registered and
@@ -225,23 +226,32 @@ requires:
         # ceiling, the adopted map and the programme's skills, each file a
         # ContentRef (The prompt worker)
         - name: InstructionTask
-          fields_used: [instruction, source, needs, skills]
+          fields_used: [instruction, source, needs, skills, programme, item]
         - name: ContentRef
           fields_used: [repository, path]
+        # A run agent work asks for: POST /v1/execution/schedules/{schedule}/runs
+        # with the asking run as parent (What agent work may start and tell)
+        - name: RunNow
+          fields_used: [parent, not_before, muted, reason]
+        - name: RunNowResult
+          fields_used: [run, timer, muted]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/notification
-    # 1.1.0 is where an occurrence is told under its due-sweep
-    version: ">=1.1.0 <2.0.0"
+    # 1.2.0 is where agent work is told under its own item
+    version: ">=1.2.0 <2.0.0"
     bindings:
       types:
-        # How a notice that advanced, and an occurrence that advanced, are
-        # told: NotifyByPosition, on this service's registration token (Telling)
+        # How a notice that advanced, an occurrence that advanced, and what an
+        # agent: item's work asked to say are told: NotifyByPosition, on this
+        # service's registration token (Telling)
         - name: NotifyRequest
-          fields_used: [authorisation, run, organisation, project, notice, positions, says, fact]
+          fields_used: [authorisation, run, organisation, project, notice, positions, says, why, fact]
+        - name: Notification
+          fields_used: [id, outcome]
         - name: NoticeRef
           fields_used: [programme, id]
         - name: NoticeFact
@@ -356,7 +366,7 @@ requires:
 | GET | /v1/programme/operations/{id} | GetOperation | yes | `programme:read` | One operation, its declaration as installed, and its changes |
 | POST | /v1/programme/operations/{id}/pause | PauseOperation | yes | `programme:operate` | Stop its clock. On an unmuted operation, a pass only |
 | POST | /v1/programme/operations/{id}/resume | ResumeOperation | yes | `programme:operate` | Start its clock. On an unmuted operation, a pass only |
-| POST | /v1/programme/operations/{id}/runs | RunOperation | yes | `programme:operate` | Run it once, now, from its start at execution. On an unmuted operation, a pass only |
+| POST | /v1/programme/operations/{id}/runs | RunOperation | yes | `programme:operate` | Run it once, now or at the body's `not_before`, from its start at execution. Body `ItemRun`, optional; answer `RunNowResult`. On an unmuted operation, a pass only, or a work pass from an `agent:` item of the same programme carrying `programme:dispatch` ([What agent work may start and tell](#what-agent-work-may-start-and-tell)) |
 | POST | /v1/programme/operations/{id}/schedule | RescheduleOperation | yes | `programme:operate` | Set the clock it runs on in place of the map's, body `ItemSchedule`. On an unmuted operation, a pass only ([Rescheduling](#rescheduling)) |
 | DELETE | /v1/programme/operations/{id}/schedule | RestoreOperationSchedule | yes | `programme:operate` | Return it to the map's clock. On an unmuted operation, a pass only |
 | POST | /v1/programme/operations/{id}/mute | MuteOperation | yes | `programme:switch` | Withhold from people everything its runs produce |
@@ -365,6 +375,7 @@ requires:
 | GET | /v1/programme/workflows/{id} | GetWorkflow | yes | `programme:read` | One definition, as the programme declared it and as execution is given it |
 | POST | /v1/programme/workflows/{id}/pause | PauseWorkflow | yes | `programme:operate` | Start no new run. Runs already started continue. On an unmuted workflow, a pass only |
 | POST | /v1/programme/workflows/{id}/resume | ResumeWorkflow | yes | `programme:operate` | Start runs again; execution delivers what it held while the workflow was paused. On an unmuted workflow, a pass only |
+| POST | /v1/programme/workflows/{id}/runs | RunWorkflow | yes | `programme:operate` | Start one run of it, now or at the body's `not_before`, from its start at execution. Body `ItemRun`, optional; answer `RunNowResult`. On an unmuted workflow, a pass only, or a work pass from an `agent:` item of the same programme carrying `programme:dispatch` ([What agent work may start and tell](#what-agent-work-may-start-and-tell)) |
 | POST | /v1/programme/workflows/{id}/schedule | RescheduleWorkflow | yes | `programme:operate` | Set the clock it starts on in place of the map's, body `ItemSchedule`. On an unmuted workflow, a pass only |
 | DELETE | /v1/programme/workflows/{id}/schedule | RestoreWorkflowSchedule | yes | `programme:operate` | Return it to the map's clock. On an unmuted workflow, a pass only |
 | POST | /v1/programme/workflows/{id}/mute | MuteWorkflow | yes | `programme:switch` | Withhold from people everything its runs produce |
@@ -372,6 +383,7 @@ requires:
 | GET | /v1/programme/notices | ListNotices | yes | `programme:read` | Installed notices, each with its mute switch, and each time one advanced: when, which positions, and whether notification accepted it |
 | POST | /v1/programme/notices/{id}/mute | MuteNotice | yes | `programme:switch` | Withhold the notice from people. It still advances, and each advance is recorded as not sent |
 | POST | /v1/programme/notices/{id}/unmute | UnmuteNotice | yes | `programme:switch` | Let the notice reach its positions the next time it advances |
+| POST | /v1/programme/notifications | NotifyFromItem | yes | `programme:notify` | Tell the holders of positions the programme names what an `agent:` item's work says, under that item's work authorisation. Body `ItemNotice`, answer the `Notification` notification answered. A work pass only, never a pass ([What agent work may start and tell](#what-agent-work-may-start-and-tell)) |
 | GET | /v1/programme/actions | ListActions | yes | `programme:read` | The `does:` actions this build runs, each with the capabilities it reads with. Answer `{actions: [ProgrammeAction]}` ([The `does:` Actions](#the-does-actions)) |
 | GET | /v1/programme/obligations | ListObligations | yes | `programme:read` | Every obligation in force at the organisation and its projects, each with its counts of occurrences by state over the window, or why it is undeclarable. Answer `{obligations: [Obligation], not_read: [NotRead]}` |
 | GET | /v1/programme/obligation | GetObligation | yes | `programme:read` | One obligation by `ref`, with its occurrences over the window `from`–`to` |
@@ -411,8 +423,8 @@ nothing: the route's capability is checked as on any other request.
 and absent is `due_soon_window`. A window longer than `max_window` is refused
 with `INVALID_REQUEST`.
 
-Each route in the table but `/livez`, `/readyz`, `/v1/message`, `/v1/event`
-and `/v1/services` is declared among the manifest's `pass_routes`, with the
+Each route in the table but `/livez`, `/readyz`, `/v1/message`, `/v1/event`,
+`/v1/services` and `NotifyFromItem` is declared among the manifest's `pass_routes`, with the
 one capability in its row and no body requirement. The admin gateway carries
 a person's request here only on a route that list declares
 ([`architecture/admin`](admin.md#contracts),
@@ -422,20 +434,25 @@ a person's request here only on a route that list declares
 and restore routes of an operation or a workflow also admit a registered
 component's own registration token carrying `programme:operate`, and a work
 pass whose `cap` carries it, while the item is muted
-([Who May Do What](#who-may-do-what), rule 3). Every other route admits a pass
-only. `/v1/message` admits a work pass only
+([Who May Do What](#who-may-do-what), rule 3). An `agent:` item's own work,
+on a work pass, also reaches the due, occurrence, obligation and readiness
+routes with `programme:read`, the two run routes with `programme:dispatch`,
+and `NotifyFromItem`, which admits nothing else, with `programme:notify`
+([What agent work may start and tell](#what-agent-work-may-start-and-tell)).
+Every other route admits a pass only. `/v1/message` admits a work pass only
 ([Interfaces](#interfaces)); `/v1/event` and `/v1/services` admit what
 [`patterns/messaging`](../patterns/messaging.md) and
 [`protocol/spec`](../protocol/spec.md#post-v1services) admit there.
 
 The service declares `programme:read`, `programme:install`,
-`programme:operate`, `content:read`, `content:describe`, `content:propose`,
-`fabric:read`, `work:exchange`, `execution:register`, `notification:send`,
+`programme:operate`, `programme:dispatch`, `programme:notify`, `content:read`, `content:describe`, `content:propose`,
+`fabric:read`, `fabric:observe`, `work:exchange`, `execution:register`, `notification:send`,
 `agent:message` and `event:observe` on its manifest. The content and fabric
 names are there because a work pass under an item's authorisation carries
 only what its owner's manifest declares as well
 ([`protocol/identity`](../protocol/identity.md#the-work-pass)): without
-`content:propose` no `agent:` item could propose a change, and without
+`content:propose` no `agent:` item could propose a change, without
+`fabric:observe` none could propose a relationship, and without
 `content:read` and `content:describe` notification could read no holder.
 `execution:register` registers its starts, `notification:send` asks
 notification to tell, and `event:observe` hears content's events at scope
@@ -513,11 +530,13 @@ reads the entry.
 | `INVALID_REQUEST` | An installation asked for at a project rather than its organisation, naming the organisation; a body that is not an `InstallationRequest` or an `ItemSchedule`; an `ItemSchedule` outside the closed vocabulary [`schemas/programme`](../schemas/programme.md#schedule--a-small-closed-vocabulary-and-not-the-obligations) gives; a `ref` that does not parse; a window longer than `max_window`; or a route missing the `organisation` or `programme` it requires |
 | `NOT_FOUND` | No installed item with that programme and `id`, or that `uid`, at the organisation named; no obligation or occurrence with that `ref` in force there |
 | `PROGRAMME_NOT_ADOPTED` | An installation asked for a programme the organisation has no `adoption.md` for in any of its repositories. Nothing is installed |
+| `PROGRAMME_ITEM_NOT_RUNNING` | Agent work asked to start an item that is paused, withdrawn or has no live work authorisation, or asked to tell through an item that is muted, paused or withdrawn ([What agent work may start and tell](#what-agent-work-may-start-and-tell)). Nothing starts and nobody is told |
+| `EXECUTION_START_LOOP` | Relayed from execution: the run agent work asked for would start a definition its own run's chain already holds ([`architecture/execution`](execution.md#starting-one-run-now)) |
 | `INVALID_STATE` | Pausing, resuming, running or rescheduling a notice, a withdrawn item, or an item whose state already is the one asked for; rescheduling an item whose map declares no `schedule` |
 
 **Each code's HTTP status is the one [`protocol/types`](../protocol/types.md#error-handling)
-registers for it.** `PROGRAMME_NOT_ADOPTED` is this service's, registered
-there among the programme service codes.
+registers for it.** `PROGRAMME_NOT_ADOPTED` and `PROGRAMME_ITEM_NOT_RUNNING`
+are this service's, registered there among the programme service codes.
 
 An installation that hands some blocks to their owners and not others is not
 an error. It answers `200`, lists every block it could not hand over, and
@@ -1013,14 +1032,70 @@ exactly those, for the words its `needs:` names, `read` where it names none.
 Every item's authorisation names as its actors every service its blocks hand
 work to: execution for any operation or workflow; the prompt worker for an
 `agent:`; this service for a `does:`; notification for a notice, for a step
-that waits for a person, and for a `due-sweep`. A `does:` item's ceiling is
+that waits for a person, for a `due-sweep`, and for an `agent:` whose
+`needs:` names `notify`. A `does:` item's ceiling is
 its action's *reads with* ([The `does:` Actions](#the-does-actions)), and a
 `due-sweep`'s adds `content:describe`; a notice's is `content:read` and
 `content:describe`, which notification reads its positions' holders with
 ([`architecture/notification`](notification.md#resolving-holders)); a step
 that waits for a person comes to the same two, which execution reads the
 positions it awaits with ([`architecture/execution`](execution.md#who-holds-a-position));
-a workflow's is the union over its steps.
+an `agent:` whose `needs:` names `notify` adds the same two, which
+notification reads the holders it tells with; a workflow's is the union over
+its steps.
+
+### What agent work may start and tell
+
+An `agent:` item's work reaches this service on a work pass the prompt worker
+obtains under the item's own authorisation, so its `identity_id` is this
+service's own and its `definition` names the item: this service admits it only
+where the item is installed here now
+([`protocol/identity`](../protocol/identity.md#minting-a-work-pass), rule 11).
+What the pass may then do here is what its `cap` carries, and nothing more:
+
+1. **Read what is due.** With `programme:read`, the due, occurrence,
+   obligation and readiness routes answer it exactly as they answer a person
+   ([What a person is answered](#what-a-person-is-answered)), at the item's
+   organisation and its projects only. A request naming another organisation
+   is refused with `FORBIDDEN`.
+2. **Start work of its own programme.** With `programme:dispatch`,
+   `RunOperation` and `RunWorkflow` start one run of an operation or a
+   workflow **of the same programme, installed at the same organisation**. A
+   target of another programme, or none, is `NOT_FOUND`. A target that is
+   paused, withdrawn or has no live authorisation is refused with
+   `PROGRAMME_ITEM_NOT_RUNNING`: a person stopped it, and agent work never
+   starts what a person stopped. This service asks execution for the run with
+   `RunScheduleNow` on its own registration token, with a `RunNow` naming
+   the pass's `run` as `parent`, and the body's `not_before` and `reason`
+   ([`architecture/execution`](execution.md#starting-one-run-now)), and
+   answers what execution answered. So the run is muted wherever the asking
+   run or the target is, a loop is refused with `EXECUTION_START_LOOP`, and
+   the run's authority is the target's own authorisation, never the asking
+   item's.
+3. **Tell positions.** With `programme:notify`, `NotifyFromItem` asks
+   notification to tell the positions the body names what the work says.
+   Every position named must be one the programme's adopted map names, in an
+   `approved_by`, a `responsible`, an `approvers`, an `escalate.to` or a
+   notice's `to`; any other is refused with `INVALID_REQUEST`, naming it, and
+   nobody is told. An item that is muted, paused or withdrawn is refused with
+   `PROGRAMME_ITEM_NOT_RUNNING`. Otherwise it sends `NotifyByPosition` on its
+   own registration token, as [Telling](#telling) does, naming the item's
+   authorisation, the item as `notice`, the body's `says` and `why`, and as
+   `fact` the event `instruction` at the moment it asked. The `run` it gives
+   is the pass's `run` and the digest of the body, so the same words asked
+   twice in one run tell once. It answers the `Notification` notification
+   answered, whose outcome says whether anybody was reached.
+
+None of the three is a switch. Rule 2 above stands: pausing, resuming,
+rescheduling, muting and unmuting stay a person's. **Starting a run of
+running, unmuted work is not one of them**: a person made the target run and
+reach people, and a person authorised the asking item with `dispatch`; agent
+work adds one run of what they chose, recorded with `trigger` `run` and the
+asking run as `parent`. Telling, likewise, reaches only positions the adopted
+programme already names, in words the prompt worker checked may leave the
+tenant ([`architecture/prompt-worker`](prompt-worker.md#scope)). Each act is
+recorded with this service as `actor`, the prompt worker as `via`, and the
+pass's authorisation and run.
 
 ---
 
@@ -1087,7 +1162,11 @@ Execution dispatches an `agent:` phase to it, with the instruction and the
   and the usage the model service reported, which execution writes on the
   run's record ([`architecture/model-service`](model-service.md#usage-and-cost));
 - writes only through an owner's API, as a proposal where that owner requires
-  one, and keeps nothing of its own. The run's record is execution's.
+  one, and keeps nothing of its own. The run's record is execution's;
+- reads what is due, starts work of its own programme and tells the positions
+  its programme names only through this service's routes, as
+  [What agent work may start and tell](#what-agent-work-may-start-and-tell)
+  bounds them.
 
 Its component blueprint is [`architecture/prompt-worker`](prompt-worker.md):
 how execution hands it a phase, the closed tool set an instruction may be
@@ -1097,9 +1176,12 @@ was not runnable.
 
 **What an `agent:` phase is handed.** At install, each `agent:` operation or
 step becomes a phase whose `input` is an `InstructionTask`: the instruction,
-its `needs:`, `source`, the adopted `map.md` it was read from in content, and
+its `needs:`, `source`, the adopted `map.md` it was read from in content,
 `skills`, each skill file the programme brings with no `for`
-([`schemas/programme`](../schemas/programme.md#skills--files-the-programme-brings)).
+([`schemas/programme`](../schemas/programme.md#skills--files-the-programme-brings)),
+and `programme` and `item`, the programme's id and the operation's or
+workflow's id, which the worker names when its tools ask this service to start
+or tell ([What agent work may start and tell](#what-agent-work-may-start-and-tell)).
 
 ### The decision inbox
 
@@ -1192,11 +1274,22 @@ runs for every escalation at its organisation. Each event names the
 `programmes` its obligation belongs to, for a start that can be narrowed by
 them once execution's registration can say so.
 
-**The prompt worker has no tool that reads what is due.** Its tools read and
-propose content ([`architecture/prompt-worker`](prompt-worker.md)), and none
-reads this service's due routes, so an `agent:` instruction knows what is due
-from the events its run was started on and from the registers, not from
-`GET /v1/programme/due`.
+**Agent work starts and tells within its own programme only.** A `dispatch`
+reaches an operation or a workflow of the asking item's programme, and a
+`notify` the positions that programme names
+([What agent work may start and tell](#what-agent-work-may-start-and-tell)).
+Starting another programme's work, or telling a position no adopted
+programme names, has no route: each would let one programme's agent work act
+on authority a person granted for another, and is the owner's to decide.
+
+**An agent records an occurrence only as a proposal of a whole register.**
+An occurrence is recorded by a row in its obligation's `records:` register
+([The three states, and a fourth](#the-three-states-and-a-fourth)), and the
+prompt worker proposes rows only by proposing the register's whole text
+([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)). A row a
+person accepts that way reads `recorded`, never `attested`. A proposal of one
+row, which the person deciding sees as one row, waits for content to accept
+a row as a change.
 
 **No hub serves the prompt worker's model route yet.** The route is
 specified: [`architecture/model-service`](model-service.md) gives the tenant's
@@ -1391,6 +1484,46 @@ types:
         type: int
         required: false
         description: 1 to 31, required for monthly
+  ItemRun:
+    description: The optional body of RunOperation and RunWorkflow
+    fields:
+      not_before:
+        type: timestamp
+        required: false
+        description: Start it at this instant rather than now. Execution holds it as a start timer (architecture/execution, Starting one run now)
+      reason:
+        type: string
+        required: false
+        description: Why it was asked for. Recorded on the run; data, never acted on
+  ItemNotice:
+    description: The body of NotifyFromItem, sent by the prompt worker for an agent item's work
+    fields:
+      programme:
+        type: string
+        required: true
+        description: The asking item's programme. Must be the programme of the item the work pass's definition names
+      item:
+        type: string
+        required: true
+        description: The asking item's id within its programme
+      organisation:
+        type: string
+        required: true
+        description: The item's organisation
+      project:
+        type: string
+        required: false
+      positions:
+        type: "[]string"
+        required: true
+        description: The positions to tell, each one the programme's adopted map names. At least one
+      says:
+        type: string
+        required: true
+        description: What the work asks to say, in the model's words. Data, worded by notification and never acted on
+      why:
+        type: string
+        required: false
   ItemAuthorisation:
     description: The work authorisation an item runs under, as the orchestrator reports it
     fields:
@@ -1953,13 +2086,14 @@ resources:
         reversible: {by: pause}
       - name: run
         capability: "programme:operate"
+        body: ItemRun
         preconditions:
           - the item is an operation or a workflow, and not withdrawn
           - it has a live work authorisation
         in_flight:
           handling: continues
           says: a run already under way is unaffected; this starts one more
-        effect: the item's first start at execution runs it once, now
+        effect: the item's first start at execution runs it once, now, or holds it until the body's not_before
         reversible: false
       - name: reschedule
         capability: "programme:operate"
@@ -2192,7 +2326,7 @@ security:
 
 ## Verification Checklist
 
-- [ ] Every route in [Endpoints](#endpoints) but `GET /livez`, `GET /readyz`, `POST /v1/message`, `POST /v1/event` and `POST /v1/services` is declared among the manifest's `pass_routes`, with the one capability its row gives ([Endpoints](#endpoints))
+- [ ] Every route in [Endpoints](#endpoints) but `GET /livez`, `GET /readyz`, `POST /v1/message`, `POST /v1/event`, `POST /v1/services` and `POST /v1/programme/notifications` is declared among the manifest's `pass_routes`, with the one capability its row gives ([Endpoints](#endpoints))
 - [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
 - [ ] `POST /v1/programme/installations` on a registration or channel token is refused with `FORBIDDEN`, and installs nothing ([Who May Do What](#who-may-do-what) rule 2, [Error Handling](#error-handling))
 - [ ] An installation for a programme the organisation has no `adoption.md` for is refused with `PROGRAMME_NOT_ADOPTED`, and installs nothing ([Installing](#installing), [Error Handling](#error-handling))
@@ -2215,6 +2349,11 @@ security:
 - [ ] `DELETE /v1/programme/installations/{programme}` stops every item under it, withdraws each of its starts at execution and deletes no document ([Endpoints](#endpoints), [Withdrawing](#withdrawing))
 - [ ] An `agent:` item is reported as not runnable while no prompt worker runs, or while the model service's route is not served, and is never reported as having run ([Known Gaps](#known-gaps))
 - [ ] An installed item with no live work authorisation is reported as not authorised and never run ([Installing](#installing))
+- [ ] A work pass whose `definition` names an installed `agent:` item and whose `cap` carries `programme:read` is answered `GET /v1/programme/due` at the item's organisation, and refused with `FORBIDDEN` naming another organisation ([What agent work may start and tell](#what-agent-work-may-start-and-tell) 1)
+- [ ] `POST /v1/programme/workflows/{id}/runs` on such a work pass carrying `programme:dispatch` starts a run of a running workflow of the same programme by `RunScheduleNow` with the pass's `run` as `parent`; naming a paused one is refused with `PROGRAMME_ITEM_NOT_RUNNING`, and one of another programme with `NOT_FOUND` ([What agent work may start and tell](#what-agent-work-may-start-and-tell) 2, [Error Handling](#error-handling))
+- [ ] The same request on a work pass that does not carry `programme:dispatch`, or on an unmuted workflow on a registration token, is refused with `FORBIDDEN` and starts nothing ([What agent work may start and tell](#what-agent-work-may-start-and-tell), [Who May Do What](#who-may-do-what) rule 2)
+- [ ] `POST /v1/programme/notifications` on a pass is refused with `FORBIDDEN`; on a work pass carrying `programme:notify` naming a position the adopted map does not name it is refused with `INVALID_REQUEST`, and for a muted item with `PROGRAMME_ITEM_NOT_RUNNING`, and nobody is told ([What agent work may start and tell](#what-agent-work-may-start-and-tell) 3, [Error Handling](#error-handling))
+- [ ] `NotifyFromItem` sent twice in one run with the same body makes one notification ([What agent work may start and tell](#what-agent-work-may-start-and-tell) 3)
 - [ ] `get_workflow` and a `does:` action are answered only on a work pass whose `identity_id` is this service's and whose `definition` names an item installed here, and one naming no such item is refused with `NOT_FOUND` ([Interfaces](#interfaces))
 - [ ] Withdrawing a programme revokes every work authorisation naming one of its items ([Withdrawing](#withdrawing))
 - [ ] An `agent:` item's authorisation is asked for with the capabilities its `needs:` words come to in [`architecture/prompt-worker`](prompt-worker.md#needs-comes-to-these-capabilities), and none other; an empty `needs:` comes to `read`'s ([What a `needs:` ceiling comes to](#what-a-needs-ceiling-comes-to))

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.1.0
+version: 3.2.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -80,11 +80,13 @@ requires:
     bindings:
       types:
         # type and aud say a person's request reached this service on a pass
-        # addressed to it, the only token fabric:attest counts on; cap is what
-        # it may use; identity_id names who acted on an entry, never sub; act
-        # names the gateway that carried it
+        # addressed to it, the only token fabric:attest counts on, or agent
+        # work reached it on a work pass; cap is what it may use; identity_id
+        # names who acted on an entry, never sub; act names the gateway or the
+        # actor that carried it; cid and run are a work pass's (Agent work
+        # proposes, never confirms)
         - name: WLToken
-          fields_used: [type, aud, act, cap, identity_id]
+          fields_used: [type, aud, act, cap, identity_id, cid, run]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -343,7 +345,7 @@ unattributable zero reads as a finding.
 | Method | Path | Operation | Auth | Capability | Purpose |
 |--------|------|-----------|------|------------|---------|
 | POST | /v1/fabric/sync | Sync | yes | `fabric:produce` | A producer states its full current view for one partition; what it no longer sees is retired |
-| POST | /v1/fabric/observations | Observe | yes | `fabric:observe` | Report one relationship incrementally. Withdraws nothing, ever |
+| POST | /v1/fabric/observations | Observe | yes | `fabric:observe` | Report one relationship incrementally. Withdraws nothing, ever. On a work pass, agent work's proposal ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms)) |
 | POST | /v1/fabric/attestations | Attest | yes | `fabric:attest` | A person asserts a relationship themselves |
 | POST | /v1/fabric/decisions | Decide | yes | `fabric:attest` | A person judges a relationship already recorded |
 | POST | /v1/fabric/relocations | Relocate | yes | `fabric:attest` | Re-anchor a confirmed relationship whose content moved. No destination is accepted |
@@ -808,16 +810,18 @@ fabric therefore needs no path onto a repository and holds no content credential
 beyond the capabilities below. A component that needs the filesystem of the thing
 it describes is not a client of it.
 
-> **Not settled here.** How a tenant that adopts this surface causes it to be
-> built is a question about how a tenant declares its component set, and it is
-> not this blueprint's to answer. `adoption: opt-in` states that a deployment
-> without it is correct rather than unfinished; it does not by itself make the
-> surface reachable, because a generation target resolved from a fixed list is
-> a specification living in the tooling. That is the precondition, and it is
-> named rather than assumed.
+**How a tenant comes to run it.** A tenant that adopts a programme or a
+standard whose coverage is read is planned this service by that adoption's
+build plan ([`schemas/programme`](../schemas/programme.md#what-a-programme-runs-on)),
+and a person builds it on the tenant's change cycle, naming it as a root,
+because a component marked `adoption: opt-in` is never pulled in as another's
+dependency ([`architecture/generation`](generation.md#resolving-a-request-of-many-roots)).
+`adoption: opt-in` states that a tenant with no such adoption is correct
+without it; a tenant with one that does not run it is reported, by its plan,
+as lacking it, never as covered.
 
 **When opt-in ends.** The fabric becomes required in every tenant the CLI
-generates once the credential layer — identity, credential, grant — exists
+generates, adoption or none, once the credential layer — identity, credential, grant — exists
 there (`adoption-follows-credential-layer`), because the run statements it
 ingests are signed by the tenant's `generation` service credential, and before
 that credential exists there is nothing to sign them with but a person's own
@@ -917,7 +921,7 @@ therefore compare addresses and not keys.
 | Path | Who uses it | Status it may set |
 |---|---|---|
 | `Sync` | a producer the platform runs, stating its full view | `inferred` only |
-| `Observe` | an agent or integration reporting incrementally | `inferred` only |
+| `Observe` | an agent or integration reporting incrementally, or agent work on a work pass | `inferred` only |
 | `Attest` | a person asserting a relationship themselves | `confirmed` or `rejected` |
 | `Decide` | a person judging an existing relationship | `confirmed`, `rejected` or `retired` |
 
@@ -935,6 +939,42 @@ An agent asserting on a person's behalf is a real requirement and is
 deliberately absent: it is explicit, conditional, bounded by both the agent's
 skills and that person's declared tolerances, and it is never a default. Until
 that is specified, `confirmed` is reachable by a person and by nothing else.
+
+### Agent work proposes, never confirms
+
+A programme's `agent:` work reaches this service through the prompt worker's
+`relationship-propose` tool, on a work pass the worker obtains under the
+item's work authorisation, carrying `fabric:observe`
+([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)). It is an
+`Observe`, and everything `Observe` is holds: the claim has no status field,
+the gate records it `inferred`, and an edge a person decided is deferred to.
+What it adds:
+
+1. **It is recorded as work.** The entry's `actor` is the pass's
+   `identity_id`, the item's owner, as for any token
+   ([Types](#types), `LedgerEntry.actor`), and its `work` names the pass's
+   `act.identity_id` as `via`, its `cid` as `authorisation` and its `run`, so
+   an auditor joins the claim to the run and to the person who allowed it
+   ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass),
+   rule 10).
+2. **It is a proposal until a person decides it.** An edge whose standing
+   entry carries `work` and is `inferred` reads `proposed`. A proposed edge is
+   counted in coverage as needing review, never as answered, and no export or
+   evidence package cites it: a model's reading of two documents is advice,
+   and advice is not compliance. A person settles it with `Decide`, at
+   `confirmed`, `rejected` or `retired`, and the edge stops being proposed.
+3. **It never claims a derivation's certainty.** The highest confidence is a
+   recorded derivation's alone, so a claim on a work pass at it is refused
+   with `INVALID_REQUEST` and nothing is appended. Its `basis` is the model's
+   account of what it matched on, and is data.
+4. **A person's routes stay a person's.** `Attest`, `Decide` and `Relocate`
+   refuse a work pass with `FORBIDDEN`, whatever its `cap`
+   ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass),
+   rule 9), and no capability a work pass can carry reaches `confirmed`.
+
+The read operations admit a work pass too, carrying `fabric:read`, and answer
+it as they answer anybody: what agent work reads here is addresses,
+identities and statuses, never content (Design Principle 7).
 
 ### Sync and Observe answer different questions
 
@@ -1141,6 +1181,15 @@ never cited. No person's judgement is kept there — nothing in it is
 the repositories and reading them again cannot rebuild it: it is kept only in a
 tenant's ledger. That is not duplication; it is the same split custody already
 makes, and both follow this blueprint's claim model.
+
+**A client's copy is a cache too.** A client of a tenant, Weblisk Studio among
+them, keeps no ledger of that tenant's relationships. It reads them at this
+service, and a person decides them here, through the tenant's admin gateway,
+as the `relationship` resource ([Resources](#resources)). Anything a client
+keeps of a tenant's relationships is a cache in content's sense: rebuilt by
+reading this service again, never cited, and holding no person's judgement,
+because a judgement recorded anywhere but here is a second ledger nobody can
+verify.
 
 A citation across the split is an ordinary edge whose far endpoint names another
 scope's source, which the endpoint model already carries. It records that the
@@ -1365,6 +1414,45 @@ types:
       recorded_at:
         type: timestamp
         required: true
+      key:
+        type: string
+        required: true
+        description: The relationship's identity written as one string, sha256:<hex> of the RFC 8785 bytes of its RelationshipIdentity. Derived from the identity, so any reader holding the ledger computes the same key, and never stored apart from it
+      proposed:
+        type: bool
+        required: true
+        description: True where the standing entry carries work and its status is inferred. Derived on read (Agent work proposes, never confirms)
+      work:
+        type: WorkCitation
+        required: false
+        description: The standing entry's work, where agent work asserted it
+
+  WorkCitation:
+    description: The work pass an entry arrived on, as the entry records it
+    fields:
+      via:
+        type: string
+        required: true
+        description: The identity id of the actor that carried it, the pass's act.identity_id
+      authorisation:
+        type: string
+        required: true
+        description: The work authorisation it was minted under, the pass's cid
+      run:
+        type: string
+        required: true
+        description: The run it was minted for, the pass's run
+
+  RelationshipJudgement:
+    description: What a person decides about one relationship, the body of the relationship kind's decide verb
+    fields:
+      status:
+        type: enum
+        values: [confirmed, rejected, retired]
+        required: true
+      note:
+        type: string
+        required: false
 
   LedgerEntry:
     description: One append. Written once, never edited, and committing to its
@@ -1405,6 +1493,12 @@ types:
         required: false
         description: Present on an entry appended from a run statement. Names
           the run; the run's facts stay in its statement
+      work:
+        type: WorkCitation
+        required: false
+        description: Present on an entry appended on a work pass, for agent
+          work. Absent on every other entry, so a ledger with none hashes as
+          it did
       on_behalf_of:
         type: string
         required: false
@@ -1522,8 +1616,8 @@ types:
       needs_review:
         type: list
         required: true
-        description: Answers that are stale or unreachable. Counted here, never
-          as answered
+        description: Answers that are stale, unreachable or proposed. Counted
+          here, never as answered
       completeness:
         type: AnswerCompleteness
         required: true
@@ -1648,6 +1742,64 @@ types:
 
 ---
 
+## Resources
+
+The fabric declares one kind a person reads and decides through the tenant's
+one API ([`architecture/admin`](admin.md#resources-one-api-for-every-kind)):
+the **relationship**, one claim folded from its entries. A proposal is a
+relationship whose `proposed` is true, listed by that filter; a decision is
+the `decide` verb, which this service serves at the uniform address and
+records exactly as `Decide` records one ([Person Flow](#person-flow)). Entries,
+the projection, the chain and producers are read at their own routes, and are
+not kinds.
+
+```yaml
+resources:
+  - kind: relationship
+    owner: fabric-service
+    type: RelationshipEdge
+    identity: {field: key, form: declared-name}
+    label: key
+    fields:
+      - {name: key, access: read-only, present: text}
+      - {name: identity, access: read-only}
+      - {name: identity.relation, access: read-only, present: text}
+      - {name: status, access: read-only}
+      - {name: proposed, access: read-only, present: boolean}
+      - {name: asserted_by, access: read-only, present: text}
+      - {name: confidence, access: read-only}
+      - {name: compliance_state, access: read-only}
+      - {name: seq, access: read-only, present: number}
+      - {name: recorded_at, access: read-only, present: instant}
+      - {name: work, access: read-only}
+      - {name: work.run, access: read-only, present: reference, kind: run}
+    operations:
+      list: {capability: "fabric:read", filters: [status, proposed, asserted_by, identity.relation, work.run]}
+      get: {capability: "fabric:read"}
+    verbs:
+      - name: decide
+        capability: "fabric:attest"
+        body: RelationshipJudgement
+        preconditions:
+          - the request arrived on a pass addressed to this service, never on a work pass or a component's token
+          - the relationship is live in a scope the pass may reach
+        in_flight:
+          handling: none
+          says: a relationship has no work under way; a producer's next claim on it is deferred to the decision
+        effect: one entry is appended alone, at the body's status, with the person's identity id as actor; the relationship is no longer proposed
+        reversible: false
+    events: [created, updated, decide]
+    relations: []
+```
+
+`key` is the relationship's identity written as one string, so it is a name
+the claim declares rather than one this service mints, and any reader holding
+the ledger derives the same one. `decide` is not reversible by a verb: a
+second decision is a new entry, and the first stays in the relationship's
+lineage.
+
+---
+
 ## Configuration
 
 ```yaml
@@ -1684,8 +1836,10 @@ different costume.
 ## Registration and Standalone Operation
 
 The fabric service is a component in the mesh: it registers with the
-orchestrator, claims the `fabric.*` namespace exclusively, and verifies caller
-tokens against the orchestrator's public key.
+orchestrator under the name `fabric-service`, claims the `fabric.*` namespace
+exclusively, and verifies caller tokens against the orchestrator's public key.
+The name is a declared name: a build plan finds the fabric by it in the
+service directory ([`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)).
 
 Its manifest declares the wire protocol version from
 [`protocol/types`](../protocol/types.md) — not this blueprint's semver. Its
@@ -1730,6 +1884,17 @@ revoked credential and a role lowered below `fabric:attest` reach this service
 at the person's next act, and a pass minted before lives at most 30 seconds.
 A read on a pass is bounded the same way, and its audit entry names the
 gateway that carried it as `via`, beside the person as `actor`.
+
+**Agent work arrives on a work pass.** `POST /v1/fabric/observations` and the
+read operations admit a work pass addressed to this service whose `cap`
+carries the route's capability. A work pass carries a capability only where
+its audience's manifest declares it too
+([`protocol/identity`](../protocol/identity.md#minting-a-work-pass)), so this
+service's manifest declares `fabric:read` and `fabric:observe`, which it
+serves, and never `fabric:attest`. It records such a request as
+[Agent work proposes, never confirms](#agent-work-proposes-never-confirms)
+says. A work pass is refused with `FORBIDDEN` on the three `fabric:attest`
+routes.
 
 A capability name is `family:verb`, and an invented one is refused at
 registration — which is why these belong in
@@ -2013,3 +2178,8 @@ verifies:
 - [ ] An edge to generated code in a language whose mapping ships no symbol extractor is anchored to the whole file, and an answer resting on it counts it in `file_level_endpoints` ([Declared at write time](#declared-at-write-time))
 - [ ] A `section` anchor survives a reworded heading unchanged, because its value is the slot key ([Types](#types))
 - [ ] No setting raises the reach depth above `reach-max-depth` ([Configuration](#configuration), [Reach from a diff](#reach-from-a-diff))
+- [ ] An `Observe` on a work pass carrying `fabric:observe` appends an `inferred` entry whose `actor` is the pass's `identity_id` and whose `work` names its `act.identity_id`, `cid` and `run`, and the edge reads `proposed` ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms))
+- [ ] A proposed edge is counted in a coverage answer's `needs_review` and never among its answered edges, and a person's `decide` on it at `confirmed` leaves it not proposed ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms), [Resources](#resources))
+- [ ] An attestation, decision or relocation on a work pass is refused with `FORBIDDEN` whatever its `cap` ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms), [Registration and Standalone Operation](#registration-and-standalone-operation))
+- [ ] An `Observe` on a work pass at the highest confidence is refused with `INVALID_REQUEST` and appends nothing ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms))
+- [ ] Two readers holding the same ledger derive the same `key` for every relationship, and the uniform address serves the `relationship` kind by it with `list`, `get` and `decide` ([Resources](#resources), [Types](#types))
