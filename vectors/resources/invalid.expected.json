@@ -73,6 +73,10 @@
       "rule": "resource-relation-declared"
     },
     {
+      "kind": "lease",
+      "rule": "resource-required-filters"
+    },
+    {
       "kind": "workflow",
       "rule": "resource-unavailable"
     }

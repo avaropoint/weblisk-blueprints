@@ -1313,17 +1313,22 @@ types:
         name: Name
         type: string
         required: true
-        description: "`cursor`, or a field the list may be narrowed by, as `filters` names it"
+        description: "`cursor`, `limit`, or a field the list may be narrowed by, as `filters` names it"
       type:
         name: Type
         type: string
         required: true
-        description: "`string` for `cursor`; for a filter, the field's type as ResourceField carries it"
+        description: "`string` for `cursor`, `int` for `limit`; for a filter, the field's type as ResourceField carries it"
       enum:
         name: Enum
         type: "[]string"
         required: false
         description: "For a filter: the values its field's declaring type allows, as ResourceField carries them"
+      required:
+        name: Required
+        type: bool
+        required: false
+        description: "True for a filter the operation's `required_filters` names: the list is refused without it. Absent: optional"
 
   ResourceApproval:
     fields:
@@ -1392,7 +1397,12 @@ types:
         name: Parameters
         type: "[]ResourceParameter"
         required: false
-        description: "For `list`: every query parameter it takes, and no other: `cursor`, then one per field `filters` names, in that order. Each is optional; a filter narrows by equality"
+        description: "For `list`: every query parameter it takes, and no other: `cursor`, `limit`, then one per field `filters` names, in that order. Each is optional unless `required_filters` names it; a filter narrows by equality"
+      required_filters:
+        name: RequiredFilters
+        type: "[]string"
+        required: false
+        description: "For `list`: the filters it is refused without, each one of `filters`"
       items:
         name: Items
         type: string

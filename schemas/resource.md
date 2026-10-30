@@ -121,6 +121,7 @@ resources:
         approval: <optional; who must approve it, below>
         binds: <optional; an Operation this blueprint's endpoints declare>
         filters: <list only, optional; fields a list may be narrowed by>
+        required_filters: <list only, optional; filters the list is refused without, each one of filters>
         items: <list only, with binds, the member of the bound answer holding the items>
     verbs:
       - name: <kebab-case>
@@ -211,6 +212,11 @@ binds nothing is served by the owner at the uniform address itself
 ([`architecture/admin`](../architecture/admin.md#resources-one-api-for-every-kind)).
 A bound `list` names, in `items`, the member of the bound answer that holds the
 items, since the bound route answers its own shape.
+
+`required_filters` names the filters a `list` is refused without, where its
+owner answers a list only within one of something — the installations at one
+organisation. Each is one of its `filters`. A list that declares none answers
+everything the request may read, a page at a time.
 
 ### Verbs
 
@@ -375,6 +381,8 @@ rules:
     rule: every operation and verb names one capability protocol/types lists
   - id: resource-binds
     rule: binds names an Operation the same blueprint declares, and a bound list names items
+  - id: resource-required-filters
+    rule: every required_filters entry is one of the same list's filters
   - id: resource-verb-name
     rule: a verb's name is kebab-case, unique in its kind, and neither an operation nor a reserved verb
   - id: resource-verb-complete
