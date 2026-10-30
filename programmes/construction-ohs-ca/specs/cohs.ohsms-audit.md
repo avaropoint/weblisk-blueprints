@@ -8,7 +8,6 @@ path: procedures/management-system-audit.md
 satisfies:
   - ohsa_ontario:7.6.1
   - iso_45001:9.2
-  - cor_2020:COR-02
 
 requires: [cohs.management-review, cohs.regulatory-currency]
 

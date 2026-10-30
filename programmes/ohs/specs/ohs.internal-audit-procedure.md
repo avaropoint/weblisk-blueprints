@@ -7,7 +7,6 @@ path: procedures/programme-audit.md
 
 satisfies:
   - iso_45001:9.2
-  - cor_2020:COR-02
 
 requires: [ohs.policy, ohs.hazard-assessment-procedure]
 
