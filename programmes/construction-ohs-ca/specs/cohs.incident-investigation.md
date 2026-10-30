@@ -8,9 +8,7 @@ path: procedures/project-incident-investigation.md
 satisfies:
   - ohsa_ontario:25(2)(h)
   - cor_2020:COR-17
-  - cor_2020:COR-02
   - iso_45001:10.2
-  - isnetworld:ISN-SAFE-06
 
 requires: [cohs.incident-reporting]
 

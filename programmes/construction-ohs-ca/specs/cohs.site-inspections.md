@@ -8,7 +8,6 @@ path: procedures/site-inspection.md
 satisfies:
   - ohsa_ontario:8(6)
   - ohsa_ontario:9(26)
-  - o_reg_213_91:14
   - cor_2020:COR-11
   - isnetworld:ISN-SAFE-10
 

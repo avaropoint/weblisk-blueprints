@@ -10,7 +10,6 @@ satisfies:
   - iso_45001:10.2
   - iso_45001:10.3
   - iso_45001:9.1.2
-  - isnetworld:ISN-SAFE-06
 
 requires: [cohs.incident-investigation]
 
