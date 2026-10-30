@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.6.0
+version: 4.7.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -141,8 +141,9 @@ declaration:
         removed: halt-immediately
     - blueprint: architecture/storage
       # 2.2.0 is where durable-records says appends share a flush and the
-      # store's lock is not held across it
-      version: ">=2.2.0 <3.0.0"
+      # store's lock is not held across it; 2.3.0 where a store is opened
+      # once, answers lookups from memory and keeps a chained log in segments
+      version: ">=2.3.0 <3.0.0"
       bindings:
         types:
           - name: AuditFilter
@@ -2013,7 +2014,9 @@ EVENT                 orchestrator → POST /v1/event on each subscriber
 ```
 
 Every path that changes state writes an audit entry chained to the previous
-one, and no path returns data the caller's capabilities do not permit.
+one, except a lease renewal that leaves the lease's state as it was
+([Presence](#presence)), and no path returns data the caller's capabilities do
+not permit.
 
 ---
 
@@ -2536,7 +2539,16 @@ says: chained under the store's lock, and reported written only once a flush
 covers it, a flush that concurrent appends may share and that the lock is not
 held across. Every request the admin gateway carries on a pass appends an
 exchange entry here, so a lock held across each flush would run a person's
-concurrent reads one flush at a time:
+concurrent reads one flush at a time. For the same reason the log is written
+through a handle opened once, never reopened per append, and kept in segments
+of at most 8 MiB ([`architecture/storage`](storage.md#a-store-is-opened-once),
+[segments](storage.md#a-chained-log-is-kept-in-segments)): an append that
+reopened the file paid for the log's whole size on every request, under the
+lock. Every lookup the exchange and Auth Middleware make — the gateway's
+registration, the operator, the credential, the audience — is answered by key
+from what the stores hold in memory, never by reading a store's file. A lease
+renewal that leaves the lease's state as it was is the one operation that
+appends nothing ([Presence](#presence)):
 
 ```json
 {
@@ -2608,6 +2620,19 @@ component telemetry probes, since it cannot report itself to itself; no
 registered component is polled for its presence or readiness by telemetry
 either.
 
+A renewal that leaves `lease_state` as it was appends no audit entry. It is
+recorded where the lease is — the entry's `lease`, `last_renewal` and
+`last_seen` — and that record is what a reader of presence asks. A renewal
+that changes `lease_state`, one restoring a lapsed lease included, appends an
+entry naming the state before and after, and so does every renewal refused.
+Why: a renewal arrives from every registered component on the cadence
+[`LeaseRenewal`](../protocol/types.md#leaserenewal) sets, and an entry per
+renewal made lease lines 34,000 of one hub's 42,000 audit entries in two days
+while saying nothing a reader of the log could act on, since the state each one
+recorded was the state the one before had. The transitions are the evidence; a
+renewal that changed nothing is not, and the lease events
+(`AdminLeaseEvents`) already follow the same rule.
+
 An orchestrator that restarts reads every lease it holds as `unknown` until
 each component renews: it heard nothing while it was down, and says so. A
 component that registers again after the restart first reads `not_ready`
@@ -2638,6 +2663,8 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
   under the store's lock and answered once a flush covers it, a flush that
   concurrent appends may share and that the lock is not held across
   ([`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`).
+  It is written through a handle opened once and kept in segments of at most
+  8 MiB ([`architecture/storage`](storage.md#a-store-is-opened-once)).
 - **Work Authorisations** — Map of id → `WorkAuthorisation`, persisted, with
   revoked ones kept and no id reused ([Work Exchange](#work-exchange-post-v1tokenwork)).
   Nothing about a work pass is stored: each is minted and forgotten.
@@ -3212,7 +3239,9 @@ agents hold, which is theirs.
 - [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast ([`protocol/spec`](../protocol/spec.md#post-v1lease) step 3)
 - [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing ([Registration Flow](#registration-flow-post-v1register) step 10, [System Events](#system-events))
 - [ ] system.agent.deregistered event published after deregistration ([Deregistration Flow](#deregistration-flow-delete-v1register) step 6)
-- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line ([Audit Logging](#audit-logging))
+- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line, except a lease renewal that leaves `lease_state` as it was ([Audit Logging](#audit-logging))
+- [ ] A lease renewal that leaves `lease_state` as it was appends no audit entry and updates the entry's `lease`, `last_renewal` and `last_seen`; one that changes it, and every refused renewal, appends one naming the state before and after or the refusal ([Presence](#presence))
+- [ ] With 100,000 entries in the audit log, a token exchange is answered within one flush plus 5 ms at p99, as with none, and no lookup it or Auth Middleware makes reads a store's file ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#a-store-is-opened-once), `durable-records`)
 - [ ] Concurrent token exchanges are each answered only after a flush covering its audit entry, and none waits under the audit store's lock for another's flush ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`)
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease ([Domain Dependency Tracking](#domain-dependency-tracking))
 - [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives ([Weblisk Orchestrator Blueprint](#weblisk-orchestrator-blueprint), its opening paragraphs)

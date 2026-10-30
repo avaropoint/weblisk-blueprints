@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.3.0
+version: 5.4.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -189,8 +189,10 @@ requires:
 
   - blueprint: architecture/storage
     # 2.2.0 is where durable-records says appends share a flush and the
-    # store's lock is not held across it
-    version: ">=2.2.0 <3.0.0"
+    # store's lock is not held across it; 2.3.0 where a store is opened once,
+    # answers lookups from memory and keeps a chained log in segments, which
+    # the audit log and the change log are each held to
+    version: ">=2.3.0 <3.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -842,7 +844,10 @@ code here is enough, because a client does the same thing for both.
    Its audit entry is appended as
    [`architecture/storage`](storage.md#appends-share-a-flush)'s
    `durable-records` says, so concurrent reads share a flush and none waits
-   under the audit store's lock for another's
+   under the audit store's lock for another's. The audit log and the change
+   log are each written through a handle opened once and kept in segments of
+   at most 8 MiB ([A store is opened once](storage.md#a-store-is-opened-once)):
+   a read whose audit append reopened the file paid for the log's whole size
 
 ### List Flow
 1. Caller requests a page of entries beneath a path, naming a repository, a
@@ -5501,6 +5506,7 @@ security:
 - [ ] Reading, stating, walking or listing an entry reads its bytes from the store once per request, counted at the backend adapter, and the `ContentIdentity` and `modified_at` returned are those of the bytes that one read returned ([Read Flow](#read-flow) step 4, [Reading costs what it reads](#reading-costs-what-it-reads))
 - [ ] Listing a repository of 10,000 entries in pages of 50 visits each entry once across all its pages, counted at the backend adapter, and the last page visits no more entries than the first; a cursor resumes after the last entry the previous page returned ([List Flow](#list-flow), [Reading costs what it reads](#reading-costs-what-it-reads))
 - [ ] Concurrent reads of different entries are each answered only once a flush covers its audit entry, and none waits under the audit store's lock for another's flush ([Read Flow](#read-flow) step 6, [`architecture/storage`](storage.md#appends-share-a-flush))
+- [ ] The audit log, the change log and every record store this service owns are appended through a handle opened once, the two logs are kept in segments of at most 8 MiB, and with 100,000 entries in the audit log a read takes at most one flush plus 5 ms at p99 beyond the backend's own read, as with none ([Read Flow](#read-flow) step 6, [`architecture/storage`](storage.md#a-store-is-opened-once), `durable-records`)
 - [ ] `GET /v1/content/walk` of a policy the tenant's `policy` family covers returns a projection whose spans partition the entry, whose `version_hash` is the entry's digest, and whose findings report each missing required section; walking it again returns the same projection, and the entry's digest and the change log are unchanged ([Walking an Entry](#walking-an-entry), [Walk Flow](#walk-flow))
 - [ ] A walk of an entry the caller may not read is refused as the read is; a walk of an entry whose `structure:` names no family the tenant holds, and which no kind resolves, is refused with `CONTENT_FAMILY_UNRESOLVED` ([Walk Flow](#walk-flow), [Walking an Entry](#walking-an-entry), [Error Handling](#error-handling))
 - [ ] A repository with no declared custody reports `custody: opaque` and a ceiling of `internal` ([The Custody Model](#the-custody-model), [Error Handling](#error-handling))
