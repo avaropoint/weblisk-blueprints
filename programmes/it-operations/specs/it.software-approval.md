@@ -16,6 +16,8 @@ satisfies:
   - cis_controls:2.5
   - nist_csf_2:PR.PS-01
   - soc2:CC6.8
+  # Moved from it.asset-register: a register carries no `satisfies:`.
+  - nist_csf_2:ID.AM-02
 
 requires: [it.asset-register, it.acceptable-use]
 

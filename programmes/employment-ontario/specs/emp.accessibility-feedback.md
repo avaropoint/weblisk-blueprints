@@ -5,9 +5,13 @@ title: Accessibility Feedback Register
 structure: standard
 path: registers/accessibility-feedback.md
 
-satisfies:
-  - aoda_ontario:11
-  - aoda_ontario:80.50
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - aoda_ontario:11 withdrawn, answered by emp.accessible-information.
+# - aoda_ontario:80.50 moved to emp.accessible-information.
 
 requires: [emp.accessibility-policy]
 

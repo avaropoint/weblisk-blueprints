@@ -15,6 +15,9 @@ satisfies:
   - iso_27001:A.8.10
   - nist_csf_2:ID.AM-01
   - can_ciosc_104:CIOSC-L1-14
+  # Moved from isec.asset-inventory: a register carries no `satisfies:`.
+  - nist_csf_2:ID.AM-05
+  - cis_controls:3.1
 
 requires: [isec.asset-inventory]
 
@@ -69,3 +72,9 @@ It must set how acceptable use is communicated for each classification. The
 acceptable use policy in the IT programme states the rules; this procedure is
 what connects a rule to the asset it applies to, so a person handling restricted
 information knows that is what they are handling.
+
+It must state how information is **classified and prioritised** as it enters the
+inventory — by classification, criticality and business value — and that the
+priority recorded is what orders its protection and its recovery. That is the
+data management process: classifying at entry, handling by class and disposing
+by class, written down once rather than decided asset by asset.

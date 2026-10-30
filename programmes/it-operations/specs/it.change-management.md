@@ -12,6 +12,11 @@ satisfies:
   - can_ciosc_104:CIOSC-L1-20
   - nist_csf_2:PR.PS-01
   - soc2:CC8.1
+  # Moved from it.asset-register: a register carries no `satisfies:`.
+  - iso_27001:A.5.9
+  - nist_csf_2:ID.AM-01
+  - can_ciosc_104:CIOSC-L1-14
+  - cis_controls:1.1
 
 requires: [it.asset-register]
 # The form was shipped with this programme and named by nothing, so every
@@ -96,3 +101,10 @@ quarter.
 Five days for the review, escalating after seven more. Short enough that the
 person who made the change still remembers what they did, and long enough for
 whatever was going to break to have broken.
+
+It must keep the **asset register current** as part of each change: a change
+that adds, moves, retires or loses a device, system or service updates that
+asset's row in the same act, with its owner. And it must say how often the
+register is reconciled against what the management and protection tooling
+actually sees, because the asset the tooling cannot see is the one nobody
+patches.

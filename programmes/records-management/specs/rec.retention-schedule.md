@@ -5,13 +5,22 @@ title: Records Retention Schedule
 structure: standard
 path: registers/retention-schedule.md
 
-satisfies:
-  - iso_27001:A.5.33
-  - iso_9001:7.5
-  - pipeda:PIPEDA-5
-  - fippa_mfippa:FM-07
-  - employment_standards_ontario:15
-  - soc2:C1.2
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.5.33 withdrawn, answered by rec.policy, rec.legal-hold and
+#   rec.disposition.
+# - iso_9001:7.5 withdrawn, answered by rec.policy and rec.vital-records-
+#   recovery.
+# - pipeda:PIPEDA-5 withdrawn, answered by rec.policy and rec.disposition.
+# - fippa_mfippa:FM-07 withdrawn, answered by rec.audit and rec.disposition.
+# - soc2:C1.2 withdrawn, answered by rec.policy, rec.legal-hold and
+#   rec.disposition.
+# - employment_standards_ontario:15 withdrawn: this programme does not
+#   conform to employment_standards_ontario; employment-ontario's emp.record-
+#   keeping answers it.
 
 requires: [rec.policy]
 

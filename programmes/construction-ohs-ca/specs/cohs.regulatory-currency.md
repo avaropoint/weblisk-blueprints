@@ -5,10 +5,16 @@ title: Register of Applicable Law, Standards and Editions
 structure: standard
 path: registers/legal-requirements.md
 
-satisfies:
-  - cor_2020:COR-04
-  - iso_45001:6.1.3
-  - iso_45001:9.1.2
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - cor_2020:COR-04 withdrawn, answered by cohs.notice-of-project and
+#   cohs.constructor-duties.
+# - iso_45001:6.1.3 withdrawn, answered by cohs.notice-of-project and
+#   cohs.violence-harassment.
+# - iso_45001:9.1.2 withdrawn, answered by cohs.corrective-actions.
 
 requires: [cohs.policy]
 

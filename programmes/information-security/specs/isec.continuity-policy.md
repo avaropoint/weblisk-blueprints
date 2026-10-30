@@ -15,6 +15,8 @@ satisfies:
   - iso_22301:6.2
   - iso_27001:A.5.29
   - can_ciosc_104:CIOSC-L1-22
+  # Moved from isec.compliance-obligations: a register carries no `satisfies:`.
+  - iso_22301:4.2
 
 requires: [isec.policy]
 
@@ -62,3 +64,10 @@ to regulators, to the public — and that nobody else does. Disruption and
 security incident communications are the same discipline and frequently the same
 event; where the incident policy already names the spokesperson, say so here
 rather than naming a different one.
+
+It must name the **interested parties** whose requirements the continuity
+arrangements answer — customers, regulators, suppliers, insurers — which of
+those requirements are legal or regulatory, and the contractual recovery
+commitments the objectives must meet. A recovery objective set without them can
+be met and still breach a contract. The obligations register records them; the
+policy says they were considered.

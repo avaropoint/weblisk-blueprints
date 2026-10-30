@@ -5,13 +5,19 @@ title: Legal, Regulatory and Contractual Security Obligations
 structure: standard
 path: registers/security-compliance-obligations.md
 
-satisfies:
-  - iso_27001:A.5.31
-  - iso_27001:A.5.32
-  - iso_27001:A.5.34
-  - iso_22301:4.2
-  - nist_csf_2:GV.OC-03
-  - soc2:CC2.3
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.5.31 moved to isec.policy.
+# - iso_27001:A.5.32 moved to isec.policy.
+# - iso_27001:A.5.34 moved to isec.policy.
+# - nist_csf_2:GV.OC-03 moved to isec.policy.
+# - iso_22301:4.2 moved to isec.continuity-policy.
+# - soc2:CC2.3 withdrawn: it is communication with external parties about
+#   internal control, which a list of obligations is not, and no spec in this
+#   programme claims it.
 
 requires: [isec.policy]
 

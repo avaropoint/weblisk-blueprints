@@ -13,6 +13,11 @@ satisfies:
   - nist_csf_2:GV.RR-01
   - can_ciosc_104:CIOSC-L1-15
   - soc2:CC1.1
+  # Moved from isec.compliance-obligations: a register carries no `satisfies:`.
+  - iso_27001:A.5.31
+  - iso_27001:A.5.32
+  - iso_27001:A.5.34
+  - nist_csf_2:GV.OC-03
 
 approved_by: [senior-management]
 
@@ -77,3 +82,11 @@ It must say what happens when it is not followed, and connect that to the
 disciplinary process rather than implying one. A.6.4 expects the consequence to
 exist and be known; a policy that threatens unspecified action has not made it
 known.
+
+It must commit the organisation to identifying and meeting the **legal,
+regulatory and contractual requirements** that bind how it handles information —
+privacy and the protection of personal information, intellectual property and
+software licence conditions among them — each with the reason it applies and the
+position that owns it, and to revisiting them when a contract, a jurisdiction or
+a certification changes. The obligations register is where they are kept; the
+commitment that they are met is this policy's.

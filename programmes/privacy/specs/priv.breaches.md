@@ -5,9 +5,15 @@ title: Privacy Breach Record
 structure: standard
 path: registers/privacy-breaches.md
 
-satisfies:
-  - pipeda:PIPEDA-BR-2
-  - quebec_law25:BS-2
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - pipeda:PIPEDA-BR-2 withdrawn, answered by priv.breach-response and
+#   priv.breach-review.
+# - quebec_law25:BS-2 withdrawn, answered by priv.breach-response and
+#   priv.breach-review.
 
 register:
   title: Privacy Breach Record

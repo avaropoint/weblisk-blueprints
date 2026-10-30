@@ -5,9 +5,13 @@ title: Register of Training and Certification Held
 structure: standard
 path: registers/training-records.md
 
-satisfies:
-  - iso_45001:7.2
-  - isnetworld:ISN-SAFE-04
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_45001:7.2 withdrawn, answered by ohs.training-renewal.
+# - isnetworld:ISN-SAFE-04 moved to ohs.training-renewal.
 
 requires: [ohs.competency-matrix]
 

@@ -5,9 +5,13 @@ title: Health and Safety Statistics
 structure: standard
 path: registers/health-and-safety-statistics.md
 
-satisfies:
-  - cor_2020:COR-18
-  - isnetworld:ISN-SAFE-01
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - cor_2020:COR-18 moved to ohs.incident-reporting-procedure.
+# - isnetworld:ISN-SAFE-01 moved to ohs.incident-reporting-procedure.
 
 requires: [ohs.incident-reporting-procedure]
 

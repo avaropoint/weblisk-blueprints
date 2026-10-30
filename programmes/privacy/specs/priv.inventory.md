@@ -5,14 +5,22 @@ title: Personal Information Inventory
 structure: standard
 path: registers/personal-information.md
 
-satisfies:
-  - pipeda:PIPEDA-2
-  - pipeda:PIPEDA-4
-  - pipeda:PIPEDA-5
-  - quebec_law25:GA-2
-  - fippa_mfippa:FM-01
-  - iso_27001:A.5.34
-  - soc2:P1.1
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - pipeda:PIPEDA-2 withdrawn, answered by priv.notice and priv.collection-
+#   and-consent.
+# - pipeda:PIPEDA-4 withdrawn, answered by priv.collection-and-consent.
+# - pipeda:PIPEDA-5 withdrawn, answered by priv.collection-and-consent.
+# - quebec_law25:GA-2 withdrawn, answered by priv.policy and priv.training.
+# - iso_27001:A.5.34 withdrawn, answered by priv.policy, priv.impact-
+#   assessment and priv.breach-response.
+# - soc2:P1.1 withdrawn, answered by priv.notice and priv.policy.
+# - fippa_mfippa:FM-01 withdrawn: this programme does not conform to
+#   fippa_mfippa; privacy-public-sector-on's fipa.institutional-records
+#   answers it.
 
 register:
   title: Personal Information Inventory

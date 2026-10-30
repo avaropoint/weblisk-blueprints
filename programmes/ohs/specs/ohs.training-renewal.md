@@ -8,6 +8,8 @@ path: procedures/training-renewal.md
 satisfies:
   - iso_45001:7.2
   - cor_2020:COR-16
+  # Moved from ohs.training-records: a register carries no `satisfies:`.
+  - isnetworld:ISN-SAFE-04
 
 requires: [ohs.training-records]
 
@@ -72,3 +74,8 @@ cannot stop somebody climbing.
 
 It is submitted as a form rather than typed into a grid, because a renewal
 discharges an occurrence and an occurrence needs one attributable act.
+
+It must keep the training record **per worker per requirement**, with each
+expiry tracked, so that the complete record of any named worker can be produced
+on request — the sampling a prequalification reviewer does first. A record kept
+per course rather than per person answers a different question.

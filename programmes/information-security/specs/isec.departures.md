@@ -5,10 +5,16 @@ title: Departures and Role Changes Register
 structure: standard
 path: registers/departures.md
 
-satisfies:
-  - iso_27001:A.6.5
-  - iso_27001:A.5.11
-  - soc2:CC6.2
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.6.5 withdrawn, answered by isec.departure-actions and
+#   isec.personnel-security.
+# - iso_27001:A.5.11 withdrawn, answered by isec.asset-management,
+#   isec.departure-actions and isec.personnel-security.
+# - soc2:CC6.2 withdrawn, answered by isec.departure-actions.
 
 register:
   title: Departures and Role Changes Register

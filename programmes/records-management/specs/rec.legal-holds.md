@@ -5,10 +5,15 @@ title: Legal Hold Register
 structure: standard
 path: registers/legal-holds.md
 
-satisfies:
-  - iso_27001:A.5.31
-  - iso_27001:A.5.33
-  - iso_27001:A.5.28
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.5.31 withdrawn, answered by rec.legal-hold.
+# - iso_27001:A.5.28 withdrawn, answered by rec.legal-hold.
+# - iso_27001:A.5.33 withdrawn, answered by rec.legal-hold, rec.policy and
+#   rec.disposition.
 
 requires: [rec.legal-hold]
 

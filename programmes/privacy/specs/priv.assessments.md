@@ -5,9 +5,13 @@ title: Privacy Impact Assessment Register
 structure: standard
 path: registers/privacy-impact-assessments.md
 
-satisfies:
-  - quebec_law25:GA-3
-  - soc2:P1.1
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - quebec_law25:GA-3 withdrawn, answered by priv.impact-assessment.
+# - soc2:P1.1 withdrawn, answered by priv.notice and priv.policy.
 
 requires: [priv.impact-assessment]
 
