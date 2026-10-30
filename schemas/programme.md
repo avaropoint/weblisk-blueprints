@@ -1969,6 +1969,30 @@ process and registers under no name of its own
 plan counts it as running where `POST /v1/model/complete` answers anything but
 `404`, and plans it otherwise.
 
+**A client reads the same facts through the resource API.** A person's client
+holds no registration token and reads no directory, so it computes a plan
+from what the admin gateway answers it, and names each service as this:
+
+- **A service that registers** — every row but the orchestrator and the model
+  service, the prompt worker included — is running where the orchestrator's
+  `agent` kind holds an item of the service's name whose lease is live
+  ([`architecture/orchestrator`](../architecture/orchestrator.md#resources-this-orchestrator-owns)).
+  A service is named by its registration, never by the kinds it owns: the
+  prompt worker owns none, and a kind's owner can be absent from a tenant
+  whose catalogue still declares the kind.
+- **The orchestrator** is running wherever the gateway answers at all.
+- **The model service** owns the `completion` kind, which the orchestrator
+  serves for it. It is running where the catalogue reports `completion`
+  available and a `list` of it is answered; `ADMIN_GROUP_UNAVAILABLE` or a
+  refusal of the list plans it. A completion is recorded by the same hub that
+  serves `POST /v1/model/complete`
+  ([`architecture/model-service`](../architecture/model-service.md#known-gaps)),
+  so the two answer together.
+
+A service the client cannot judge either way — the gateway did not answer, or
+the person may not read `agent` — is planned as `unknown`, naming why, never
+as running and never left out.
+
 ### `depends_on` — published agents a programme relies on
 
 | field | type | required | means |
@@ -2201,6 +2225,19 @@ is the same programme.
   organisation, it is **refused**, naming the adoption that exists. Two
   adoptions of one template in one organisation are two copies drifting apart,
   each measured as the programme.
+
+**Whatever adopts refuses it, by reading first.** Before writing anything, the
+adopting client lists the repositories declared at the organisation's
+`scope_path` and at each of its projects' (`GET /v1/content/repositories`,
+[`architecture/content`](../architecture/content.md)), on the person's own
+pass, and reads every `adoption.md` under `programmes/` in each. That is how a
+client learns of an adoption in a repository it is not writing to. A
+repository it may not read, or could not reach, is named, and the adoption is
+**refused** rather than made: an unread repository is one where an adoption
+may already be, and adopting past it is the drift this rule exists to
+prevent. The person who can read it, or an administrator, adopts instead. No
+tenant service makes this refusal for the client yet
+([Known gaps](#known-gaps)).
 - **Asked under another id** is recognised **only through `formerly`**: a
   template published under a new id, whose map lists the old one, is the same
   programme and is refused or answered as above. Two templates with no
@@ -2329,6 +2366,19 @@ resolver reads, and `weblisk domain create` takes a domain's name and no
 blueprint ([`architecture/cli`](../architecture/cli.md#weblisk-domain-create)).
 Until one does, a domain service a programme requests is planned and cannot
 be built from the blueprint the programme delivered.
+
+**No tenant service refuses a second adoption of one programme in an
+organisation.** The refusal in [Adopting twice](#adopting-twice-creates-nothing)
+is made by whatever adopts, from what the adopting person can read. The
+programme service keys an installation by organisation and programme, so a
+second install answers the first and creates nothing
+([`architecture/programme-service`](../architecture/programme-service.md#error-handling)),
+but it is reached only after the files are written, and no tenant runs it
+yet. Two clients adopting into two repositories at once, each reading before
+the other writes, both succeed; nothing in a tenant serialises them. Until a
+service holds adoptions, every client must read before it writes, and a
+reader that finds two adoptions of one programme reports both, naming each,
+and measures neither as the programme.
 
 **`formerly` is not declared here yet.** [Adopting twice](#adopting-twice-creates-nothing)
 recognises a renamed template only through the earlier ids its map lists, and
@@ -2470,6 +2520,8 @@ files; these are acts of the tenant and the client that installs into it.
 - [ ] Every block of the package is handed to its owning service, or reported by name with the service that is missing — never dropped ([The package](#the-package--what-a-programme-brings-besides-its-documents))
 - [ ] An adoption answers a build plan: every service the programme's blocks need that the tenant's service directory does not list with a live lease, each with its blueprint and the blocks that need it, in the order the services are built, a service whose blueprint the corpus does not hold planned as `unspecified` ([Adoption emits a build plan](#adoption-emits-a-build-plan), [The services, in the order they are built](#the-services-in-the-order-they-are-built))
 - [ ] Adopting proposes each `conforms_to` standard the organisation has not adopted, never a `superseded` one, and adopts the programme without waiting on the answer ([`conforms_to` is proposed at adoption](#conforms_to-is-proposed-at-adoption))
+- [ ] An adoption at an organisation where one of its repositories holds an `adoption.md` for the same programme is refused naming it, and one where a repository at the organisation or its projects cannot be read by the adopting person is refused naming that repository; nothing is written in either case ([Adopting twice creates nothing](#adopting-twice-creates-nothing))
+- [ ] A client's build plan names the prompt worker running only where the `agent` kind holds a `prompt-worker` item with a live lease, the model service running only where `completion` is available and its list is answered, and a service it cannot judge as `unknown`, never as running ([The services, in the order they are built](#the-services-in-the-order-they-are-built))
 - [ ] On a map declaring `optional_standards`, an unadopted required standard is proposed as required and a claim against it reads as a gap, an unadopted optional one is proposed as optional and a claim against it reads not applicable, and an entry that is not in `conforms_to` is reported; on a map declaring none, neither is assumed ([Required and optional standards](#required-and-optional-standards))
 - [ ] An update is offered as a content proposal and applied by a person; none is taken over an `edited` or `diverged` file without a person merging it; an unreachable template reports `unknown`, and no state is stored ([Updates arrive as proposals](#updates-arrive-as-proposals), [The tenant's copy is the tenant's](#the-tenants-copy-is-the-tenants))
 - [ ] Un-adopting removes `adoption.md` and withdraws the operations, workflows and notices installed under it, and removes no document, record or built domain service ([Un-adopting](#un-adopting))
