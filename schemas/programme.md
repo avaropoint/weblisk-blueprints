@@ -213,7 +213,17 @@ the one somebody puts in front of an auditor.
 |---|---|
 | **MAJOR** | `id` changed · **an entry removed from `satisfies`** · **any change under `declares.obligation` other than the `activity`'s wording** — `cadence`, `applies_to`, `per`, `for`, `records`, `responsible`, `escalate`, `authority` · a register column removed, rekeyed or retyped · a `relation` target changed · `approved_by` gained or changed · `requires` gained · `kind` or `register.layout` changed · **`artifact_scope` or a column's `scope` declared, changed or removed** · `pii` added to or removed from any labels |
 | **MINOR** | an entry added to `satisfies` · a register column added · `template` first named · a new optional field · a label other than `pii` added or removed |
-| **PATCH** | the `brief` body · `title` · `path` · `structure` |
+| **PATCH** | the `brief` body · `title` · `path` · `structure` · a register column's `label` text corrected, with its `key`, `type`, `required` and `options` unchanged |
+
+A column's `label` is not one of the labels the MINOR row names: those
+classify the register, and `pii` among them decides where it may be kept. A
+column's `label` is the header a person reads, and its `key` is what a trigger
+and a discharge cite ([Columns](#columns)), so correcting the header's words
+moves no claim; rekeying it is the MAJOR row's. The one exception is a `for:`
+that names the column by its label, which
+[`for.due`](#fordue--the-deadline-on-a-triggered-record) permits: that `for:`
+must change with it, and a change under `declares.obligation` is MAJOR on the
+spec that declares it.
 
 Three of those deserve their reason stated, because each was measured in this
 corpus's own history rather than imagined:
