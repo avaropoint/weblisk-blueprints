@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -279,6 +279,7 @@ contracts:
         - A write MUST be readable after a restart of the component that made it
         - A write MUST be atomic — a reader never observes a partial record
         - The mechanism is the platform's; see Design Principle 6
+        - An append to an audit log, or to any chained log, MUST be serialised in memory and made durable by a flush. Concurrent appends MAY share one flush, none MAY be reported written before the flush covering it has completed, and the store's lock MUST NOT be held across the flush (Appends share a flush)
 
     - name: cursor-pagination
       description: Every list and query is resumable
@@ -747,7 +748,41 @@ the preceding entry, forming a tamper-evident append-only log:
    broken link, or `valid: true` if the chain is intact.
 6. **Concurrency:** `AppendAudit` MUST be serialized (single-writer)
    to prevent hash chain forks. Implementations use a mutex, Durable
-   Object single-writer, or database transaction.
+   Object single-writer, or database transaction. What is serialised is
+   the ordering and the chaining, in memory; the flush that makes them
+   durable is not held under it ([Appends share a flush](#appends-share-a-flush)).
+
+### Appends share a flush
+
+An append to an audit log is serialised in memory and made durable by a
+flush; concurrent appends MAY share one flush, none is reported written before
+the flush covering it, and the store's lock is not held across the flush. The
+rule is `durable-records`, in [Contracts](#contracts), and it binds every
+chained log, a [sealed](#sealing-a-chained-log) one included.
+
+So an append takes the lock, chains its entry to the one before
+(`previous_hash`, or a sealed log's `previous_digest`), writes it, notes the
+position it reached and releases the lock; it then waits for a flush that
+covers that position. One flush covers every append written before it began,
+so appends that arrive while a flush is in progress are covered together by
+the next, and the caller of each is answered only once its own entry is
+covered. A failed flush fails every append it was to cover, and none of them
+is reported written.
+
+Why it is stated: every request a pass carries is recorded twice — the
+exchange at the orchestrator and the act at the provider — and a flush to
+stable storage is the slowest thing either does. Measured on one developer
+host, a full flush took 5 ms at p50, 12 ms at p99 and 116 ms at worst, against
+about 0.6 ms for the exchange's signing. A store that held its lock across
+the flush ran concurrent reads one flush at a time, so the slowest flush set
+the pace of every request behind it. Sharing a flush keeps the guarantee —
+nothing is reported written that a crash could lose — and lets concurrent
+appends pay for one flush between them instead of one each.
+
+Nothing here weakens the order. The chain is fixed under the lock, so two
+appends sharing a flush are still two links in one order, and a reader of the
+log sees an entry only once it is written there; an entry a crash took before
+its flush was never reported written to anyone.
 
 ### AuditFilter
 
@@ -1190,7 +1225,8 @@ stored form:
   in the chain, so the next checkpoint covers them too.
 
 An append is serialised, as rule 6 of Hash Chain Integrity requires, and is
-durable before it is reported written.
+durable before it is reported written, by a flush it may share with others
+([Appends share a flush](#appends-share-a-flush)).
 
 Every key named here is ML-DSA-65.
 [`patterns/principal-identity`](../patterns/principal-identity.md) Design
@@ -1676,6 +1712,7 @@ security:
 - [ ] Observations are retained for at least the period [Store: Observations](#store-observations) gives
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives
 - [ ] Audit log is append-only with hash chain integrity ([Hash Chain Integrity](#hash-chain-integrity))
+- [ ] No append to an audit log or a sealed log is answered before a flush covering it has completed, a flush that fails fails every append it was to cover, and the store's lock is not held while a flush runs, so an append arriving during one is chained and written without waiting for it ([Contracts](#contracts), `durable-records`; [Appends share a flush](#appends-share-a-flush))
 - [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [Contracts](#contracts) `retention`)
 - [ ] All list operations support cursor-based pagination ([Contracts](#contracts) `cursor-pagination`)
 - [ ] Concurrent reads/writes do not corrupt data ([Contracts](#contracts) `concurrent-access`)

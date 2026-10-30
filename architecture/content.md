@@ -188,8 +188,9 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    # 2.1.0 is where backup-restore names the snapshot route
-    version: ">=2.1.0 <3.0.0"
+    # 2.2.0 is where durable-records says appends share a flush and the
+    # store's lock is not held across it
+    version: ">=2.2.0 <3.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -205,6 +206,8 @@ requires:
       behaviors:
         - name: sealed-log
         - name: backup-restore
+        # Every audit entry and every change log line. See Read Flow step 6
+        - name: durable-records
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -823,15 +826,73 @@ code here is enough, because a client does the same thing for both.
    traversal, escaping symlinks and reserved paths are refused
 3. Enforcement storage proxy intercepts with operation `read`, the resolved
    path, and the entry's resource scope
-4. On `allow`, bytes are read and the digest computed over the exact stored
-   bytes — no normalisation, no reformatting
+4. On `allow`, bytes are read once and the entry's identity derived from
+   that read: the digest computed over the exact stored bytes — no
+   normalisation, no reformatting — the size from their length, and
+   `modified_at` from the store's metadata for the same open entry. The store
+   is never read a second time to hash what was just read
+   ([Reading costs what it reads](#reading-costs-what-it-reads))
 5. Under shared custody, the digest is compared against the path's recorded
    digest ([What an entry covers](#what-an-entry-covers)); a difference
    produces a `ContentObservation` with provenance `external` and the scope
    the bytes read are at ([A change this service did not make](#a-change-this-service-did-not-make)),
    appended to the change log as an `observe` entry, and does **not** fail
    the read
-6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged
+6. Bytes and `ContentIdentity` are returned; the read leaves the bytes unchanged.
+   Its audit entry is appended as
+   [`architecture/storage`](storage.md#appends-share-a-flush)'s
+   `durable-records` says, so concurrent reads share a flush and none waits
+   under the audit store's lock for another's
+
+### List Flow
+1. Caller requests a page of entries beneath a path, naming a repository, a
+   path, an optional `cursor` and a `limit`
+2. Path Resolver confines the path as step 2 of the [Read Flow](#read-flow)
+   does
+3. Without a cursor the walk starts at the first entry beneath the path; with
+   one it resumes at the position the cursor records, the entry after the last
+   one the previous page returned, in the same order
+4. Each entry visited takes its own `read` check, and its identity is derived
+   from one read of its bytes, as step 4 of the [Read Flow](#read-flow) says
+5. The walk stops once the page holds `limit` entries, and `next_cursor`
+   records where it stopped; it is absent where the walk reached the end
+6. The page is returned. Nothing before the cursor's position is visited again
+   ([Reading costs what it reads](#reading-costs-what-it-reads))
+
+### Reading costs what it reads
+
+The work a read, a stat, a walk or a page of a list does is bounded by what it
+returns, never by the size of the repository it is in.
+
+- **An entry's identity comes from the read that served it.** Reading,
+  stating, walking or listing an entry derives its `ContentIdentity` — the
+  digest and the size — and its `modified_at` from the bytes already read and
+  the store's metadata for that same open entry. Each is read from the store
+  once per request; the service never reads an entry a second time to hash
+  bytes it has just read. A stat reads the bytes to digest them and returns
+  no bytes. Two reads of one entry in one request would also give two
+  answers where a second writer moved it between them, and the identity
+  returned would not be the identity of the bytes returned.
+- **A page of a list costs that page.** A list is one ordered traversal
+  beneath a path, and its cursor records the position the traversal reached.
+  A page resumes there, so the work of one page is proportional to the
+  entries it visits from the cursor's position to the last it returns — its
+  `limit`, and any it visited and withheld — plus the directories on the path
+  to that position, and is O(limit) in the repository's size. A page MUST NOT
+  walk the whole repository and then cut the page out of the result: done for
+  every page, listing a repository of *n* entries in pages of *k* costs
+  O(n²/k) reads, where one walk costs O(n).
+- **The cursor stays opaque.** It encodes a position, as
+  [`architecture/storage`](storage.md#contracts)'s `cursor-pagination`
+  requires: a client never decodes one, and a cursor whose position no longer
+  exists resumes at the next entry in the order, never at the start.
+
+A console reading a repository through the admin gateway makes several such
+requests for one page a person sees, each carried on its own pass
+([`architecture/admin`](admin.md#rate-limiting)). Measured against a running
+tenant, a content service whose list walked the whole repository for every
+page and hashed each file twice made every one of those requests pay for the
+repository rather than for the page; that is what this section rules out.
 
 ### Walk Flow
 1. Caller requests a walk, naming a repository and a path (`WalkQuery`)
@@ -5437,6 +5498,9 @@ security:
 - [ ] A write whose `if_match` differs from the stored digest is refused with both digests returned, and the stored bytes are unchanged ([Write Flow](#write-flow) step 5)
 - [ ] The digest recorded after a write equals the digest of the bytes read back from the backend ([Write Flow](#write-flow) step 8, [Implementation Notes](#implementation-notes))
 - [ ] A full read pass over a corpus leaves every entry's digest unchanged ([Read Flow](#read-flow) step 6, [Security](#security))
+- [ ] Reading, stating, walking or listing an entry reads its bytes from the store once per request, counted at the backend adapter, and the `ContentIdentity` and `modified_at` returned are those of the bytes that one read returned ([Read Flow](#read-flow) step 4, [Reading costs what it reads](#reading-costs-what-it-reads))
+- [ ] Listing a repository of 10,000 entries in pages of 50 visits each entry once across all its pages, counted at the backend adapter, and the last page visits no more entries than the first; a cursor resumes after the last entry the previous page returned ([List Flow](#list-flow), [Reading costs what it reads](#reading-costs-what-it-reads))
+- [ ] Concurrent reads of different entries are each answered only once a flush covers its audit entry, and none waits under the audit store's lock for another's flush ([Read Flow](#read-flow) step 6, [`architecture/storage`](storage.md#appends-share-a-flush))
 - [ ] `GET /v1/content/walk` of a policy the tenant's `policy` family covers returns a projection whose spans partition the entry, whose `version_hash` is the entry's digest, and whose findings report each missing required section; walking it again returns the same projection, and the entry's digest and the change log are unchanged ([Walking an Entry](#walking-an-entry), [Walk Flow](#walk-flow))
 - [ ] A walk of an entry the caller may not read is refused as the read is; a walk of an entry whose `structure:` names no family the tenant holds, and which no kind resolves, is refused with `CONTENT_FAMILY_UNRESOLVED` ([Walk Flow](#walk-flow), [Walking an Entry](#walking-an-entry), [Error Handling](#error-handling))
 - [ ] A repository with no declared custody reports `custody: opaque` and a ceiling of `internal` ([The Custody Model](#the-custody-model), [Error Handling](#error-handling))

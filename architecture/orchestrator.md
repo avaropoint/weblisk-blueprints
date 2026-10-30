@@ -140,8 +140,9 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/storage
-      # 2.1.0 is where backup-restore names the snapshot route
-      version: ">=2.1.0 <3.0.0"
+      # 2.2.0 is where durable-records says appends share a flush and the
+      # store's lock is not held across it
+      version: ">=2.2.0 <3.0.0"
       bindings:
         types:
           - name: AuditFilter
@@ -150,13 +151,17 @@ declaration:
             fields_used: [snapshot, service, taken_at, store_format, files]
         behaviors:
           - name: backup-restore
+          # The audit log: every exchange appends to it. See Audit Logging
+          - name: durable-records
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      # 4.0.0 is where a destructive act needs a step-up, never a second person
-      version: ">=4.0.0 <6.0.0"
+      # 4.0.0 is where a destructive act needs a step-up, never a second
+      # person; 5.5.0 is where every 429 carries Retry-After
+      # (operator-rate-budgets)
+      version: ">=5.5.0 <6.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -172,6 +177,8 @@ declaration:
           - name: operator-credential-revocation
           - name: operator-key-change
           - name: auth-route-rate-limit
+          - name: operator-rate-budgets
+            usage: Its rate-limited-retry-after rule, on the auth routes' 429. The budgets themselves are the admin gateway's
           - name: operator-roles
       on_change:
         compatible: validate-and-adopt
@@ -2523,7 +2530,13 @@ delivers via `POST /v1/event`.
 
 ## Audit Logging
 
-Every operation creates an AuditEntry:
+Every operation creates an AuditEntry, appended as
+[`architecture/storage`](storage.md#appends-share-a-flush)'s `durable-records`
+says: chained under the store's lock, and reported written only once a flush
+covers it, a flush that concurrent appends may share and that the lock is not
+held across. Every request the admin gateway carries on a pass appends an
+exchange entry here, so a lock held across each flush would run a person's
+concurrent reads one flush at a time:
 
 ```json
 {
@@ -2621,8 +2634,10 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
   never stored, because it changes with the clock.
 - **Channel Registry** — Map of channel ID → active channel info, with
   1-hour TTL. Expired channels cleaned up periodically.
-- **Audit Log** — Append-only flat-file (JSONL). In-memory buffer for
-  recent entries, flushed periodically.
+- **Audit Log** — Append-only flat-file (JSONL). Each append is chained
+  under the store's lock and answered once a flush covers it, a flush that
+  concurrent appends may share and that the lock is not held across
+  ([`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`).
 - **Work Authorisations** — Map of id → `WorkAuthorisation`, persisted, with
   revoked ones kept and no id reused ([Work Exchange](#work-exchange-post-v1tokenwork)).
   Nothing about a work pass is stored: each is minted and forgotten.
@@ -3198,6 +3213,7 @@ agents hold, which is theirs.
 - [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing ([Registration Flow](#registration-flow-post-v1register) step 10, [System Events](#system-events))
 - [ ] system.agent.deregistered event published after deregistration ([Deregistration Flow](#deregistration-flow-delete-v1register) step 6)
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line ([Audit Logging](#audit-logging))
+- [ ] Concurrent token exchanges are each answered only after a flush covering its audit entry, and none waits under the audit store's lock for another's flush ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`)
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease ([Domain Dependency Tracking](#domain-dependency-tracking))
 - [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives ([Weblisk Orchestrator Blueprint](#weblisk-orchestrator-blueprint), its opening paragraphs)
 - [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for [`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->

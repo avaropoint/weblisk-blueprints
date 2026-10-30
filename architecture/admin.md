@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.4.0
+version: 5.5.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -570,7 +570,7 @@ different threat profiles:
 | Auth model | User credentials → session cookie | Operator credential, attested by the operator's ML-DSA-65 identity → operator token |
 | Session binding | Device fingerprint + IP/24 | Operator credential + exact IP allowlist |
 | MFA | Policy-driven (optional for standard routes) | Always required, no exceptions: at attestation and at every mint, never as a claim in a token |
-| Rate limits | High (accommodate user traffic) | Low (operators don't generate burst traffic) |
+| Rate limits | High (accommodate user traffic) | Per operator: low for administrative reads and writes, and a burst of two page loads for the reads a console carries ([Rate Limiting](#rate-limiting)) |
 | Compromise impact | User data exposure | Full system control |
 | Domain | `app.example.com` | `admin.example.com` (or `admin.internal:9443`) |
 | TLS cert | Public CA certificate | Private CA or separate public cert |
@@ -661,7 +661,10 @@ Critical rules:
    └── Client certificate validation (optional, for mTLS deployments)
 
 3. RATE LIMITING
-   ├── Per-operator: 60 read/min, 20 write/min
+   ├── Per-operator, once step 4 has verified the token's signature and
+   │   before any exchange: carried provider reads a bucket of 128 refilled
+   │   at 10/s, other reads 60/min, writes 20/min (operator-rate-budgets);
+   │   every refusal 429 RATE_LIMITED with Retry-After
    ├── Auth endpoints: 5/min (very restrictive) — the four routes that
    │   issue tokens, credentials/challenge included, since it answers
    │   anyone who names a credential and holds each nonce until it expires,
@@ -1437,6 +1440,22 @@ contracts:
         - The orchestrator MUST apply the limit to every request for those routes, trusting X-Forwarded-For from the addresses its configuration names as the admin gateway's (schemas/config, orchestrator.admin_gateway_from) and from no other address. So it counts a request the gateway forwarded by its client, never by the gateway's address, which every client of the gateway shares, and a request from any other address by that address, whatever X-Forwarded-For it carries
         - An orchestrator whose configuration names no such address counts every request by its connection's address, so the clients of an admin gateway it was not told of share one count there, and one of them reaching the limit refuses the rest until the minute passes
         - Where the admin gateway's address is one other callers share, as on one host, the orchestrator trusts every caller there to name its own source, so each of them chooses the count it is held to. That is the same-host position architecture/threat-model records as residual, and no wider
+
+    - name: operator-rate-budgets
+      description: The budgets a person's requests are held to at the admin gateway, a carried read's sized for a console, and what a client does when one is spent. The reasoning for each number is under Rate Limiting
+      required: true
+      rules:
+        # <!-- wl:id carried-read-budget -->
+        - A carried provider read - a GET the gateway sends on a pass to the component whose directory entry declares it among its pass_routes (admin-gateway-authorization), such as a read of the content service on content:read or content:describe, and outside /v1/admin/ - MUST be counted against a budget of its own, per operator, held as patterns/rate-limiting's token bucket with a capacity of 128 and a refill of 10 a second (600 a minute). It MUST NOT be counted against any other budget
+        # <!-- wl:id admin-read-write-budgets -->
+        - Every other read MUST be counted against a budget of 60 a minute per operator, every write - any method but GET - against one of 20 a minute per operator, whichever component provides it, a write carried on a pass included, and an export against one of 5 a minute per operator
+        # <!-- wl:id budget-after-signature -->
+        - The operator a request is counted against is the one its token names, once the gateway has verified the token's signature, so a request nobody signed spends nobody's budget. A carried read MUST be counted before its token is exchanged, so a refused read costs the hub no exchange and no audit entry
+        # <!-- wl:id rate-limited-retry-after -->
+        - A request refused under any budget this document sets, auth-route-rate-limit's included, at the gateway or at the orchestrator, MUST be answered 429 RATE_LIMITED with a Retry-After header giving the whole seconds, at least 1, until that budget admits a request again, and retry_after in the error's details giving the same number
+        # <!-- wl:id client-rate-limited-not-absent -->
+        - A client - the CLI or a console - MUST read 429 RATE_LIMITED as "rate-limited, retry after N seconds" and as nothing else. It MUST NOT report what it asked for as absent, empty, unreadable or forbidden, and MUST NOT show a page that lost a read to it as complete. It names what it could not read as rate-limited and asks again no sooner than Retry-After, or tells the person when it can
+        - A carried read keeps the pass's rule. Each is exchanged for its own pass (protocol/identity, The pass, rule 1), so a revocation reaches it at the next request. The budget bounds how often that happens, and nothing here lets a pass be kept for a second request
 
     - name: console-credential-use
       description: How a console that acts for signed-in people holds and uses their credentials
@@ -3608,10 +3627,52 @@ is `auth-route-rate-limit`, in [Contracts](#contracts), which says what an
 orchestrator told of no such address does, and what sharing the gateway's
 address with other callers costs.
 
-The rest SHOULD be:
-- Read endpoints: 60 requests/minute per operator
-- Write endpoints: 20 requests/minute per operator
-- Export endpoints: 5 requests/minute per operator
+Every other request is held to a budget per operator, and the numbers are
+`operator-rate-budgets`, in [Contracts](#contracts):
+
+| Budget | Counts | Per operator |
+|---|---|---|
+| Carried provider reads | A `GET` carried on a pass to the provider that declares it among its `pass_routes`, outside `/v1/admin/` — a console reading a tenant's repositories through the content service is the case it is sized for | A bucket of 128, refilled at 10 a second (600 a minute) |
+| Reads | Every other `GET`, `/v1/admin/*` included, whichever component provides it | 60 a minute |
+| Writes | Any other method, a write carried on a pass included | 20 a minute |
+| Exports | The export routes | 5 a minute |
+
+**Why carried reads have their own budget.** A console shows a person a
+tenant's content by reading it, through this gateway's carry to the content
+service. Measured against a running tenant, one page view made about 15
+carried reads and one page load about 64, several routes at once. Against 60
+a minute shared with every other read, the first page load spent more than the
+whole minute, the gateway answered the rest 429, and pages lost content. The
+limit as it stood could not carry a console, so the console's reads are
+counted apart from the administrative ones, which keep 60.
+
+**Why 128 and 10 a second.** The capacity is the burst: 128 is two whole page
+loads arriving together — a load, and the person moving on before the bucket
+refills — admitted without a wait. The refill is the sustained rate: 600 a
+minute is a full page load every 6.4 seconds held for a whole minute, or 40
+page views a minute, which is faster than a person reads, so a person
+browsing is not refused while a client that loops is held to 10 reads a
+second. What each read costs the hub was measured too: an exchange whose
+signing is about 0.6 ms, and an audit append at the orchestrator and at the
+content service whose flush took 5 ms at p50 and 12 ms at p99. At 10 a second
+that is a load several operators can put on one hub at once, provided an
+append does not hold its store's lock across its flush
+([`architecture/storage`](storage.md#appends-share-a-flush)); serialised
+behind one held lock, the flushes are what queue.
+
+**The pass is not cached to save the exchange.** Every carried read is
+exchanged for its own pass, as
+[`protocol/identity`](../protocol/identity.md#the-pass) requires, so a
+removed operator, a revoked credential or a lowered role reaches the provider
+at the person's next read. The budget limits how many exchanges a person can
+cause; it does not trade any of them away.
+
+**A 429 is an answer about time, never about content.** Every refusal under a
+budget is `429` `RATE_LIMITED` with `Retry-After`, and a client reads it as
+exactly that. A console that showed a rate-limited read as an empty folder or a
+missing document would state, confidently, something false about the tenant's
+content; it says the read was rate-limited and when it can ask again
+(`operator-rate-budgets`, `client-rate-limited-not-absent`).
 
 ---
 
@@ -3694,6 +3755,10 @@ The rest SHOULD be:
 - [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY` ([Contracts](#contracts), `operator-credential-attestation`) <!-- wl:check retired-key-not-credential covers credential-not-identity-key -->
 - [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED` ([Contracts](#contracts), `operator-key-change`) <!-- wl:check revoked-key-change covers key-change-invalid -->
 - [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key`, to `POST /v1/admin/hub/proof`, or to any of the four routes that issue tokens, are refused before any signature is verified or made ([Contracts](#contracts), `auth-route-rate-limit`; [Rate Limiting](#rate-limiting)) <!-- wl:check auth-routes-five-a-minute covers auth-routes-limited auth-endpoints-limited -->
+- [ ] One operator's 128 carried `GET /v1/content` reads sent at once are all answered, the 129th at once is refused `429` `RATE_LIMITED`, a carried read is admitted again after a tenth of a second, and those reads leave the same operator's 60 reads a minute to `/v1/admin/*` untouched ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check carried-reads-budgeted covers carried-read-budget admin-read-write-budgets -->
+- [ ] A request carrying a token whose signature does not verify spends nothing of the operator it names, and a carried read refused `429` reaches no exchange: the orchestrator records no exchange for it ([Contracts](#contracts), `operator-rate-budgets`; [Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 3) <!-- wl:check budget-spent-after-signature covers budget-after-signature -->
+- [ ] Every `429` the gateway or the orchestrator answers under a budget this document sets carries `Retry-After` of at least 1 and `retry_after` equal to it, and a request sent after that many seconds is admitted ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check rate-limited-carries-retry-after covers rate-limited-retry-after -->
+- [ ] A console whose carried read is answered `429` shows that read as rate-limited and when it will ask again, never as an empty listing, a missing or unreadable entry or a refusal, and asks no sooner than `Retry-After` ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check client-shows-rate-limited covers client-rate-limited-not-absent -->
 - [ ] `POST /v1/admin/hub/proof` with no bearer token passes the admin gateway's step 4 and the orchestrator's Auth Middleware to its handler, and is never refused for carrying no token ([Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 4; [Auth Middleware](#auth-middleware))
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it ([Operator Identity](#operator-identity); [Contracts](#contracts), `operator-token-issuance`)
 - [ ] A role lowered after a token was issued limits that token from its next request ([Contracts](#contracts), `token-status-on-use`) <!-- wl:check lowered-role-limits-token covers role-now-narrowed-by-cap capabilities-from-role role-from-record -->
