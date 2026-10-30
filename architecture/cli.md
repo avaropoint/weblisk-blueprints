@@ -2620,7 +2620,14 @@ Seven outcomes, and they are told apart. The `--json` result carries the
 gateway's certificate was verified against; where it records none, no
 `tls_pin`. A console that makes its own requests to the gateway keeps a pin
 only where it was given one, as
-[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`):
+[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`).
+A `connected` result also carries `silent`: true where the credential the
+token was minted with is kept in the platform keychain, so that a later mint
+at this hub asks nobody, and false where every later mint asks the identity's
+holder ([A credential for each hub](#a-credential-for-each-hub)). A console
+that connects on a person's behalf tells them, from `silent` false, that each
+connect will ask their holder; it never infers that from a result without
+`silent`, which a CLI from before it gives:
 
 | State | Meaning |
 |---|---|
