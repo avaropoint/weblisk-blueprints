@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.6.0
+version: 1.7.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -709,15 +709,21 @@ each of these as a requirement like any endpoint:
 3. **The manifest's `resources`**, carrying each declaration in its wire form
    ([`protocol/types`](../protocol/types.md#resourcedeclaration)) with the
    method and path each operation and verb is served at, so the admin gateway
-   learns them from the directory as it learns every pass route.
+   learns them from the directory as it learns every pass route. The wire form
+   is completed from the types the block names, as
+   [`architecture/admin`](admin.md#the-catalogue) requires
+   (`resource-declaration-complete`): each field's `type`, `required` and
+   `enum` read from the type that declares it, each verb's `body_fields` from
+   its `body` type ([`schemas/resource`](../schemas/resource.md#verbs)), each
+   list's `parameters`, and each `approval` in its typed form.
 4. **The audit of every write**, admitted or refused, as `resource-api`
    requires of every owner.
 
 **The tenant's declared catalogue.** Whenever the CLI generates a component,
 creates a tenant or adds a component to one, it writes
 `.weblisk/resources.json`: every Resources block in the corpus revision the
-build resolved, each with the owner and whether the tenant's configuration
-declares that owner ([`schemas/config`](../schemas/config.md)). The admin
+build resolved, in the same completed wire form, each with the owner and
+whether the tenant's configuration declares that owner ([`schemas/config`](../schemas/config.md)). The admin
 gateway reads it to report every kind that should be there and is not
 ([`architecture/admin`](admin.md#the-catalogue)). It names the corpus
 revision it was read from, holds no item and no secret, and is rewritten whole

@@ -230,6 +230,21 @@ Every verb states:
 | `effect` | what is true once it is answered |
 | `reversible` | `false`, or the verb of this kind that undoes it |
 
+**A verb's body is described from its type.** `body` names a type, and the
+block lists none of its fields: they are that type's, declared once there. Its
+wire form carries them as `body_fields`
+([`protocol/types`](../protocol/types.md#resourcedeclaration)), each with the
+type, `required` and `enum` its declaration gives, `access` `create` (a person
+sets it in the request that carries it), and the one presentation its type
+selects, in this order: `choice` where it declares an `enum`, `schedule` where
+its format is `cron`, `instant` for `timestamp`, and otherwise the
+first presentation in the set above whose `types` list its type, which makes a
+string `text` and an integer `number`. A field no
+presentation fits is carried without one, and a client asks for it as text.
+The same declaration supplies the `type`, `required` and `enum` every listed
+field of `type` carries on the wire, so a `choice` field's values are always
+the enum its type declares and never a second list here.
+
 ```yaml
 reserved_verbs: [list, show, get, create, update, delete, watch, describe]
 verb_name: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
