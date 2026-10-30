@@ -92,10 +92,10 @@ declares:
       - {key: approvals_expired, label: Instruments that expired with the activity continuing, type: int, required: true}
       - {key: conditions_unmet, label: Instruments with a condition recorded as not met, type: int, required: true}
       - {key: dewatering_checks_missed, label: Weeks an operating discharge went unchecked, type: int, required: true}
-      - {key: not_readable, label: Registers that could not be read, and why, type: longtext, required: true}
+      - {key: not_readable, label: "Registers that could not be read, and why", type: longtext, required: true}
       - {key: findings, label: Findings, type: longtext, required: true}
-      - {key: patterns, label: What is recurring, rather than what is late, type: longtext, required: true}
-      - {key: actions, label: Actions, with an owner and a date, type: longtext, required: true}
+      - {key: patterns, label: "What is recurring, rather than what is late", type: longtext, required: true}
+      - {key: actions, label: "Actions, with an owner and a date", type: longtext, required: true}
       - {key: previous_actions_closed, label: Actions from the last review that are now closed, type: int, required: true}
       - {key: escalated_to_senior_management, label: Matters taken to senior management, type: longtext}
       - {key: evidence, label: Extracts the review was built from, type: attachment}

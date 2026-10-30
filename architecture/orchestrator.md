@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.4.0
+version: 4.6.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -140,18 +140,28 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/storage
-      version: ">=1.0.0 <3.0.0"
+      # 2.2.0 is where durable-records says appends share a flush and the
+      # store's lock is not held across it
+      version: ">=2.2.0 <3.0.0"
       bindings:
         types:
           - name: AuditFilter
             fields_used: [actor, action, since, cursor, limit]
+          - name: RecordSnapshot
+            fields_used: [snapshot, service, taken_at, store_format, files]
+        behaviors:
+          - name: backup-restore
+          # The audit log: every exchange appends to it. See Audit Logging
+          - name: durable-records
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/admin
-      # 4.0.0 is where a destructive act needs a step-up, never a second person
-      version: ">=4.0.0 <6.0.0"
+      # 4.0.0 is where a destructive act needs a step-up, never a second
+      # person; 5.5.0 is where every 429 carries Retry-After
+      # (operator-rate-budgets)
+      version: ">=5.5.0 <6.0.0"
       bindings:
         behaviors:
           - name: operator-registration
@@ -167,6 +177,8 @@ declaration:
           - name: operator-credential-revocation
           - name: operator-key-change
           - name: auth-route-rate-limit
+          - name: operator-rate-budgets
+            usage: Its rate-limited-retry-after rule, on the auth routes' 429. The budgets themselves are the admin gateway's
           - name: operator-roles
       on_change:
         compatible: validate-and-adopt
@@ -347,6 +359,10 @@ declaration:
       path: "/v1/admin/audit/export"
       operation: AdminAuditExport
       auth: "admin:audit"
+    - method: GET
+      path: "/v1/admin/records/orchestrator/snapshot"
+      operation: AdminRecordSnapshot
+      auth: "admin:*"
     - method: GET
       path: "/v1/admin/model"
       operation: AdminModelGet
@@ -748,6 +764,8 @@ declaration:
       endpoint: GET /v1/admin/audit
     - check: endpoint-routed
       endpoint: GET /v1/admin/audit/export
+    - check: endpoint-routed
+      endpoint: GET /v1/admin/records/orchestrator/snapshot
     - check: endpoint-routed
       endpoint: POST /v1/admin/model/audit
     - check: endpoint-routed
@@ -1225,6 +1243,7 @@ service's route, which the same model gateway serves
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. A field whose text begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote (`'`) put before it, before it is quoted as RFC 4180 requires, so a spreadsheet that opens the file evaluates no field as a formula: `AuditEntry`'s `target` and `detail` can carry text a registrant chose. Any other `format` is refused with 400 `INVALID_REQUEST` |
+| GET | /v1/admin/records/orchestrator/snapshot | AdminRecordSnapshot | `admin:*` | Every store this orchestrator owns at one instant between writes, as a ustar archive led by a `RecordSnapshot`, for `weblisk tenant export` ([`architecture/storage`](storage.md#the-snapshot-route)). A second request while one is being written is answered `409` `RECORDS_SNAPSHOT_BUSY`, and each snapshot is recorded in the audit log. No route restores this store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | The tenant's model configuration, a `ModelConfig` ([The tenant's model](#the-tenants-model)), which every client reads here (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Replace it, refusing a backend this hub cannot run now, and record the change (platform-provided) |
 | GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Each backend this hub knows how to drive, whether it can run it now, and the models the backend's own list answers on **this hub's host** (platform-provided) |
@@ -2511,7 +2530,13 @@ delivers via `POST /v1/event`.
 
 ## Audit Logging
 
-Every operation creates an AuditEntry:
+Every operation creates an AuditEntry, appended as
+[`architecture/storage`](storage.md#appends-share-a-flush)'s `durable-records`
+says: chained under the store's lock, and reported written only once a flush
+covers it, a flush that concurrent appends may share and that the lock is not
+held across. Every request the admin gateway carries on a pass appends an
+exchange entry here, so a lock held across each flush would run a person's
+concurrent reads one flush at a time:
 
 ```json
 {
@@ -2609,8 +2634,10 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
   never stored, because it changes with the clock.
 - **Channel Registry** — Map of channel ID → active channel info, with
   1-hour TTL. Expired channels cleaned up periodically.
-- **Audit Log** — Append-only flat-file (JSONL). In-memory buffer for
-  recent entries, flushed periodically.
+- **Audit Log** — Append-only flat-file (JSONL). Each append is chained
+  under the store's lock and answered once a flush covers it, a flush that
+  concurrent appends may share and that the lock is not held across
+  ([`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`).
 - **Work Authorisations** — Map of id → `WorkAuthorisation`, persisted, with
   revoked ones kept and no id reused ([Work Exchange](#work-exchange-post-v1tokenwork)).
   Nothing about a work pass is stored: each is minted and forgotten.
@@ -3186,6 +3213,7 @@ agents hold, which is theirs.
 - [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing ([Registration Flow](#registration-flow-post-v1register) step 10, [System Events](#system-events))
 - [ ] system.agent.deregistered event published after deregistration ([Deregistration Flow](#deregistration-flow-delete-v1register) step 6)
 - [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line ([Audit Logging](#audit-logging))
+- [ ] Concurrent token exchanges are each answered only after a flush covering its audit entry, and none waits under the audit store's lock for another's flush ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`)
 - [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease ([Domain Dependency Tracking](#domain-dependency-tracking))
 - [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives ([Weblisk Orchestrator Blueprint](#weblisk-orchestrator-blueprint), its opening paragraphs)
 - [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for [`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
@@ -3254,3 +3282,4 @@ agents hold, which is theirs.
 - [ ] `AdminGrantCreate` and `AdminGrantRevoke` are refused without a recent re-confirmation, as `AdminAgentDeregister` is ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
 - [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
 - [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events))
+- [ ] `GET /v1/admin/records/orchestrator/snapshot` answers a request that can use `admin:*` with every store this orchestrator owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses any other with `FORBIDDEN` and an agent token with `CREDENTIAL_REQUIRED`, appends an `AuditEntry` for each snapshot it answers, and no route restores the store ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8, [`architecture/storage`](storage.md#putting-a-store-back))

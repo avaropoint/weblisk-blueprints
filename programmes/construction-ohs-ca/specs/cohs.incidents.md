@@ -69,10 +69,10 @@ register:
     - {key: potential_severity, label: Had it gone worst-case, type: select, required: true,
        options: [Fatality or critical injury, Serious injury, Minor injury,
                  No injury possible]}
-    - {key: first_aid_given, label: First aid given, and by whom, type: text}
+    - {key: first_aid_given, label: "First aid given, and by whom", type: text}
     - {key: hazard_class, label: Hazard, type: select, required: true,
        options: [Fall from height, Struck by, Caught in or between, Contact with electricity,
-                 Overexertion or ergonomic, Slip, trip or fall on the level,
+                 Overexertion or ergonomic, "Slip, trip or fall on the level",
                  Excavation or ground failure, Hoisting or rigging, Mobile equipment or vehicle,
                  Hazardous substance exposure, Confined space, Fire or explosion, Other]}
     - {key: notifiable_event, label: Also entered on the notifiable events register as, type: relation,

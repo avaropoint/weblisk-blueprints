@@ -54,7 +54,7 @@ declares:
       - {key: conditions, label: Conditions today, type: longtext, required: true}
       - {key: hazards, label: Hazards identified, type: longtext, required: true}
       - {key: fall_exposure, label: Work at height today, type: bool, required: true}
-      - {key: controls, label: Controls, and why these, type: longtext, required: true}
+      - {key: controls, label: "Controls, and why these", type: longtext, required: true}
       - {key: highest_control, label: Highest control applied, type: select, required: true,
          options: [Eliminated, Substituted, Engineering control, Administrative control,
                    Personal protective equipment only]}

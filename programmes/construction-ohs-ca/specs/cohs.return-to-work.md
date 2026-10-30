@@ -44,7 +44,7 @@ declares:
       - {key: contact_since_last_review, label: Contact since the last review, type: longtext, required: true}
       - {key: suitable_work_offered, label: Suitable work offered, type: longtext, required: true}
       - {key: most_similar_offered, label: The most similar available job was offered, type: bool, required: true}
-      - {key: offer_declined, label: Offer declined, and the reason given, type: longtext}
+      - {key: offer_declined, label: "Offer declined, and the reason given", type: longtext}
       - {key: board_notified_of_dispute, label: Board notified of any dispute, type: bool, required: true}
       - {key: accommodation, label: Accommodation in place, type: longtext}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}

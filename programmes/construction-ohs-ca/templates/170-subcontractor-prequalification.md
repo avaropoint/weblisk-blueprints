@@ -36,7 +36,7 @@ frontmatter:
 > again when it expires.
 >
 > The completed record is one row in **Sub-Trade Requalification Record**
-> (`registers/subcontractor-prequalification.md`); each certificate is a row in
+> (`registers/subcontractor-requalifications.md`); each certificate is a row in
 > the certificate register, which is what the chasing is driven from.
 
 ```wl:table

@@ -39,12 +39,12 @@ declares:
       - {key: attendees, label: Attendees, type: longtext, required: true}
       - {key: worker_input, label: How workers and their representatives were consulted, type: longtext, required: true}
       - {key: legal_evaluation, label: Compliance evaluation results considered, type: longtext, required: true}
-      - {key: incidents_and_actions, label: Incidents, nonconformities and corrective actions, type: longtext, required: true}
+      - {key: incidents_and_actions, label: "Incidents, nonconformities and corrective actions", type: longtext, required: true}
       - {key: audit_results, label: Audit results considered, type: longtext, required: true}
       - {key: performance, label: Performance against objectives, type: longtext, required: true}
-      - {key: risks_and_changes, label: Changes in the work, the risks and the law, type: longtext, required: true}
+      - {key: risks_and_changes, label: "Changes in the work, the risks and the law", type: longtext, required: true}
       - {key: resources, label: Adequacy of resources, type: longtext, required: true}
-      - {key: decisions, label: Decisions and actions, with owners and dates, type: longtext, required: true}
+      - {key: decisions, label: "Decisions and actions, with owners and dates", type: longtext, required: true}
       - {key: next_review, label: Next review due, type: date}
 ---
 

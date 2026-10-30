@@ -76,18 +76,18 @@ declares:
       - {key: checked_by, label: Checked by, type: user, required: true}
       - {key: outcome, label: What the payer did, type: select, required: true,
          options: [Paid in full by the due date, Paid in part with a notice of non-payment,
-                   Nothing paid, with a notice of non-payment,
+                   "Nothing paid, with a notice of non-payment",
                    "Nothing paid and no notice given", Paid late]}
       - {key: amount_outstanding, label: Amount outstanding, type: currency, required: true}
-      - {key: notice_assessed, label: If a notice was given, is it in the prescribed form and does it give reasons, type: select,
+      - {key: notice_assessed, label: "If a notice was given, is it in the prescribed form and does it give reasons", type: select,
          options: [Not applicable, "Yes", "No — and the defect is recorded"]}
-      - {key: set_off_claimed, label: Set-off claimed, and on what basis, type: longtext}
+      - {key: set_off_claimed, label: "Set-off claimed, and on what basis", type: longtext}
       - {key: interest_claimed_from, label: Interest claimed from, type: date}
-      - {key: interest_rate_basis, label: Rate applied, and why, type: text}
+      - {key: interest_rate_basis, label: "Rate applied, and why", type: text}
       - {key: action, label: What was decided, type: select, required: true,
          options: [Nothing — paid, Chase and re-present, Written demand sent,
                    Notice of adjudication being prepared, Lien to be preserved,
-                   Accepted commercially, with the reason recorded]}
+                   "Accepted commercially, with the reason recorded"]}
       - {key: decided_by, label: Decided by, type: user, required: true}
       - {key: reason, label: Reason, type: longtext, required: true}
 ---

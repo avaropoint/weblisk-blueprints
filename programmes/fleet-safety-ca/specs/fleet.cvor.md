@@ -84,18 +84,18 @@ declares:
       - {key: declared_fleet_size, label: Fleet size declared to the Ministry, type: int, required: true}
       - {key: actual_fleet_size, label: Vehicles actually operated, type: int, required: true}
       - {key: declared_kilometres, label: Annual kilometres declared to the Ministry, type: int}
-      - {key: registered_information_current, label: Name, address, officers, fleet and distance all current, type: bool, required: true}
+      - {key: registered_information_current, label: "Name, address, officers, fleet and distance all current", type: bool, required: true}
       - {key: collisions_on_record, label: Collisions on the record, type: int, required: true}
       - {key: convictions_on_record, label: Convictions on the record, type: int, required: true}
       - {key: inspections_on_record, label: Roadside inspections on the record, type: int, required: true}
       - {key: out_of_service_orders, label: Out-of-service orders on the record, type: int, required: true}
       - {key: unexpected_events, label: Entries the organisation had not recorded itself, type: longtext, required: true}
-      - {key: ministry_correspondence, label: Letters, interviews or audits notified since the last review, type: longtext}
+      - {key: ministry_correspondence, label: "Letters, interviews or audits notified since the last review", type: longtext}
       - {key: intervention_stage, label: Where the operator stands on the intervention ladder, type: select, required: true,
          options: ["No intervention", "Warning letter", "Interview",
                    "Facility audit", "Sanction, suspension or cancellation",
                    Not yet determined]}
-      - {key: actions, label: Actions decided, with owners and dates, type: longtext, required: true}
+      - {key: actions, label: "Actions decided, with owners and dates", type: longtext, required: true}
       - {key: next_review, label: Next review due, type: date}
 ---
 

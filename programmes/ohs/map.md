@@ -4,6 +4,10 @@ title: Occupational Health and Safety Programme
 order: 10
 domains: [health_safety, training_competency, incident_response]
 conforms_to: [iso_45001, cor_2020, isnetworld]
+# All three are held by choice or by a client's contract. The law this
+# programme's essential tier answers is the jurisdiction's, which this map
+# names none of; a jurisdiction's own programme names it as required.
+optional_standards: [iso_45001, cor_2020, isnetworld]
 
 tiers:
   - id: essential

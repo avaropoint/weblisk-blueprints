@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.3.0
+version: 5.5.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -377,7 +377,7 @@ component declares it as a pass route.
 | GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, composed from each owner's inbox route, and answered `ADMIN_GROUP_UNAVAILABLE` while no directory entry declares one |
 | POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered as `admin-gateway-authorization` says of this route |
 | GET | /v1/admin/resources | ResourceCatalogue | admin | carried | The catalogue of every kind the tenant declares, composed as [The catalogue](#the-catalogue) says |
-| GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, carried to its owner ([The uniform address](#the-uniform-address)) |
+| GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, taking `cursor`, `limit` and the kind's declared filters as query parameters and no other, carried to its owner ([The uniform address](#the-uniform-address)) |
 | POST | /v1/admin/r/{kind} | ResourceCreate | admin | carried | A kind's `create`, carried as `ResourceList` |
 | GET | /v1/admin/r/{kind}/{uid} | ResourceGet | admin | carried | A kind's `get`, carried as `ResourceList` |
 | PATCH | /v1/admin/r/{kind}/{uid} | ResourceUpdate | admin | carried | A kind's `update`, with `If-Match` ([Writes, and what guards them](#writes-and-what-guards-them)) |
@@ -495,6 +495,7 @@ because nothing was judged.
 | `RESOURCE_FIELD_NOT_SETTABLE` | [types](../protocol/types.md#errorresponse) | validation | A write names a field its declaration does not let a person set there (`resource-api`) | Refuse, change nothing, name each field in `detail.fields` | — |
 | `RESOURCE_IF_MATCH_REQUIRED` | [types](../protocol/types.md#errorresponse) | validation | An update, a delete or a verb at the uniform address carries no `If-Match` (`resource-api`) | Refuse before exchanging anything. The client reads the item and sends its `ETag` | — |
 | `RESOURCE_PRECONDITION_FAILED` | [types](../protocol/types.md#errorresponse) | conflict | The item's `ETag` is not the `If-Match` the write carried: somebody changed it since the client read it (`resource-api`) | The owner refuses, changes nothing and carries the current `ETag`. Never merge, never apply to what the person did not see | — |
+| `INVALID_INPUT` | 400 | validation | A `list` at the uniform address names a query parameter its declaration's `parameters` does not list, or omits one its `required_filters` names (`resource-api`) | Refuse before exchanging anything, naming each such parameter in `detail.parameters`. Never drop one and answer a wider list | — |
 | `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a resource kind the catalogue reports `declared-unavailable`, naming the kind in `detail.kind` and its reason in `detail.reason`, or an act that takes approval while none can be decided (`resource-api`); or for a route no provider here may be sent: none is deployed, the one deployed is not registered now, no directory entry declares the route among its `pass_routes` or more than one does, which is so wherever the provider's blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names in `detail.address` (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -569,7 +570,7 @@ different threat profiles:
 | Auth model | User credentials → session cookie | Operator credential, attested by the operator's ML-DSA-65 identity → operator token |
 | Session binding | Device fingerprint + IP/24 | Operator credential + exact IP allowlist |
 | MFA | Policy-driven (optional for standard routes) | Always required, no exceptions: at attestation and at every mint, never as a claim in a token |
-| Rate limits | High (accommodate user traffic) | Low (operators don't generate burst traffic) |
+| Rate limits | High (accommodate user traffic) | Per operator: low for administrative reads and writes, and a burst of two page loads for the reads a console carries ([Rate Limiting](#rate-limiting)) |
 | Compromise impact | User data exposure | Full system control |
 | Domain | `app.example.com` | `admin.example.com` (or `admin.internal:9443`) |
 | TLS cert | Public CA certificate | Private CA or separate public cert |
@@ -660,7 +661,10 @@ Critical rules:
    └── Client certificate validation (optional, for mTLS deployments)
 
 3. RATE LIMITING
-   ├── Per-operator: 60 read/min, 20 write/min
+   ├── Per-operator, once step 4 has verified the token's signature and
+   │   before any exchange: carried provider reads a bucket of 128 refilled
+   │   at 10/s, other reads 60/min, writes 20/min (operator-rate-budgets);
+   │   every refusal 429 RATE_LIMITED with Retry-After
    ├── Auth endpoints: 5/min (very restrictive) — the four routes that
    │   issue tokens, credentials/challenge included, since it answers
    │   anyone who names a credential and holds each nonce until it expires,
@@ -1316,6 +1320,10 @@ contracts:
         - A request at /v1/admin/r/{kind}, /v1/admin/r/{kind}/{uid} or /v1/admin/r/{kind}/{uid}/{verb} for an available kind MUST be carried to the method and path the kind's declaration gives that operation or verb - to the orchestrator on the operator token as it arrived, and to any other owner on a pass whose exchange scope names the capability the declaration gives it and nothing more, as admin-gateway-authorization carries any request - and the owner's answer MUST be relayed as the owner gave it, reshaped in nothing
         # <!-- wl:id resource-undeclared-refused -->
         - A request naming a kind the catalogue does not hold MUST be answered RESOURCE_KIND_UNDECLARED, one naming an operation or verb the kind's declaration does not name RESOURCE_OPERATION_UNDECLARED with an Allow header naming the methods the address does serve, and one for a declared-unavailable kind ADMIN_GROUP_UNAVAILABLE with detail.kind and detail.reason, and none of them is exchanged or forwarded
+        # <!-- wl:id resource-declaration-complete -->
+        - Every ResourceDeclaration the catalogue answers MUST carry each field's type, required and enum as the type declaring that field gives them, each verb's body_fields where it has a body, each list's parameters, and each approval as a ResourceApproval (protocol/types), as generation writes them into the manifest and into .weblisk/resources.json, and the gateway MUST relay them as written
+        # <!-- wl:id resource-list-parameters -->
+        - A list at /v1/admin/r/{kind} MUST take as query parameters cursor, limit and one per field its declaration's filters names, and no other; a request naming any other, or omitting a filter its required_filters names, MUST be answered INVALID_INPUT with each such name in detail.parameters before anything is exchanged or forwarded, and the query string of one that does neither MUST be carried to the owner's route unchanged
         # <!-- wl:id resource-if-match-required -->
         - An update, a delete or a verb arriving at the uniform address with no If-Match MUST be answered RESOURCE_IF_MATCH_REQUIRED before anything is exchanged or forwarded
         # <!-- wl:id resource-owner-etag -->
@@ -1432,6 +1440,22 @@ contracts:
         - The orchestrator MUST apply the limit to every request for those routes, trusting X-Forwarded-For from the addresses its configuration names as the admin gateway's (schemas/config, orchestrator.admin_gateway_from) and from no other address. So it counts a request the gateway forwarded by its client, never by the gateway's address, which every client of the gateway shares, and a request from any other address by that address, whatever X-Forwarded-For it carries
         - An orchestrator whose configuration names no such address counts every request by its connection's address, so the clients of an admin gateway it was not told of share one count there, and one of them reaching the limit refuses the rest until the minute passes
         - Where the admin gateway's address is one other callers share, as on one host, the orchestrator trusts every caller there to name its own source, so each of them chooses the count it is held to. That is the same-host position architecture/threat-model records as residual, and no wider
+
+    - name: operator-rate-budgets
+      description: The budgets a person's requests are held to at the admin gateway, a carried read's sized for a console, and what a client does when one is spent. The reasoning for each number is under Rate Limiting
+      required: true
+      rules:
+        # <!-- wl:id carried-read-budget -->
+        - A carried provider read - a GET the gateway sends on a pass to another component (admin-gateway-authorization), whether a route that component declares among its pass_routes, such as a read of the content service on content:read or content:describe, or a read at the uniform address, GET /v1/admin/r/{kind} or GET /v1/admin/r/{kind}/{uid}, carried to the kind's owner (The uniform address), a read the feed makes for a subscription included (resource-feed) - MUST be counted against a budget of its own, per operator, held as patterns/rate-limiting's token bucket with a capacity of 128 and a refill of 10 a second (600 a minute). It MUST NOT be counted against any other budget
+        # <!-- wl:id admin-read-write-budgets -->
+        - Every other read - one the gateway answers itself, such as the overview, the catalogue or the decision inbox it composes, and one it carries to the orchestrator on the operator token - MUST be counted against a budget of 60 a minute per operator, every write - any method but GET - against one of 20 a minute per operator, whichever component provides it, a write carried on a pass included, and an export against one of 5 a minute per operator
+        # <!-- wl:id budget-after-signature -->
+        - The operator a request is counted against is the one its token names, once the gateway has verified the token's signature, so a request nobody signed spends nobody's budget. A carried read MUST be counted before its token is exchanged, so a refused read costs the hub no exchange and no audit entry
+        # <!-- wl:id rate-limited-retry-after -->
+        - A request refused under any budget this document sets, auth-route-rate-limit's included, at the gateway or at the orchestrator, MUST be answered 429 RATE_LIMITED with a Retry-After header giving the whole seconds, at least 1, until that budget admits a request again, and retry_after in the error's details giving the same number
+        # <!-- wl:id client-rate-limited-not-absent -->
+        - A client - the CLI or a console - MUST read 429 RATE_LIMITED as "rate-limited, retry after N seconds" and as nothing else. It MUST NOT report what it asked for as absent, empty, unreadable or forbidden, and MUST NOT show a page that lost a read to it as complete. It names what it could not read as rate-limited and asks again no sooner than Retry-After, or tells the person when it can
+        - A carried read keeps the pass's rule. Each is exchanged for its own pass (protocol/identity, The pass, rule 1), so a revocation reaches it at the next request. The budget bounds how often that happens, and nothing here lets a pass be kept for a second request
 
     - name: console-credential-use
       description: How a console that acts for signed-in people holds and uses their credentials
@@ -2821,7 +2845,7 @@ says what they are for.
 | Method | Path | What it does |
 |---|---|---|
 | GET | /v1/admin/resources | The catalogue: every kind the tenant declares, each `available` or `declared-unavailable` with its reason |
-| GET | /v1/admin/r/{kind} | `list`: the kind's items the request may read, a page at a time |
+| GET | /v1/admin/r/{kind} | `list`: the kind's items the request may read, a page at a time, from `cursor` and narrowed by the declared filters ([Lists](#lists)) |
 | POST | /v1/admin/r/{kind} | `create` |
 | GET | /v1/admin/r/{kind}/{uid} | `get`: one item, with its `ETag` |
 | PATCH | /v1/admin/r/{kind}/{uid} | `update`: the `settable` fields the body names, with `If-Match` |
@@ -2864,6 +2888,18 @@ never left out and never answered as empty**, for the reason
 `provider-absent-unavailable` gives: an owner that is not there and an owner
 with nothing are different facts.
 
+**A declaration is complete enough to act on without its blueprint.** A client
+renders a form, a filter bar and a page control from the catalogue alone, so
+each `ResourceDeclaration` carries, besides the block's own keys: every
+field's `type`, `required` and `enum` as the type that declares the field gives
+them, never restated in the block; every verb's `body_fields`, the fields of
+its `body` type in the same form; every list's `parameters`, `cursor`, `limit` and
+one per declared filter; and every `approval` in `ResourceApproval`'s form
+([`protocol/types`](../protocol/types.md#resourcedeclaration)). Generation
+writes them, into the manifest and into `.weblisk/resources.json` alike
+([`architecture/generation`](generation.md#resources)), so the gateway composes
+them and resolves nothing.
+
 ### The uniform address
 
 A request at `/v1/admin/r/{kind}` is carried to the kind's owner, at the route
@@ -2886,6 +2922,26 @@ the catalogue does not hold is `RESOURCE_KIND_UNDECLARED`; an operation or
 verb its declaration does not name is `RESOURCE_OPERATION_UNDECLARED`; a
 declared kind that is not available is `ADMIN_GROUP_UNAVAILABLE`, naming the
 kind and its reason. None of them is forwarded.
+
+### Lists
+
+A `list` takes, as query parameters, `cursor`, `limit` and one per field its
+declaration's `filters` names, and nothing else, which is what its
+`parameters` lists. `cursor` is a page's `next_cursor` sent back, absent for
+the first page, and opaque, as
+[`architecture/storage`](storage.md)'s `cursor-pagination` makes every cursor;
+`limit` is how many items a page may hold at most, and an owner answers fewer
+where it pages by less, never more. A filter narrows by equality, its value
+written as its field's type is, one of its `enum` where it has one. A filter
+the declaration's `required_filters` names must be sent, and a list without
+it is refused `INVALID_INPUT` naming it in `detail.parameters`. A bound list's
+route takes its page position as `cursor`, its page size as `limit` and its
+filters by the same names, so the gateway carries the query string to the
+route unchanged; a route that pages or filters by other names is not one a
+`list` may bind. A query parameter the declaration does not name is refused
+`INVALID_INPUT`, with each such name in `detail.parameters`, before anything
+is exchanged: a filter silently dropped would answer a wider list than the one
+asked for, and say nothing.
 
 ### Writes, and what guards them
 
@@ -3571,10 +3627,52 @@ is `auth-route-rate-limit`, in [Contracts](#contracts), which says what an
 orchestrator told of no such address does, and what sharing the gateway's
 address with other callers costs.
 
-The rest SHOULD be:
-- Read endpoints: 60 requests/minute per operator
-- Write endpoints: 20 requests/minute per operator
-- Export endpoints: 5 requests/minute per operator
+Every other request is held to a budget per operator, and the numbers are
+`operator-rate-budgets`, in [Contracts](#contracts):
+
+| Budget | Counts | Per operator |
+|---|---|---|
+| Carried provider reads | A `GET` carried on a pass to another component: a route it declares among its `pass_routes`, or `GET /v1/admin/r/{kind}` and `GET /v1/admin/r/{kind}/{uid}` carried to the kind's owner ([The uniform address](#the-uniform-address)), the feed's reads for a subscription included. A console reading a tenant's repositories, listing and reading its resources and refreshing them from the feed is the case it is sized for | A bucket of 128, refilled at 10 a second (600 a minute) |
+| Reads | Every other `GET`: one the gateway answers itself, such as `/v1/admin/overview`, `/v1/admin/resources` or `/v1/admin/approvals`, and one carried to the orchestrator on the operator token | 60 a minute |
+| Writes | Any other method, a write carried on a pass included | 20 a minute |
+| Exports | The export routes | 5 a minute |
+
+**Why carried reads have their own budget.** A console shows a person a
+tenant's content by reading it, through this gateway's carry to the content
+service. Measured against a running tenant, one page view made about 15
+carried reads and one page load about 64, several routes at once. Against 60
+a minute shared with every other read, the first page load spent more than the
+whole minute, the gateway answered the rest 429, and pages lost content. The
+limit as it stood could not carry a console, so the console's reads are
+counted apart from the administrative ones, which keep 60.
+
+**Why 128 and 10 a second.** The capacity is the burst: 128 is two whole page
+loads arriving together — a load, and the person moving on before the bucket
+refills — admitted without a wait. The refill is the sustained rate: 600 a
+minute is a full page load every 6.4 seconds held for a whole minute, or 40
+page views a minute, which is faster than a person reads, so a person
+browsing is not refused while a client that loops is held to 10 reads a
+second. What each read costs the hub was measured too: an exchange whose
+signing is about 0.6 ms, and an audit append at the orchestrator and at the
+content service whose flush took 5 ms at p50 and 12 ms at p99. At 10 a second
+that is a load several operators can put on one hub at once, provided an
+append does not hold its store's lock across its flush
+([`architecture/storage`](storage.md#appends-share-a-flush)); serialised
+behind one held lock, the flushes are what queue.
+
+**The pass is not cached to save the exchange.** Every carried read is
+exchanged for its own pass, as
+[`protocol/identity`](../protocol/identity.md#the-pass) requires, so a
+removed operator, a revoked credential or a lowered role reaches the provider
+at the person's next read. The budget limits how many exchanges a person can
+cause; it does not trade any of them away.
+
+**A 429 is an answer about time, never about content.** Every refusal under a
+budget is `429` `RATE_LIMITED` with `Retry-After`, and a client reads it as
+exactly that. A console that showed a rate-limited read as an empty folder or a
+missing document would state, confidently, something false about the tenant's
+content; it says the read was rate-limited and when it can ask again
+(`operator-rate-budgets`, `client-rate-limited-not-absent`).
 
 ---
 
@@ -3657,6 +3755,10 @@ The rest SHOULD be:
 - [ ] An attestation whose credential key is one of the operator's own retired identity keys is refused with `CREDENTIAL_IS_IDENTITY_KEY` ([Contracts](#contracts), `operator-credential-attestation`) <!-- wl:check retired-key-not-credential covers credential-not-identity-key -->
 - [ ] A change of identity key for a revoked operator whose signatures do not verify is refused with `OPERATOR_KEY_CHANGE_INVALID`, never `OPERATOR_REVOKED`; one whose signatures verify is refused with `OPERATOR_REVOKED` ([Contracts](#contracts), `operator-key-change`) <!-- wl:check revoked-key-change covers key-change-invalid -->
 - [ ] More than five requests a minute from one source to `POST /v1/admin/operators/{name}/key`, to `POST /v1/admin/hub/proof`, or to any of the four routes that issue tokens, are refused before any signature is verified or made ([Contracts](#contracts), `auth-route-rate-limit`; [Rate Limiting](#rate-limiting)) <!-- wl:check auth-routes-five-a-minute covers auth-routes-limited auth-endpoints-limited -->
+- [ ] One operator's 128 carried reads sent at once, `GET /v1/content` and `GET /v1/admin/r/{kind}` for a kind another component owns mixed, are all answered, the 129th at once is refused `429` `RATE_LIMITED`, a carried read is admitted again after a tenth of a second, and those reads leave the same operator's 60 reads a minute to `GET /v1/admin/overview` untouched ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check carried-reads-budgeted covers carried-read-budget admin-read-write-budgets -->
+- [ ] A request carrying a token whose signature does not verify spends nothing of the operator it names, and a carried read refused `429` reaches no exchange: the orchestrator records no exchange for it ([Contracts](#contracts), `operator-rate-budgets`; [Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 3) <!-- wl:check budget-spent-after-signature covers budget-after-signature -->
+- [ ] Every `429` the gateway or the orchestrator answers under a budget this document sets carries `Retry-After` of at least 1 and `retry_after` equal to it, and a request sent after that many seconds is admitted ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check rate-limited-carries-retry-after covers rate-limited-retry-after -->
+- [ ] A console whose carried read is answered `429` shows that read as rate-limited and when it will ask again, never as an empty listing, a missing or unreadable entry or a refusal, and asks no sooner than `Retry-After` ([Contracts](#contracts), `operator-rate-budgets`; [Rate Limiting](#rate-limiting)) <!-- wl:check client-shows-rate-limited covers client-rate-limited-not-absent -->
 - [ ] `POST /v1/admin/hub/proof` with no bearer token passes the admin gateway's step 4 and the orchestrator's Auth Middleware to its handler, and is never refused for carrying no token ([Admin Gateway Request Lifecycle](#admin-gateway-request-lifecycle), step 4; [Auth Middleware](#auth-middleware))
 - [ ] A token minted after a change of identity key carries the same `identity_id` as one minted before it ([Operator Identity](#operator-identity); [Contracts](#contracts), `operator-token-issuance`)
 - [ ] A role lowered after a token was issued limits that token from its next request ([Contracts](#contracts), `token-status-on-use`) <!-- wl:check lowered-role-limits-token covers role-now-narrowed-by-cap capabilities-from-role role-from-record -->
@@ -3741,6 +3843,8 @@ The rest SHOULD be:
 - [ ] A request naming a kind no catalogue entry holds is answered `RESOURCE_KIND_UNDECLARED`, `DELETE /v1/admin/r/agent/{name}` is answered `RESOURCE_OPERATION_UNDECLARED` with an `Allow` header, and a request for a `declared-unavailable` kind is answered `ADMIN_GROUP_UNAVAILABLE` naming the kind and its reason; none is exchanged or forwarded ([The uniform address](#the-uniform-address); [Error Handling](#error-handling); [Contracts](#contracts), `resource-api`) <!-- wl:check undeclared-refused covers resource-undeclared-refused resource-owner-declared-only -->
 - [ ] `POST /v1/admin/r/agent/{name}/deregister` with no `If-Match` is answered `RESOURCE_IF_MATCH_REQUIRED` and nothing is exchanged; with the `ETag` of an earlier read after the agent re-registered with a changed manifest it is answered `RESOURCE_PRECONDITION_FAILED` and the agent stays registered; at a kind that declares `update`, a `PATCH` naming a field its declaration makes `read-only` is answered `RESOURCE_FIELD_NOT_SETTABLE` and nothing changes ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check writes-guarded covers resource-if-match-required resource-owner-etag -->
 - [ ] An act whose declaration takes approval is answered `ADMIN_GROUP_UNAVAILABLE` with `detail.reason` `approval-undecidable`, never `202`, and is not applied ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check approval-not-faked covers resource-approval-undecidable -->
+- [ ] `GET /v1/admin/resources` answers, for the `run` kind, each field with its `type` and `required`, its `status` field with the `enum` its type declares, the `cancel` verb with no `body_fields`, and the `list` operation with `parameters` `cursor`, `limit`, then each declared filter; `wait`'s `decide` verb carries `body_fields` read from its body type ([The catalogue](#the-catalogue); [Contracts](#contracts), `resource-api`) <!-- wl:check declaration-complete covers resource-declaration-complete -->
+- [ ] `GET /v1/admin/r/run?status=failed` answers only failed runs, and following each page's `next_cursor` as `cursor` reaches the last page with no run twice; `GET /v1/admin/r/run?colour=red` is answered `INVALID_INPUT` naming `colour` in `detail.parameters`, and nothing is exchanged ([Lists](#lists); [Contracts](#contracts), `resource-api`; [Error Handling](#error-handling)) <!-- wl:check list-parameters covers resource-list-parameters -->
 - [ ] Every create, update, delete and verb at the resource API, admitted or refused, leaves an audit entry at its owner naming the identity id that acted, the kind, the item, the act and its outcome ([Contracts](#contracts), `resource-api`) <!-- wl:check resource-writes-audited covers resource-write-audited -->
 - [ ] A client subscribed to `agent` over `GET /v1/admin/ws` receives `weblisk.agent.created` when an agent registers and `weblisk.agent.deregister` when one is force-deregistered, each with `subject` the agent's name and no `token` in `data`; reconnecting with `after` set to the first event's position receives the second again; a subscription after a position its owner no longer holds receives a `gap` frame ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-delivers covers feed-rounds-carried feed-filtered-by-read feed-replay-or-gap -->
 - [ ] The gateway holds no person's token once the connection it came on is closed; it closes the connection with `TOKEN_EXPIRED` at that token's `exp` unless a `token` frame for the same `sub` replaced it, and at once on a `token` frame for another `sub`; an operator whose credential is revoked stops receiving within one round, and their other subscriptions are each closed with an `error` frame naming the code ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-token-bound covers feed-on-operator-token feed-closed-at-expiry feed-subscription-error -->

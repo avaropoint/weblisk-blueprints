@@ -57,7 +57,7 @@ declares:
       - {key: inspected_by, label: Inspected by, type: user, required: true}
       - {key: extinguishers_on_site, label: Extinguishers on the project, type: int, required: true}
       - {key: extinguishers_inspected, label: Inspected and tagged this month, type: int, required: true}
-      - {key: extinguishers_defective, label: Defective, discharged or missing, type: int, required: true}
+      - {key: extinguishers_defective, label: "Defective, discharged or missing", type: int, required: true}
       - {key: replaced_or_recharged_on, label: Defective units replaced or recharged on, type: date}
       - {key: rating_conforms, label: Every unit is a pressure-discharge type rated at least 4A40BC, type: bool, required: true}
       - {key: locations_marked, label: Locations readily accessible and adequately marked, type: bool, required: true}
@@ -72,7 +72,7 @@ declares:
       - {key: combustible_waste, label: Combustible waste accumulation, type: select, required: true,
          options: [None, Some — removed during the inspection, Significant — action raised]}
       - {key: flammable_storage_conforms, label: Flammable and combustible liquids stored as the procedure requires, type: bool, required: true}
-      - {key: temporary_heating, label: Temporary heating in use, and how it is controlled, type: longtext}
+      - {key: temporary_heating, label: "Temporary heating in use, and how it is controlled", type: longtext}
       - {key: action, label: Action taken, type: longtext}
 ---
 

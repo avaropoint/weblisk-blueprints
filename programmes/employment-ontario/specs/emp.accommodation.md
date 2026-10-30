@@ -65,7 +65,7 @@ declares:
          options: [Included, Not needed, Consent to share refused, Outstanding]}
       - {key: outcome, label: Outcome, type: select, required: true,
          options: [Accommodated, Accommodated in an alternative role, Partially accommodated, Declined — undue hardship, Withdrawn]}
-      - {key: undue_hardship_basis, label: If declined, the undue hardship basis, type: longtext}
+      - {key: undue_hardship_basis, label: "If declined, the undue hardship basis", type: longtext}
       - {key: reasons_given, label: Reasons given to the employee in writing, type: bool, required: true}
       - {key: review_due, label: Next review due, type: date}
 ---

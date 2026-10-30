@@ -45,7 +45,7 @@ register:
     - {key: work_stopped, label: The work stopped, type: bool, required: true}
     - {key: worker_in_safe_place, label: The worker remained in a safe place near the work station, type: bool, required: true}
     - {key: others_assigned, label: Anybody else was assigned to the refused work, type: bool, required: true}
-    - {key: others_advised, label: If so, they were advised of the refusal and its grounds in the presence of a representative, type: bool}
+    - {key: others_advised, label: "If so, they were advised of the refusal and its grounds in the presence of a representative", type: bool}
     - {key: excluded_worker, label: The worker is in a class the right does not extend to, type: select, required: true,
        options: ["No", "Yes — the danger is inherent or a normal condition of the work",
                  "Yes — the refusal would directly endanger another person's life, health or safety",

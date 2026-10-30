@@ -36,7 +36,7 @@ register:
     - {key: injuries, label: People injured, type: int, required: true}
     - {key: fatalities, label: Fatalities, type: int, required: true}
     - {key: third_party_involved, label: Another party involved, type: bool, required: true}
-    - {key: cargo_involved, label: Cargo shifted, spilled or was lost, type: bool, required: true}
+    - {key: cargo_involved, label: "Cargo shifted, spilled or was lost", type: bool, required: true}
     - {key: estimated_damage, label: Estimated damage, type: currency}
     - {key: vehicle_towed, label: A vehicle had to be towed, type: bool, required: true}
     - {key: expected_on_cvor, label: Expected on the CVOR record, type: select, required: true,

@@ -50,7 +50,7 @@ declares:
                    Confined space rescue, Trench collapse, Utility strike, Severe weather,
                    Spill or release, Other]}
       - {key: run_by, label: Run by, type: user, required: true}
-      - {key: participants, label: Who took part, and from which employers, type: longtext, required: true}
+      - {key: participants, label: "Who took part, and from which employers", type: longtext, required: true}
       - {key: announced, label: Announced in advance, type: bool, required: true}
       - {key: time_to_first_response, label: Time to first effective response, type: text, required: true}
       - {key: muster_complete, label: All persons accounted for, type: bool, required: true}

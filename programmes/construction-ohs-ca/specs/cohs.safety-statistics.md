@@ -33,9 +33,9 @@ register:
     - {key: near_misses, label: Near misses reported, type: int, required: true}
     - {key: recordable_rate, label: Total recordable rate, type: number}
     - {key: lost_time_rate, label: Lost time rate, type: number}
-    - {key: dart_rate, label: Days away, restricted or transferred rate, type: number}
+    - {key: dart_rate, label: "Days away, restricted or transferred rate", type: number}
     - {key: rate_basis, label: Basis of the rates, type: text, required: true}
-    - {key: experience_rating, label: Experience modifier, if a client requires one, type: number}
+    - {key: experience_rating, label: "Experience modifier, if a client requires one", type: number}
     - {key: leading_inspections, label: Inspections completed against planned, type: text, required: true}
     - {key: leading_assessments, label: Pre-task assessments completed against expected, type: text, required: true}
     - {key: leading_actions_closed, label: Corrective actions closed on time, type: text, required: true}

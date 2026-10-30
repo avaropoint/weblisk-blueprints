@@ -79,7 +79,7 @@ declares:
                    "Not reportable — no discharge into the natural environment",
                    "Not reportable — an instrument already requires it to be reported",
                    "Not yet determined"]}
-      - {key: exemption_conditions, label: Which conditions of the exemption were checked, and how, type: longtext}
+      - {key: exemption_conditions, label: "Which conditions of the exemption were checked, and how", type: longtext}
       - {key: sac_notified_on, label: Spills Action Centre notified on, type: date}
       - {key: sac_notified_time, label: Time the Spills Action Centre was notified, type: text}
       - {key: sac_reference, label: Spills Action Centre incident number, type: text}
@@ -90,17 +90,17 @@ declares:
       - {key: controller_notified, label: Person having control of the pollutant notified, type: select, required: true,
          options: ["Notified", "We had control", "Not applicable", Outstanding]}
       - {key: notified_by, label: Notification made by, type: user}
-      - {key: information_given, label: What was said, against the O. Reg. 675/98 items, type: longtext}
+      - {key: information_given, label: "What was said, against the O. Reg. 675/98 items", type: longtext}
       - {key: later_information, label: Information ascertained and given afterwards, type: longtext}
       - {key: corrections, label: Inaccuracies discovered later and corrected forthwith, type: longtext}
       - {key: reported_forthwith, label: Notification was made forthwith on the facts recorded, type: bool, required: true}
-      - {key: delay_reason, label: If not forthwith, why, type: longtext}
-      - {key: mitigation, label: What was done to prevent, eliminate and ameliorate the adverse effect, type: longtext, required: true}
+      - {key: delay_reason, label: "If not forthwith, why", type: longtext}
+      - {key: mitigation, label: "What was done to prevent, eliminate and ameliorate the adverse effect", type: longtext, required: true}
       - {key: restoration, label: What was done to restore the natural environment, type: longtext, required: true}
       - {key: restoration_complete_on, label: Restoration complete on, type: date}
       - {key: regulator_attended, label: A provincial officer attended or an order was made, type: bool, required: true}
       - {key: order_reference, label: Order or direction reference, type: text}
-      - {key: evidence, label: Call log, correspondence and any order, type: attachment}
+      - {key: evidence, label: "Call log, correspondence and any order", type: attachment}
       - {key: note, label: Note, type: longtext}
 ---
 

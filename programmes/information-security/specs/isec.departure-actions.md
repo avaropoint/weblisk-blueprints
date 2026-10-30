@@ -92,7 +92,7 @@ declares:
       - {key: obligations_confirmed, label: Continuing obligations confirmed in writing, type: bool, required: true}
       - {key: performed_by, label: Performed by, type: user, required: true}
       - {key: confirmed_by, label: Confirmed by somebody else, type: user, required: true}
-      - {key: notes, label: Anything left open, and who holds it, type: longtext, required: true}
+      - {key: notes, label: "Anything left open, and who holds it", type: longtext, required: true}
 ---
 
 What this document must establish for THIS organisation: what actually happens

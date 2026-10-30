@@ -53,14 +53,14 @@ declares:
     columns:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
-      - {key: vehicles_over_threshold, label: Vehicles over 4,500 kg operated, type: int, required: true}
+      - {key: vehicles_over_threshold, label: "Vehicles over 4,500 kg operated", type: int, required: true}
       - {key: scope_still_correct, label: The policy still describes the operation, type: select, required: true,
          options: ["Yes — unchanged",
                    "No — the fleet or the work has changed and the policy has been amended",
                    "No — the fleet or the work has changed and the policy has not yet been amended"]}
       - {key: extra_provincial_work, label: Extra-provincial or cross-border work in the period, type: select, required: true,
          options: [None, Occasional, Regular, Not yet determined]}
-      - {key: legal_changes, label: Changes in the Act, the regulations or the Code considered, type: longtext, required: true}
+      - {key: legal_changes, label: "Changes in the Act, the regulations or the Code considered", type: longtext, required: true}
       - {key: changed, label: The policy was amended, type: bool, required: true}
       - {key: changes, label: What changed, type: longtext}
       - {key: reissued_on, label: Reissued on, type: date}

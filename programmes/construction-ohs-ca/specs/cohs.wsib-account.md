@@ -63,7 +63,7 @@ declares:
       - {key: adjustment_filed_on, label: Adjustment filed on, type: date}
       - {key: reporting_frequency, label: Reporting frequency, type: select, required: true,
          options: [Monthly, Quarterly, Annually]}
-      - {key: all_periods_filed, label: Every period in the year filed, including nil periods, type: bool, required: true}
+      - {key: all_periods_filed, label: "Every period in the year filed, including nil periods", type: bool, required: true}
       - {key: exempt_officers, label: Exempt partners or executive officers on file, type: longtext}
       - {key: reconciled_by, label: Reconciled by, type: user, required: true}
 ---

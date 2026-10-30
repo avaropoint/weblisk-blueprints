@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.2.1
-requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain]
+version: 1.3.0
+requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain, architecture/storage]
 platform: any
 tier: free
 adoption: opt-in
@@ -263,6 +263,19 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: architecture/storage
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
+    bindings:
+      types:
+        - name: RecordSnapshot
+          fields_used: [snapshot, service, taken_at, store_format, files]
+      behaviors:
+        - name: backup-restore
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -377,8 +390,17 @@ and nowhere else.
 | POST | /v1/execution/schedules/{schedule}/runs | RunScheduleNow | yes | `execution:register` | Start one run now, as its next firing would, or hold it for a later instant, with an optional `RunNow` body naming the run that asked for it. Answers `RunNowResult`. A registration token only ([Starting one run now](#starting-one-run-now)) |
 | POST | /v1/event | Event | yes | | Receive a delivered event: `workflow.trigger`, the allow-listed facts a start names, and the orchestrator's `system.agent.*` ([`protocol/spec`](../protocol/spec.md#post-v1event)) |
 | POST | /v1/services | Services | yes | | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies |
+| GET | /v1/admin/records/execution/snapshot | RecordSnapshot | yes | `admin:*` | Every store this service owns — the run ledger: every start, run, step, wait and timer — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). A pass only. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service |
 | GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start |
+
+**Its snapshot route is guarded by `admin:*`, which it never holds.**
+`GET /v1/admin/records/execution/snapshot` hands over every record this service
+keeps, so it needs what an administrator may use
+([`architecture/storage`](storage.md#the-snapshot-route)). Its manifest
+declares the route among its `pass_routes` with `capabilities: [admin:*]`,
+and never declares `admin:*` among its own capabilities: a registration token
+that carried it would be an administrator's reach held by a service.
 
 **The rest is read at the uniform address.** A run's steps, its tool calls,
 timers and the definitions execution fetched are read through the admin
@@ -1531,3 +1553,4 @@ security:
 - [ ] `GET /v1/admin/workflows` on a pass carrying `admin:read` answers the shape [`architecture/admin`](admin.md#get-v1adminworkflows) gives, with `domain_name` absent on a programme's run ([Endpoints](#endpoints), [Implementation Notes](#implementation-notes))
 - [ ] A `Wait` returned by any route carries no step output ([Types](#types))
 - [ ] Each decision is recorded on its wait and in an `AuditEntry` with the pass's `identity_id` as `actor` and its `act.identity_id` as `via` ([Deciding](#deciding) step 4, [Who May Do What](#who-may-do-what))
+- [ ] `GET /v1/admin/records/execution/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))

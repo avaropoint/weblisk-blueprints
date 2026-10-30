@@ -37,9 +37,9 @@ register:
        options: ["Ground water", "Storm water", "Both", "Not yet determined"]}
     - {key: started_on, label: Dewatering started on, type: date, required: true}
     - {key: ended_on, label: Dewatering ended on, type: date}
-    - {key: expected_duration_days, label: Expected duration, in days, type: int}
+    - {key: expected_duration_days, label: "Expected duration, in days", type: int}
     - {key: beyond_365_days, label: Expected to run beyond 365 days, type: bool, required: true}
-    - {key: peak_rate_litres_per_day, label: Highest expected taking, in litres a day, type: number, required: true}
+    - {key: peak_rate_litres_per_day, label: "Highest expected taking, in litres a day", type: number, required: true}
     - {key: approval, label: Instrument authorising it, type: relation,
        target: /registers/environmental-approvals.md#records, display: approval_id}
     - {key: authorisation_route, label: How the taking is authorised, type: select, required: true,

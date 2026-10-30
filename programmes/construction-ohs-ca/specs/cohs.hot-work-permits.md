@@ -45,12 +45,12 @@ register:
     - {key: avoidance_reason, label: Why hot work is still being used, type: longtext}
     - {key: combustibles_removed, label: Combustibles removed within the required radius, type: bool, required: true}
     - {key: combustibles_protected, label: What could not be moved is covered or shielded, type: bool, required: true}
-    - {key: openings_covered, label: Floor and wall openings, ducts and conveyors covered, type: bool, required: true}
+    - {key: openings_covered, label: "Floor and wall openings, ducts and conveyors covered", type: bool, required: true}
     - {key: below_and_beyond_checked, label: The area below and on the far side of the work was checked, type: bool, required: true}
-    - {key: detection_isolated, label: Fire detection isolated, and the isolation recorded for reinstatement, type: select, required: true,
+    - {key: detection_isolated, label: "Fire detection isolated, and the isolation recorded for reinstatement", type: select, required: true,
        options: [Not applicable — no system in service, Isolated and recorded, "Not isolated"]}
     - {key: extinguisher_present, label: Extinguisher of the required rating at the work, type: bool, required: true}
-    - {key: gas_test, label: Atmosphere tested, where a flammable atmosphere is possible, type: text}
+    - {key: gas_test, label: "Atmosphere tested, where a flammable atmosphere is possible", type: text}
     - {key: fire_watch, label: Fire watch, type: user, required: true}
     - {key: fire_watch_trained, label: The watch is trained in the extinguisher's use, type: bool, required: true}
     - {key: fire_watch_until, label: Watch maintained until, type: text, required: true}

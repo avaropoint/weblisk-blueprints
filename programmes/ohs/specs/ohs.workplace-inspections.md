@@ -48,7 +48,7 @@ declares:
       - {key: scope, label: What was inspected, type: text, required: true}
       - {key: worker_participant, label: Worker who took part, type: user}
       - {key: findings_raised, label: Findings raised, type: int, required: true}
-      - {key: findings_closed, label: Of those, closed, type: int, required: true}
+      - {key: findings_closed, label: "Of those, closed", type: int, required: true}
       - {key: unsafe_stopped, label: Work stopped, type: bool, required: true}
       - {key: notes, label: Findings and actions, type: longtext, required: true}
       - {key: inspector, label: Inspected by, type: user, required: true}
