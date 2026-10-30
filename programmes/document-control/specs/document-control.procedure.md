@@ -1,6 +1,6 @@
 ---
 id: document-control.procedure
-version: 1.1.0
+version: 1.2.0
 kind: procedure
 title: Document Control Procedure
 structure: procedure
@@ -13,6 +13,10 @@ satisfies:
   - iso_9001:7.5
   - iso_45001:7.5
   - iso_27001:A.5.37
+  # Protection of records: the method says how a controlled document and the
+  # records it leaves are kept from loss, destruction and falsification.
+  # Moved here from the register, which carries no claim of its own.
+  - iso_27001:A.5.33
 requires: [document-control.policy]
 
 declares:
@@ -68,6 +72,12 @@ It must state how a change is proposed and approved, and how urgent changes are
 handled differently — because they will be handled differently whether or not
 the procedure admits it, and an undocumented exception route is the one nobody
 audits.
+
+It must say how a controlled document, its superseded versions and the records
+each step leaves are protected from loss, destruction and falsification: where
+they are kept, who may change them, and how an alteration is detected. A record
+that anybody can quietly edit evidences nothing, however carefully the step
+that produced it was followed.
 
 It must say how a document's next review date is set and what happens when it
 passes. That date is what the obligation above discharges against, so a
