@@ -1,6 +1,6 @@
 ---
 id: fleet.compliance-review
-version: 1.0.0
+version: 2.0.0
 kind: procedure
 title: Fleet Compliance Review
 structure: procedure
@@ -14,7 +14,6 @@ satisfies:
   - hta_ontario:HTA-PMVI-03
   - nsc_ca:NSC-14
   - nsc_ca:NSC-15
-  - cor_2020:COR-02
   - cor_2020:COR-18
   - iso_45001:9.1.2
   - iso_45001:9.3
@@ -42,7 +41,6 @@ declares:
     escalate: {after: 2w, to: senior-management}
     satisfies:
       - nsc_ca:NSC-15
-      - cor_2020:COR-02
       - iso_45001:9.1.2
   register:
     title: Fleet Compliance Review Record
