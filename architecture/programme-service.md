@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.4.0
+version: 2.4.1
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
 platform: any
 tier: free
@@ -197,7 +197,10 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/admin
-    version: ">=4.0.0 <6.0.0"
+    # 5.4.0 is where the gateway refuses a list at the uniform address that
+    # omits a filter its required_filters names; every list this service
+    # declares names organisation there
+    version: ">=5.4.0 <6.0.0"
     bindings:
       behaviors:
         # The one door a person's request arrives through
