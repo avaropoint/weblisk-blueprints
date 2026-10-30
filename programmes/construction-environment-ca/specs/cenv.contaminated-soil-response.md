@@ -1,5 +1,6 @@
 ---
 id: cenv.contaminated-soil-response
+version: 1.0.0
 kind: procedure
 title: Unexpected Soil Contamination
 structure: procedure

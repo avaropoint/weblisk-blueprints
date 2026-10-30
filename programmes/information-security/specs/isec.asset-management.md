@@ -1,5 +1,6 @@
 ---
 id: isec.asset-management
+version: 1.0.0
 kind: procedure
 title: Information Asset Management
 structure: procedure

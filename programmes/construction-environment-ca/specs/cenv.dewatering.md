@@ -1,5 +1,6 @@
 ---
 id: cenv.dewatering
+version: 1.0.0
 kind: procedure
 title: Dewatering and Discharge
 structure: procedure

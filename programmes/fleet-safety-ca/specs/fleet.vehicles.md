@@ -1,5 +1,6 @@
 ---
 id: fleet.vehicles
+version: 1.0.0
 kind: register
 title: Register of Commercial Motor Vehicles
 structure: standard

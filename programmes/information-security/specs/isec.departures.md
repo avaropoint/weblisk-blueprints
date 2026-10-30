@@ -1,5 +1,6 @@
 ---
 id: isec.departures
+version: 1.0.0
 kind: register
 title: Departures and Role Changes Register
 structure: standard

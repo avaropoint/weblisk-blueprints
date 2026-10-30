@@ -1,5 +1,6 @@
 ---
 id: cenv.registry-closeout
+version: 1.0.0
 kind: procedure
 title: Excess Soil Registry Updating and Close-Out
 structure: procedure

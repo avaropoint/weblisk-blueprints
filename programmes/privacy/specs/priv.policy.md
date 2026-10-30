@@ -1,5 +1,6 @@
 ---
 id: priv.policy
+version: 1.0.0
 kind: policy
 title: Privacy Policy
 structure: policy

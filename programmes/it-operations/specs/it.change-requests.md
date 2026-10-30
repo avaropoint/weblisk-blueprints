@@ -1,5 +1,6 @@
 ---
 id: it.change-requests
+version: 1.0.0
 kind: register
 title: Change Register
 structure: standard

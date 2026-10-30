@@ -1,5 +1,6 @@
 ---
 id: phipa.access-audit
+version: 1.0.0
 kind: procedure
 title: Auditing Access to Health Records
 structure: procedure

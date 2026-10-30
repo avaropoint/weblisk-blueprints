@@ -1,5 +1,6 @@
 ---
 id: cohs.defibrillator
+version: 1.0.0
 kind: procedure
 title: Defibrillators on Projects
 structure: procedure

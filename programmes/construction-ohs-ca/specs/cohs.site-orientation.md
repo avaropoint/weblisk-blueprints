@@ -1,5 +1,6 @@
 ---
 id: cohs.site-orientation
+version: 1.0.0
 kind: procedure
 title: Site Orientation and Awareness Training
 structure: procedure

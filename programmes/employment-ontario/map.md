@@ -1,5 +1,6 @@
 ---
 id: employment-ontario
+version: 1.0.0
 title: Employment and Workplace (Ontario)
 order: 50
 domains: [hr_security, governance, training_competency, records_management,

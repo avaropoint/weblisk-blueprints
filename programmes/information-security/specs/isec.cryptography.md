@@ -1,5 +1,6 @@
 ---
 id: isec.cryptography
+version: 1.0.0
 kind: standard
 title: Cryptographic Controls
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: ohs.orientation
+version: 1.0.0
 kind: procedure
 title: Orientation and Awareness
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: isec.departure-actions
+version: 1.0.0
 kind: procedure
 title: Removing Access and Recovering Assets on Departure
 structure: procedure

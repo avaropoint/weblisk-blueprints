@@ -1,5 +1,6 @@
 ---
 id: cenv.environmental-approvals
+version: 1.0.0
 kind: register
 title: Register of Environmental Approvals and Registrations
 structure: standard

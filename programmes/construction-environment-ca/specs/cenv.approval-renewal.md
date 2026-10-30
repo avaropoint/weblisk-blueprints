@@ -1,5 +1,6 @@
 ---
 id: cenv.approval-renewal
+version: 1.0.0
 kind: procedure
 title: Approval and Permit Renewal
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: isec.security-incidents
+version: 1.0.0
 kind: register
 title: Security Incident Register
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: it.configuration-standards
+version: 1.0.0
 kind: standard
 title: System Configuration Standards
 structure: standard

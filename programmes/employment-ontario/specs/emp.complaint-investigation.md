@@ -1,5 +1,6 @@
 ---
 id: emp.complaint-investigation
+version: 1.0.0
 kind: procedure
 title: Workplace Complaint Investigation
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: isec.roles
+version: 1.0.0
 kind: standard
 title: Information Security Roles and Segregation of Duties
 structure: standard

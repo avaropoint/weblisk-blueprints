@@ -1,5 +1,6 @@
 ---
 id: cohs.incident-reporting
+version: 1.0.0
 kind: procedure
 title: Project Incident Reporting
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: rec.vital-records-recovery
+version: 1.0.0
 kind: procedure
 title: Retrieving Vital Records
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: cenv.soil-destinations
+version: 1.0.0
 kind: register
 title: Register of Excess Soil Destinations
 structure: standard

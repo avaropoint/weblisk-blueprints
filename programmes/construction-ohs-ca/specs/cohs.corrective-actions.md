@@ -1,5 +1,6 @@
 ---
 id: cohs.corrective-actions
+version: 1.0.0
 kind: procedure
 title: Corrective and Preventive Action Across Projects
 structure: procedure

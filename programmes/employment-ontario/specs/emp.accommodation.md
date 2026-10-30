@@ -1,5 +1,6 @@
 ---
 id: emp.accommodation
+version: 1.0.0
 kind: procedure
 title: Workplace Accommodation
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: it.software-approval
+version: 1.0.0
 kind: procedure
 title: Software and Cloud Service Approval
 structure: procedure

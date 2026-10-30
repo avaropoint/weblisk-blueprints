@@ -1,5 +1,6 @@
 ---
 id: ohs.training-renewal
+version: 1.0.0
 kind: procedure
 title: Training Renewal
 structure: procedure

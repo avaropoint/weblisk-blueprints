@@ -1,5 +1,6 @@
 ---
 id: priv.requests
+version: 1.0.0
 kind: register
 title: Privacy Request Register
 structure: standard

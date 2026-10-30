@@ -1,5 +1,6 @@
 ---
 id: cohs.regulatory-currency
+version: 1.0.0
 kind: register
 title: Register of Applicable Law, Standards and Editions
 structure: standard

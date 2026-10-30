@@ -1,5 +1,6 @@
 ---
 id: cohs.safety-statistics
+version: 1.0.0
 kind: register
 title: Safety Performance Statistics
 structure: standard

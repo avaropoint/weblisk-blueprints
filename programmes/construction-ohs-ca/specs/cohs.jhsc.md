@@ -1,5 +1,6 @@
 ---
 id: cohs.jhsc
+version: 1.0.0
 kind: procedure
 title: Joint Health and Safety Committee and Health and Safety Representative
 structure: procedure

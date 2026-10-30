@@ -1,5 +1,6 @@
 ---
 id: cohs.elevating-work-platforms
+version: 1.0.0
 kind: procedure
 title: Elevating Work Platforms
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: isec.policy
+version: 1.0.0
 kind: policy
 title: Information Security Policy
 structure: policy

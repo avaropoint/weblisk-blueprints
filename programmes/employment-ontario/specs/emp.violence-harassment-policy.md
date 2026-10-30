@@ -1,5 +1,6 @@
 ---
 id: emp.violence-harassment-policy
+version: 1.0.0
 kind: policy
 title: Workplace Violence and Workplace Harassment Policies
 structure: policy

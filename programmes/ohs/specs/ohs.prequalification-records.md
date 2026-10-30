@@ -1,5 +1,6 @@
 ---
 id: ohs.prequalification-records
+version: 1.0.0
 kind: register
 title: Register of Insurance and Clearance Certificates
 structure: standard

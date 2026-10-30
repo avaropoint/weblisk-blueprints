@@ -1,5 +1,6 @@
 ---
 id: emp.accessibility-report
+version: 1.0.0
 kind: procedure
 title: Accessibility Compliance Report
 structure: procedure

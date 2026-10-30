@@ -1,5 +1,6 @@
 ---
 id: fipa.breach-notice
+version: 1.0.0
 kind: procedure
 title: Notifying the Institution of a Breach
 structure: procedure

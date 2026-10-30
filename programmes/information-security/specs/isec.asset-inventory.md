@@ -1,5 +1,6 @@
 ---
 id: isec.asset-inventory
+version: 1.0.0
 kind: register
 title: Information Asset Inventory
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: isec.compliance-obligations
+version: 1.0.0
 kind: register
 title: Legal, Regulatory and Contractual Security Obligations
 structure: standard

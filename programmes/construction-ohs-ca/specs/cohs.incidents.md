@@ -1,5 +1,6 @@
 ---
 id: cohs.incidents
+version: 1.0.0
 kind: register
 title: Register of Project Incidents
 structure: standard

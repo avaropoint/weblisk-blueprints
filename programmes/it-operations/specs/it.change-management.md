@@ -1,5 +1,6 @@
 ---
 id: it.change-management
+version: 1.0.0
 kind: procedure
 title: Change Management
 structure: procedure

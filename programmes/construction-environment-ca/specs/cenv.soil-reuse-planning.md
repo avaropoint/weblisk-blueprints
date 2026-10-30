@@ -1,5 +1,6 @@
 ---
 id: cenv.soil-reuse-planning
+version: 1.0.0
 kind: procedure
 title: Excess Soil Reuse Planning
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: rec.legal-holds
+version: 1.0.0
 kind: register
 title: Legal Hold Register
 structure: standard

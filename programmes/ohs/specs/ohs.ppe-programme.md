@@ -1,5 +1,6 @@
 ---
 id: ohs.ppe-programme
+version: 1.0.0
 kind: procedure
 title: Personal Protective Equipment Programme
 structure: procedure

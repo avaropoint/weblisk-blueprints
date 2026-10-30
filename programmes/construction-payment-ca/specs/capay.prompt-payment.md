@@ -1,5 +1,6 @@
 ---
 id: capay.prompt-payment
+version: 1.0.0
 kind: procedure
 title: Prompt Payment — Invoicing and Collection
 structure: procedure

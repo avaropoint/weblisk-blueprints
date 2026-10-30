@@ -1,5 +1,6 @@
 ---
 id: emp.hiring
+version: 1.0.0
 kind: procedure
 title: Hiring and Job Postings
 structure: procedure

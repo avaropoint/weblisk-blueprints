@@ -1,5 +1,6 @@
 ---
 id: ohs
+version: 1.0.0
 title: Occupational Health and Safety Programme
 order: 10
 domains: [health_safety, training_competency, incident_response]

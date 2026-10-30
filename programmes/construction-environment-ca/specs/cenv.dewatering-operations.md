@@ -1,5 +1,6 @@
 ---
 id: cenv.dewatering-operations
+version: 1.0.0
 kind: register
 title: Register of Dewatering Operations
 structure: standard

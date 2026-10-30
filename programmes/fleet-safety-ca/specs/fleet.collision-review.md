@@ -1,5 +1,6 @@
 ---
 id: fleet.collision-review
+version: 1.0.0
 kind: procedure
 title: Collision Review and Preventability Determination
 structure: procedure

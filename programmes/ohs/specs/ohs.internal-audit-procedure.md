@@ -1,5 +1,6 @@
 ---
 id: ohs.internal-audit-procedure
+version: 1.0.0
 kind: procedure
 title: Internal Audit
 structure: procedure

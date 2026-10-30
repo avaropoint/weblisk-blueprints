@@ -1,5 +1,6 @@
 ---
 id: emp.human-rights
+version: 1.0.0
 kind: policy
 title: Human Rights and Non-Discrimination
 structure: policy

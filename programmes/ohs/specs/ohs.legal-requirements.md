@@ -1,5 +1,6 @@
 ---
 id: ohs.legal-requirements
+version: 1.0.0
 kind: register
 title: Register of Applicable Legal and Other Requirements
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: cohs.management-review
+version: 1.0.0
 kind: procedure
 title: Health and Safety Management Review
 structure: procedure

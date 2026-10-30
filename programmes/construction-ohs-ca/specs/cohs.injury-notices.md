@@ -1,5 +1,6 @@
 ---
 id: cohs.injury-notices
+version: 1.0.0
 kind: procedure
 title: Statutory Notices and Injury Reporting
 structure: procedure

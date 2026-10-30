@@ -1,5 +1,6 @@
 ---
 id: cohs.clearance-renewal
+version: 1.0.0
 kind: procedure
 title: Clearance Certificate Renewal
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: cohs.whmis
+version: 1.0.0
 kind: procedure
 title: WHMIS and Hazardous Products
 structure: procedure

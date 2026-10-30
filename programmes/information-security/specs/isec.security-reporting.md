@@ -1,5 +1,6 @@
 ---
 id: isec.security-reporting
+version: 1.0.0
 kind: procedure
 title: Security Performance Reporting
 structure: procedure

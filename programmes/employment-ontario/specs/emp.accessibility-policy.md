@@ -1,5 +1,6 @@
 ---
 id: emp.accessibility-policy
+version: 1.0.0
 kind: policy
 title: Accessibility Policy and Multi-Year Plan
 structure: policy

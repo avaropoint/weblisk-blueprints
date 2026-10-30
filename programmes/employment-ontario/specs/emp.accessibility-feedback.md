@@ -1,5 +1,6 @@
 ---
 id: emp.accessibility-feedback
+version: 1.0.0
 kind: register
 title: Accessibility Feedback Register
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: fleet.trip-inspection
+version: 1.0.0
 kind: procedure
 title: Daily Trip Inspection
 structure: procedure

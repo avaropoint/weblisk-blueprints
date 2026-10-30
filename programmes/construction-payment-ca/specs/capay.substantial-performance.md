@@ -1,5 +1,6 @@
 ---
 id: capay.substantial-performance
+version: 1.0.0
 kind: procedure
 title: Certification, Declaration and Publication of Substantial Performance
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: isec.risk-assessment
+version: 1.0.0
 kind: procedure
 title: Information Security Risk Assessment
 structure: procedure

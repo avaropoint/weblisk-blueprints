@@ -1,5 +1,6 @@
 ---
 id: isec.personnel-security
+version: 1.0.0
 kind: procedure
 title: Personnel Security
 structure: procedure

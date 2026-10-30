@@ -1,5 +1,6 @@
 ---
 id: rec.vital-records
+version: 1.0.0
 kind: standard
 title: Vital Records
 structure: standard

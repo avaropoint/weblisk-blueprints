@@ -1,5 +1,6 @@
 ---
 id: cohs.traffic-protection
+version: 1.0.0
 kind: procedure
 title: Traffic Protection
 structure: procedure

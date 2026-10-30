@@ -1,5 +1,6 @@
 ---
 id: isec.physical-security
+version: 1.0.0
 kind: procedure
 title: Physical and Environmental Security
 structure: procedure

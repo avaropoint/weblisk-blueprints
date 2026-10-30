@@ -1,5 +1,6 @@
 ---
 id: priv.inventory
+version: 1.0.0
 kind: register
 title: Personal Information Inventory
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: priv.impact-assessment
+version: 1.0.0
 kind: procedure
 title: Privacy Impact Assessment
 structure: procedure

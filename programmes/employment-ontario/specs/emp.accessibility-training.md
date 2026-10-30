@@ -1,5 +1,6 @@
 ---
 id: emp.accessibility-training
+version: 1.0.0
 kind: procedure
 title: Accessibility Training
 structure: procedure

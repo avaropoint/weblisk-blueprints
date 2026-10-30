@@ -1,5 +1,6 @@
 ---
 id: fleet.vehicle-defects
+version: 1.0.0
 kind: register
 title: Register of Vehicle Defects
 structure: standard

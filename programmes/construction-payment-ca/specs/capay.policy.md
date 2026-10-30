@@ -1,5 +1,6 @@
 ---
 id: capay.policy
+version: 1.0.0
 kind: policy
 title: Construction Payment, Trust and Holdback Policy
 structure: policy

@@ -1,5 +1,6 @@
 ---
 id: priv.assessments
+version: 1.0.0
 kind: register
 title: Privacy Impact Assessment Register
 structure: standard

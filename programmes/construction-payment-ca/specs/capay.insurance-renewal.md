@@ -1,5 +1,6 @@
 ---
 id: capay.insurance-renewal
+version: 1.0.0
 kind: procedure
 title: Insurance Certificate Renewal
 structure: procedure

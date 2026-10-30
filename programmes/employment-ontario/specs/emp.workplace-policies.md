@@ -1,5 +1,6 @@
 ---
 id: emp.workplace-policies
+version: 1.0.0
 kind: policy
 title: Disconnecting From Work and Electronic Monitoring
 structure: policy

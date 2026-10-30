@@ -1,5 +1,6 @@
 ---
 id: ohs.safe-work-practices
+version: 1.0.0
 kind: standard
 title: Safe Work Practices and Company Rules
 structure: standard

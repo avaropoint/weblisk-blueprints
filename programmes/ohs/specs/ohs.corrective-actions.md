@@ -1,5 +1,6 @@
 ---
 id: ohs.corrective-actions
+version: 1.0.0
 kind: procedure
 title: Corrective and Preventive Action
 structure: procedure

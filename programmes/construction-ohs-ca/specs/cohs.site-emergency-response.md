@@ -1,5 +1,6 @@
 ---
 id: cohs.site-emergency-response
+version: 1.0.0
 kind: procedure
 title: Project Emergency Response Plan
 structure: procedure

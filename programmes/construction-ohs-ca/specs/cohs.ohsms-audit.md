@@ -1,5 +1,6 @@
 ---
 id: cohs.ohsms-audit
+version: 1.0.0
 kind: procedure
 title: Audit of the Management System
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: ohs.contractor-management
+version: 1.0.0
 kind: procedure
 title: Contractor and Subcontractor Management
 structure: procedure

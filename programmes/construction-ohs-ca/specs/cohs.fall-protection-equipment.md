@@ -1,5 +1,6 @@
 ---
 id: cohs.fall-protection-equipment
+version: 1.0.0
 kind: register
 title: Register of Fall Protection Equipment
 structure: standard

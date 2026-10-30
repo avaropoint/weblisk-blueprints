@@ -1,5 +1,6 @@
 ---
 id: ohs.safe-job-procedures
+version: 1.0.0
 kind: procedure
 title: Safe Job Procedures
 structure: procedure

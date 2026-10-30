@@ -1,5 +1,6 @@
 ---
 id: rec.legal-hold
+version: 1.0.0
 kind: procedure
 title: Legal Hold
 structure: procedure

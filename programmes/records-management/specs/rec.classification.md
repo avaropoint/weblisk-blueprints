@@ -1,5 +1,6 @@
 ---
 id: rec.classification
+version: 1.0.0
 kind: standard
 title: Records Classification and Filing
 structure: standard

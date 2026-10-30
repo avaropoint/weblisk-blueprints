@@ -1,5 +1,6 @@
 ---
 id: priv.breach-response
+version: 1.0.0
 kind: procedure
 title: Privacy Breach Response
 structure: procedure

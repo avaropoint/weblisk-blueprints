@@ -1,5 +1,6 @@
 ---
 id: records-management
+version: 1.0.0
 title: Records and Retention
 order: 60
 domains: [records_management, data_protection, compliance_audit, governance, business_continuity]

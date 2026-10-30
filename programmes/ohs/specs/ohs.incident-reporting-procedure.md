@@ -1,5 +1,6 @@
 ---
 id: ohs.incident-reporting-procedure
+version: 1.0.0
 kind: procedure
 title: Incident Reporting and Investigation
 structure: procedure

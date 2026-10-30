@@ -1,5 +1,6 @@
 ---
 id: cenv.approvals-determination
+version: 1.0.0
 kind: procedure
 title: Environmental Approvals Determination
 structure: procedure

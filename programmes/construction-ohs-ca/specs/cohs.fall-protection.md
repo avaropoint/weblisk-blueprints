@@ -1,5 +1,6 @@
 ---
 id: cohs.fall-protection
+version: 1.0.0
 kind: procedure
 title: Fall Protection Programme
 structure: procedure

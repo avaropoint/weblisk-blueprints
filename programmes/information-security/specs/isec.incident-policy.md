@@ -1,5 +1,6 @@
 ---
 id: isec.incident-policy
+version: 1.0.0
 kind: policy
 title: Security Incident Management Policy
 structure: policy

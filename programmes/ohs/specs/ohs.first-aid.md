@@ -1,5 +1,6 @@
 ---
 id: ohs.first-aid
+version: 1.0.0
 kind: procedure
 title: First Aid
 structure: procedure

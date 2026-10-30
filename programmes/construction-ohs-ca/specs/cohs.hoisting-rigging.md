@@ -1,5 +1,6 @@
 ---
 id: cohs.hoisting-rigging
+version: 1.0.0
 kind: procedure
 title: Cranes, Hoisting and Rigging
 structure: procedure

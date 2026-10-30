@@ -1,5 +1,6 @@
 ---
 id: cohs.constructor-duties
+version: 1.0.0
 kind: procedure
 title: Constructor, Employer and Supervisor Duties
 structure: procedure

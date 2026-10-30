@@ -1,5 +1,6 @@
 ---
 id: cenv.compliance-review
+version: 1.0.0
 kind: procedure
 title: Environmental Compliance Review
 structure: procedure

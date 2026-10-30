@@ -1,5 +1,6 @@
 ---
 id: cohs.competency-requirements
+version: 1.0.0
 kind: standard
 title: Competency Requirements by Position and Trade
 structure: standard

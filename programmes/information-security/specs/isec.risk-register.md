@@ -1,5 +1,6 @@
 ---
 id: isec.risk-register
+version: 1.0.0
 kind: register
 title: Information Security Risk Register
 structure: standard

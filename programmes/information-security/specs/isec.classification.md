@@ -1,5 +1,6 @@
 ---
 id: isec.classification
+version: 1.0.0
 kind: standard
 title: Information Classification and Handling
 structure: standard

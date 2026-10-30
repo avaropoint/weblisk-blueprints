@@ -1,5 +1,6 @@
 ---
 id: cohs.first-aid-stations
+version: 1.0.0
 kind: procedure
 title: First Aid Stations and Coverage
 structure: procedure

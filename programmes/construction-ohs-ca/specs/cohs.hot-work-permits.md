@@ -1,5 +1,6 @@
 ---
 id: cohs.hot-work-permits
+version: 1.0.0
 kind: register
 title: Hot Work Permits
 structure: standard

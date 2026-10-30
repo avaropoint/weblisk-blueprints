@@ -1,5 +1,6 @@
 ---
 id: isec.statement-of-applicability
+version: 1.0.0
 kind: standard
 title: Statement of Applicability
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: it.asset-register
+version: 1.0.0
 kind: register
 title: IT Asset Register
 structure: standard

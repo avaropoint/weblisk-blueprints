@@ -1,5 +1,6 @@
 ---
 id: phipa.information-practices
+version: 1.0.0
 kind: policy
 title: Health Information Practices
 structure: policy

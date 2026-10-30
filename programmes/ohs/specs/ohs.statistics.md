@@ -1,5 +1,6 @@
 ---
 id: ohs.statistics
+version: 1.0.0
 kind: register
 title: Health and Safety Statistics
 structure: standard

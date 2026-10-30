@@ -1,5 +1,6 @@
 ---
 id: cenv.approval-conditions
+version: 1.0.0
 kind: procedure
 title: Approval Condition Compliance
 structure: procedure

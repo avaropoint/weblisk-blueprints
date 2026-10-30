@@ -1,5 +1,6 @@
 ---
 id: ohs.training-records
+version: 1.0.0
 kind: register
 title: Register of Training and Certification Held
 structure: standard

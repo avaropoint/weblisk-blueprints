@@ -1,5 +1,6 @@
 ---
 id: cenv.soil-hauling
+version: 1.0.0
 kind: procedure
 title: Excess Soil Hauling and Tracking
 structure: procedure

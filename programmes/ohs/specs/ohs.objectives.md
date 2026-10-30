@@ -1,5 +1,6 @@
 ---
 id: ohs.objectives
+version: 1.0.0
 kind: standard
 title: Health and Safety Objectives and Improvement
 structure: standard
