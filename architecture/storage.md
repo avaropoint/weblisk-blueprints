@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.2.1
+version: 2.3.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -280,6 +280,10 @@ contracts:
         - A write MUST be atomic — a reader never observes a partial record
         - The mechanism is the platform's; see Design Principle 6
         - An append to an audit log, or to any chained log, MUST be serialised in memory and made durable by a flush. Concurrent appends MAY share one flush, none MAY be reported written before the flush covering it has completed, and the store's lock MUST NOT be held across the flush (Appends share a flush)
+        - A store's file MUST be opened for appending once, when the store is opened, and every append MUST write through that handle. No append MAY open, stat or re-read the store's file, and a rewrite that replaces the file MUST reopen the handle once, after the rename (A store is opened once)
+        - A request MUST NOT read a store's file to answer. What a request looks up — an operator, a credential, an agent, a jti, the last entry of a chain — MUST be answered from what the store holds in memory, built when it is opened and kept current by every write, by key and not by scanning (A store is opened once)
+        - A chained log MUST be kept in segments. The segment being appended to MUST be closed and a new one begun before it passes the segment size, at most 8 MiB, and the chain MUST run unbroken across the boundary. No file a request writes to grows without bound (A chained log is kept in segments)
+        - An append's cost, apart from the flush it waits for, MUST NOT grow with the size of the log or the store. A request whose only write is one audit entry MUST be answered within one flush plus 5 ms at p99, with 100,000 entries in the log as with none (A store is opened once)
 
     - name: cursor-pagination
       description: Every list and query is resumable
@@ -450,7 +454,7 @@ without changing the store interface.
   orchestrator/
     agents.jsonl              # Agent registry (active)
     audit.jsonl               # Audit log (active)
-    audit.2025-04.jsonl.zst   # Rotated + compressed
+    audit.2025-04.jsonl.zst   # A closed segment (8 MiB or month end), compressed
   lifecycle/
     strategies.jsonl
     observations.jsonl
@@ -783,6 +787,65 @@ Nothing here weakens the order. The chain is fixed under the lock, so two
 appends sharing a flush are still two links in one order, and a reader of the
 log sees an entry only once it is written there; an entry a crash took before
 its flush was never reported written to anyone.
+
+### A store is opened once
+
+A store's file is opened for appending when the store is opened, and held open
+for as long as the store is: every append writes through that one handle and
+flushes it. An append never opens, stats or re-reads the file. A rewrite that
+replaces the file by rename closes the handle and opens the new file once,
+after the rename. The rule is `durable-records`, in [Contracts](#contracts),
+and it binds every store, a chained log's and a record store's alike.
+
+What a request looks up is answered from memory. A store is read from its file
+when it is opened; its records, or an index of them by key, are held in memory
+from then on and changed by every write the store makes, so an operator, a
+credential, an agent entry, a token-request jti or the last line of a chain is
+found by key, without reading the file and without scanning every record. A
+store whose own section requires that a record written by another instance be
+seen does so through a backend that answers the lookup by key; it does not
+re-read a whole file on each request to get it.
+
+Why it is stated: on a host whose endpoint security inspects a file when it is
+opened after a change, opening a file costs time in proportion to its size.
+Measured on one developer host, with the flush itself steady at about 5 ms,
+an open-append-flush-close cycle took 12 ms on a 140 KB log, 54 ms on a 1.4 MB
+one and 400 ms on a 14 MB one, and the open was all of the difference. An audit
+log that every lease renewal and every exchange appended to reached 14 MB in two
+days, and because the open ran under the audit store's lock, every audited
+request on the hub — exchanges, administrative reads, lease renewals — ran
+one 400 ms open at a time: twelve concurrent exchanges answered at 4.7 s p50.
+With the handle held open, the same append on the same 14 MB log took 5 ms,
+the cost of its flush, and the twelve answered at 57 ms. The cost of an append
+is the flush it waits for, and nothing about it may grow with the log.
+
+So the requirement is stated as a measurement, apart from the host's flush: a
+request whose only write is one audit entry is answered within one flush plus
+5 ms at p99, with 100,000 entries in the log as with none.
+
+### A chained log is kept in segments
+
+A chained log is a sequence of segment files, appended to one at a time. The
+segment being appended to is closed, and the next begun, before it passes the
+segment size, at most 8 MiB, and at the end of a calendar month, whichever is
+first. A closed segment is never written again.
+
+The chain does not notice the boundary. The first entry of a segment chains to
+the last line of the segment before it — its `previous_hash`, or a sealed log's
+`previous_digest`, is the digest of that line — and a sealed log's `seq` goes on
+rising, so `VerifyChain` and [Verifying a sealed log](#verifying-a-sealed-log)
+read the segments in order as one log. A checkpoint covers entries, not files,
+and may fall in any segment.
+
+Why it is stated: no file a request writes to may grow without bound. A
+store held open no longer pays for its size on each append, but the file is
+still opened at start, captured by a [snapshot](#the-snapshot-route), read by
+an export and inspected by whatever on the host inspects files, each in
+proportion to its size; a log that only grows makes each of those slower for
+ever. Segments bound every one of them, and give
+[retention](#implementation-notes) whole files to archive. Retention removes or
+archives whole closed segments only. How a verifier reads a log whose earliest
+segments have been archived is not settled here.
 
 ### AuditFilter
 
@@ -1689,7 +1752,9 @@ security:
   version change belongs to the backend, so the platform blueprint states it.
 - **Retention**: Stores with retention policies (observations: 90d,
   feedback: 180d, audit: 90d) SHOULD rotate files by month and
-  delete or archive expired segments.
+  delete or archive expired segments. A chained log rotates by size as well
+  as by month, and retention takes only whole closed segments
+  ([A chained log is kept in segments](#a-chained-log-is-kept-in-segments)).
 - **Encryption**: Agents MAY encrypt data files at rest using
   AES-256-GCM with a key derived from the agent's signing secret.
   See [data-security.md](data-security.md) for key management.
@@ -1713,6 +1778,10 @@ security:
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives
 - [ ] Audit log is append-only with hash chain integrity ([Hash Chain Integrity](#hash-chain-integrity))
 - [ ] No append to an audit log or a sealed log is answered before a flush covering it has completed, a flush that fails fails every append it was to cover, and the store's lock is not held while a flush runs, so an append arriving during one is chained and written without waiting for it ([Contracts](#contracts), `durable-records`; [Appends share a flush](#appends-share-a-flush))
+- [ ] Every store opens its file for appending once and appends through that handle: no append opens, stats or re-reads the file, and a rewrite reopens the handle once, after its rename ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once))
+- [ ] No request reads a store's file to answer: every lookup a request makes is answered by key from what the store holds in memory, without scanning its records ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once))
+- [ ] A request whose only write is one audit entry is answered within one flush plus 5 ms at p99 with 100,000 entries in the log, as with none ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once))
+- [ ] A chained log is kept in segments of at most 8 MiB, closed at that size or the month's end, never written again once closed, and verifies across every boundary as one chain ([Contracts](#contracts), `durable-records`; [A chained log is kept in segments](#a-chained-log-is-kept-in-segments))
 - [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [Contracts](#contracts) `retention`)
 - [ ] All list operations support cursor-based pagination ([Contracts](#contracts) `cursor-pagination`)
 - [ ] Concurrent reads/writes do not corrupt data ([Contracts](#contracts) `concurrent-access`)
