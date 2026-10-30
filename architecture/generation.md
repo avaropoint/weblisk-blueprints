@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.8.0
+version: 1.9.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -623,6 +623,34 @@ what one component is answerable for.
 planned once however often it is asked for, and an output two components need
 (the protocol types package) has one owner: the first in topological order.
 Its run statement records every root that needed it.
+
+**Shared code is built first.** The shared packages — what the protocol
+blueprints (`protocol/*`) generate, the types and helpers every component
+imports — belong to the component whose run wrote them, in a tenant usually
+the orchestrator. When a plan builds any component against a corpus in which
+a protocol blueprint that owner was built from has moved by a version (a
+`changed` input of [`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives)'s
+table), the owner is regenerated first, `regenerate` because
+`reached-by-change`, its `detail` naming the shared inputs that moved; then
+every other component the tenant has generated is built again after it,
+`regenerate` with `added_by` the owner, so that each links against the shared
+packages as they now are. Building again keeps every file no change reached
+(row six above) and repairs what no longer builds against the new packages.
+A service generated at a newer corpus into a tenant whose shared packages
+are older otherwise meets types it was never told of, and its repair loop
+patches around a mismatch that is not its own. An input that moved without
+its version is `review`, as everywhere, and regenerates nothing.
+
+**What a run reads is fixed for the whole run.** Every blueprint source a
+run reads is held at the commit it stood at when the run began, until the run
+ends: a cached copy of a remote is read from a checkout at that commit, never
+from the copy another process may refresh meanwhile, and a change's apply
+reads its pins ([`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to)).
+Measured: one service's run read the shared cache at two commits, because a
+concurrent command refreshed it mid-run; the files generated before the
+refresh and after it were planned from two different specifications, and the
+run's record named one. A working tree read in place is a person's own, and is
+read as it stands.
 
 **Versions by minimal version selection.** The resolver takes the highest of
 the stated minimums, checks every upper bound, and never takes a newer version

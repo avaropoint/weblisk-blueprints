@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.7.0
+version: 4.8.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -477,6 +477,11 @@ resolved is [`architecture/generation`](generation.md#resolving-a-request-of-man
 `change apply` runs in the tenant, never on the client (D26). A plan with no
 entries is rendered as a fault, never as clean.
 
+Run in a tenant's own directory, `change plan` and `change apply <id>` are the
+`cli-in-tenant` half the change service runs: they write and apply
+`.weblisk/changes/<id>.json`. Run anywhere else they are its clients at
+`/v1/admin/changes`.
+
 **This is how logic arrives in a tenant.** A service an adoption's build plan
 names ([`schemas/programme`](../schemas/programme.md#adoption-emits-a-build-plan)),
 a domain service a programme asks for, and a published agent are each built by
@@ -545,7 +550,7 @@ tenant, and holds no list of its own. Each is `tenant-api`.
 |---|---|---|
 | `resource list` | `GET /v1/admin/resources` | Every declared kind, each `available` or `declared-unavailable` with its reason, which is printed and never left out |
 | `resource show <kind>` | `GET /v1/admin/resources` | One kind's declaration: its fields and how each may be set, its operations and verbs with the capability each needs, whether it takes a step-up, its states and events |
-| `<kind> list` | `GET /v1/admin/r/{kind}` | The items, a page at a time; `--where <field>=<value>` for each filter the kind declares, `--all` to read every page |
+| `<kind> list` | `GET /v1/admin/r/{kind}` | The items, a page at a time; `--where <field>=<value>` for each filter the kind declares, `--limit <n>` for the most a page may hold, sent as `limit` ([`architecture/admin`](admin.md#lists): the owner may answer fewer, never more), `--all` to read every page |
 | `<kind> show <uid>` | `GET /v1/admin/r/{kind}/{uid}` | One item, with its `ETag` |
 | `<kind> create` | `POST /v1/admin/r/{kind}` | `--set <field>=<value>` for each field it may set, or `--from <file>` |
 | `<kind> update <uid>` | `PATCH /v1/admin/r/{kind}/{uid}` | `--set`, `--from`; `If-Match` is the `ETag` of the read it makes first, or `--if-match` |
@@ -1215,6 +1220,14 @@ a running tenant, it reports that the orchestrator admits the gateway once
 restarted, because the orchestrator reads the gateway's identity when it
 starts.
 
+**A blueprint that serves no `GET /livez` is not generated as a component.**
+It describes no process of its own: the model service is the model gateway
+in the orchestrator's process ([`architecture/model-service`](model-service.md#architecture)),
+and `mcp` and `tenancy` are served by components that are. `weblisk component
+<name> init` refuses one before any model is asked, saying which route it
+lacks and what serves it instead, as a build plan already never generates
+one ([`architecture/generation`](generation.md#logic-arrives-by-generation-never-at-run-time)).
+
 The tenant root is the module root, so every component is generated into the
 same tree. Generation therefore reads what the tenant already contains — module
 path, packages present with their exported names, and which component owns which
@@ -1697,7 +1710,13 @@ that omits the door means.
   internal listener's port as `--port` and `WL_PORT` and waited on there
   ([`architecture/admin`](admin.md#a-start-and-a-builds-own-run),
   `gateway-port-is-internal`). Then the content
-  service, domains, agents, and the application gateway last.
+  service; then the services a programme runs on that the file declares,
+  in [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)'s
+  order — execution, notification, the prompt worker, the programme service
+  and the fabric service ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on)),
+  each on its section's port or its conventional one; then domains, agents,
+  and the application gateway last. `weblisk server stop` stops them in the
+  reverse order, and `weblisk server status` reports each declared one.
 - **Certificate.** Before it starts the admin gateway, it makes a new
   certificate from the gateway's own TLS key where the certificate the CLI
   made has fewer than 30 days left, so its pin holds. A certificate the
@@ -4063,10 +4082,13 @@ security:
 - [ ] `weblisk tenant create --json`'s result carries `model` only where `--model` named one ([`weblisk tenant create <name>`](#weblisk-tenant-create-name))
 - [ ] `weblisk providers --json` marks at most one backend `default`, the one the CLI's own model would start with, and marks none when there would be nothing to start with ([`weblisk providers`](#weblisk-providers))
 - [ ] `weblisk providers --json` says `local` only for a model server on this machine's loopback address, judged from the address's host — never for a coding-agent CLI, a `WL_AI_COMMAND` tool, or a server at another host ([`weblisk providers`](#weblisk-providers))
+- [ ] `weblisk component <name> init` for a blueprint whose Endpoints serve no `GET /livez` (`model-service`, `mcp`, `tenancy`) is refused before any model is asked, naming the missing route ([`weblisk component <name> init`](#weblisk-component-name-init))
 - [ ] `weblisk component help` lists a component only when the pipeline will read that component's own blueprint, so a listed kind is never generated from the protocol alone ([`weblisk component <name> init`](#weblisk-component-name-init))
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree ([`weblisk component <name> init`](#weblisk-component-name-init), [`architecture/generation`](generation.md#a-repair-round-is-a-transaction))
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation ([`weblisk server init`](#weblisk-server-init))
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components ([`weblisk server start`](#weblisk-server-start))
+- [ ] `weblisk server start` starts a declared `execution`, `notification`, `prompt_worker`, `programme_service` and `fabric` after the content service and in that order, each on its section's port or its conventional one, each given its `key_passphrase` on its standard input, and `weblisk server stop` stops them before the content service ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on))
+- [ ] `change apply` of a change that generates one of the services a programme runs on writes that service's `.weblisk/config.yaml` section with its conventional port where the file holds none, leaves a section already there as it is, and records on the change that it did ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on))
 - [ ] A component whose section names `key_passphrase` receives the passphrase the named source returns as one line on its standard input, and in no argument, environment variable or file; one reference is asked once for every component naming it; a source that does not answer starts nothing; a component with no `key_passphrase` receives nothing on its standard input ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check start-passphrase-stdin covers start-injects-passphrase -->
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything ([`weblisk server start`](#weblisk-server-start))
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last ([`weblisk server start`](#weblisk-server-start))
@@ -4237,6 +4259,7 @@ security:
 - [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period ([`weblisk marketplace terminate <id>`](#weblisk-marketplace-terminate-id))
 
 ### Resources
+- [ ] `weblisk <kind> list --limit <n>` sends `limit=<n>` with the request and prints the page the owner answered, which may hold fewer ([Resource commands](#resource-commands))
 - [ ] `weblisk resource list` prints every kind the tenant's catalogue answers, each `declared-unavailable` one with its reason, and `weblisk <kind> list` for such a kind prints the reason `ADMIN_GROUP_UNAVAILABLE` carries and exits non-zero, never printing an empty list ([Resource commands](#resource-commands))
 - [ ] The CLI offers for a kind exactly the operations and verbs its catalogue entry declares, and holds no list of nouns or verbs of its own for them ([Resource commands](#resource-commands))
 - [ ] `weblisk <kind> <verb> <uid>` prints the verb's preconditions, in-flight handling, effect and reversibility before asking, sends the `ETag` of the read it made as `If-Match`, and on `RESOURCE_PRECONDITION_FAILED` shows the item again and does not retry ([Resource commands](#resource-commands))

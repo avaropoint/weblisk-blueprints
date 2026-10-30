@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: model-service
-version: 1.1.1
+version: 1.1.2
 requires: [protocol/types, protocol/identity, architecture/orchestrator, patterns/scope]
 platform: any
 tier: free
@@ -716,13 +716,17 @@ security:
 
 ## Known Gaps
 
-**No hub serves the service route yet.** The CLI's model gateway serves four
-of the person's routes ([`architecture/orchestrator`](orchestrator.md#the-tenants-model),
-the gap note), and not `POST /v1/model/complete`. Being `provided: platform`,
-the route is not generated either, so a request to it is answered `404`, and a
-caller reads that as not runnable ([Interfaces](#interfaces)). Closing it is
-the CLI's: serve the route as this document specifies, record through
-`POST /v1/model/audit`, and append a `Completion` for both routes.
+**The service route is served only where the orchestrator records it.** The
+CLI's model gateway serves `POST /v1/model/complete` as this document
+specifies, and records through `POST /v1/model/audit` in process; an
+orchestrator generated before it served that route (architecture/orchestrator
+4.2.0) answers the first entry `404`, so every completion there is answered
+`MODEL_UNRECORDED` and none runs, until the orchestrator is rebuilt. The
+gateway holds no agreement, so the ceiling it applies is `internal` for every
+backend. Two parts remain the CLI's: the person's route appends no
+`Completion` yet, because it records no audit entries for one to name, and
+the configuration's `roles` are not read, so a request's `role` chooses no
+model.
 
 **No hub serves a `Completion` at the uniform address yet.** The records'
 `list` and `get` are read at the admin gateway's uniform address

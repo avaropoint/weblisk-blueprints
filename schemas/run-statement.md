@@ -72,6 +72,14 @@ run_statement:
         prompt_digests: [sha256:<hex>]
         on_behalf_of: <identity id of the operator who asked for the run>
         result: complete | failed | stopped   # how the run ended; see A run that did not complete
+        verdict:                   # a complete run's verification; see The verdict a run ends with
+          conformance: established | refuted | not-run
+          assertions: <count>      # the checklist's assertions, and how each ended
+          satisfied: <count>
+          unmet: <count>
+          unverifiable: <count>
+          unanswered: <count>
+          conflicts: <count>       # requirements read as contradicting the corpus
       resolvedDependencies:        # every blueprint and mapping rule read
         - uri: <full ref>
           digest: {sha256: <hex>}
@@ -140,6 +148,8 @@ types:
 8. **`result` is `complete`, `failed` or `stopped`, and only a `complete` run
    is read as what its component was built from**
    ([A run that did not complete](#a-run-that-did-not-complete)).
+9. **A complete run carries its `verdict`, and a run that did not complete
+   carries none** ([The verdict a run ends with](#the-verdict-a-run-ends-with)).
 
 ## A run that did not complete
 
@@ -170,6 +180,24 @@ what its component was built from.**
 
 `result` sits in `internalParameters` because SLSA Provenance has no field for
 how a build ended, and that block is the place it leaves to a build type.
+
+## The verdict a run ends with
+
+A complete run's statement carries the verdict its verification gate
+([`architecture/generation`](../architecture/generation.md#the-verification-gate))
+returned on the tree the run ended on, with the counts it was reached from:
+
+| `conformance` | When |
+|---|---|
+| `established` | the gate verified the artifact |
+| `refuted` | the gate settled against it: a requirement unmet, a conformance test failing, or a build that does not build |
+| `not-run` | the run completed and the gate reached no verdict: inconclusive, or not reached |
+
+The counts are the checklist's, as the gate counted them; one the gate did not
+count is absent, never `0`. **A component whose latest run is not complete
+with conformance `established` is never kept as built**: an adoption's plan
+names it `regenerate` or `repair` ([`schemas/change`](change.md#verdicts)), so
+a build that failed is never mistaken for a service the tenant has.
 
 ## Signing
 
