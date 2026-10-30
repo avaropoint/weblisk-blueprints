@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.2.1
-requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification]
+version: 2.3.0
+requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
 platform: any
 tier: free
 adoption: opt-in
@@ -266,6 +266,19 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: architecture/storage
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
+    bindings:
+      types:
+        - name: RecordSnapshot
+          fields_used: [snapshot, service, taken_at, store_format, files]
+      behaviors:
+        - name: backup-restore
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -400,8 +413,17 @@ requires:
 | POST | /v1/message | Message | yes | | The actions in [Interfaces](#interfaces), from execution on a work pass |
 | POST | /v1/event | Event | yes | | The events in [Events it hears](#events-it-hears), delivered as [`patterns/messaging`](../patterns/messaging.md) delivers them |
 | POST | /v1/services | Services | yes | | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies |
+| GET | /v1/admin/records/programme-service/snapshot | RecordSnapshot | yes | `admin:*` | Every store this service owns — every installation, installed item and what it has announced — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). A pass only. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service |
 | GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start |
+
+**Its snapshot route is guarded by `admin:*`, which it never holds.**
+`GET /v1/admin/records/programme-service/snapshot` hands over every record this service
+keeps, so it needs what an administrator may use
+([`architecture/storage`](storage.md#the-snapshot-route)). Its manifest
+declares the route among its `pass_routes` with `capabilities: [admin:*]`,
+and never declares `admin:*` among its own capabilities: a registration token
+that carried it would be an administrator's reach held by a service.
 
 **A notice has its own mute switch and no clock.** A notice is a block of its
 own in the map, belonging to no operation or workflow
@@ -2372,3 +2394,4 @@ security:
 - [ ] The manifest claims `obligation.*`, `register.*` and `programme.*` in `publishes`, and every topic in [Events it publishes](#events-it-publishes) is published with the payload its row names ([Registration and Standalone Operation](#registration-and-standalone-operation))
 - [ ] With no orchestrator URL configured, the service starts, `GET /livez` answers live, `GET /readyz` answers not ready, and every protected route answers `401` ([Registration and Standalone Operation](#registration-and-standalone-operation))
 - [ ] The uniform address serves `programme-adoption`, `installed-item`, `obligation` and `occurrence` as [Resources](#resources) declares them, and refuses a notice every verb but `mute` and `unmute` with `INVALID_STATE` ([Resources](#resources))
+- [ ] `GET /v1/admin/records/programme-service/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))

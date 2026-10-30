@@ -260,6 +260,14 @@ projects and grants, [`architecture/orchestrator`](../architecture/orchestrator.
 | `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A request of a run must be carried on a work pass under its definition's work authorisation and none can be obtained. The step is not dispatched |
 | `EXECUTION_START_LOOP` | 409 | permanent | A run asked to start a definition that the asking run's chain already holds a run of. Nothing starts, as a `for` row on such a chain starts nothing ([`architecture/execution`](../architecture/execution.md#starting-one-run-now)) |
 
+**Record snapshot codes** (produced by every service that owns a record
+store, at its snapshot route,
+[`architecture/storage`](../architecture/storage.md#the-snapshot-route)):
+
+| Code | HTTP | Category | Description |
+|------|------|----------|-------------|
+| `RECORDS_SNAPSHOT_BUSY` | 409 | transient | A snapshot of the same service's store is being written. Nothing is written for this request; it may be repeated after `retry_after` |
+
 **Identity error codes** (produced by `protocol/identity`):
 
 | Code | HTTP | Category | Description |
@@ -4221,6 +4229,11 @@ error_codes:
     category: permanent
     retryable: false
     description: A grant made naming the person making it, or revoked by the person it names. Nothing changes (architecture/orchestrator)
+  - code: RECORDS_SNAPSHOT_BUSY
+    status: 409
+    category: transient
+    retryable: true
+    description: A snapshot of the same service's store is being written. Nothing is written for this request (architecture/storage, The snapshot route)
   - code: PHASE_FAILED
     status: 500
     category: varies

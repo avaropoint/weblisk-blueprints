@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.2.1
-requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send]
+version: 1.3.0
+requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage]
 platform: any
 tier: free
 adoption: opt-in
@@ -213,6 +213,19 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+  - blueprint: architecture/storage
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
+    bindings:
+      types:
+        - name: RecordSnapshot
+          fields_used: [snapshot, service, taken_at, store_format, files]
+      behaviors:
+        - name: backup-restore
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
 ---
@@ -293,8 +306,17 @@ requires:
 | GET | /v1/notification/received | ListReceived | yes | `notification:receive` | What the caller was told, from the in_app store, newest first, cursor-paginated. A pass only |
 | POST | /v1/notification/received/{id}/seen | MarkSeen | yes | `notification:receive` | Record that the caller has seen one message held for them. A pass only |
 | POST | /v1/services | Services | yes | | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies |
+| GET | /v1/admin/records/notification/snapshot | RecordSnapshot | yes | `admin:*` | Every store this service owns — every notification, delivery and preference — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). A pass only. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /livez | Livez | no | | Liveness, for the supervisor that restarts the service |
 | GET | /readyz | Readyz | no | | Readiness, for the supervisor waiting on its start |
+
+**Its snapshot route is guarded by `admin:*`, which it never holds.**
+`GET /v1/admin/records/notification/snapshot` hands over every record this service
+keeps, so it needs what an administrator may use
+([`architecture/storage`](storage.md#the-snapshot-route)). Its manifest
+declares the route among its `pass_routes` with `capabilities: [admin:*]`,
+and never declares `admin:*` among its own capabilities: a registration token
+that carried it would be an administrator's reach held by a service.
 
 **Every route but `NotifyByPosition`, `Services`, `/livez` and `/readyz` is
 declared among the manifest's `pass_routes`**, with the one capability its
@@ -1145,3 +1167,4 @@ there). Rule 4 is this blueprint's, and nothing outside it enforces it yet.
 - [ ] An erasure request erases the person's preference and held messages and reports each delivery naming them as an `ErasureException` ([Personal Data](#personal-data))
 - [ ] A notification, its deliveries and its held messages are removed `retention` after it was made ([Configuration](#configuration), [Personal Data](#personal-data))
 - [ ] The manifest declares `notification:send`, `notification:read`, `content:describe`, `content:read`, `work:exchange` and `agent:message`, and never `notification:receive` ([Endpoints](#endpoints))
+- [ ] `GET /v1/admin/records/notification/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))

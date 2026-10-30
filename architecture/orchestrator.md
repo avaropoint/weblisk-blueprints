@@ -140,11 +140,16 @@ declaration:
         breaking: version-bump
         removed: halt-immediately
     - blueprint: architecture/storage
-      version: ">=1.0.0 <3.0.0"
+      # 2.1.0 is where backup-restore names the snapshot route
+      version: ">=2.1.0 <3.0.0"
       bindings:
         types:
           - name: AuditFilter
             fields_used: [actor, action, since, cursor, limit]
+          - name: RecordSnapshot
+            fields_used: [snapshot, service, taken_at, store_format, files]
+        behaviors:
+          - name: backup-restore
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -347,6 +352,10 @@ declaration:
       path: "/v1/admin/audit/export"
       operation: AdminAuditExport
       auth: "admin:audit"
+    - method: GET
+      path: "/v1/admin/records/orchestrator/snapshot"
+      operation: AdminRecordSnapshot
+      auth: "admin:*"
     - method: GET
       path: "/v1/admin/model"
       operation: AdminModelGet
@@ -748,6 +757,8 @@ declaration:
       endpoint: GET /v1/admin/audit
     - check: endpoint-routed
       endpoint: GET /v1/admin/audit/export
+    - check: endpoint-routed
+      endpoint: GET /v1/admin/records/orchestrator/snapshot
     - check: endpoint-routed
       endpoint: POST /v1/admin/model/audit
     - check: endpoint-routed
@@ -1225,6 +1236,7 @@ service's route, which the same model gateway serves
 | GET | /v1/admin/overview | AdminOverview | `admin:read` | Summary of the state this orchestrator holds |
 | GET | /v1/admin/audit | AdminAuditList | `admin:audit` | This orchestrator's audit log, with the query parameters and the answer of `GET /v1/audit` ([`protocol/spec`](../protocol/spec.md#get-v1audit)). The route a person reads it at; `GET /v1/audit` is a registered component's, and refuses a person's token ([Auth Middleware](#auth-middleware), step 6) |
 | GET | /v1/admin/audit/export | AdminAuditExport | `admin:audit` | The entries `AdminAuditList` would answer for the same filters, unpaged. `format=json`, the default where `format` is absent, answers an array of `AuditEntry`. `format=csv` answers `text/csv` as RFC 4180 writes it: a header row naming `AuditEntry`'s fields in the order [`protocol/types`](../protocol/types.md) declares them, then one row for each entry, each field its value as text and an absent field empty. A field whose text begins with `=`, `+`, `-`, `@`, a tab or a carriage return has a single quote (`'`) put before it, before it is quoted as RFC 4180 requires, so a spreadsheet that opens the file evaluates no field as a formula: `AuditEntry`'s `target` and `detail` can carry text a registrant chose. Any other `format` is refused with 400 `INVALID_REQUEST` |
+| GET | /v1/admin/records/orchestrator/snapshot | AdminRecordSnapshot | `admin:*` | Every store this orchestrator owns at one instant between writes, as a ustar archive led by a `RecordSnapshot`, for `weblisk tenant export` ([`architecture/storage`](storage.md#the-snapshot-route)). A second request while one is being written is answered `409` `RECORDS_SNAPSHOT_BUSY`, and each snapshot is recorded in the audit log. No route restores this store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | GET | /v1/admin/model | AdminModelGet | `admin:read` | The tenant's model configuration, a `ModelConfig` ([The tenant's model](#the-tenants-model)), which every client reads here (platform-provided) |
 | PUT | /v1/admin/model | AdminModelPut | `admin:*` | Replace it, refusing a backend this hub cannot run now, and record the change (platform-provided) |
 | GET | /v1/admin/model/providers | AdminModelProviders | `admin:read` | Each backend this hub knows how to drive, whether it can run it now, and the models the backend's own list answers on **this hub's host** (platform-provided) |
@@ -3254,3 +3266,4 @@ agents hold, which is theirs.
 - [ ] `AdminGrantCreate` and `AdminGrantRevoke` are refused without a recent re-confirmation, as `AdminAgentDeregister` is ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
 - [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
 - [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events))
+- [ ] `GET /v1/admin/records/orchestrator/snapshot` answers a request that can use `admin:*` with every store this orchestrator owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses any other with `FORBIDDEN` and an agent token with `CREDENTIAL_REQUIRED`, appends an `AuditEntry` for each snapshot it answers, and no route restores the store ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8, [`architecture/storage`](storage.md#putting-a-store-back))

@@ -188,7 +188,8 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/storage
-    version: ">=1.4.2 <3.0.0"
+    # 2.1.0 is where backup-restore names the snapshot route
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         # The change log's own key, succession and checkpoint entries
@@ -198,8 +199,12 @@ requires:
           fields_used: [outgoing, outgoing_key, incoming, incoming_key, outgoing_signature, incoming_signature]
         - name: LogCheckpoint
           fields_used: [seq, tip, issued_at, key, signature]
+        # Its store's capture, at its snapshot route
+        - name: RecordSnapshot
+          fields_used: [snapshot, service, taken_at, store_format, files]
       behaviors:
         - name: sealed-log
+        - name: backup-restore
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -386,6 +391,7 @@ signed egress record it owes, and holds every remote until then. See
 | GET | /v1/content/repositories/{repository}/log | Log | yes | A repository's change log, its lines exactly as stored, from a sequence number. Whole or refused, never filtered |
 | GET | /v1/content/repositories/{repository}/log/head | LogHead | yes | The log's id, its tip, its latest checkpoint and the key entry that introduced its key, and how many entries are unsealed. Names no path |
 | POST | /v1/content/repositories/{repository}/log/checkpoint | SealLog | yes | Seal the log now, where the tip has moved since the last checkpoint, and return its head |
+| GET | /v1/admin/records/content/snapshot | RecordSnapshot | yes | Every store this service owns — the repository registry, change logs, proposals, pseudonym map, anchors and record mirror — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). On a pass that can use `admin:*`. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | POST | /v1/services | Services | yes | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies. See [Registration and Standalone Operation](#registration-and-standalone-operation) |
 | GET | /livez | Livez | no | Liveness, for the supervisor that restarts the service. Served with or without an orchestrator |
 | GET | /readyz | Readyz | no | Readiness, for the supervisor waiting on its start. Served with or without an orchestrator |
@@ -1122,6 +1128,14 @@ Its routes are guarded by the `content:` family that document declares:
 | `content:replicate` | `POST /v1/content/repositories/{repository}/remotes`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/remotes/{remote}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/remotes` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
 | `content:declassify` | No route yet: every lowering of a recorded scope is refused until one is specified, a person's own decision made with a step-up and a second person's only where the tenant declares one ([A scope only rises](#a-scope-only-rises)). Person only |
+
+**Its snapshot route is guarded by `admin:*`, which it never holds.**
+`GET /v1/admin/records/content/snapshot` hands over every record this service
+keeps, so it needs what an administrator may use
+([`architecture/storage`](storage.md#the-snapshot-route)). Its manifest
+declares the route among its pass routes with `capabilities: [admin:*]`, and
+does not declare `admin:*` among its own capabilities: a registration token
+that carried it would be an administrator's reach held by a service.
 
 A capability name is `family:verb`. An invented name is refused at registration,
 so these MUST be the names `protocol/types` declares and no others. *Person
@@ -5533,7 +5547,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded ([Who a change was for](#who-a-change-was-for))
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH` ([Who may move an entry](#who-may-move-an-entry), [The pass](../protocol/identity.md#the-pass))
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds ([Registration and Standalone Operation](#registration-and-standalone-operation))
-- [ ] The manifest's `pass_routes` declare every route the guard table guards and no other, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`, and `GET /v1/content/proposals` with the `inbox` that section shows; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
+- [ ] The manifest's `pass_routes` declare every route the guard table guards and `GET /v1/admin/records/content/snapshot` with `[admin:*]`, and no other, and its `capabilities` do not name `admin:*`, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`, and `GET /v1/content/proposals` with the `inbox` that section shows; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute))
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded ([Declaration Flow](#declaration-flow) step 4)
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry` ([Decision Flow](#decision-flow) step 2)
 - [ ] A declaration whose `self_decision_ceiling` is `critical` is refused with `CONTENT_SEPARATION_REQUIRED` and no repository is recorded; one at `restricted` is declared, and a requester's decision to apply a `critical` change in it is refused with `CONTENT_SEPARATION_REQUIRED` ([Separation of duties](#separation-of-duties))
@@ -5606,3 +5620,4 @@ security:
 - [ ] `POST /v1/content/repositories/{repository}/log/checkpoint` on a log whose tip has moved appends a `checkpoint` entry covering the tip, and on one whose tip has not moved appends nothing ([Reading the log](#reading-the-log), [`architecture/storage`](storage.md#the-checkpoint))
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, names it `not_ready` in its lease's `checks`, and reports `chain` `broken` with that `broken_at` in its `LogHead` ([A log that does not verify](#a-log-that-does-not-verify), [Types](#types))
 - [ ] Rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation ([Who signs](#who-signs), [`architecture/storage`](storage.md#a-change-of-long-lived-key))
+- [ ] `GET /v1/admin/records/content/snapshot` on a pass that can use `admin:*` answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses a registration token and a pass without `admin:*`, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))
