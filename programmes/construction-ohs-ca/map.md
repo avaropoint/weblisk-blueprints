@@ -24,6 +24,18 @@ conforms_to:
   - iso_45001
   - isnetworld
   - csa_z462
+# The ten Ontario instruments above bind a constructor or an employer doing
+# construction work in Ontario, and are required. WSIA and Reg. 1101 among them:
+# construction is a Schedule 1 industry, WSIA reaches every person who retains
+# a contractor for construction work, and Reg. 1101 binds every employer the
+# insurance plan covers. A tenant that has not adopted them has a gap, not a
+# choice. These four are held by choice or by a client's contract, and the
+# programme answers them only where they are held.
+optional_standards:
+  - cor_2020
+  - iso_45001
+  - isnetworld
+  - csa_z462
 
 tiers:
   - id: essential

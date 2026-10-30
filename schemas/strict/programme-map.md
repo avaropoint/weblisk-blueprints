@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.1.0
+version: 2.2.0
 kind: programme
 noun: programme
 capabilities: [author, versioned, depends, publishable, adoptable]
@@ -39,6 +39,7 @@ header:
       title:           {type: string}
       domains:         {type: array, items: {type: string}}
       conforms_to:     {type: array, items: {type: string}}
+      optional_standards: {type: array, items: {type: string}}
       tiers:           {type: array, items: {$ref: "#/$defs/tier"}}
       artifacts:       {type: array, items: {$ref: "#/$defs/placement"}}
       operations:      {type: array, items: {type: object}}
@@ -52,6 +53,7 @@ header:
   uses:
     domains:         {use: depends, send: always}
     conforms_to:     {use: depends, send: always}
+    optional_standards: {use: depends, send: always}
     tiers:           {use: declares, send: always}
     artifacts:       {use: declares, send: always}
     operations:      {use: declares, send: always}
