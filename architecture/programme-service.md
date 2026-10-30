@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
 platform: any
 tier: free
