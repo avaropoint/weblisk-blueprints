@@ -71,6 +71,7 @@ run_statement:
         model: <the id the backend reported at run time, or unreported>
         prompt_digests: [sha256:<hex>]
         on_behalf_of: <identity id of the operator who asked for the run>
+        result: complete | failed | stopped   # how the run ended; see A run that did not complete
       resolvedDependencies:        # every blueprint and mapping rule read
         - uri: <full ref>
           digest: {sha256: <hex>}
@@ -136,6 +137,39 @@ types:
 7. **A subject's `blueprints` are a subset of `resolvedDependencies`, at the
    same digests.** The run's list is everything it read; a subject's is what
    that file was made from.
+8. **`result` is `complete`, `failed` or `stopped`, and only a `complete` run
+   is read as what its component was built from**
+   ([A run that did not complete](#a-run-that-did-not-complete)).
+
+## A run that did not complete
+
+A run ends `complete` when it generated every file its plan named and its
+verification gate returned a verdict; `failed` when it ended on a fault; and
+`stopped` when something outside it ended it, a person, a limit the model
+backend reported, or a host going down. **Only a `complete` run is read as
+what its component was built from.**
+
+- The statement is written when the run reaches one of these, with its
+  `result`, and `finishedOn` is when it did. A run killed before it could write
+  one may leave a record of having started, written wherever its
+  implementation keeps one; any record of a run with no `result` is read as
+  `stopped`.
+- **What a component was built from is read from its latest run, and only when
+  that run is `complete`.** When the latest run is not, the component's
+  standing is unassessed ([`schemas/change`](change.md#unassessed-is-not-a-verdict)),
+  naming the run and its result. It is never read from that run, whose inputs
+  the component only partly holds, and never from the complete run before it,
+  whose files the later run has partly replaced. A run that stopped and is
+  read as the inputs makes a component look nearly current exactly when it is
+  least so.
+- A subject of a run that did not complete is still a true record of the file
+  it names: that file was written, from those blueprints, at that digest. The
+  rebuild decision ([`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt))
+  reads it for that file, so a resumed run keeps what the stopped one wrote and
+  does not refuse it as edited.
+
+`result` sits in `internalParameters` because SLSA Provenance has no field for
+how a build ended, and that block is the place it leaves to a build type.
 
 ## Signing
 

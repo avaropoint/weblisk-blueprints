@@ -14,6 +14,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ids import parse  # the id grammar of schemas/names.md
 
 HEX32, DIGEST = re.compile(r"^[0-9a-f]{32}$"), re.compile(r"^sha256:[0-9a-f]{64}$")
+COMMIT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")  # a full git commit, SHA-1 or SHA-256
+APPLIED = ("applied", "verified", "failed")
 # An ML-DSA-65 signature is 3309 bytes: 4412 characters of unpadded base64url.
 SIGNATURE = re.compile(r"^[A-Za-z0-9_-]{4412}$")
 
@@ -57,13 +59,25 @@ def change_broken(c):
     base = c.get("base", {})
     if not base.get("corpus") or not DIGEST.match(str(base.get("lock", ""))) or base.get("fabric_tip", "unreported") != "unreported" and not DIGEST.match(base["fabric_tip"]):
         b.add("change-base")
+    pins = base.get("pins")
+    if not isinstance(pins, list) or not pins or not all(
+            isinstance(p, dict) and p.get("kind") in ("project", "custom", "core") and p.get("origin")
+            and COMMIT.match(str(p.get("revision", ""))) for p in pins) or base.get("corpus") != pins[0].get("revision"):
+        b.add("base-pins")
+    if "lock_of" in base and not (isinstance(base["lock_of"], str) and base["lock_of"].strip()): b.add("base-lock-of")
     plan = c.get("plan") or []
     if not plan: b.add("plan-not-empty")
     for e in plan:
         if ("unit" in e) == ("output" in e): b.add("plan-target")
         if e.get("because") not in VERDICTS.get(e.get("verdict"), set()): b.add("plan-verdict")
         if e.get("phase") == "F" and "output" not in e: b.add("plan-phase-f")
-    if (a is not None) != (st in ("approved", "applied", "verified", "failed")) and st != "superseded": b.add("approval-present")
+    units = {e.get("unit") for e in plan if "unit" in e}
+    for u in c.get("unassessed") or []:
+        if not u.get("unit") or not u.get("detail") or "verdict" in u or "because" in u or u.get("unit") in units:
+            b.add("unassessed-entry")
+    unapproved = c.get("without_approval") is True and st in APPLIED
+    if (a is not None) != (st in ("approved",) + APPLIED and not unapproved) and st != "superseded": b.add("approval-present")
+    if "without_approval" in c and (c["without_approval"] is not True or st not in APPLIED): b.add("without-approval")
     pos = c.get("approver_position")
     if a is not None and (a.get("position") != pos if pos is not None else "position" in a): b.add("approval-position")
     r = c.get("rejection")
@@ -73,7 +87,12 @@ def change_broken(c):
         if a.get("by") == c.get("requested_by") and a.get("development") is not True: b.add("approval-self")
         found = c.get("resolution", {}).get("conflicts", {}).get("found", [])
         if any(f["code"] != "C2" or c.get("strict", True) for f in found): b.add("approval-conflicts")
-    if ("applied_run" in c) != (st in ("applied", "verified", "failed")): b.add("applied-run")
+    if ("applied_run" in c) != (st in APPLIED): b.add("applied-run")
+    if "outcomes" in c and (st not in APPLIED or not all(
+            o.get("component") and o.get("result") in ("built", "failed", "refused", "skipped")
+            and (o.get("verdict") or {}).get("outcome") in ("verified", "failed", "inconclusive", "unchecked")
+            for o in c["outcomes"])):
+        b.add("outcomes-present")
     return b
 
 

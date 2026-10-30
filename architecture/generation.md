@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.7.0
+version: 1.8.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -590,6 +590,10 @@ What the generator puts in it, and why each is its job:
 - **What each output was generated from** — the requirements, mapping rules and
   controls its prompt cited — and every blueprint and rule the run resolved,
   each at its digest.
+- **How the run ended**, `complete`, `failed` or `stopped`. Only a complete
+  run is read as what its component was built from; a component whose latest
+  run did not complete is unassessed
+  ([`schemas/run-statement`](../schemas/run-statement.md#a-run-that-did-not-complete)).
 
 The statement is the outbox for the relationship fabric: its
 `generation-statements` producer turns each statement into ledger edges
@@ -655,6 +659,25 @@ added by a dependency of the one that needed it, and is built only on approval.
 A component marked `adoption: opt-in` is never pulled in: reaching one is a
 refusal naming the root that reached it.
 
+**An opt-in blueprint joins a component's build when the tenant's configuration
+adopts it, and by nothing else.** For a backend, that is a
+`<kind>.backends[].driver` in the tenant's configuration
+([`schemas/config`](../schemas/config.md)) naming a driver the blueprint lists
+in its header's `drivers` ([`schemas/common`](../schemas/common.md#drivers)):
+the blueprint then joins the context set of the component of that kind, and is
+recorded in its run statement like any other input, so a later plan compares
+against it. A driver no blueprint lists is reported as missing, never skipped,
+and a configuration that cannot be read adopts nothing and is reported, never
+read as "nothing adopted".
+
+**The plan is told which blueprints the configuration adopts, and by which
+entry.** A model shown an opt-in blueprint with nothing saying the tenant
+adopted it reads `adoption: opt-in` and plans it out; measured, a content
+service's plan with the git backend's blueprint in its context and no such
+statement named no git file at all, and with it the plan named the files of both drivers.
+The statement goes to the plan's prompt only: it is what the plan reads, not
+an input of any file, so it moves no file's record.
+
 **Impact is the same walk in reverse, at binding level.** A new version reaches
 its dependants through the `fields_used` of their bindings, then the components
 built from them, then the files answerable for the changed parts, along the
@@ -668,9 +691,11 @@ answerable for and is `assessed-unchanged` (row five of the rebuild decision
 above), and an output a person edited is `refused` (row two). The result is always a plan for a person
 to approve, never a regeneration.
 
-**A plan is bound to what it read.** It records the corpus revision, the lock's
-digest and the fabric's chain tip. `apply` refuses a plan any of them has moved
-past, and the client says it is stale.
+**A plan is bound to what it read.** It records every source it read at a full
+commit, the lock's digest and the fabric's chain tip. `apply` refuses a plan any
+of them has moved past, and the client says it is stale; and it reads the
+corpus at those commits, never at a source's head
+([`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to)).
 
 ### Generation order comes from the plan
 
@@ -1886,6 +1911,8 @@ and "nothing contradicted it".
 - [ ] Each of C1 to C8 is refused before any model call, naming the pair; C2 is reported, and refused under `--strict` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] A breaking change outside a dependant's range plans `blocked` naming it, and a removal plans `halt` ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] A component reached through `adoption: opt-in` is a refusal naming the root; one added by a dependency is planned as such and built only on approval ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] An opt-in blueprint joins a component's context set only when the tenant's configuration names a driver its header's `drivers` lists, a driver no blueprint lists is reported as missing, and the plan's prompt is told which blueprints the configuration adopts and by which entry ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
+- [ ] A run records how it ended, and a component whose latest run did not complete is unassessed, never read from that run or the one before it ([The run statement](#the-run-statement), [`schemas/run-statement`](../schemas/run-statement.md#a-run-that-did-not-complete))
 - [ ] `apply` refuses a plan whose corpus revision, lock digest or fabric tip has moved ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] A component whose blueprint declares a kind is generated with a handler at the uniform address for every operation and verb that binds nothing, a feed route for every kind with `events`, each among its `pass_routes`, and its manifest's `resources`; a bound operation gains no second handler ([Resources](#resources))
 - [ ] Creating a tenant, generating a component and adding one each leave a `.weblisk/resources.json` naming the corpus revision it was read from and every Resources block in it, with whether the tenant declares each owner ([Resources](#resources))

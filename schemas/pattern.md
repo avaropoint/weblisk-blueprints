@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.1.0
 kind: blueprint
 noun: pattern
 match: [patterns/*.md]
@@ -44,6 +44,8 @@ header:
       end_of_life:   {$ref: "schemas/blocks#/$defs/date"}
       retired:       {$ref: "schemas/blocks#/$defs/retired"}
       formerly:      {type: array, items: {$ref: "schemas/blocks#/$defs/ref"}}
+      adoption:      {enum: [required, opt-in]}
+      drivers:       {type: array, items: {type: string}}
   uses:
     requires:   {use: depends, resolves: blueprint, send: always}
 ```

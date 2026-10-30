@@ -139,6 +139,47 @@
       "schema": "build-lock",
       "valid": false,
       "rule": "lock-keys"
+    },
+    {
+      "file": "valid-upgrade-applied-without-approval.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
+      "file": "invalid-short-pin.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "base-pins"
+    },
+    {
+      "file": "invalid-unassessed-as-current.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "unassessed-entry"
+    },
+    {
+      "file": "invalid-outcomes-before-apply.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "outcomes-present"
+    },
+    {
+      "file": "invalid-applied-unapproved.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "approval-present"
+    },
+    {
+      "file": "invalid-lock-of-empty.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "base-lock-of"
+    },
+    {
+      "file": "invalid-without-approval-before-apply.json",
+      "schema": "change",
+      "valid": false,
+      "rule": "without-approval"
     }
   ]
 }
