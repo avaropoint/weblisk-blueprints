@@ -37,8 +37,8 @@ frontmatter:
 > it and the corrective action arising from that investigation cites it again. It
 > must be issued when the incident is reported and must never be reused.
 >
-> Each report opens one row in the **Incident Register**
-> (`registers/incidents.md`), from which the investigation obligation is raised.
+> Each report opens one row in the **Register of Project Incidents**
+> (`registers/project-incidents.md`), from which the investigation obligation is raised.
 
 ```wl:table
 id: records

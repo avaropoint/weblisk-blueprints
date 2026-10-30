@@ -35,7 +35,7 @@ frontmatter:
 > from.
 >
 > Each completed record is one row in **Orientation Verification Record**
-> (`registers/site-orientation.md`). Credentials go to the credential register.
+> (`registers/site-orientation-verifications.md`). Credentials go to the credential register.
 
 ```wl:table
 id: records
