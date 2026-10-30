@@ -194,9 +194,11 @@ command-line tool, and answers `not_installed` where that tool is missing.
 keychain, reached through this protocol as every source is: macOS's first,
 then the Secret Service on Linux, then Windows', in that order. It holds an
 identity whole unless the person asks it to remember only the passphrase. On
-a platform it carries none for, it answers `not_installed`. No CLI carries
-one yet, so until it does, a person who wants a keychain names a helper that
-speaks for it.
+a platform it carries none for, it answers `not_installed`, and so does a
+home with no keychain of its own, where asking would only put a dialog about
+a missing keychain in front of the person. Where the CLI carries none yet for
+a platform, a person who wants a keychain there names a helper that speaks
+for it.
 
 **The keychain source also holds each hub credential the CLI keeps there**,
 each as an item of its own: never inside the item or the file that holds the
