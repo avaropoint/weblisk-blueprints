@@ -8,7 +8,6 @@ path: procedures/corrective-action.md
 satisfies:
   - iso_45001:10.2
   - iso_45001:10.3
-  - cor_2020:COR-02
 
 requires: [ohs.incident-investigation]
 

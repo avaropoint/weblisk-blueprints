@@ -6,7 +6,6 @@ structure: procedure
 path: procedures/project-corrective-action.md
 
 satisfies:
-  - cor_2020:COR-02
   - iso_45001:10.2
   - iso_45001:10.3
   - iso_45001:9.1.2

@@ -32,6 +32,10 @@ declares:
     records: registers/programme-reviews.md
     satisfies:
       - iso_45001:9.3
+      # COR-02 is senior management's periodic, minuted review — this
+      # obligation and its record, not the corrective-action sweep that
+      # claimed it before.
+      - cor_2020:COR-02
   register:
     title: Management Review Record
     note: >
