@@ -84,17 +84,17 @@ declares:
       - {key: heaviest_load_kg, label: Heaviest load this vehicle carries (kg), type: int}
       - {key: aggregate_sufficient, label: The aggregate is at least half the weight of the heaviest load, type: select, required: true,
          options: ["Yes", "No", "Cannot be determined — markings or weights unknown"]}
-      - {key: equipment_condition, label: Condition of straps, chains, binders, edge protection and tarps, type: longtext, required: true}
+      - {key: equipment_condition, label: "Condition of straps, chains, binders, edge protection and tarps", type: longtext, required: true}
       - {key: damaged_equipment_withdrawn, label: Damaged equipment withdrawn from use, type: bool, required: true}
       - {key: defects_raised, label: Defect numbers raised in the defect register, type: text}
       - {key: load_observed, label: A loaded vehicle was observed, type: bool, required: true}
       - {key: minimum_tiedowns_met, label: The minimum tiedown count was met on the load observed, type: select, required: true,
          options: ["Yes", "No", "No load was observed"]}
-      - {key: accessory_equipment_secured, label: Booms, blades, buckets and outriggers lowered and secured separately, type: select, required: true,
+      - {key: accessory_equipment_secured, label: "Booms, blades, buckets and outriggers lowered and secured separately", type: select, required: true,
          options: ["Yes", "No", "Not applicable to this vehicle"]}
       - {key: driver_knows_recheck_rule, label: The driver could state the 80 km and 3 hour or 240 km re-examination rule, type: bool, required: true}
       - {key: findings, label: Findings, type: longtext, required: true}
-      - {key: actions, label: Actions, with owners and dates, type: longtext}
+      - {key: actions, label: "Actions, with owners and dates", type: longtext}
 ---
 
 What this document must establish for THIS organisation: what it actually

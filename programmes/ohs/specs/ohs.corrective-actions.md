@@ -62,9 +62,9 @@ declares:
       - {key: overdue_actions, label: Actions past their due date, type: int, required: true}
       - {key: oldest_overdue, label: Oldest overdue action, type: text}
       - {key: oldest_overdue_days, label: Days past due, type: int}
-      - {key: extended, label: Extended, with the reason, type: longtext}
-      - {key: escalated, label: Escalated, and to whom, type: longtext}
-      - {key: accepted_as_risk, label: Accepted as a risk, and by whom, type: longtext}
+      - {key: extended, label: "Extended, with the reason", type: longtext}
+      - {key: escalated, label: "Escalated, and to whom", type: longtext}
+      - {key: accepted_as_risk, label: "Accepted as a risk, and by whom", type: longtext}
 ---
 
 What this document must establish for THIS organisation: how a finding becomes an

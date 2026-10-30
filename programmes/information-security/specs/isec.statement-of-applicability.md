@@ -39,7 +39,7 @@ declares:
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: controls_applicable, label: Controls applicable, type: int, required: true}
       - {key: controls_excluded, label: Controls excluded, type: int, required: true}
-      - {key: controls_implemented, label: Of the applicable, implemented, type: int, required: true}
+      - {key: controls_implemented, label: "Of the applicable, implemented", type: int, required: true}
       - {key: exclusions_changed, label: Exclusions added or removed, type: int, required: true}
       - {key: justifications_updated, label: Justifications updated, type: int, required: true}
       - {key: notes, label: Findings and actions, type: longtext, required: true}

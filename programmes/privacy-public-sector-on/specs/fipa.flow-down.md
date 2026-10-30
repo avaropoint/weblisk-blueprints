@@ -41,7 +41,7 @@ declares:
       - {key: with_privacy_terms, label: With privacy and security terms, type: int, required: true}
       - {key: residency_terms, label: With data residency requirements, type: int, required: true}
       - {key: subcontractors, label: Subcontractors touching institutional records, type: int, required: true}
-      - {key: subcontractors_bound, label: Of those, bound by equivalent terms, type: int, required: true}
+      - {key: subcontractors_bound, label: "Of those, bound by equivalent terms", type: int, required: true}
       - {key: staff_screened, label: Staff with access confirmed as screened and under confidentiality, type: bool, required: true}
       - {key: actions, label: Actions taken, type: longtext, required: true}
 ---

@@ -38,9 +38,9 @@ declares:
       - {key: confirmed_on, label: Confirmed on, type: date, required: true}
       - {key: confirmed_by, label: Confirmed by, type: user, required: true}
       - {key: agents, label: Agents acting on our behalf, type: int, required: true}
-      - {key: agents_informed, label: Of those, confirmed as informed of their duties, type: int, required: true}
+      - {key: agents_informed, label: "Of those, confirmed as informed of their duties", type: int, required: true}
       - {key: service_providers, label: Electronic service providers, type: int, required: true}
-      - {key: providers_with_agreements, label: Of those, with a written agreement, type: int, required: true}
+      - {key: providers_with_agreements, label: "Of those, with a written agreement", type: int, required: true}
       - {key: network_providers, label: Health information network providers, type: int, required: true}
       - {key: access_reviewed, label: Their access reviewed and reduced where possible, type: bool, required: true}
       - {key: actions, label: Actions taken, type: longtext, required: true}

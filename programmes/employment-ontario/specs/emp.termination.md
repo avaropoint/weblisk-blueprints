@@ -42,7 +42,7 @@ declares:
       - {key: terminations, label: Terminations in the period, type: int, required: true}
       - {key: notice_or_pay_correct, label: Statutory notice or pay in lieu correct in every case, type: bool, required: true}
       - {key: severance_owed, label: Cases where severance was owed, type: int, required: true}
-      - {key: severance_paid, label: Of those, paid, type: int, required: true}
+      - {key: severance_paid, label: "Of those, paid", type: int, required: true}
       - {key: mass_termination, label: Mass termination thresholds reached, type: bool, required: true}
       - {key: form_1_filed, label: Form 1 filed where required, type: bool, required: true}
       - {key: final_pay_on_time, label: Final pay and accrued vacation paid on time, type: bool, required: true}

@@ -42,7 +42,7 @@ declares:
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: approved_count, label: Approved software and services, type: int, required: true}
       - {key: services_found_unapproved, label: Found in use and not approved, type: int, required: true}
-      - {key: handling_personal_information, label: Of those, handling personal information, type: int, required: true}
+      - {key: handling_personal_information, label: "Of those, handling personal information", type: int, required: true}
       - {key: unsupported, label: Approved items now unsupported, type: int, required: true}
       - {key: licences_reconciled, label: Licences reconciled with use, type: bool, required: true}
       - {key: actions, label: Actions taken, type: longtext, required: true}

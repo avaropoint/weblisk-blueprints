@@ -40,7 +40,7 @@ declares:
       - {key: people_in_scope, label: People in scope, type: int, required: true}
       - {key: completed, label: Completed, type: int, required: true}
       - {key: high_contact_roles, label: People in roles handling personal information daily, type: int, required: true}
-      - {key: high_contact_completed, label: Of those, completed, type: int, required: true}
+      - {key: high_contact_completed, label: "Of those, completed", type: int, required: true}
       - {key: actions, label: Follow-up, type: longtext, required: true}
 ---
 

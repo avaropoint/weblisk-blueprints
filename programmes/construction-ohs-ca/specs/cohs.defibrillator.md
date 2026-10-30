@@ -55,7 +55,7 @@ declares:
       - {key: signage, label: Signage at the unit and throughout the project, type: bool, required: true}
       - {key: unobstructed, label: Storage protected and unobstructed, type: bool, required: true}
       - {key: trained_worker_present, label: A worker trained in CPR and defibrillator use present whenever work is in progress, type: bool, required: true}
-      - {key: record_with_unit, label: Inspection record kept with the unit, dated and signed, type: bool, required: true}
+      - {key: record_with_unit, label: "Inspection record kept with the unit, dated and signed", type: bool, required: true}
       - {key: action, label: Action taken, type: longtext}
 ---
 

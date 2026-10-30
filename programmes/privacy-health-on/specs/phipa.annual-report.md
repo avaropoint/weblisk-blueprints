@@ -51,7 +51,7 @@ declares:
       - {key: used_without_authority, label: Used without authority, type: int, required: true}
       - {key: disclosed_without_authority, label: Disclosed without authority, type: int, required: true}
       - {key: total, label: Total, type: int, required: true}
-      - {key: reported_during_year, label: Of those, reported to the Commissioner during the year, type: int, required: true}
+      - {key: reported_during_year, label: "Of those, reported to the Commissioner during the year", type: int, required: true}
       - {key: confirmation, label: Submission confirmation reference, type: text}
 ---
 

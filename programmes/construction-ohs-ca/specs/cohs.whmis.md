@@ -58,7 +58,7 @@ declares:
       - {key: familiarity_assessed_how, label: How familiarity was assessed, type: longtext, required: true}
       - {key: change_in_circumstances, label: Changes in circumstances since the last review, type: longtext, required: true}
       - {key: retraining_required, label: Retraining required, type: bool, required: true}
-      - {key: retraining_for, label: For whom, and by when, type: longtext}
+      - {key: retraining_for, label: "For whom, and by when", type: longtext}
       - {key: inventory_reconciled, label: Product inventory reconciled to the data sheets held, type: bool, required: true}
 ---
 

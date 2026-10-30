@@ -76,14 +76,14 @@ declares:
       - {key: with_certificate, label: Holding a certificate of qualification, type: int, required: true}
       - {key: with_provisional, label: Holding a provisional certificate of qualification, type: int, required: true}
       - {key: registered_apprentices, label: Apprentices under an unsuspended registered training agreement, type: int, required: true}
-      - {key: exempt, label: Exempted by regulation, with the exemption named, type: longtext}
+      - {key: exempt, label: "Exempted by regulation, with the exemption named", type: longtext}
       - {key: unauthorised_found, label: Individuals who could not produce proof, type: int, required: true}
-      - {key: unauthorised_detail, label: Who, on what trade, and for which employer, type: longtext}
+      - {key: unauthorised_detail, label: "Who, on what trade, and for which employer", type: longtext}
       - {key: work_stopped, label: The work was stopped, type: select, required: true,
          options: [Not applicable — nobody unauthorised, "Yes", "No — the reason is recorded"]}
       - {key: ratio_observed, label: The ratio was observed on every trade, type: bool, required: true}
-      - {key: ratio_detail, label: Ratio counted, per trade, type: longtext, required: true}
-      - {key: proof_sighted, label: Proof was sighted, not asserted, type: bool, required: true}
+      - {key: ratio_detail, label: "Ratio counted, per trade", type: longtext, required: true}
+      - {key: proof_sighted, label: "Proof was sighted, not asserted", type: bool, required: true}
       - {key: expiring_within_90_days, label: Certificates expiring within ninety days, type: int, required: true}
       - {key: action, label: Action taken, type: longtext}
 ---

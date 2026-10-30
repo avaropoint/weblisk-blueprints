@@ -89,7 +89,7 @@ declares:
       - {key: class_on_abstract, label: Class shown on the Ministry's record, type: text, required: true}
       - {key: air_brake_on_abstract, label: Air brake (Z) endorsement on the Ministry's record, type: bool, required: true}
       - {key: matches_register, label: The register matches the Ministry's record, type: bool, required: true}
-      - {key: discrepancy, label: Where they disagree, and what was done, type: longtext}
+      - {key: discrepancy, label: "Where they disagree, and what was done", type: longtext}
       - {key: convictions_since_last, label: Convictions since the last review, type: int, required: true}
       - {key: demerit_points, label: Demerit points, type: int, required: true}
       - {key: medical_status, label: Medical, type: select, required: true,
@@ -102,7 +102,7 @@ declares:
          options: ["Continues to drive", "Continues, with conditions or training",
                    "Restricted to particular vehicles", "Removed from driving duties",
                    Not yet determined]}
-      - {key: actions, label: Actions, with owners and dates, type: longtext}
+      - {key: actions, label: "Actions, with owners and dates", type: longtext}
       - {key: next_review, label: Next review due, type: date}
 ---
 

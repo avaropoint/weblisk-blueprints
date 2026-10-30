@@ -74,7 +74,7 @@ declares:
       - {key: trip_inspections_expected, label: Trip inspections expected, type: int, required: true}
       - {key: trip_inspections_recorded, label: Trip inspections recorded, type: int, required: true}
       - {key: defects_open, label: Defects open at the end of the period, type: int, required: true}
-      - {key: major_defects_open, label: Of those, classified major, type: int, required: true}
+      - {key: major_defects_open, label: "Of those, classified major", type: int, required: true}
       - {key: defects_unclassified, label: Defects with no classification, type: int, required: true}
       - {key: vehicles_moved_with_open_major, label: Vehicles that moved with an open major defect, type: int, required: true}
       - {key: defects_found_by_us, label: Defects the organisation found itself, type: int, required: true}
@@ -90,9 +90,9 @@ declares:
       - {key: collision_reviews_overdue, label: Collision reviews past their deadline, type: int, required: true}
       - {key: open_actions_from_reviews, label: Open actions from collision reviews and audits, type: longtext, required: true}
       - {key: cvor_position, label: CVOR position at the last abstract, type: text, required: true}
-      - {key: registers_unreadable, label: Registers that could not be read, and why, type: longtext, required: true}
+      - {key: registers_unreadable, label: "Registers that could not be read, and why", type: longtext, required: true}
       - {key: findings, label: Findings, type: longtext, required: true}
-      - {key: actions, label: Actions, with owners and dates, type: longtext, required: true}
+      - {key: actions, label: "Actions, with owners and dates", type: longtext, required: true}
       - {key: escalated_to_management, label: Escalated to senior management, type: bool, required: true}
 ---
 

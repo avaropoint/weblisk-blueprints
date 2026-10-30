@@ -30,7 +30,7 @@ register:
     - {key: incident_id, label: Incident reference, type: text, required: true}
     - {key: discovered_on, label: Discovered on, type: date, required: true}
     - {key: discovered_time, label: Time discovered, type: text, required: true}
-    - {key: occurred_on, label: Occurred on, if different, type: date}
+    - {key: occurred_on, label: "Occurred on, if different", type: date}
     - {key: discovered_by, label: Discovered by, type: text, required: true}
     - {key: location, label: Where it happened, type: text, required: true}
     - {key: project, label: Construction project, type: relation,
@@ -52,12 +52,12 @@ register:
     - {key: source, label: Where it came from, type: text, required: true}
     - {key: whose_pollutant, label: Owner of the pollutant, type: text}
     - {key: control_of_pollutant, label: Who had control of it, type: text, required: true}
-    - {key: entered_water, label: Reached, or may reach, any waters, type: bool, required: true}
+    - {key: entered_water, label: "Reached, or may reach, any waters", type: bool, required: true}
     - {key: pathway, label: Drainage or migration pathway, type: longtext}
-    - {key: adverse_effect, label: Adverse effect that occurred, or may occur, type: longtext, required: true}
+    - {key: adverse_effect, label: "Adverse effect that occurred, or may occur", type: longtext, required: true}
     - {key: immediate_actions, label: What was done in the first hour, type: longtext, required: true}
     - {key: contained_on, label: Contained on, type: date}
-    - {key: third_party_involved, label: A sub-trade, hauler or supplier was involved, type: bool, required: true}
+    - {key: third_party_involved, label: "A sub-trade, hauler or supplier was involved", type: bool, required: true}
     - {key: status, label: Status, type: select, required: true,
        options: ["Open — response under way",
                  "Open — reported, remediation under way",

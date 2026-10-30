@@ -69,7 +69,7 @@ declares:
       - {key: checked_on, label: Checked on, type: date, required: true}
       - {key: checked_by, label: Checked by, type: user}
       - {key: running, label: The discharge was running at the time of the check, type: bool, required: true}
-      - {key: volume_taken_litres, label: Highest daily volume taken in the week, in litres, type: number, required: true}
+      - {key: volume_taken_litres, label: "Highest daily volume taken in the week, in litres", type: number, required: true}
       - {key: daily_volumes_recorded, label: Daily volumes recorded for every day of the week, type: bool, required: true}
       - {key: exceeded_the_permitted_rate, label: The taking exceeded what the instrument permits, type: bool, required: true}
       - {key: clarity, label: Appearance of the discharge, type: select, required: true,
@@ -78,16 +78,16 @@ declares:
                    "Visibly turbid — discharge stopped",
                    "Sheen, colour or odour present — discharge stopped",
                    "Not running at the time of the check"]}
-      - {key: turbidity_ntu, label: Turbidity, in NTU, type: number}
-      - {key: total_suspended_solids, label: Total suspended solids, in mg/L, type: number}
+      - {key: turbidity_ntu, label: "Turbidity, in NTU", type: number}
+      - {key: total_suspended_solids, label: "Total suspended solids, in mg/L", type: number}
       - {key: ph, label: pH, type: number}
       - {key: sample_taken, label: A sample was taken and sent for analysis, type: bool, required: true}
       - {key: within_limits, label: Results within every limit the instrument or the by-law sets, type: select, required: true,
          options: ["Within limits", "Outside a limit — reported", "Outside a limit — not yet reported",
                    "No limits are set for this discharge", "Awaiting results"]}
-      - {key: treatment_condition, label: Condition of the settling, filtration and flocculation in use, type: longtext, required: true}
+      - {key: treatment_condition, label: "Condition of the settling, filtration and flocculation in use", type: longtext, required: true}
       - {key: erosion_controls_intact, label: Erosion and sediment controls at the discharge point intact, type: bool, required: true}
-      - {key: discharge_reaching_water, label: Sediment or discoloured water is reaching a watercourse, ditch or sewer, type: bool, required: true}
+      - {key: discharge_reaching_water, label: "Sediment or discoloured water is reaching a watercourse, ditch or sewer", type: bool, required: true}
       - {key: incident_raised, label: An environmental incident was raised, type: relation,
          target: /registers/environmental-incidents.md#records, display: incident_id}
       - {key: action_taken, label: What was done, type: longtext}

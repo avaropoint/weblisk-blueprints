@@ -51,7 +51,7 @@ declares:
       - {key: inspector, label: Inspected by, type: user, required: true}
       - {key: competence, label: Basis of the inspector's competence, type: text, required: true}
       - {key: against, label: Inspected against, type: text, required: true}
-      - {key: webbing_and_stitching, label: Webbing, stitching and hardware, type: longtext, required: true}
+      - {key: webbing_and_stitching, label: "Webbing, stitching and hardware", type: longtext, required: true}
       - {key: arrest_indicator, label: Arrest or impact indicator deployed, type: bool, required: true}
       - {key: outcome, label: Outcome, type: select, required: true,
          options: [Serviceable, Quarantined, Destroyed]}

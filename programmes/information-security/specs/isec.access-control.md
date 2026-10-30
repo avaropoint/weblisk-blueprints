@@ -56,7 +56,7 @@ declares:
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: confirmed_by_owner, label: Confirmed by the asset owner, type: bool, required: true}
       - {key: accounts_reviewed, label: Accounts reviewed, type: int, required: true}
-      - {key: privileged_accounts, label: Of those, privileged, type: int, required: true}
+      - {key: privileged_accounts, label: "Of those, privileged", type: int, required: true}
       - {key: accounts_removed, label: Accounts removed or reduced, type: int, required: true}
       - {key: dormant_accounts, label: Dormant accounts found, type: int, required: true}
       - {key: shared_accounts, label: Shared accounts in use, type: int, required: true}

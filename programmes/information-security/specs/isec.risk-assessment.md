@@ -44,7 +44,7 @@ declares:
       - {key: scope, label: Scope of the assessment, type: longtext, required: true}
       - {key: method, label: Method and criteria used, type: longtext, required: true}
       - {key: risks_identified, label: Risks identified, type: int, required: true}
-      - {key: risks_new, label: Of those, new since the last assessment, type: int, required: true}
+      - {key: risks_new, label: "Of those, new since the last assessment", type: int, required: true}
       - {key: risks_above_appetite, label: Risks above appetite, type: int, required: true}
       - {key: changes_since_last, label: What changed since the last assessment, type: longtext, required: true}
 ---

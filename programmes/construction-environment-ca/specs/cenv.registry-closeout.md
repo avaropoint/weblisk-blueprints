@@ -67,11 +67,11 @@ declares:
       - {key: last_load_on, label: Date of the last load removed, type: date}
       - {key: updated_on, label: Notice updated on, type: date}
       - {key: within_30_days, label: Updated within the 30 days the Regulation allows, type: bool, required: true}
-      - {key: volume_reuse_m3, label: Deposited at reuse sites, in cubic metres, type: number}
-      - {key: volume_class1_m3, label: Deposited at Class 1 soil management sites, in cubic metres, type: number}
-      - {key: volume_class2_m3, label: Deposited at Class 2 soil management sites, in cubic metres, type: number}
-      - {key: volume_transfer_m3, label: Deposited at local waste transfer facilities, in cubic metres, type: number}
-      - {key: volume_landfill_m3, label: Deposited at landfilling sites or dumps, in cubic metres, type: number}
+      - {key: volume_reuse_m3, label: "Deposited at reuse sites, in cubic metres", type: number}
+      - {key: volume_class1_m3, label: "Deposited at Class 1 soil management sites, in cubic metres", type: number}
+      - {key: volume_class2_m3, label: "Deposited at Class 2 soil management sites, in cubic metres", type: number}
+      - {key: volume_transfer_m3, label: "Deposited at local waste transfer facilities, in cubic metres", type: number}
+      - {key: volume_landfill_m3, label: "Deposited at landfilling sites or dumps, in cubic metres", type: number}
       - {key: destinations_as_filed, label: Every destination used was named in the notice before deposit, type: bool, required: true}
       - {key: updated_by, label: Updated by, type: user}
       - {key: evidence, label: Copy of the updated notice, type: attachment}

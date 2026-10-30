@@ -829,6 +829,18 @@ see, not a silent failure.
 A `relation` cell stores the target row's **key**, never its rendered value, so
 renaming a site does not rewrite every record that cites it.
 
+**A label or an option holding a comma is quoted.** A column is written as a
+YAML flow mapping, and in a flow mapping a comma ends a plain value: `label:
+Rate applied, and why` is read as the label `Rate applied` and a stray key
+`and why`, and `options: [Slip, trip or fall]` as two options. Nothing refuses
+either. The header is shorter than the one written, a select offers a choice
+nobody meant, and a parser that does not ignore unknown keys reads a field the
+schema does not have. Measured at `5294db8`: 133 labels in 73 files and four
+options in three. So a column holds only the fields the table above declares,
+each once and each with a value, and anything holding a comma is written in
+double quotes. [`checks/register-labels.py`](../checks/register-labels.py)
+holds every programme file to it.
+
 ---
 
 ## Scope

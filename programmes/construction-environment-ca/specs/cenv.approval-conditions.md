@@ -86,7 +86,7 @@ declares:
       - {key: complaints_received, label: Complaints relating to the natural environment received, type: int, required: true}
       - {key: complaints_notified, label: Every complaint notified as the instrument requires, type: bool, required: true}
       - {key: records_kept, label: The records the instrument requires are being kept, type: bool, required: true}
-      - {key: exceptions, label: What was not met, and what is being done, type: longtext}
+      - {key: exceptions, label: "What was not met, and what is being done", type: longtext}
       - {key: evidence, label: Monitoring records and correspondence, type: attachment}
       - {key: note, label: Note, type: longtext}
 ---

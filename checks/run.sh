@@ -953,6 +953,20 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every register column in a programme file reads back as written; a copy with
+# one comma-holding label unquoted again must report exactly that label.
+expect 0 "register-labels: every programme column reads back as written" python3 checks/register-labels.py
+mkdir -p "$tmp/rl" && cp -R programmes schemas "$tmp/rl/"
+sed 's/label: "Underlying cause, detail"/label: Underlying cause, detail/' programmes/construction-ohs-ca/specs/cohs.incident-reporting.md >"$tmp/rl/programmes/construction-ohs-ca/specs/cohs.incident-reporting.md"
+expect 1 "register-labels control: an unquoted comma in a label fails" python3 checks/register-labels.py --root "$tmp/rl"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "cohs.incident-reporting.md: column 'root_cause': label 'Underlying cause' does not round-trip: 'detail' is read as a key" "$tmp/out"; then
+	echo "ok   register-labels control: exactly one finding, the cut label"
+else
+	echo "FAIL register-labels control: want exactly one finding, the cut label"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

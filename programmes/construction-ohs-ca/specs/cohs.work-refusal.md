@@ -64,16 +64,16 @@ declares:
       - {key: investigated_by, label: Investigated by, type: user, required: true}
       - {key: worker_present, label: The refusing worker was present, type: bool, required: true}
       - {key: representative_present, label: A worker representative was present, type: bool, required: true}
-      - {key: representative, label: Who the representative was, and in what capacity, type: text, required: true}
+      - {key: representative, label: "Who the representative was, and in what capacity", type: text, required: true}
       - {key: findings, label: What was found, type: longtext, required: true}
       - {key: action_taken, label: What was done about it, type: longtext, required: true}
       - {key: worker_satisfied, label: The worker returned to the work, type: select, required: true,
          options: ["Yes", "No — the refusal continued", Reassigned by agreement]}
       - {key: inspector_notified_at, label: Inspector notified at, type: text}
-      - {key: workers_advised_of_continuing_refusal, label: Workers assigned the work were advised, in a representative's presence, type: select, required: true,
+      - {key: workers_advised_of_continuing_refusal, label: "Workers assigned the work were advised, in a representative's presence", type: select, required: true,
          options: ["Yes", "No other worker was assigned", "No — this was not done"]}
       - {key: corrective_action_reference, label: Corrective action raised, type: text}
-      - {key: evidence, label: Statements, photographs and measurements, type: attachment}
+      - {key: evidence, label: "Statements, photographs and measurements", type: attachment}
 ---
 
 What this document must establish for THIS organisation: what happens in the

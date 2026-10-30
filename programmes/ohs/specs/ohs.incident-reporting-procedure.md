@@ -75,7 +75,7 @@ declares:
          options: [Equipment or design, Procedure absent or unclear, Procedure not followed,
                    Training or competence, Supervision, Planning or scheduling,
                    Communication, Environmental conditions, Other]}
-      - {key: root_cause, label: Underlying cause, detail, type: longtext, required: true}
+      - {key: root_cause, label: "Underlying cause, detail", type: longtext, required: true}
       - {key: recurrence_risk, label: Could recur, type: select, required: true,
          options: [Likely, Possible, Unlikely]}
       - {key: reviewed_by, label: Reviewed by, type: user}

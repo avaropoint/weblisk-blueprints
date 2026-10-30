@@ -83,13 +83,13 @@ declares:
       - {key: decision, label: Decision, type: select, required: true,
          options: [Perfect it, Negotiate and discharge, Vacate by posting security,
                    Vacate by bond, Refer the underlying dispute to adjudication,
-                   Let it expire, with the reason recorded, Already satisfied]}
+                   "Let it expire, with the reason recorded", Already satisfied]}
       - {key: reason, label: Reason, type: longtext, required: true}
       - {key: amount_at_stake, label: Amount at stake, type: currency, required: true}
       - {key: security_or_bond, label: Security posted or bond furnished, type: currency}
       - {key: notified_insurer_or_surety_on, label: Insurer or surety notified on, type: date}
       - {key: action_completed_on, label: Action completed on, type: date}
-      - {key: evidence, label: Registration particulars, order or agreement, type: attachment}
+      - {key: evidence, label: "Registration particulars, order or agreement", type: attachment}
 ---
 
 What this document must establish for THIS organisation: who watches the lien

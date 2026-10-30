@@ -43,7 +43,7 @@ register:
     - {key: project_leader_name, label: Who the project leader is, type: text, required: true}
     - {key: excavation_start_on, label: Excavation expected to start, type: date, required: true}
     - {key: soil_removal_complete_on, label: Last load of excess soil removed on, type: date}
-    - {key: estimated_volume_m3, label: Excess soil expected to be removed, in cubic metres, type: number, required: true}
+    - {key: estimated_volume_m3, label: "Excess soil expected to be removed, in cubic metres", type: number, required: true}
     - {key: settlement_area, label: Any part is in an area of settlement, type: bool, required: true}
     - {key: property_use, label: Use of the whole project area, type: select, required: true,
        options: [Agricultural or other, Commercial, Community, Industrial,
@@ -59,7 +59,7 @@ register:
                  "No — Schedule 2 applies",
                  "No — we are not the project leader",
                  Not yet determined]}
-    - {key: exemption_ground, label: Which criterion or exemption was relied on, and why, type: longtext}
+    - {key: exemption_ground, label: "Which criterion or exemption was relied on, and why", type: longtext}
     - {key: qualified_person, label: Qualified person engaged, type: text}
     - {key: qualified_person_firm, label: Qualified person's firm, type: text}
     - {key: note, label: Note, type: longtext}

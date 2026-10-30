@@ -29,7 +29,7 @@ register:
     that does not belong on the CVOR fleet does not belong in this register.
   columns:
     - {key: unit_number, label: Unit number, type: text, required: true}
-    - {key: description, label: Make, model and year, type: text, required: true}
+    - {key: description, label: "Make, model and year", type: text, required: true}
     - {key: vehicle_type, label: Type, type: select, required: true,
        options: [Truck — single unit, Truck tractor, Trailer, Dump truck,
                  Float or lowbed trailer, Boom or picker truck, Tow truck,

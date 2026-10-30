@@ -72,7 +72,7 @@ declares:
       - {key: source_reference, label: Reference of the finding it arose from, type: text, required: true}
       - {key: project, label: Project, type: relation,
          target: /registers/projects.md#records, display: project_id}
-      - {key: applies_everywhere, label: Applies to every project, not only this one, type: bool, required: true}
+      - {key: applies_everywhere, label: "Applies to every project, not only this one", type: bool, required: true}
       - {key: action, label: Action, type: longtext, required: true}
       - {key: control_level, label: Where it sits in the hierarchy of controls, type: select, required: true,
          options: [Elimination, Substitution, Engineering control, Administrative control,

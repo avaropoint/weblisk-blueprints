@@ -65,7 +65,7 @@ declares:
       - {key: distributed_on, label: Distributed on, type: date}
       - {key: silica_expected, label: Silica-generating work expected, type: bool, required: true}
       - {key: controls_planned, label: Controls planned, type: longtext}
-      - {key: gap, label: Anything missing, and what was done, type: longtext}
+      - {key: gap, label: "Anything missing, and what was done", type: longtext}
 ---
 
 What this document must establish for THIS organisation: how it finds out what is

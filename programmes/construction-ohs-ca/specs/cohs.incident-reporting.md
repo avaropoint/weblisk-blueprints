@@ -79,7 +79,7 @@ declares:
                    Training or competence, Supervision, Planning or sequencing,
                    Coordination between employers, Communication, Ground or weather conditions,
                    Housekeeping, Other]}
-      - {key: root_cause, label: Underlying cause, detail, type: longtext, required: true}
+      - {key: root_cause, label: "Underlying cause, detail", type: longtext, required: true}
       - {key: pre_task_assessment_covered, label: The hazard was on that shift's pre-task assessment, type: select, required: true,
          options: ["Yes", "No", No assessment was done, Not applicable]}
       - {key: recurrence_risk, label: Could recur, type: select, required: true,
@@ -87,7 +87,7 @@ declares:
       - {key: recurs_on_other_projects, label: The same exposure exists on other projects, type: select, required: true,
          options: ["Yes", "No", Not yet checked]}
       - {key: committee_informed_on, label: Committee or representative informed on, type: date}
-      - {key: evidence, label: Photographs, statements and measurements, type: attachment}
+      - {key: evidence, label: "Photographs, statements and measurements", type: attachment}
       - {key: reviewed_by, label: Reviewed by, type: user}
 ---
 

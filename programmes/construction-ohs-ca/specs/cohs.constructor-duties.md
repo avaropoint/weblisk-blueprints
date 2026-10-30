@@ -57,7 +57,7 @@ declares:
       - {key: supervisor, label: Supervisor, type: user}
       - {key: notice_posted_on, label: Constructor notice posted on, type: date}
       - {key: representative_names_posted_on, label: Committee or representative names posted on, type: date}
-      - {key: outstanding, label: Anything outstanding, and why, type: longtext}
+      - {key: outstanding, label: "Anything outstanding, and why", type: longtext}
 ---
 
 What this document must establish for THIS organisation: who owes what on a
