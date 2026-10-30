@@ -1,5 +1,6 @@
 ---
 id: construction_environment_ca
+version: 1.0.0
 title: Construction Environmental Protection Programme (Canada — Ontario)
 order: 21
 domains:

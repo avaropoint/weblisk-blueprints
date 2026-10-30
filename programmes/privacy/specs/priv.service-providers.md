@@ -1,5 +1,6 @@
 ---
 id: priv.service-providers
+version: 1.0.0
 kind: procedure
 title: Service Providers and Transfers
 structure: procedure

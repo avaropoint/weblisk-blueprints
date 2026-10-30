@@ -1,14 +1,21 @@
 ---
 id: isec.supplier-register
+version: 1.0.0
 kind: register
 title: Supplier and Service Register
 structure: standard
 path: registers/suppliers.md
 
-satisfies:
-  - iso_27001:A.5.19
-  - nist_csf_2:GV.SC-01
-  - can_ciosc_104:CIOSC-L1-16
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.5.19 withdrawn, answered by isec.supplier-security and
+#   isec.supplier-policy.
+# - nist_csf_2:GV.SC-01 withdrawn, answered by isec.supplier-policy.
+# - can_ciosc_104:CIOSC-L1-16 withdrawn, answered by isec.supplier-security
+#   and isec.supplier-policy.
 
 register:
   title: Supplier and Service Register

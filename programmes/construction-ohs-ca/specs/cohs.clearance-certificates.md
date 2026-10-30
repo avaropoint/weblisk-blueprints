@@ -1,5 +1,6 @@
 ---
 id: cohs.clearance-certificates
+version: 1.0.0
 kind: register
 title: Register of Clearance Certificates
 structure: standard

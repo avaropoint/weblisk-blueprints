@@ -1,14 +1,22 @@
 ---
 id: it.vulnerabilities
+version: 1.0.0
 kind: register
 title: Vulnerability Register
 structure: standard
 path: registers/vulnerabilities.md
 
-satisfies:
-  - iso_27001:A.8.8
-  - cis_controls:7.1
-  - nist_csf_2:ID.RA-01
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.8.8 withdrawn, answered by it.vulnerability-policy,
+#   it.vulnerability-management and it.vulnerability-remediation.
+# - cis_controls:7.1 withdrawn, answered by it.vulnerability-policy and
+#   it.vulnerability-management.
+# - nist_csf_2:ID.RA-01 withdrawn, answered by it.vulnerability-management
+#   and it.vulnerability-remediation.
 
 register:
   title: Vulnerability Register

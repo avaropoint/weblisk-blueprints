@@ -1,5 +1,6 @@
 ---
 id: priv.breach-review
+version: 1.0.0
 kind: procedure
 title: Privacy Breach Record Review
 structure: procedure

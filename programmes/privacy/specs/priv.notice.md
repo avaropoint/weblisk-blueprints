@@ -1,5 +1,6 @@
 ---
 id: priv.notice
+version: 1.0.0
 kind: policy
 title: Privacy Notice
 structure: policy

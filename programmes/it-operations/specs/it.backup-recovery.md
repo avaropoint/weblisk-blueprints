@@ -1,5 +1,6 @@
 ---
 id: it.backup-recovery
+version: 1.0.0
 kind: procedure
 title: Backup and Recovery
 structure: procedure

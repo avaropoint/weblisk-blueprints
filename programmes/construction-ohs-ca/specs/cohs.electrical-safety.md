@@ -1,5 +1,6 @@
 ---
 id: cohs.electrical-safety
+version: 1.0.0
 kind: procedure
 title: Electrical Safety and Control of Hazardous Energy
 structure: procedure

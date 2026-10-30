@@ -1,5 +1,6 @@
 ---
 id: cohs.return-to-work
+version: 1.0.0
 kind: procedure
 title: Return to Work and Re-employment in Construction
 structure: procedure

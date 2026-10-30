@@ -1,5 +1,6 @@
 ---
 id: ohs.certificate-renewal
+version: 1.0.0
 kind: procedure
 title: Certificate Renewal
 structure: procedure

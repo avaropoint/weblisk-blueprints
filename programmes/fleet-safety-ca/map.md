@@ -1,5 +1,6 @@
 ---
 id: fleet_safety_ca
+version: 1.0.0
 title: Commercial Fleet Safety Programme (Canada — Ontario)
 order: 22
 domains:

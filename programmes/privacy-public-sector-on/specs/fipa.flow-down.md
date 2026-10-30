@@ -1,5 +1,6 @@
 ---
 id: fipa.flow-down
+version: 1.0.0
 kind: procedure
 title: Institutional Contract Requirements
 structure: procedure

@@ -1,12 +1,17 @@
 ---
 id: ohs.prequalification-records
+version: 1.0.0
 kind: register
 title: Register of Insurance and Clearance Certificates
 structure: standard
 path: registers/prequalification-records.md
 
-satisfies:
-  - isnetworld:ISN-SAFE-02
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - isnetworld:ISN-SAFE-02 withdrawn, answered by ohs.certificate-renewal.
 
 requires: [ohs.contractor-management]
 

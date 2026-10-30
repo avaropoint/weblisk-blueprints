@@ -1,5 +1,6 @@
 ---
 id: cohs.designated-substances
+version: 1.0.0
 kind: procedure
 title: Designated Substances and Silica
 structure: procedure

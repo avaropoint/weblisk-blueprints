@@ -1,5 +1,6 @@
 ---
 id: capay.holdback-reconciliation
+version: 1.0.0
 kind: procedure
 title: Holdback Reconciliation
 structure: procedure

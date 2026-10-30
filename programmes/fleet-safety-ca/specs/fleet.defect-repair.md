@@ -1,5 +1,6 @@
 ---
 id: fleet.defect-repair
+version: 1.0.0
 kind: procedure
 title: Defect Repair and Return to Service
 structure: procedure

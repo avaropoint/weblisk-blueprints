@@ -1,5 +1,6 @@
 ---
 id: phipa.annual-report
+version: 1.0.0
 kind: procedure
 title: Annual Report to the Commissioner
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: capay.subcontract-payment
+version: 1.0.0
 kind: procedure
 title: Paying Down the Chain, and the Trust
 structure: procedure

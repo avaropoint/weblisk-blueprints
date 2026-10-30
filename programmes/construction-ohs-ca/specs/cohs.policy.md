@@ -1,5 +1,6 @@
 ---
 id: cohs.policy
+version: 1.0.0
 kind: policy
 title: Occupational Health and Safety Policy
 structure: policy

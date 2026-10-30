@@ -1,5 +1,6 @@
 ---
 id: cohs.daily-crew-assignments
+version: 1.0.0
 kind: register
 title: Register of Daily Crew Assignments
 structure: standard

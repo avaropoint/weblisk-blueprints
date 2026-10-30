@@ -1,5 +1,6 @@
 ---
 id: cenv.policy
+version: 1.0.0
 kind: policy
 title: Environmental Protection Policy
 structure: policy

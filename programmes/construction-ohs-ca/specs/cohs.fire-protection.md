@@ -1,5 +1,6 @@
 ---
 id: cohs.fire-protection
+version: 1.0.0
 kind: procedure
 title: Fire Protection on a Project
 structure: procedure

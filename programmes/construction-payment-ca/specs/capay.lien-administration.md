@@ -1,5 +1,6 @@
 ---
 id: capay.lien-administration
+version: 1.0.0
 kind: procedure
 title: Lien Administration, Bonds and Adjudication
 structure: procedure

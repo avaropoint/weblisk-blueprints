@@ -1,5 +1,6 @@
 ---
 id: fipa.handling
+version: 1.0.0
 kind: standard
 title: Handling Institutional Information
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: construction_payment_ca
+version: 1.0.0
 title: Construction Payment, Holdback and Lien Programme (Canada — Ontario)
 order: 25
 domains:

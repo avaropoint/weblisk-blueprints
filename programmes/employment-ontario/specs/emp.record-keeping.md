@@ -1,5 +1,6 @@
 ---
 id: emp.record-keeping
+version: 1.0.0
 kind: procedure
 title: Employment Record Keeping
 structure: procedure

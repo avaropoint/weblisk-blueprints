@@ -1,5 +1,6 @@
 ---
 id: isec.incident-review
+version: 1.0.0
 kind: procedure
 title: Learning From Security Incidents
 structure: procedure

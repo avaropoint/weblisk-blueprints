@@ -1,5 +1,6 @@
 ---
 id: cohs.violence-harassment
+version: 1.0.0
 kind: procedure
 title: Workplace Violence and Workplace Harassment
 structure: procedure

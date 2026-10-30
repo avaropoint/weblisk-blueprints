@@ -1,5 +1,6 @@
 ---
 id: cohs.notice-of-project
+version: 1.0.0
 kind: procedure
 title: Notice of Project and Prescribed Notifications
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: cohs.confined-space-entry-permits
+version: 1.0.0
 kind: register
 title: Confined Space Entry Permits
 structure: standard

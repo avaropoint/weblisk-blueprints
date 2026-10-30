@@ -1,5 +1,6 @@
 ---
 id: cohs.ohsms-audit
+version: 1.0.0
 kind: procedure
 title: Audit of the Management System
 structure: procedure
@@ -8,7 +9,6 @@ path: procedures/management-system-audit.md
 satisfies:
   - ohsa_ontario:7.6.1
   - iso_45001:9.2
-  - cor_2020:COR-02
 
 requires: [cohs.management-review, cohs.regulatory-currency]
 

@@ -1,5 +1,6 @@
 ---
 id: ohs.competency-matrix
+version: 1.0.0
 kind: standard
 title: Competency Matrix
 structure: standard

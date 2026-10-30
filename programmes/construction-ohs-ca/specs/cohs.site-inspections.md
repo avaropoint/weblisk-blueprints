@@ -1,5 +1,6 @@
 ---
 id: cohs.site-inspections
+version: 1.0.0
 kind: procedure
 title: Workplace Inspections
 structure: procedure

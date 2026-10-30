@@ -1,5 +1,6 @@
 ---
 id: privacy
+version: 1.0.0
 title: Privacy Programme
 order: 40
 domains: [data_protection, governance, records_management, incident_response,

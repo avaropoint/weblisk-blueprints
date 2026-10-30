@@ -1,5 +1,6 @@
 ---
 id: cohs.subcontractor-prequalification
+version: 1.0.0
 kind: procedure
 title: Sub-Trade Prequalification and Management
 structure: procedure

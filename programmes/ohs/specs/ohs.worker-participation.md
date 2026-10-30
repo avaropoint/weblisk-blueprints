@@ -1,5 +1,6 @@
 ---
 id: ohs.worker-participation
+version: 1.0.0
 kind: procedure
 title: Worker Participation and the Health and Safety Committee
 structure: procedure

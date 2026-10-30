@@ -1,5 +1,6 @@
 ---
 id: cohs.working-at-heights-training
+version: 1.0.0
 kind: procedure
 title: Working at Heights Training
 structure: procedure

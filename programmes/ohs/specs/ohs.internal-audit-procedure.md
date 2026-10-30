@@ -1,5 +1,6 @@
 ---
 id: ohs.internal-audit-procedure
+version: 1.0.0
 kind: procedure
 title: Internal Audit
 structure: procedure
@@ -7,7 +8,6 @@ path: procedures/programme-audit.md
 
 satisfies:
   - iso_45001:9.2
-  - cor_2020:COR-02
 
 requires: [ohs.policy, ohs.hazard-assessment-procedure]
 

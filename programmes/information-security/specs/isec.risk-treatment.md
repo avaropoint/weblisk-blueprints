@@ -1,5 +1,6 @@
 ---
 id: isec.risk-treatment
+version: 1.0.0
 kind: procedure
 title: Risk Treatment and Review
 structure: procedure

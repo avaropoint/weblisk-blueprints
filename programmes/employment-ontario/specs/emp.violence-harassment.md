@@ -1,5 +1,6 @@
 ---
 id: emp.violence-harassment
+version: 1.0.0
 kind: procedure
 title: Workplace Violence and Harassment
 structure: procedure

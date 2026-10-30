@@ -1,5 +1,6 @@
 ---
 id: it.remote-access
+version: 1.0.0
 kind: procedure
 title: Remote Access and Remote Working
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: cohs.notifiable-events
+version: 1.0.0
 kind: register
 title: Register of Notifiable Events
 structure: standard

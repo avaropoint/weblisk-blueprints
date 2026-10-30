@@ -1,5 +1,6 @@
 ---
 id: priv.request-response
+version: 1.0.0
 kind: procedure
 title: Responding to a Privacy Request
 structure: procedure

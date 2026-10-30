@@ -1,5 +1,6 @@
 ---
 id: ohs.emergency-response-plan
+version: 1.0.0
 kind: procedure
 title: Emergency Response Plan
 structure: procedure

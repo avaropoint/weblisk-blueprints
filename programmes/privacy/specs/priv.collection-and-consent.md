@@ -1,5 +1,6 @@
 ---
 id: priv.collection-and-consent
+version: 1.0.0
 kind: procedure
 title: Collection, Use and Consent
 structure: procedure

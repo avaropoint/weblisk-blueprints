@@ -1,5 +1,6 @@
 ---
 id: ohs.hazard-assessment-procedure
+version: 1.0.0
 kind: procedure
 title: Hazard Assessment and Control
 structure: procedure

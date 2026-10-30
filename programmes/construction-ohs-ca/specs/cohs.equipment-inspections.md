@@ -1,5 +1,6 @@
 ---
 id: cohs.equipment-inspections
+version: 1.0.0
 kind: procedure
 title: Machinery and Equipment Inspection
 structure: procedure

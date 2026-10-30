@@ -1,5 +1,6 @@
 ---
 id: isec.security-awareness
+version: 1.0.0
 kind: procedure
 title: Security Awareness and Training
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: construction_ohs_ca
+version: 1.0.0
 title: Construction Occupational Health and Safety Programme (Canada — Ontario)
 order: 20
 domains:

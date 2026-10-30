@@ -1,5 +1,6 @@
 ---
 id: emp.termination
+version: 1.0.0
 kind: procedure
 title: Ending the Employment Relationship
 structure: procedure

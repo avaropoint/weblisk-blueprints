@@ -1,5 +1,6 @@
 ---
 id: ohs.incident-investigation
+version: 1.0.0
 kind: procedure
 title: Incident Investigation
 structure: procedure

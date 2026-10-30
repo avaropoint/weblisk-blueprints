@@ -1,5 +1,6 @@
 ---
 id: information-security
+version: 1.0.0
 title: Information Security Management System
 order: 30
 domains: [governance, risk_management, access_control, data_protection, incident_response,

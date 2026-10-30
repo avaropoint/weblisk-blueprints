@@ -1,5 +1,6 @@
 ---
 id: ohs.incident-reporting-procedure
+version: 1.0.0
 kind: procedure
 title: Incident Reporting and Investigation
 structure: procedure
@@ -8,6 +9,9 @@ path: procedures/incident-reporting.md
 satisfies:
   - iso_45001:10.2
   - cor_2020:COR-17
+  # Moved from ohs.statistics: a register carries no `satisfies:`.
+  - cor_2020:COR-18
+  - isnetworld:ISN-SAFE-01
 
 requires: [ohs.policy]
 
@@ -101,3 +105,10 @@ the platform's half of that: every row of the incident register raises an
 investigation due three days after the incident was reported, so an incident
 nobody looked into is visible as work outstanding rather than as a form that was
 filled in.
+
+It must say how the incidents it records become the organisation's **health and
+safety statistics**: classified against a stated definition that does not move
+under pressure, counted against hours worked each period into the statistics
+register, reconciled to the workers' compensation claims and the incident
+register, trended from one period to the next, and retained for the statutory
+period, so that a figure can be recomputed when a case is reclassified.

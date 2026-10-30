@@ -1,5 +1,6 @@
 ---
 id: cohs.suspended-access
+version: 1.0.0
 kind: procedure
 title: Suspended Access Equipment
 structure: procedure

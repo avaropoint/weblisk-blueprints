@@ -1,5 +1,6 @@
 ---
 id: fleet.periodic-inspection
+version: 1.0.0
 kind: procedure
 title: Periodic Motor Vehicle Inspection
 structure: procedure

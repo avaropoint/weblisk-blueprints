@@ -1,5 +1,6 @@
 ---
 id: cohs.management-review
+version: 1.0.0
 kind: procedure
 title: Health and Safety Management Review
 structure: procedure
@@ -9,6 +10,9 @@ satisfies:
   - cor_2020:COR-02
   - iso_45001:9.3
   - iso_45001:10.3
+  # Moved from cohs.safety-statistics: a register carries no `satisfies:`.
+  - cor_2020:COR-18
+  - isnetworld:ISN-SAFE-01
 
 requires: [cohs.policy]
 
@@ -93,3 +97,11 @@ The practical consequence is a design one: the programme's mapping to clause
 numbers should be re-pointable, so that a new edition is a re-mapping exercise
 rather than a rewrite. Nothing about the content of that future edition should be
 stated as a requirement, because it is not published.
+
+It must say how the **safety performance statistics** put in front of the review
+are produced: compiled each period into the statistics register on a stated
+basis, from records somebody can point at, reconciled to the workers'
+compensation account and the incident records, trended across periods rather
+than read one at a time, and retained as long as the records they were computed
+from. The review is where the trend is read and acted on, and a series nobody
+compiles the same way twice cannot be trended at all.

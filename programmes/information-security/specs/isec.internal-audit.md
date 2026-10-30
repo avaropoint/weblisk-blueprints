@@ -1,5 +1,6 @@
 ---
 id: isec.internal-audit
+version: 1.0.0
 kind: procedure
 title: Information Security Internal Audit
 structure: procedure

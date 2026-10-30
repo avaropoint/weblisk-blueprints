@@ -1,5 +1,6 @@
 ---
 id: fleet.compliance-review
+version: 1.0.0
 kind: procedure
 title: Fleet Compliance Review
 structure: procedure

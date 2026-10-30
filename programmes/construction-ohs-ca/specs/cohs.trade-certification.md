@@ -1,5 +1,6 @@
 ---
 id: cohs.trade-certification
+version: 1.0.0
 kind: procedure
 title: Compulsory Trade Certification and Apprenticeship
 structure: procedure

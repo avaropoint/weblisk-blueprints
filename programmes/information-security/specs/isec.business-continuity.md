@@ -1,5 +1,6 @@
 ---
 id: isec.business-continuity
+version: 1.0.0
 kind: procedure
 title: Business Continuity and ICT Readiness
 structure: procedure

@@ -1,5 +1,6 @@
 ---
 id: emp.employment-standards
+version: 1.0.0
 kind: procedure
 title: Employment Standards Compliance
 structure: procedure

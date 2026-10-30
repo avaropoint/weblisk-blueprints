@@ -1,17 +1,16 @@
 ---
 id: document-control.register
-version: 1.0.1
+version: 2.0.0
 kind: register
 title: Register of Controlled Documents
 path: registers/controlled-documents.md
 
-satisfies:
-  # The register IS the record that documented information is controlled.
-  # Nothing about scope or competence is claimed: a list of controlled
-  # documents does not answer those, and a citation nobody can defend is worse
-  # than an absent one. Cited by id only; the control text is the standard's.
-  - iso_9001:7.5
-  - iso_27001:A.5.33
+# A register carries no `satisfies:`. It is the evidence that documents are
+# controlled, not the document that answers a control: `implements` onto a
+# control may be asserted by a blueprint, a policy or a procedure and by
+# nothing else (schemas/kinds.md, Relations), so a register's citation could
+# never be recorded as answering. Its two former claims are the procedure's:
+# iso_9001:7.5 it already made, and iso_27001:A.5.33 moved there.
 requires: [document-control.procedure]
 
 register:

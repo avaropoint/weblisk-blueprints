@@ -1,5 +1,6 @@
 ---
 id: fipa.institutional-records
+version: 1.0.0
 kind: procedure
 title: Records in Institutional Custody or Control
 structure: procedure

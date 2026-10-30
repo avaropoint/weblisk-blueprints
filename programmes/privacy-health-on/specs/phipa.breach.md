@@ -1,5 +1,6 @@
 ---
 id: phipa.breach
+version: 1.0.0
 kind: procedure
 title: Health Privacy Breach Notification
 structure: procedure

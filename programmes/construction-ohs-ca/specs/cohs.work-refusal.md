@@ -1,5 +1,6 @@
 ---
 id: cohs.work-refusal
+version: 1.0.0
 kind: procedure
 title: Refusal of Unsafe Work, and Reprisal
 structure: procedure

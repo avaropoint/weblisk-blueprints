@@ -1,5 +1,6 @@
 ---
 id: it-operations
+version: 1.0.0
 title: IT Operations and Acceptable Use
 order: 35
 domains: [configuration_management, change_management, asset_management, access_control,

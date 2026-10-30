@@ -1,5 +1,6 @@
 ---
 id: isec.supplier-policy
+version: 1.0.0
 kind: policy
 title: Third-Party and Supplier Security Policy
 structure: policy

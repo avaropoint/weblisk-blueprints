@@ -1,5 +1,6 @@
 ---
 id: fleet.load-securement
+version: 1.0.0
 kind: procedure
 title: Load Securement
 structure: procedure

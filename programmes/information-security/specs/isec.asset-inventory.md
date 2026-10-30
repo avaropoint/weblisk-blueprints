@@ -1,15 +1,20 @@
 ---
 id: isec.asset-inventory
+version: 1.0.0
 kind: register
 title: Information Asset Inventory
 structure: standard
 path: registers/information-assets.md
 
-satisfies:
-  - iso_27001:A.5.9
-  - nist_csf_2:ID.AM-05
-  - can_ciosc_104:CIOSC-L1-14
-  - cis_controls:3.1
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_27001:A.5.9 withdrawn, answered by isec.asset-management.
+# - can_ciosc_104:CIOSC-L1-14 withdrawn, answered by isec.asset-management.
+# - nist_csf_2:ID.AM-05 moved to isec.asset-management.
+# - cis_controls:3.1 moved to isec.asset-management.
 
 register:
   title: Information Asset Inventory

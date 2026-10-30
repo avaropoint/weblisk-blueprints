@@ -1,5 +1,6 @@
 ---
 id: cohs.wsib-account
+version: 1.0.0
 kind: procedure
 title: Workers' Compensation Registration and Reporting
 structure: procedure

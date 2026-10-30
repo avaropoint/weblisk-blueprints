@@ -1,5 +1,6 @@
 ---
 id: cohs.credential-renewal
+version: 1.0.0
 kind: procedure
 title: Credential Renewal
 structure: procedure

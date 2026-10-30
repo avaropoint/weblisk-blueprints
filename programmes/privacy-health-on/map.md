@@ -1,5 +1,6 @@
 ---
 id: privacy-health-on
+version: 1.0.0
 title: Health Information Privacy (PHIPA, Ontario)
 order: 42
 domains: [data_protection, governance, access_control, logging_monitoring,

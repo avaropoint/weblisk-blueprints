@@ -1,5 +1,6 @@
 ---
 id: cohs.excavation-trenching
+version: 1.0.0
 kind: procedure
 title: Excavation and Trenching
 structure: procedure

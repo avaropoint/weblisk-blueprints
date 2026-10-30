@@ -1,5 +1,6 @@
 ---
 id: privacy-public-sector-on
+version: 1.0.0
 title: Public Sector Records (FIPPA and MFIPPA, Ontario)
 order: 44
 domains: [records_management, data_protection, vendor_management, compliance_audit, governance]

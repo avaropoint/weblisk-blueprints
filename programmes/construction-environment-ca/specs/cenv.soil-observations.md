@@ -1,5 +1,6 @@
 ---
 id: cenv.soil-observations
+version: 1.0.0
 kind: register
 title: Register of Observations Suggesting Soil Contamination
 structure: standard

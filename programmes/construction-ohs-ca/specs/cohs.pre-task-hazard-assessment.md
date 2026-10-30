@@ -1,5 +1,6 @@
 ---
 id: cohs.pre-task-hazard-assessment
+version: 1.0.0
 kind: procedure
 title: Pre-Task Hazard Assessment
 structure: procedure

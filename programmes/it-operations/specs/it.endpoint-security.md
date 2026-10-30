@@ -1,5 +1,6 @@
 ---
 id: it.endpoint-security
+version: 1.0.0
 kind: procedure
 title: Endpoint and Mobile Device Security
 structure: procedure

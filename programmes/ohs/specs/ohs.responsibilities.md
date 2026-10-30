@@ -1,5 +1,6 @@
 ---
 id: ohs.responsibilities
+version: 1.0.0
 kind: standard
 title: Health and Safety Roles and Responsibilities
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: cohs.work-refusals
+version: 1.0.0
 kind: register
 title: Register of Work Refusals
 structure: standard

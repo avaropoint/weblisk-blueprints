@@ -1,5 +1,6 @@
 ---
 id: capay.payment-position
+version: 1.0.0
 kind: procedure
 title: Monthly Payment Position Review
 structure: procedure

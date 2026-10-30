@@ -967,6 +967,25 @@ else
 	fails=$((fails + 1))
 fi
 
+# No register specification carries satisfies (schemas/kinds.md, Relations:
+# only the kinds the implements row names may assert it). A copy with one
+# claim put back on a register must report exactly that register, and a
+# kinds.md whose implements row admits register must stop the check.
+expect 0 "register-satisfies: no register carries satisfies" python3 checks/register-satisfies.py
+mkdir -p "$tmp/rs" && cp -R programmes schemas "$tmp/rs/"
+sed 's/^requires: \[cohs.notifiable-events, cohs.incidents\]$/satisfies: [cor_2020:COR-18]\nrequires: [cohs.notifiable-events, cohs.incidents]/' programmes/construction-ohs-ca/specs/cohs.safety-statistics.md >"$tmp/rs/programmes/construction-ohs-ca/specs/cohs.safety-statistics.md"
+expect 1 "register-satisfies control: a register carrying satisfies fails" python3 checks/register-satisfies.py --root "$tmp/rs"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^programmes/construction-ohs-ca/specs/cohs.safety-statistics.md: a register carries satisfies \['cor_2020:COR-18'\]" "$tmp/out"; then
+	echo "ok   register-satisfies control: exactly one finding, the register given a claim"
+else
+	echo "FAIL register-satisfies control: want exactly one finding, the register given a claim"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/rk" && cp -R programmes schemas "$tmp/rk/"
+sed 's/^| `implements` | blueprint, policy, procedure |/| `implements` | blueprint, policy, procedure, register |/' schemas/kinds.md >"$tmp/rk/schemas/kinds.md"
+expect 1 "register-satisfies control: an implements row admitting register stops the check" python3 checks/register-satisfies.py --root "$tmp/rk"
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

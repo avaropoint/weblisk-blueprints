@@ -1,5 +1,6 @@
 ---
 id: ohs.fitness-for-duty
+version: 1.0.0
 kind: procedure
 title: Fitness for Duty
 structure: procedure

@@ -1,14 +1,19 @@
 ---
 id: ohs.legal-requirements
+version: 1.0.0
 kind: register
 title: Register of Applicable Legal and Other Requirements
 structure: standard
 path: registers/legal-and-other-requirements.md
 
-satisfies:
-  - iso_45001:6.1.3
-  - iso_45001:9.1.2
-  - cor_2020:COR-04
+# A register carries no `satisfies:`. It is the evidence that work happened,
+# not the document that answers a control: `implements` onto a control may be
+# asserted by a blueprint, a policy or a procedure and by nothing else
+# (schemas/kinds.md, Relations), so a register's citation could never be
+# recorded as answering. Its former claims:
+# - iso_45001:6.1.3 moved to ohs.policy.
+# - iso_45001:9.1.2 moved to ohs.policy.
+# - cor_2020:COR-04 moved to ohs.policy.
 
 requires: [ohs.responsibilities]
 

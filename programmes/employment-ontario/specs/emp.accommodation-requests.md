@@ -1,5 +1,6 @@
 ---
 id: emp.accommodation-requests
+version: 1.0.0
 kind: register
 title: Accommodation Request Register
 structure: standard

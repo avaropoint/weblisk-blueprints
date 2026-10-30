@@ -1,5 +1,6 @@
 ---
 id: fleet.licence-renewal
+version: 1.0.0
 kind: procedure
 title: Driver Licence and Medical Renewal
 structure: procedure

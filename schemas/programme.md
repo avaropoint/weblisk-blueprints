@@ -213,7 +213,17 @@ the one somebody puts in front of an auditor.
 |---|---|
 | **MAJOR** | `id` changed · **an entry removed from `satisfies`** · **any change under `declares.obligation` other than the `activity`'s wording** — `cadence`, `applies_to`, `per`, `for`, `records`, `responsible`, `escalate`, `authority` · a register column removed, rekeyed or retyped · a `relation` target changed · `approved_by` gained or changed · `requires` gained · `kind` or `register.layout` changed · **`artifact_scope` or a column's `scope` declared, changed or removed** · `pii` added to or removed from any labels |
 | **MINOR** | an entry added to `satisfies` · a register column added · `template` first named · a new optional field · a label other than `pii` added or removed |
-| **PATCH** | the `brief` body · `title` · `path` · `structure` |
+| **PATCH** | the `brief` body · `title` · `path` · `structure` · a register column's `label` text corrected, with its `key`, `type`, `required` and `options` unchanged |
+
+A column's `label` is not one of the labels the MINOR row names: those
+classify the register, and `pii` among them decides where it may be kept. A
+column's `label` is the header a person reads, and its `key` is what a trigger
+and a discharge cite ([Columns](#columns)), so correcting the header's words
+moves no claim; rekeying it is the MAJOR row's. The one exception is a `for:`
+that names the column by its label, which
+[`for.due`](#fordue--the-deadline-on-a-triggered-record) permits: that `for:`
+must change with it, and a change under `declares.obligation` is MAJOR on the
+spec that declares it.
 
 Three of those deserve their reason stated, because each was measured in this
 corpus's own history rather than imagined:
@@ -249,10 +259,13 @@ A file that declares no `version:` is **unversioned**. It is not `1.0.0`, not
 `0.0.0` and not "assume compatible". Nothing may be pinned against it, and an
 adoption of it is describable only by content hashes.
 
-This is the state of every programme file in this corpus except
-`document-control`'s map and four specs, which arrived from Studio's source tree
-already carrying versions; its five templates declare none, like every other
-form. It is reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
+No map or spec in this corpus is unversioned any more: `document-control`'s map
+and four specs arrived from Studio's source tree already carrying versions, and
+every other map and spec has opened at `1.0.0`
+([When versioning began](#when-versioning-began-and-why-nothing-is-back-filled)).
+A form declares none — a `version:` under a form's `frontmatter:` is the
+created document's, not the form's — so every form is unversioned. The state is
+reported rather than defaulted. Studio's loader (`internal/program/version.go`) reads the field, and
 `Catalogue.Versions()` names every file that declares none — because a reader
 that filled the gap with a number would be inventing the one fact an adoption
 most depends on.
@@ -367,6 +380,14 @@ So the rule is:
   exist.
 - The hashes are what make those adoptions checkable at all, which is the
   concrete reason the hash is not optional.
+
+**It began on 2026-10-30.** On that day every map and spec in this corpus that
+declared no `version:` — 12 maps and 222 specs, in every programme but
+`document-control` — declared `1.0.0`, unchanged otherwise; `document-control`'s map and four specs
+already carried theirs and moved only by the bumps their own edits called for.
+Anything withdrawn before that day, such as a `satisfies` entry taken out the
+same day ahead of the baseline, is in no version: `1.0.0` is the first version
+that exists, and it is the first that does not carry it.
 
 ---
 
@@ -2399,14 +2420,6 @@ run. The product reports it as paused; nothing yet insists.
 that [`kinds.md`](kinds.md) does not declare, and nothing reports it. Kinds are
 open data by design, so this may be correct; it is at least undecided, and an
 author should not read the silence as approval.
-
-**Nothing in the corpus carries a `version:` yet.** The field is declared
-[above](#versioning), is read by the loader, and is reported when absent —
-**0 of 12 maps and 0 of 222 specs declare one at `4778c25`**, so every one of
-them is reported `unversioned` and nothing may be pinned against them. That is
-the honest state and not a silent default. Versioning the corpus is a separate
-act of authorship: each file opens at `1.0.0`, and every release after that is
-classified against the tables above by the person making it.
 
 **A programme map and an artifact spec are not declared kinds, and one of them
 classifies wrongly.** [`kinds.md`](kinds.md) permits `extends` only

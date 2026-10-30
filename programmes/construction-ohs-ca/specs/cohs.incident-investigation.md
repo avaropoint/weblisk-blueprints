@@ -1,5 +1,6 @@
 ---
 id: cohs.incident-investigation
+version: 1.0.0
 kind: procedure
 title: Project Incident Investigation
 structure: procedure

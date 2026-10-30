@@ -1,5 +1,6 @@
 ---
 id: ohs.incidents
+version: 1.0.0
 kind: register
 title: Incident Register
 structure: standard

@@ -1,5 +1,6 @@
 ---
 id: emp.accessible-information
+version: 1.0.0
 kind: procedure
 title: Accessible Information and Communication
 structure: procedure
@@ -12,6 +13,8 @@ satisfies:
   - aoda_ontario:14
   - aoda_ontario:26
   - ohrc_ontario:1
+  # Moved from emp.accessibility-feedback: a register carries no `satisfies:`.
+  - aoda_ontario:80.50
 
 requires: [emp.accessibility-feedback]
 
@@ -85,3 +88,10 @@ It must be honest about testing. Automated tools find a minority of failures; a
 keyboard-only pass and a screen-reader pass on the main journeys find most of
 the rest, and a check that has only been automated should be recorded as such
 rather than reported as conformance.
+
+It must establish the **feedback process** for the way the organisation provides
+goods, services or facilities to persons with disabilities: feedback taken in
+person, by telephone, in writing and by electronic text, information about the
+process readily available to the public, and the actions the organisation takes
+when a complaint is received. The accessibility feedback register is where each
+piece is recorded; this procedure is the process it is recorded against.

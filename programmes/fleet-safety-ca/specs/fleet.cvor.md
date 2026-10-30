@@ -1,5 +1,6 @@
 ---
 id: fleet.cvor
+version: 1.0.0
 kind: procedure
 title: CVOR Certificate and Safety Record Monitoring
 structure: procedure

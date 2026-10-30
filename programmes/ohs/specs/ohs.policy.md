@@ -1,5 +1,6 @@
 ---
 id: ohs.policy
+version: 1.0.0
 kind: policy
 title: Health and Safety Policy
 structure: policy
@@ -21,6 +22,10 @@ satisfies:
   # incident procedures and no position for them to be consistent with.
   - cor_2020:COR-17
   - isnetworld:ISN-SAFE-03
+  # Moved from ohs.legal-requirements: a register carries no `satisfies:`.
+  - iso_45001:6.1.3
+  - iso_45001:9.1.2
+  - cor_2020:COR-04
 
 declares:
   obligation:
@@ -32,6 +37,10 @@ declares:
     records: registers/programme-reviews.md
     satisfies:
       - iso_45001:9.3
+      # COR-02 is senior management's periodic, minuted review — this
+      # obligation and its record, not the corrective-action sweep that
+      # claimed it before.
+      - cor_2020:COR-02
   register:
     title: Management Review Record
     note: >
@@ -74,6 +83,13 @@ writing, and it cannot tell which.
 It must say that management will act on what is reported, and what a worker
 should expect to hear back. Reports that vanish teach the workforce not to
 make them, and the learning is permanent.
+
+It must commit the organisation to **knowing the law that applies to it**:
+identifying the legal and other requirements that bind its health and safety,
+keeping them current and available where the work is done, telling workers which
+apply to their work, and evaluating compliance with them at a stated interval
+with the result recorded. The register of applicable requirements is where that
+is kept; the commitment that it is kept, and acted on, is the policy's.
 
 It is the parent document: every other artifact in this programme inherits its
 scope from here, so a vague scope here produces procedures that quietly disagree

@@ -1,5 +1,6 @@
 ---
 id: ohs.management-of-change
+version: 1.0.0
 kind: procedure
 title: Management of Change
 structure: procedure
