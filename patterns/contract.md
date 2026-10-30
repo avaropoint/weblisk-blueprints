@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: contract
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free

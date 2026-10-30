@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: file-upload
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free

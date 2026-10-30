@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 kind: reference
 noun: policy-domain
 match: [policy-domains/*.md]

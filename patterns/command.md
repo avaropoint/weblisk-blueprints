@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: command
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, architecture/agent, patterns/logging, patterns/secrets]
 platform: any
 tier: free

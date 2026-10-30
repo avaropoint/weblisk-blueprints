@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: privacy
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/contract]
 platform: any
 tier: free

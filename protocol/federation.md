@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free

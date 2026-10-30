@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: caching
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types]
 platform: any
 tier: free

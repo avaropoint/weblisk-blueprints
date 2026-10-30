@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.2
+version: 2.0.3
 kind: blueprint
 noun: agent
 match: [agents/*.md]
@@ -897,7 +897,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/governance
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: policy-enforcement

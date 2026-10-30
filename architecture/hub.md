@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free

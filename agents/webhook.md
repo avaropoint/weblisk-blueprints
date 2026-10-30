@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: webhook
-version: 3.0.0
+version: 3.0.1
 port: 9753
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
@@ -143,7 +143,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/governance
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: self-governance

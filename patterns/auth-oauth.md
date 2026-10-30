@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-oauth
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/auth-token, patterns/principal-identity, patterns/scope]
 platform: any
 tier: free

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free

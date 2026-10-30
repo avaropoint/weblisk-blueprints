@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.3
+version: 1.0.4
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free

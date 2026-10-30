@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, architecture/orchestrator, architecture/agent]
 platform: any
 tier: free

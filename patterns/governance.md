@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free

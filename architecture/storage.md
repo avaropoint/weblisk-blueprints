@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.2.0
+version: 2.2.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -120,7 +120,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: agents/task
-    version: ">=1.0.0 <4.0.0"
+    version: ">=1.0.0 <5.0.0"
     bindings:
       types:
         - name: TaskRecord

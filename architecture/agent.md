@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free

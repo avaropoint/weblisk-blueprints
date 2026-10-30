@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.0.1
 kind: blueprint
 noun: domain
 capabilities: [author, versioned, depends, generates, publishable, adoptable]

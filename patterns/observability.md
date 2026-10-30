@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free

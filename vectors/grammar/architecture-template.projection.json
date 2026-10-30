@@ -2,7 +2,7 @@
   "file": "vectors/grammar/architecture-template.md",
   "family": "schemas/architecture@2",
   "length": 3039,
-  "version_hash": "sha256:1557484b8be3cef96d21acdd7a8816b18deaa6ce5a0c34d670d3aef2dce2f725",
+  "version_hash": "sha256:eaf7f5864111dde122e533038288d0ace1f7ccb743d822f3cc222120fec348ba",
   "parts": [
     {
       "span": [0, 202],
@@ -10,7 +10,7 @@
       "slot": null,
       "use": "navigates",
       "send": "always",
-      "digest": "sha256:45e569261e102bf8a5cf5c882989b5c387e159005bedf3faf24dc57913c90006",
+      "digest": "sha256:0261f3c1dab1ac8dcfc7e88326dc618dd75a2dfe20dbd0d686d9cbc3fb34fc2d",
       "entries": [
         {
           "id": "family",
@@ -22,7 +22,7 @@
           "id": "version",
           "use": "navigates",
           "send": "always",
-          "digest": "sha256:39fe4a40977d0585fd5704359e3685b0ada5cf5ee061e5d97385601d120cd0ec"
+          "digest": "sha256:7880ed586dd70a4229ac2eb8dfa0e3d09cd66c6c688fac0699f48923e8cccf09"
         },
         {
           "id": "requires",

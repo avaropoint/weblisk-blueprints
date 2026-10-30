@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: conventions
-version: 1.0.0
+version: 1.0.1
 requires: []
 platform: any
 tier: free

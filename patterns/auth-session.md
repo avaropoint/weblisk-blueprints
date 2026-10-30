@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-session
-version: 2.0.0
+version: 3.0.0
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/client]
 platform: any
 tier: free

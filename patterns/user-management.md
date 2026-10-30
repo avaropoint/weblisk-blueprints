@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: user-management
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
 platform: any
 tier: free
@@ -65,7 +65,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/auth-session
-    version: ">=1.0.0 <3.0.0"
+    version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: Session

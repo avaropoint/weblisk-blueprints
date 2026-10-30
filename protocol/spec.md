@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.0.0
+version: 4.0.1
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
