@@ -1,6 +1,6 @@
 ---
 id: fleet.compliance-review
-version: 2.0.0
+version: 3.0.0
 kind: procedure
 title: Fleet Compliance Review
 structure: procedure
@@ -16,7 +16,6 @@ satisfies:
   - nsc_ca:NSC-15
   - cor_2020:COR-18
   - iso_45001:9.1.2
-  - iso_45001:9.3
 
 requires: [fleet.policy, fleet.cvor]
 

@@ -831,6 +831,45 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every change to a versioned file's bytes moves its version (schemas/common.md,
+# Versioning), against the base version-bump.py names. With no base to read
+# (a shallow or new clone) it says NOT RUN, never ok, and
+# REQUIRE_ALL_VERIFIERS=1 makes that a failure. The control is a repository of
+# three real headers: one changed without a bump, one changed with a bump and
+# one unchanged, and exactly the first must be reported.
+python3 checks/version-bump.py >"$tmp/out" 2>&1
+got=$?
+if [ "$got" -eq 3 ]; then
+	echo "NOT RUN $(head -1 "$tmp/out")"
+	notrun=$((notrun + 1))
+	[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
+elif [ "$got" -eq 0 ]; then
+	echo "ok   version-bump: every versioned file changed since the base moved its version"
+else
+	echo "FAIL version-bump (exit $got, want 0)"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+vb="$tmp/vb"
+mkdir -p "$vb/patterns" "$vb/schemas" "$vb/programmes"
+cp patterns/content-git.md "$vb/patterns/"
+cp schemas/pattern.md "$vb/schemas/"
+cp programmes/fleet-safety-ca/specs/fleet.compliance-review.md "$vb/programmes/"
+vbgit() { git -C "$vb" -c user.name=check -c user.email=check@example.invalid -c commit.gpgsign=false "$@"; }
+vbgit init -q && vbgit add -A && vbgit commit -qm base
+echo "An edit nobody bumped for." >>"$vb/patterns/content-git.md"
+echo "An edit with its bump." >>"$vb/schemas/pattern.md"
+sed -i.bak '1,5s/^version: .*/version: 99.0.0/' "$vb/schemas/pattern.md" && rm "$vb/schemas/pattern.md.bak"
+expect 1 "version-bump control: a file changed without a bump fails" python3 checks/version-bump.py --root "$vb" --base HEAD
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/content-git.md: changed since HEAD without its version moving" "$tmp/out"; then
+	echo "ok   version-bump control: exactly one finding, the file nobody bumped"
+else
+	echo "FAIL version-bump control: want exactly one finding, the file nobody bumped"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 3 "version-bump control: a base that cannot be read is NOT RUN, never ok" python3 checks/version-bump.py --root "$vb" --base no-such-base
+
 # cli.md's Command Surface against the commands CLI 7a75d54 builds
 # (checks/cli-verbs.json): the drift is exactly the measured list. A copy of
 # cli.md without one row must report exactly one more, and a row with an
