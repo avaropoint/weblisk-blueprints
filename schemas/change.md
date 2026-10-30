@@ -94,7 +94,7 @@ change:
       detail: <text>
   unassessed:                      # components whose standing cannot be said
     - unit: <component ref>
-      detail: <why: no recorded inputs, its latest run did not complete, a source unreachable>
+      detail: <why — no recorded inputs, its latest run did not complete, a source unreachable>
   approver_position: <position id> # a knowledge change: the position its spec names (schemas/position), set by the plan
   approval:                        # present from state approved on
     by: <identity id>
