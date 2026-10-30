@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 4.0.0
+version: 4.0.1
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -106,7 +106,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/expression
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ExpressionGrammar

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: approval
-version: 3.0.0
+version: 3.1.0
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety]
 platform: any
 tier: free

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: namespace
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, protocol/identity, patterns/principal-identity]
 related: [architecture/storage, architecture/hub, architecture/tenancy]
 platform: any

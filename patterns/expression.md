@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: expression
-version: 1.0.3
+version: 2.0.0
 requires: [protocol/types]
 platform: any
 tier: free

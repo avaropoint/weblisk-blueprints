@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.7.0
+version: 1.7.1
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free

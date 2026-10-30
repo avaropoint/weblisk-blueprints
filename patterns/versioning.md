@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 3.0.0
+version: 4.0.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]

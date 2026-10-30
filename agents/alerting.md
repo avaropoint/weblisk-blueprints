@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 3.0.0
+version: 3.1.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -171,7 +171,7 @@ extends:
       removed: halt-immediately
 
   - pattern: patterns/governance
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
         - behavior: self-governance

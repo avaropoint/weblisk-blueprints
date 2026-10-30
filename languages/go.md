@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 3.0.0
+version: 4.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free

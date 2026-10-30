@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-token
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free

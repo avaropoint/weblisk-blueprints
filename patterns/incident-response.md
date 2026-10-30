@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: incident-response
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/alerting, patterns/state-machine]
 platform: any
 tier: free

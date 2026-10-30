@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free

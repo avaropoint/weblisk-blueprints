@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: state-machine
-version: 1.0.3
+version: 1.0.4
 requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
@@ -65,7 +65,7 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/expression
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.0.0 <3.0.0"
     bindings:
       types:
         - name: ExpressionGrammar

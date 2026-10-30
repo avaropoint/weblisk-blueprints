@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: migration
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types, patterns/safety, patterns/approval, patterns/storage, patterns/versioning, patterns/state-machine, patterns/logging]
 platform: any
 tier: free
