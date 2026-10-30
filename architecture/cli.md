@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.6.1
+version: 4.7.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -488,6 +488,33 @@ or code: the prompt worker acts only through its declared tools
 ([`architecture/prompt-worker`](prompt-worker.md#the-tool-set)). A client that
 shows a build plan offers each entry as the `change plan` that builds it.
 
+#### Until a tenant runs a change service
+
+No tenant runs a change service yet, so nothing in a tenant can record a signed
+approval or run an apply. Until one does:
+
+- **`change plan`, `change show`, `change list` and `change apply` run as
+  `cli-in-tenant`**, the CLI on the tenant's own host, and read and write
+  `.weblisk/changes/<change id>.json` in the shape the service will write
+  ([`schemas/change`](../schemas/change.md#shape)). They are the
+  [Command Surface](#the-command-surface)'s rows with that executor.
+- **`change approve`, `reject`, `verify` and `revert` are refused by name.**
+  Each is the service's act, or a person's act recorded by it, and a CLI that
+  performed one would be a second change service nobody admitted.
+- **`change apply` of a change no person approved requires
+  `--without-approval`**, the operator's word in place of the approval nothing
+  can yet record, and the change records it as `without_approval: true`. Without
+  the flag, apply refuses a `planned` change. The flag waives the approval and
+  nothing else: a stale change, a change with a refusing conflict and a change
+  that has ended are refused with it as without it.
+- **`apply` reads the corpus at the change's pins, never at a source's head**
+  ([`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to)), so what
+  it builds is what the plan read, whatever a refresh has fetched since.
+
+When a tenant's change service exists these four run as `tenant-api`, as the
+[executors table](../schemas/change.md#executors) gives them, and a change that
+was applied on the operator's word stays recorded as one.
+
 ### Who may approve a change
 
 The rules of D25, which the change service enforces and a client only renders:
@@ -561,7 +588,9 @@ today's commands, from before the grammar. The grammar's own commands (the
 [Verbs](#verbs) table and the [change verbs](#changes)) are not rows here, so
 the check below does not count them as specified and not built;
 `v2-cli-cmdtree` builds them, and its `weblisk commands --json` is where they
-are first listed. A renamed command is a row under the name it has today
+are first listed. The one exception is the four change verbs that run as
+`cli-in-tenant` [until a tenant runs a change service](#until-a-tenant-runs-a-change-service):
+they are rows, with that executor, because that is where they run today. A renamed command is a row under the name it has today
 ([Renamed commands](#renamed-commands)): `identity attest` is the row
 `operator attest`. `checks/command-surface.py`
 in the corpus holds this block against the commands the CLI builds, and reports
@@ -605,6 +634,10 @@ command_surface:
   - {noun: domain, verb: start, executor: cli-in-tenant}
   - {noun: gateway, verb: create, executor: cli-in-tenant}
   - {noun: gateway, verb: start, executor: cli-in-tenant}
+  - {noun: change, verb: plan, executor: cli-in-tenant}
+  - {noun: change, verb: show, executor: cli-in-tenant}
+  - {noun: change, verb: list, executor: cli-in-tenant}
+  - {noun: change, verb: apply, executor: cli-in-tenant}
   - {noun: blueprint, verb: sources, executor: local}
   - {noun: blueprint, verb: update, executor: local}
   - {noun: validate, verb: "", executor: local}
@@ -1916,6 +1949,17 @@ invalidates every banked file.
 [`weblisk blueprint update`](#weblisk-blueprint-update) does not wait for a
 clone to be a day old. A clone that has never been made is made when it is
 first needed, even while refreshes are off or held.
+
+**`change plan --upgrade` refreshes as `weblisk blueprint update` does**: each
+clone the tenant resolves, whatever its age and whatever is banked, because an
+upgrade is the move onto the corpus as it is now, and a plan made against a
+held copy reports a component current against a corpus that has moved past it.
+While `WL_BLUEPRINT_OFFLINE` switches refreshes off it refreshes nothing, and
+says the plan was made against the cached copies, at the age each has. The
+change then pins every source at the commit it read
+([`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to)), and its
+apply reads those pins, so a refresh after the plan moves nothing the change
+builds.
 
 A build names every source it read before it generates, and records each with
 its revision — see [`weblisk server init`](#weblisk-server-init).
@@ -4197,3 +4241,9 @@ security:
 - [ ] The CLI offers for a kind exactly the operations and verbs its catalogue entry declares, and holds no list of nouns or verbs of its own for them ([Resource commands](#resource-commands))
 - [ ] `weblisk <kind> <verb> <uid>` prints the verb's preconditions, in-flight handling, effect and reversibility before asking, sends the `ETag` of the read it made as `If-Match`, and on `RESOURCE_PRECONDITION_FAILED` shows the item again and does not retry ([Resource commands](#resource-commands))
 - [ ] A field presented `secret` is never read from the command line and never printed ([Resource commands](#resource-commands))
+
+### Changes
+- [ ] Until a tenant runs a change service, `change plan`, `show`, `list` and `apply` run as `cli-in-tenant` and write the change file in the shape the service will, and `change approve`, `reject`, `verify` and `revert` are refused by name ([Until a tenant runs a change service](#until-a-tenant-runs-a-change-service))
+- [ ] `change apply` of an unapproved change is refused without `--without-approval`, records `without_approval: true` with it, and refuses a stale change, one with a refusing conflict and one that has ended with the flag as without it ([Until a tenant runs a change service](#until-a-tenant-runs-a-change-service), [`schemas/change`](../schemas/change.md#rules))
+- [ ] `change apply` reads the corpus at the change's pins, never at a source's head, and builds nothing a refresh fetched after the plan ([Until a tenant runs a change service](#until-a-tenant-runs-a-change-service), [`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to))
+- [ ] `change plan --upgrade` refreshes every clone the tenant resolves whatever its age and whatever is banked, except while refreshes are off, when it says the plan used cached copies and how old each is ([Where blueprints come from](#where-blueprints-come-from))

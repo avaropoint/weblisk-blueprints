@@ -1,0 +1,81 @@
+{
+  "id": "3c2b1a0f9e8d7c6b5a4938271605f4e3",
+  "kind": "upgrade",
+  "request": [
+    "blueprint://weblisk/architecture/content"
+  ],
+  "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
+  "requested_at": "2026-10-29T14:05:00.000Z",
+  "strict": true,
+  "state": "applied",
+  "base": {
+    "corpus": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3",
+    "lock": "sha256:abababababababababababababababababababababababababababababababab",
+    "lock_of": "",
+    "fabric_tip": "unreported",
+    "pins": [
+      {
+        "kind": "core",
+        "origin": "https://git.example.com/weblisk-blueprints.git",
+        "revision": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3"
+      },
+      {
+        "kind": "custom",
+        "origin": "https://git.example.com/example-blueprints.git",
+        "revision": "7c3e9a1d2b4f60581a2b3c4d5e6f708192a3b4c5"
+      }
+    ]
+  },
+  "shown_roots": [
+    "blueprint://weblisk/architecture/content"
+  ],
+  "resolution": {
+    "build_set": [
+      {
+        "component": "component://example/orchestrator"
+      },
+      {
+        "component": "component://example/content"
+      }
+    ],
+    "lock_diff": [
+      {
+        "ref": "blueprint://weblisk/architecture/content",
+        "from": "5.1.0",
+        "to": "5.3.0"
+      }
+    ],
+    "conflicts": {
+      "found": [],
+      "introduced": [],
+      "cleared": []
+    }
+  },
+  "plan": [
+    {
+      "unit": "component://example/orchestrator",
+      "phase": "R",
+      "verdict": "review",
+      "because": "unmaintained",
+      "detail": "protocol/spec moved bytes at 2.0.0, and no versioned change reaches it"
+    }
+  ],
+  "unassessed": [
+    {
+      "unit": "component://example/admin",
+      "detail": "its latest run did not complete, so what it was built from cannot be read"
+    }
+  ],
+  "without_approval": true,
+  "applied_run": "9a8b7c6d5e4f30211203f4e5d6c7b8a9",
+  "outcomes": [
+    {
+      "component": "component://example/content",
+      "result": "built",
+      "verdict": {
+        "outcome": "inconclusive",
+        "detail": "two assertions were left unanswered"
+      }
+    }
+  ]
+}

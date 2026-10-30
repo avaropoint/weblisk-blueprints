@@ -1,11 +1,12 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 2.1.0
+version: 2.2.0
 requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
 adoption: opt-in
+drivers: [git, git-remote]
 -->
 
 # Content Git Backend Pattern

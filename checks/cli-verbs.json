@@ -545,6 +545,10 @@
     }
   ],
   "expected_drift": [
+    "specified, not built: change apply",
+    "specified, not built: change list",
+    "specified, not built: change plan",
+    "specified, not built: change show",
     "specified, not built: objectives describe",
     "specified, not built: objectives list",
     "specified, not built: operator attest",

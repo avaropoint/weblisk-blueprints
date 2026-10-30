@@ -9,9 +9,16 @@
   "strict": true,
   "state": "rejected",
   "base": {
-    "corpus": "f2b61ba",
+    "corpus": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3",
     "lock": "sha256:abababababababababababababababababababababababababababababababab",
-    "fabric_tip": "unreported"
+    "fabric_tip": "unreported",
+    "pins": [
+      {
+        "kind": "core",
+        "origin": "https://git.example.com/weblisk-blueprints.git",
+        "revision": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3"
+      }
+    ]
   },
   "shown_roots": [
     "blueprint://weblisk/architecture/admin"

@@ -69,6 +69,7 @@ may add additional required fields.
 | `superseded_by` | string | no | — | Blueprint reference (`type/name`) that replaces this one. Required when `status` is `deprecated`. |
 | `end_of_life` | date | no | — | ISO 8601 date after which the blueprint is unsupported. Required when `status` is `end-of-life`. |
 | `adoption` | enum | no | `required` | `required` — every deployment serves this blueprint's surface. `opt-in` — only a deployment that explicitly configures it does. |
+| `drivers` | list | no | `[]` | The driver names this blueprint specifies, each the value a tenant's configuration gives a backend's `driver` to choose it. Only with `adoption: opt-in`. See [`drivers`](#drivers) |
 
 #### `adoption`
 
@@ -86,6 +87,26 @@ the tooling, which is the specification moving out of the blueprints.
 `opt-in` does NOT weaken the contract. A deployment that adopts the surface owes
 every assertion in it. The field says whether the surface is reached, never how
 completely it must be implemented once it is.
+
+#### `drivers`
+
+An opt-in blueprint that specifies a backend is adopted by the tenant's
+configuration choosing it: a `<kind>.backends[].driver`
+([`schemas/config`](config.md)) whose value is one of the names this field
+lists. `drivers: [git, git-remote]` on
+[`patterns/content-git`](../patterns/content-git.md) is what makes a content
+backend with `driver: git` bring that blueprint into the content service's
+build ([`architecture/generation`](../architecture/generation.md#resolving-a-request-of-many-roots)).
+
+The field is the declaration a tool reads. The blueprint's Configuration
+section still says what each driver's `root` and `options` are, and every name
+listed here is one that section specifies; but an example in a YAML block is
+illustration, and a tool that finds a driver by parsing one adopts whatever the
+example happens to show.
+
+A driver name is listed by one blueprint in a corpus. Two that list the same
+name leave a tenant's configuration naming two blueprints at once, and which
+one it adopted would be the tool's guess.
 
 ### Type-Specific Fields
 
@@ -163,6 +184,7 @@ that drifts, because every document written from it inherits the fault.
 12. If `status` is `deprecated`, `superseded_by` is required
 13. If `status` is `end-of-life`, `end_of_life` date is required
 14. `superseded_by` must reference an `active` blueprint of the same `type`
+15. `drivers` is present only when `adoption` is `opt-in`, and no two blueprints in a corpus list the same driver
 
 ### The header in grammar 1
 
@@ -202,8 +224,8 @@ them:
 - **`formerly`** lists the refs the file was known by before it was renamed,
   so a citation of an older ref still finds it.
 
-`version`, `tier`, `author`, `status`, `superseded_by`, `end_of_life` and
-`adoption` keep the meanings above. `platform` is carried only by a family
+`version`, `tier`, `author`, `status`, `superseded_by`, `end_of_life`,
+`adoption` and `drivers` keep the meanings above. `platform` is carried only by a family
 whose declaration lists it; an architecture blueprint names none.
 
 ---
@@ -1182,6 +1204,11 @@ references: CronTask.task_id
 - **MAJOR**: Breaking changes (removed fields, changed types, removed endpoints)
 - **MINOR**: Additive changes (new optional fields, new actions, new events)
 - **PATCH**: Non-functional changes (clarifications, typos, examples)
+- **Every change to a blueprint's bytes moves its version**, by a PATCH at
+  least. A version that stands still while the bytes move tells every tenant
+  that took that version that nothing changed; a tenant meeting one plans it as
+  `review`, because `unmaintained`, and never regenerates on it
+  ([`schemas/change`](change.md#verdicts))
 - All blueprints in a release MUST be compatible with each other
 
 ### Schema Versions
