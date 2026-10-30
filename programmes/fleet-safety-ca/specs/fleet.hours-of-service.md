@@ -110,7 +110,7 @@ declares:
       - {key: driving_limit_breaches, label: Days over 13 hours driving, type: int, required: true}
       - {key: on_duty_limit_breaches, label: Days over 14 hours on duty, type: int, required: true}
       - {key: elapsed_16_breaches, label: Days driven after 16 hours elapsed, type: int, required: true}
-      - {key: off_duty_breaches, label: Days without 10 hours off, 8 of them consecutive, type: int, required: true}
+      - {key: off_duty_breaches, label: "Days without 10 hours off, 8 of them consecutive", type: int, required: true}
       - {key: cycle_breaches, label: Cycle limit breaches, type: int, required: true}
       - {key: cycle_resets_taken, label: Cycle resets taken in the period, type: int}
       - {key: eld_used, label: An electronic logging device was in use, type: bool, required: true}
@@ -118,7 +118,7 @@ declares:
          options: ["No", "Yes — a trip could not be completed within the remaining hours",
                    "Yes — other, described below", Not yet determined]}
       - {key: findings, label: Findings, type: longtext, required: true}
-      - {key: actions, label: Actions, with owners and dates, type: longtext}
+      - {key: actions, label: "Actions, with owners and dates", type: longtext}
       - {key: driver_spoken_to, label: The driver was spoken to about the findings, type: bool, required: true}
 ---
 

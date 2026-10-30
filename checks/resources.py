@@ -298,6 +298,9 @@ def check(rel, r, ctx):
         for flt in od.get("filters") or []:
             if known_type and resolve(index, r.get("list_type") or tname, str(flt)) is None and resolve(index, tname, str(flt)) is None:
                 f("resource-field-of-type", "filter %s is not a field of %s" % (flt, tname))
+        for req in od.get("required_filters") or []:
+            if req not in (od.get("filters") or []):
+                f("resource-required-filters", "operation %s requires filter %s, which is not one of its filters" % (op, req))
 
     states = r.get("states")
     state_names, manual = set(), set()

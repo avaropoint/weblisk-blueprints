@@ -75,13 +75,13 @@ declares:
       - {key: loads_removed, label: Loads removed in the period, type: int, required: true}
       - {key: loads_with_a_record, label: Loads with a hauling record created before leaving, type: int, required: true}
       - {key: loads_missing_an_acknowledgement, label: Loads never acknowledged at the destination, type: int, required: true}
-      - {key: loads_exempt, label: Loads exempt under s. 18 (5 m3 or less of dry soil, or a packaged product), type: int}
+      - {key: loads_exempt, label: "Loads exempt under s. 18 (5 m3 or less of dry soil, or a packaged product)", type: int}
       - {key: destination, label: Principal destination in the period, type: relation,
          target: /registers/soil-destinations.md#records, display: site_id}
       - {key: destinations_match_the_notice, label: Every destination used is one the filed notice names, type: bool, required: true}
       - {key: unmatched_destinations, label: Destinations used that the notice does not name, type: longtext}
       - {key: contingency_communicated, label: Contingency measures communicated to every driver, type: bool, required: true}
-      - {key: vehicles_compliant, label: Vehicles leakproof, covered and fit for the load, type: bool, required: true}
+      - {key: vehicles_compliant, label: "Vehicles leakproof, covered and fit for the load", type: bool, required: true}
       - {key: landfill_deposits, label: Loads deposited at a landfill or dump, type: int}
       - {key: landfill_declarations_held, label: Qualified person's s. 22 declaration held for each landfill deposit, type: select,
          options: ["Held for every load", "Not required — the soil was used for cover, roads, berms or an ancillary use",

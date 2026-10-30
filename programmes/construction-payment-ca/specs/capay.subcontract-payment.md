@@ -86,7 +86,7 @@ declares:
       - {key: amount_paid, label: Amount paid on, type: currency, required: true}
       - {key: holdback_retained, label: Holdback retained, type: currency, required: true}
       - {key: amount_withheld, label: Amount withheld, type: currency, required: true}
-      - {key: withholding_reason, label: Reason, in the terms the notice gave, type: longtext}
+      - {key: withholding_reason, label: "Reason, in the terms the notice gave", type: longtext}
       - {key: notice_form_used, label: The prescribed form was used, type: select,
          options: [Not applicable, "Yes", "No"]}
       - {key: paid_from_trust_account, label: Paid from the account holding the trust funds, type: bool, required: true}

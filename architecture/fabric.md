@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.2.1
+version: 3.3.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
 platform: any
 tier: free
@@ -353,12 +353,12 @@ unattributable zero reads as a finding.
 |--------|------|-----------|------|------------|---------|
 | POST | /v1/fabric/sync | Sync | yes | `fabric:produce` | A producer states its full current view for one partition; what it no longer sees is retired |
 | POST | /v1/fabric/observations | Observe | yes | `fabric:observe` | Report one relationship incrementally. Withdraws nothing, ever. On a work pass, agent work's proposal ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms)) |
-| POST | /v1/fabric/attestations | Attest | yes | `fabric:attest` | A person asserts a relationship themselves |
-| POST | /v1/fabric/decisions | Decide | yes | `fabric:attest` | A person judges a relationship already recorded |
-| POST | /v1/fabric/relocations | Relocate | yes | `fabric:attest` | Re-anchor a confirmed relationship whose content moved. No destination is accepted |
-| GET | /v1/fabric/edges | Touching | yes | `fabric:read` | Live relationships with either end at a node, cursor-paginated |
-| GET | /v1/fabric/reach | Impact | yes | `fabric:read` | Everything reachable from a node, or from each changed part of a diff (`?diff=`), to the depth `reach-max-depth` bounds, in both directions |
-| GET | /v1/fabric/answers | Coverage | yes | `fabric:read` | What answers a criterion, what it rests on, and what is unanswered |
+| POST | /v1/fabric/attestations | Attest | yes | `fabric:attest` | A person asserts a relationship themselves. Body `RelationshipAttestation`, answer `RelationshipEdge` |
+| POST | /v1/fabric/decisions | Decide | yes | `fabric:attest` | A person judges a relationship already recorded. Body `RelationshipDecision`, answer `RelationshipEdge` |
+| POST | /v1/fabric/relocations | Relocate | yes | `fabric:attest` | Re-anchor a confirmed relationship whose content moved. Body `RelocationRequest`, answer `RelocationResult`. No destination is accepted |
+| GET | /v1/fabric/edges | Touching | yes | `fabric:read` | Live relationships with either end at a node, cursor-paginated ([Query parameters](#query-parameters)) |
+| GET | /v1/fabric/reach | Impact | yes | `fabric:read` | Everything reachable from a node, or from each changed part of a diff (`?diff=`), to the depth `reach-max-depth` bounds, in both directions ([Query parameters](#query-parameters)) |
+| GET | /v1/fabric/answers | Coverage | yes | `fabric:read` | What answers a criterion, what it rests on, and what is unanswered ([Query parameters](#query-parameters)) |
 | GET | /v1/fabric/lineage | History | yes | `fabric:read` | Every entry ever recorded for one relationship, in order, with each actor |
 | GET | /v1/fabric/projection | Graph | yes | `fabric:read` | The byte-stable graph of the live ledger |
 | GET | /v1/fabric/chain | Verify | yes | `fabric:read` | Verify the hash chain over a range of sequence numbers |
@@ -394,6 +394,35 @@ from; these are the most stable names available.
 > the fault `schemas/kinds.md` rule 7 forbids, carried across the wire. Which
 > component serves the declaration, at which route, and under what capability
 > are not specified.
+
+### Query parameters
+
+Each write route above takes the body its row names, and a body that is not
+that type is refused with `INVALID_REQUEST` and appends nothing. Each read
+route takes these and no other; one it does not name, or one it
+requires and is not sent, is refused with `INVALID_REQUEST` and answers
+nothing. A node is named as `NodeRef` names one: `source` and `artifact_id`,
+with `anchor` where the question is about a place in it.
+
+| route | parameter | required | means |
+|---|---|---|---|
+| `/v1/fabric/edges` | `source`, `artifact_id` | yes | the node whose relationships are listed |
+| | `anchor` | no | narrow to relationships whose end at the node is at that anchor |
+| | `relation` | no | one declared relation |
+| | `status` | no | one of `RelationshipEdge`'s statuses; absent, every live one |
+| | `organisation`, `project` | no | the orchestrator's id; narrow to relationships that belong there ([Which organisation and project a relationship belongs to](#which-organisation-and-project-a-relationship-belongs-to)) |
+| | `cursor`, `limit` | no | the page, by the names [`architecture/admin`](admin.md#lists) gives every list: `cursor` a page's `next_cursor` sent back, `limit` the most a page may hold |
+| `/v1/fabric/reach` | `source`, `artifact_id` | one of these or `diff` | the node to walk from |
+| | `diff` | one of these or the node | `<ref>@<from_version>..<to_version>`, a `DiffStart` written as one string; walk from each part that differs ([Reach from a diff](#reach-from-a-diff)) |
+| | `depth` | no | how many steps, at least 1 and at most `reach-max-depth`; absent, `reach-max-depth`. More is refused, never truncated silently |
+| | `relation` | no | walk only steps of this relation |
+| `/v1/fabric/answers` | `source`, `artifact_id` | yes | the criterion, as `CoverageAnswer.criterion` names it |
+| | `anchor` | no | one place in it, such as one clause |
+| | `organisation`, `project` | no | the orchestrator's id; count only answers that belong there. Absent, every answer the request may read |
+
+`reach` and `answers` are not paged: a walk is bounded by its depth, and an
+answer is about one criterion. `edges` is, and its `next_cursor` is sent back
+as `cursor`, as every list in a tenant is.
 
 ---
 
@@ -489,23 +518,23 @@ interfaces:
       called_by: [agents, gateway]
 
     - name: Attest
-      signature: (actor, scope, RelationshipClaim, status) → RelationshipEdge
+      signature: (actor, RelationshipAttestation) → RelationshipEdge
       description: Record a person's own assertion at confirmed or rejected
       called_by: [gateway]
 
     - name: Decide
-      signature: (actor, RelationshipIdentity, status, note) → RelationshipEdge
+      signature: (actor, RelationshipDecision) → RelationshipEdge
       description: Record a person's judgement on an existing relationship
       called_by: [gateway]
 
     - name: Relocate
-      signature: (actor, RelationshipIdentity) → RelocationResult
+      signature: (actor, RelocationRequest) → RelocationResult
       description: Find where the cited content now lives, re-read it, retire the
         old record with a note, and assert the new address
       called_by: [gateway]
 
     - name: Touching
-      signature: (NodeRef, cursor, limit) → ([RelationshipEdge], next_cursor, AnswerCompleteness)
+      signature: (NodeRef, relation, status, organisation, project, cursor, limit) → ([RelationshipEdge], next_cursor, AnswerCompleteness)
       description: Live relationships with either end at a node
       called_by: [gateway, agents]
 
@@ -1064,6 +1093,34 @@ asked for the run, once the credential layer exists
 the producer records each entry's run citation with `signed: false`; a
 person's identity key never signs one in its place.
 
+### Which organisation and project a relationship belongs to
+
+**A tenant's fabric is answered per tenant.** One fabric service runs in a
+tenant and holds that tenant's ledger, so the tenant is never a field of a
+relationship: every relationship it answers is that tenant's, and a
+relationship between two tenants is federation, which this service does not
+hold.
+
+**Within the tenant, a relationship belongs where its `from` end lives.** A
+relation runs from the thing that answers, implements or depends to the thing
+it answers ([`schemas/kinds.md`](../schemas/kinds.md#relations)): a procedure
+`satisfies` a control, a programme `conforms_to` a standard. So the
+relationship is the work of the organisation and project that hold its `from`
+end. `organisation` and `project` are the orchestrator's ids for them
+([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)),
+read through the `scope_path` the `from` end's `source` is declared at in
+content ([`architecture/content`](content.md)): `<tenant>/<organisation>`
+gives the organisation, `<tenant>/<organisation>/<project>` both, and a
+source declared at the tenant gives neither, and the relationship is the
+tenant's own.
+
+**Derived on read, never part of the identity.** Both are read when the
+relationship is answered, as health is, and neither enters
+`RelationshipIdentity`, so a key never changes because a repository did. A
+`from` end whose source's declaration cannot be read here leaves both absent
+and sets `unplaced`, which a reader reports as not placed, never as the
+tenant's own: absent and unknown are different facts.
+
 ### Health
 
 | Health | Means | The response it asks for |
@@ -1442,6 +1499,65 @@ types:
         type: WorkCitation
         required: false
         description: The standing entry's work, where agent work asserted it
+      health:
+        type: EdgeHealth
+        required: true
+        description: Derived on read from both ends, never stored (Health)
+      organisation:
+        type: string
+        required: false
+        description: The orchestrator's id of the organisation the relationship belongs to, derived on read from its from end. Absent where it is the tenant's own, or unplaced (Which organisation and project a relationship belongs to)
+      project:
+        type: string
+        required: false
+        description: The orchestrator's id of the project it belongs to, derived as organisation is. Absent where its from end is held at no project
+      unplaced:
+        type: bool
+        required: false
+        description: True where the from end's source has no declaration this service could read, so organisation and project are unknown rather than absent
+
+  RelationshipAttestation:
+    description: The body of Attest, a person asserting a relationship themselves
+    fields:
+      claim:
+        type: RelationshipClaim
+        required: true
+        description: The relationship asserted, its scope in its identity, with what the person relied on as its basis
+      status:
+        type: enum
+        values: [confirmed, rejected]
+        required: true
+        description: What the person asserts of it
+      note:
+        type: string
+        required: false
+
+  RelationshipDecision:
+    description: The body of Decide at its own route, a person judging a relationship already recorded. At the uniform address the relationship is the path's and the body is a RelationshipJudgement
+    fields:
+      key:
+        type: string
+        required: true
+        description: The relationship's key, as RelationshipEdge carries it
+      status:
+        type: enum
+        values: [confirmed, rejected, retired]
+        required: true
+      note:
+        type: string
+        required: false
+
+  RelocationRequest:
+    description: The body of Relocate. It names the relationship and never a destination, which the service finds (Relocation Flow)
+    fields:
+      key:
+        type: string
+        required: true
+        description: The relationship's key, as RelationshipEdge carries it
+      note:
+        type: string
+        required: false
+        description: Recorded on the entry that retires the old address
 
   WorkCitation:
     description: The work pass an entry arrived on, as the entry records it
@@ -1789,8 +1905,13 @@ resources:
       - {name: recorded_at, access: read-only, present: instant}
       - {name: work, access: read-only}
       - {name: work.run, access: read-only, present: reference, kind: run}
+      - {name: health, access: read-only, volatile: true}
+      - {name: health.state, access: read-only, volatile: true}
+      - {name: organisation, access: read-only, present: reference, kind: organisation}
+      - {name: project, access: read-only, present: reference, kind: project}
+      - {name: unplaced, access: read-only, present: boolean}
     operations:
-      list: {capability: "fabric:read", filters: [status, proposed, asserted_by, identity.relation, work.run]}
+      list: {capability: "fabric:read", filters: [status, proposed, asserted_by, identity.relation, work.run, health.state, organisation, project]}
       get: {capability: "fabric:read"}
     verbs:
       - name: decide
@@ -2198,5 +2319,9 @@ verifies:
 - [ ] A proposed edge is counted in a coverage answer's `needs_review` and never among its answered edges, and a person's `decide` on it at `confirmed` leaves it not proposed ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms), [Resources](#resources))
 - [ ] An attestation, decision or relocation on a work pass is refused with `FORBIDDEN` whatever its `cap` ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms), [Registration and Standalone Operation](#registration-and-standalone-operation))
 - [ ] An `Observe` on a work pass at the highest confidence is refused with `INVALID_REQUEST` and appends nothing ([Agent work proposes, never confirms](#agent-work-proposes-never-confirms))
+- [ ] A relationship whose `from` end is held in a repository declared at `<tenant>/<organisation>/<project>` is answered with that organisation's and project's orchestrator ids, one whose `from` end is the tenant's with neither, and one whose source's declaration cannot be read with neither and `unplaced` true; none of them changes its `key` ([Which organisation and project a relationship belongs to](#which-organisation-and-project-a-relationship-belongs-to))
+- [ ] Every relationship answered at `/v1/fabric/edges` and at the uniform address carries its `health`, derived on read, and a `list` filtered by `health.state` `stale` answers only stale ones ([Health](#health), [Resources](#resources))
+- [ ] `/v1/fabric/edges` with no `source`, with a parameter its table does not name, and `/v1/fabric/reach` with a `depth` above `reach-max-depth` are each refused with `INVALID_REQUEST`; following `next_cursor` as `cursor` reaches the last page with no relationship twice ([Query parameters](#query-parameters))
+- [ ] `Attest` accepts a `RelationshipAttestation`, `Decide` a `RelationshipDecision` and `Relocate` a `RelocationRequest`, and a body that is not its route's type is refused with `INVALID_REQUEST` and appends nothing ([Endpoints](#endpoints), [Query parameters](#query-parameters), [Types](#types))
 - [ ] Two readers holding the same ledger derive the same `key` for every relationship, and the uniform address serves the `relationship` kind by it with `list`, `get` and `decide` ([Resources](#resources), [Types](#types))
 - [ ] `GET /v1/admin/records/fabric-service/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))

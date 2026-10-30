@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.3.0
+version: 5.4.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -377,7 +377,7 @@ component declares it as a pass route.
 | GET | /v1/admin/approvals | DecisionInbox | admin | carried | The decision inbox, composed from each owner's inbox route, and answered `ADMIN_GROUP_UNAVAILABLE` while no directory entry declares one |
 | POST | /v1/admin/model/audit | ModelAuditRefused | admin | none | Answered as `admin-gateway-authorization` says of this route |
 | GET | /v1/admin/resources | ResourceCatalogue | admin | carried | The catalogue of every kind the tenant declares, composed as [The catalogue](#the-catalogue) says |
-| GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, carried to its owner ([The uniform address](#the-uniform-address)) |
+| GET | /v1/admin/r/{kind} | ResourceList | admin | carried | A kind's `list`, taking `cursor`, `limit` and the kind's declared filters as query parameters and no other, carried to its owner ([The uniform address](#the-uniform-address)) |
 | POST | /v1/admin/r/{kind} | ResourceCreate | admin | carried | A kind's `create`, carried as `ResourceList` |
 | GET | /v1/admin/r/{kind}/{uid} | ResourceGet | admin | carried | A kind's `get`, carried as `ResourceList` |
 | PATCH | /v1/admin/r/{kind}/{uid} | ResourceUpdate | admin | carried | A kind's `update`, with `If-Match` ([Writes, and what guards them](#writes-and-what-guards-them)) |
@@ -495,6 +495,7 @@ because nothing was judged.
 | `RESOURCE_FIELD_NOT_SETTABLE` | [types](../protocol/types.md#errorresponse) | validation | A write names a field its declaration does not let a person set there (`resource-api`) | Refuse, change nothing, name each field in `detail.fields` | — |
 | `RESOURCE_IF_MATCH_REQUIRED` | [types](../protocol/types.md#errorresponse) | validation | An update, a delete or a verb at the uniform address carries no `If-Match` (`resource-api`) | Refuse before exchanging anything. The client reads the item and sends its `ETag` | — |
 | `RESOURCE_PRECONDITION_FAILED` | [types](../protocol/types.md#errorresponse) | conflict | The item's `ETag` is not the `If-Match` the write carried: somebody changed it since the client read it (`resource-api`) | The owner refuses, changes nothing and carries the current `ETag`. Never merge, never apply to what the person did not see | — |
+| `INVALID_INPUT` | 400 | validation | A `list` at the uniform address names a query parameter its declaration's `parameters` does not list, or omits one its `required_filters` names (`resource-api`) | Refuse before exchanging anything, naming each such parameter in `detail.parameters`. Never drop one and answer a wider list | — |
 | `ADMIN_GROUP_UNAVAILABLE` | 503 | io | A request reached the admin gateway for a resource kind the catalogue reports `declared-unavailable`, naming the kind in `detail.kind` and its reason in `detail.reason`, or an act that takes approval while none can be decided (`resource-api`); or for a route no provider here may be sent: none is deployed, the one deployed is not registered now, no directory entry declares the route among its `pass_routes` or more than one does, which is so wherever the provider's blueprint does not specify both the route and that it accepts a pass for it, or its directory address is on another host than the orchestrator's and only `self-asserted`, which the answer names in `detail.address` (`admin-gateway-authorization`) | Refuse and forward nothing. Never answer with an empty result: an absent provider and an empty one are different facts | — |
 
 `TOKEN_EXPIRED` ([`protocol/types`](../protocol/types.md#error-handling)) still
@@ -1316,6 +1317,10 @@ contracts:
         - A request at /v1/admin/r/{kind}, /v1/admin/r/{kind}/{uid} or /v1/admin/r/{kind}/{uid}/{verb} for an available kind MUST be carried to the method and path the kind's declaration gives that operation or verb - to the orchestrator on the operator token as it arrived, and to any other owner on a pass whose exchange scope names the capability the declaration gives it and nothing more, as admin-gateway-authorization carries any request - and the owner's answer MUST be relayed as the owner gave it, reshaped in nothing
         # <!-- wl:id resource-undeclared-refused -->
         - A request naming a kind the catalogue does not hold MUST be answered RESOURCE_KIND_UNDECLARED, one naming an operation or verb the kind's declaration does not name RESOURCE_OPERATION_UNDECLARED with an Allow header naming the methods the address does serve, and one for a declared-unavailable kind ADMIN_GROUP_UNAVAILABLE with detail.kind and detail.reason, and none of them is exchanged or forwarded
+        # <!-- wl:id resource-declaration-complete -->
+        - Every ResourceDeclaration the catalogue answers MUST carry each field's type, required and enum as the type declaring that field gives them, each verb's body_fields where it has a body, each list's parameters, and each approval as a ResourceApproval (protocol/types), as generation writes them into the manifest and into .weblisk/resources.json, and the gateway MUST relay them as written
+        # <!-- wl:id resource-list-parameters -->
+        - A list at /v1/admin/r/{kind} MUST take as query parameters cursor, limit and one per field its declaration's filters names, and no other; a request naming any other, or omitting a filter its required_filters names, MUST be answered INVALID_INPUT with each such name in detail.parameters before anything is exchanged or forwarded, and the query string of one that does neither MUST be carried to the owner's route unchanged
         # <!-- wl:id resource-if-match-required -->
         - An update, a delete or a verb arriving at the uniform address with no If-Match MUST be answered RESOURCE_IF_MATCH_REQUIRED before anything is exchanged or forwarded
         # <!-- wl:id resource-owner-etag -->
@@ -2821,7 +2826,7 @@ says what they are for.
 | Method | Path | What it does |
 |---|---|---|
 | GET | /v1/admin/resources | The catalogue: every kind the tenant declares, each `available` or `declared-unavailable` with its reason |
-| GET | /v1/admin/r/{kind} | `list`: the kind's items the request may read, a page at a time |
+| GET | /v1/admin/r/{kind} | `list`: the kind's items the request may read, a page at a time, from `cursor` and narrowed by the declared filters ([Lists](#lists)) |
 | POST | /v1/admin/r/{kind} | `create` |
 | GET | /v1/admin/r/{kind}/{uid} | `get`: one item, with its `ETag` |
 | PATCH | /v1/admin/r/{kind}/{uid} | `update`: the `settable` fields the body names, with `If-Match` |
@@ -2864,6 +2869,18 @@ never left out and never answered as empty**, for the reason
 `provider-absent-unavailable` gives: an owner that is not there and an owner
 with nothing are different facts.
 
+**A declaration is complete enough to act on without its blueprint.** A client
+renders a form, a filter bar and a page control from the catalogue alone, so
+each `ResourceDeclaration` carries, besides the block's own keys: every
+field's `type`, `required` and `enum` as the type that declares the field gives
+them, never restated in the block; every verb's `body_fields`, the fields of
+its `body` type in the same form; every list's `parameters`, `cursor`, `limit` and
+one per declared filter; and every `approval` in `ResourceApproval`'s form
+([`protocol/types`](../protocol/types.md#resourcedeclaration)). Generation
+writes them, into the manifest and into `.weblisk/resources.json` alike
+([`architecture/generation`](generation.md#resources)), so the gateway composes
+them and resolves nothing.
+
 ### The uniform address
 
 A request at `/v1/admin/r/{kind}` is carried to the kind's owner, at the route
@@ -2886,6 +2903,26 @@ the catalogue does not hold is `RESOURCE_KIND_UNDECLARED`; an operation or
 verb its declaration does not name is `RESOURCE_OPERATION_UNDECLARED`; a
 declared kind that is not available is `ADMIN_GROUP_UNAVAILABLE`, naming the
 kind and its reason. None of them is forwarded.
+
+### Lists
+
+A `list` takes, as query parameters, `cursor`, `limit` and one per field its
+declaration's `filters` names, and nothing else, which is what its
+`parameters` lists. `cursor` is a page's `next_cursor` sent back, absent for
+the first page, and opaque, as
+[`architecture/storage`](storage.md)'s `cursor-pagination` makes every cursor;
+`limit` is how many items a page may hold at most, and an owner answers fewer
+where it pages by less, never more. A filter narrows by equality, its value
+written as its field's type is, one of its `enum` where it has one. A filter
+the declaration's `required_filters` names must be sent, and a list without
+it is refused `INVALID_INPUT` naming it in `detail.parameters`. A bound list's
+route takes its page position as `cursor`, its page size as `limit` and its
+filters by the same names, so the gateway carries the query string to the
+route unchanged; a route that pages or filters by other names is not one a
+`list` may bind. A query parameter the declaration does not name is refused
+`INVALID_INPUT`, with each such name in `detail.parameters`, before anything
+is exchanged: a filter silently dropped would answer a wider list than the one
+asked for, and say nothing.
 
 ### Writes, and what guards them
 
@@ -3741,6 +3778,8 @@ The rest SHOULD be:
 - [ ] A request naming a kind no catalogue entry holds is answered `RESOURCE_KIND_UNDECLARED`, `DELETE /v1/admin/r/agent/{name}` is answered `RESOURCE_OPERATION_UNDECLARED` with an `Allow` header, and a request for a `declared-unavailable` kind is answered `ADMIN_GROUP_UNAVAILABLE` naming the kind and its reason; none is exchanged or forwarded ([The uniform address](#the-uniform-address); [Error Handling](#error-handling); [Contracts](#contracts), `resource-api`) <!-- wl:check undeclared-refused covers resource-undeclared-refused resource-owner-declared-only -->
 - [ ] `POST /v1/admin/r/agent/{name}/deregister` with no `If-Match` is answered `RESOURCE_IF_MATCH_REQUIRED` and nothing is exchanged; with the `ETag` of an earlier read after the agent re-registered with a changed manifest it is answered `RESOURCE_PRECONDITION_FAILED` and the agent stays registered; at a kind that declares `update`, a `PATCH` naming a field its declaration makes `read-only` is answered `RESOURCE_FIELD_NOT_SETTABLE` and nothing changes ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check writes-guarded covers resource-if-match-required resource-owner-etag -->
 - [ ] An act whose declaration takes approval is answered `ADMIN_GROUP_UNAVAILABLE` with `detail.reason` `approval-undecidable`, never `202`, and is not applied ([Writes, and what guards them](#writes-and-what-guards-them); [Contracts](#contracts), `resource-api`) <!-- wl:check approval-not-faked covers resource-approval-undecidable -->
+- [ ] `GET /v1/admin/resources` answers, for the `run` kind, each field with its `type` and `required`, its `status` field with the `enum` its type declares, the `cancel` verb with no `body_fields`, and the `list` operation with `parameters` `cursor`, `limit`, then each declared filter; `wait`'s `decide` verb carries `body_fields` read from its body type ([The catalogue](#the-catalogue); [Contracts](#contracts), `resource-api`) <!-- wl:check declaration-complete covers resource-declaration-complete -->
+- [ ] `GET /v1/admin/r/run?status=failed` answers only failed runs, and following each page's `next_cursor` as `cursor` reaches the last page with no run twice; `GET /v1/admin/r/run?colour=red` is answered `INVALID_INPUT` naming `colour` in `detail.parameters`, and nothing is exchanged ([Lists](#lists); [Contracts](#contracts), `resource-api`; [Error Handling](#error-handling)) <!-- wl:check list-parameters covers resource-list-parameters -->
 - [ ] Every create, update, delete and verb at the resource API, admitted or refused, leaves an audit entry at its owner naming the identity id that acted, the kind, the item, the act and its outcome ([Contracts](#contracts), `resource-api`) <!-- wl:check resource-writes-audited covers resource-write-audited -->
 - [ ] A client subscribed to `agent` over `GET /v1/admin/ws` receives `weblisk.agent.created` when an agent registers and `weblisk.agent.deregister` when one is force-deregistered, each with `subject` the agent's name and no `token` in `data`; reconnecting with `after` set to the first event's position receives the second again; a subscription after a position its owner no longer holds receives a `gap` frame ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-delivers covers feed-rounds-carried feed-filtered-by-read feed-replay-or-gap -->
 - [ ] The gateway holds no person's token once the connection it came on is closed; it closes the connection with `TOKEN_EXPIRED` at that token's `exp` unless a `token` frame for the same `sub` replaced it, and at once on a `token` frame for another `sub`; an operator whose credential is revoked stops receiving within one round, and their other subscriptions are each closed with an `error` frame naming the code ([The feed](#the-feed); [Contracts](#contracts), `resource-feed`) <!-- wl:check feed-token-bound covers feed-on-operator-token feed-closed-at-expiry feed-subscription-error -->

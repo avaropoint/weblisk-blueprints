@@ -58,7 +58,7 @@ declares:
       - {key: engineer_opinion_ref, label: Engineer's opinion reference, type: text}
       - {key: services_located, label: Underground services located and marked, type: bool, required: true}
       - {key: access_egress, label: Access and egress, type: longtext, required: true}
-      - {key: spoil_and_loads, label: Spoil, equipment and loads set back from the edge, type: bool, required: true}
+      - {key: spoil_and_loads, label: "Spoil, equipment and loads set back from the edge", type: bool, required: true}
       - {key: second_worker, label: A worker above ground in close proximity, type: bool, required: true}
       - {key: water, label: Water accumulation, type: longtext}
       - {key: action, label: Action taken, type: longtext}

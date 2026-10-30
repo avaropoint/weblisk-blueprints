@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.4.0
+version: 6.5.0
 requires: []
 platform: any
 tier: free
@@ -1299,6 +1299,70 @@ types:
         type: string
         required: false
         description: "For `present: reference`, the kind of the item the field names"
+      type:
+        name: Type
+        type: string
+        required: false
+        description: "The field's type as the type that declares it gives it: a scalar schemas/common lists, a declared type's name, or a list of either written `[]<type>`. Read from that declaration when the wire form is written, never restated in the Resources block. Carried in every declaration written at 6.5.0 or later (architecture/admin, resource-declaration-complete); absent only from one written before, which a client renders read-only"
+      required:
+        name: Required
+        type: bool
+        required: false
+        description: "Whether the declaring type makes the field required: true unless it declares it `required: false` or `optional: true`. Carried wherever `type` is"
+      enum:
+        name: Enum
+        type: "[]string"
+        required: false
+        description: "The values the declaring type allows the field (its `enum`, read as `values` in a file walked against a family), each as written there. Present wherever the type declares them, and so for every field presented `choice`"
+
+  ResourceParameter:
+    fields:
+      name:
+        name: Name
+        type: string
+        required: true
+        description: "`cursor`, `limit`, or a field the list may be narrowed by, as `filters` names it"
+      type:
+        name: Type
+        type: string
+        required: true
+        description: "`string` for `cursor`, `int` for `limit`; for a filter, the field's type as ResourceField carries it"
+      enum:
+        name: Enum
+        type: "[]string"
+        required: false
+        description: "For a filter: the values its field's declaring type allows, as ResourceField carries them"
+      required:
+        name: Required
+        type: bool
+        required: false
+        description: "True for a filter the operation's `required_filters` names: the list is refused without it. Absent: optional"
+
+  ResourceApproval:
+    fields:
+      positions:
+        name: Positions
+        type: "[]string"
+        required: false
+        exclusive_with: roles
+        description: "Positions a programme declares, any of whose holders may approve"
+      roles:
+        name: Roles
+        type: "[]string"
+        required: false
+        exclusive_with: positions
+        description: "Roles architecture/admin's table names, any of whose holders may approve"
+      min:
+        name: Min
+        type: int
+        required: true
+        min: 1
+        description: "How many must approve before the act is applied"
+      ordered:
+        name: Ordered
+        type: bool
+        required: false
+        description: "True: they approve in the order `positions` lists"
 
   ResourceOperation:
     fields:
@@ -1319,7 +1383,7 @@ types:
         description: "True: a destructive act, governed by architecture/admin's destructive-action-step-up"
       approval:
         name: Approval
-        type: object
+        type: ResourceApproval
         required: false
         description: "Who must approve the act before it is applied (schemas/resource, Authority)"
       method:
@@ -1337,6 +1401,16 @@ types:
         type: "[]string"
         required: false
         description: "For `list`: the fields a list may be narrowed by, each by equality"
+      parameters:
+        name: Parameters
+        type: "[]ResourceParameter"
+        required: false
+        description: "For `list`: every query parameter it takes, and no other: `cursor`, `limit`, then one per field `filters` names, in that order. Each is optional unless `required_filters` names it; a filter narrows by equality"
+      required_filters:
+        name: RequiredFilters
+        type: "[]string"
+        required: false
+        description: "For `list`: the filters it is refused without, each one of `filters`"
       items:
         name: Items
         type: string
@@ -1362,7 +1436,7 @@ types:
         description: "True: a destructive act"
       approval:
         name: Approval
-        type: object
+        type: ResourceApproval
         required: false
         description: "Who must approve the act before it is applied"
       method:
@@ -1385,6 +1459,11 @@ types:
         type: string
         required: false
         description: "The type of the request's body. Absent: the body is empty"
+      body_fields:
+        name: BodyFields
+        type: "[]ResourceField"
+        required: false
+        description: "With `body`: each field of the body's type, read from its declaration as schemas/resource's Verbs says, so a client can ask a person for them. Absent where `body` is absent"
       preconditions:
         name: Preconditions
         type: "[]string"
@@ -1506,7 +1585,7 @@ types:
         name: NextCursor
         type: string
         required: false
-        description: "Where the next page starts. Absent or empty: there is none"
+        description: "Where the next page starts, sent back as the list's `cursor` parameter. Absent or empty: there is none"
       has_more:
         name: HasMore
         type: bool

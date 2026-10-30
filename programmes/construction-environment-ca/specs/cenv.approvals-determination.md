@@ -67,7 +67,7 @@ declares:
       - {key: determined_on, label: Determined on, type: date, required: true}
       - {key: determined_by, label: Determined by, type: user}
       - {key: dewatering_expected, label: Dewatering expected, type: bool, required: true}
-      - {key: peak_taking_litres_per_day, label: Highest expected taking, in litres a day, type: number}
+      - {key: peak_taking_litres_per_day, label: "Highest expected taking, in litres a day", type: number}
       - {key: water_taking, label: Water taking, type: select, required: true,
          options: ["Not required — 50,000 litres or less on every day",
                    "Registration in the Environmental Activity and Sector Registry",
@@ -80,7 +80,7 @@ declares:
                    "Not required — covered by the Registry registration",
                    "Not required — no sewage works",
                    "Not yet determined"]}
-      - {key: air_noise, label: Air, noise and vibration approval, type: select, required: true,
+      - {key: air_noise, label: "Air, noise and vibration approval", type: select, required: true,
          options: ["Required — applied for",
                    "Required — in force",
                    "Not required — no plant, structure or equipment that may discharge a contaminant",

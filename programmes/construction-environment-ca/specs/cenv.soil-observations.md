@@ -49,7 +49,7 @@ register:
     - {key: notified_on, label: Project leader or operator notified on, type: date, required: true}
     - {key: notified_who, label: Who was notified, type: text, required: true}
     - {key: soil_segregated, label: Affected soil identified and segregated, type: bool, required: true}
-    - {key: estimated_volume_m3, label: Estimated volume affected, in cubic metres, type: number}
+    - {key: estimated_volume_m3, label: "Estimated volume affected, in cubic metres", type: number}
     - {key: qp_documents_required, label: A qualified person's documents were required for this project area, type: bool, required: true}
     - {key: resumed_on, label: Excavation resumed on, type: date}
     - {key: resumed_authorised_by, label: Resumption authorised by, type: text}

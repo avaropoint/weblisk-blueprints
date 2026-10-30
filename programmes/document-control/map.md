@@ -1,6 +1,6 @@
 ---
 id: document-control
-version: 1.1.0
+version: 1.2.0
 title: Document Control Programme
 order: 10
 domains: [governance]
@@ -9,6 +9,10 @@ domains: [governance]
 # cited control requires is read from ../../standards/<id>.json at the edition
 # the tenant adopted, and is never restated here.
 conforms_to: [iso_9001, iso_45001, iso_27001]
+# All three are management system standards an organisation holds by choice or
+# by contract, none of them binding by law. The programme is operated without
+# any of them, and answers each only where it is held.
+optional_standards: [iso_9001, iso_45001, iso_27001]
 
 tiers:
   - id: essential

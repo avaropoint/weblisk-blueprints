@@ -81,20 +81,20 @@ declares:
       - {key: invoices_received, label: Proper invoices received in the period, type: int, required: true}
       - {key: received_paid_within_seven_days, label: Paid within seven days of our being paid, type: int, required: true}
       - {key: received_with_notice, label: Answered with a notice of non-payment, type: int, required: true}
-      - {key: received_overdue_no_notice, label: Payable, unpaid, and no notice given, type: int, required: true}
+      - {key: received_overdue_no_notice, label: "Payable, unpaid, and no notice given", type: int, required: true}
       - {key: payable_overdue_value, label: Value payable and overdue, type: currency, required: true}
       - {key: trust_account_reconciled, label: The trust account and the written trust record reconcile, type: bool, required: true}
-      - {key: trust_variance, label: Variance, and what it is, type: longtext}
+      - {key: trust_variance, label: "Variance, and what it is", type: longtext}
       # ── disputes and security ─────────────────────────────────────────────
       - {key: liens_open, label: Liens open, type: int, required: true}
       - {key: liens_inside_thirty_days_of_a_deadline, label: Liens within thirty days of a statutory deadline, type: int, required: true}
       - {key: adjudications_live, label: Adjudications live, type: int, required: true}
       - {key: adjudication_determinations_unpaid, label: Determinations unpaid past fifteen days, type: int, required: true}
-      - {key: information_requests_open, label: Requests for information open, and the oldest, type: text, required: true}
+      - {key: information_requests_open, label: "Requests for information open, and the oldest", type: text, required: true}
       # ── the count that governs the rest ───────────────────────────────────
       - {key: contracts_not_checked, label: Contracts in the account not examined this period, type: int, required: true}
       - {key: invoices_not_entered, label: Invoices known to exist and not entered in a register, type: int, required: true}
-      - {key: what_was_not_looked_at, label: What was not looked at, and why, type: longtext, required: true}
+      - {key: what_was_not_looked_at, label: "What was not looked at, and why", type: longtext, required: true}
       - {key: actions, label: Actions raised, type: longtext}
 ---
 

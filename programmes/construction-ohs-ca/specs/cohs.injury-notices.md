@@ -69,7 +69,7 @@ declares:
       - {key: board_report_within_three_business_days, label: Board report received within three business days, type: bool}
       - {key: copy_to_worker_on, label: Copy of the board report given to the worker on, type: date}
       - {key: wages_paid_for_day_of_injury, label: Full wages and benefits paid for the day or shift of injury, type: bool}
-      - {key: outstanding, label: Anything outstanding, and why, type: longtext}
+      - {key: outstanding, label: "Anything outstanding, and why", type: longtext}
       - {key: evidence, label: Copies of the notices, type: attachment}
 ---
 

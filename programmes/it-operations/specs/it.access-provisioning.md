@@ -51,7 +51,7 @@ declares:
       - {key: accounts_no_owner, label: Accounts with no current owner, type: int, required: true}
       - {key: accounts_leavers, label: Accounts belonging to leavers, type: int, required: true}
       - {key: service_accounts, label: Service and shared accounts, type: int, required: true}
-      - {key: service_accounts_owned, label: Of those, with a named owning position, type: int, required: true}
+      - {key: service_accounts_owned, label: "Of those, with a named owning position", type: int, required: true}
       - {key: actions, label: Actions taken, type: longtext, required: true}
 ---
 

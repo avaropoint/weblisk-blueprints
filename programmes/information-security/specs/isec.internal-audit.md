@@ -58,7 +58,7 @@ declares:
       - {key: criteria, label: Criteria used, type: text, required: true}
       - {key: conformities, label: Areas found conforming, type: longtext, required: true}
       - {key: nonconformities, label: Nonconformities raised, type: int, required: true}
-      - {key: major_nonconformities, label: Of those, major, type: int, required: true}
+      - {key: major_nonconformities, label: "Of those, major", type: int, required: true}
       - {key: observations, label: Observations and opportunities, type: longtext, required: true}
       - {key: report_issued_on, label: Report issued on, type: date, required: true}
 ---

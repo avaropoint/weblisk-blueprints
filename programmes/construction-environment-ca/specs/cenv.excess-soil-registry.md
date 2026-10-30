@@ -70,7 +70,7 @@ declares:
       - {key: registry_number, label: Registry notice number, type: text}
       - {key: filed_by, label: Filed by, type: user}
       - {key: declaration_made_by, label: Who made the project leader's declaration, type: text}
-      - {key: estimated_volume_m3, label: Volume declared, in cubic metres, type: number}
+      - {key: estimated_volume_m3, label: "Volume declared, in cubic metres", type: number}
       - {key: destinations_declared, label: Destinations declared, type: longtext}
       - {key: first_load_on, label: First load removed on, type: date}
       - {key: filed_before_first_load, label: Filed before the first load left, type: bool, required: true}

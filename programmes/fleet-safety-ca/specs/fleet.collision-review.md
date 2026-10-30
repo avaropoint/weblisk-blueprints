@@ -86,14 +86,14 @@ declares:
       - {key: securement_factor, label: Load or securement contributed, type: select, required: true,
          options: ["No", "Yes — the load shifted, spilled or came off",
                    "Yes — weight or loading of the vehicle", Not yet determined]}
-      - {key: qualification_factor, label: Licence, endorsement or competence contributed, type: select, required: true,
+      - {key: qualification_factor, label: "Licence, endorsement or competence contributed", type: select, required: true,
          options: ["No", "Yes — the driver was not authorised for the vehicle",
                    "Yes — training or experience", Not yet determined]}
-      - {key: dispatch_factor, label: Dispatch, scheduling or route contributed, type: select, required: true,
+      - {key: dispatch_factor, label: "Dispatch, scheduling or route contributed", type: select, required: true,
          options: ["No", "Yes", Not yet determined]}
       - {key: confirmed_on_cvor, label: Confirmed on the CVOR abstract, type: select, required: true,
          options: ["Confirmed present", "Confirmed absent", "Not yet checked"]}
-      - {key: corrective_actions, label: Corrective actions, with owners and dates, type: longtext, required: true}
+      - {key: corrective_actions, label: "Corrective actions, with owners and dates", type: longtext, required: true}
       - {key: fleet_wide_change, label: Something changed for the whole fleet, type: bool, required: true}
       - {key: fleet_wide_change_detail, label: What changed, type: longtext}
       - {key: driver_outcome, label: Outcome for the driver, type: select, required: true,

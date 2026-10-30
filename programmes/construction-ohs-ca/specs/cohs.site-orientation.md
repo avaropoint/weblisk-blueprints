@@ -66,7 +66,7 @@ declares:
       - {key: oriented, label: With a site orientation on file, type: int, required: true}
       - {key: worker_awareness, label: With worker awareness training on file, type: int, required: true}
       - {key: supervisor_awareness, label: Supervisors with supervisor awareness training on file, type: int, required: true}
-      - {key: outstanding, label: Who is outstanding, and since when, type: longtext}
+      - {key: outstanding, label: "Who is outstanding, and since when", type: longtext}
       - {key: action, label: Action taken, type: longtext}
 ---
 

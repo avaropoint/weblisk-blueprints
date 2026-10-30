@@ -444,6 +444,22 @@ and organisation. A `uid` names one item alone. A route missing a parameter
 it requires is refused with `INVALID_REQUEST`. Naming an organisation grants
 nothing: the route's capability is checked as on any other request.
 
+**An organisation is named by its id, and so is a project.** Wherever this
+service is sent or answers an `organisation` or a `project` — a query
+parameter, an `InstallationRequest`, a record — it is the `id` the tenant's
+orchestrator minted for it, 32 lowercase hex characters
+([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)),
+never its `name` or `display_name`, which are a `scope_path`'s spelling and a
+person's label. One not in the orchestrator's `organisation` or `project`
+kind is refused with `INVALID_REQUEST`.
+
+**Every list pages as the resource API does.** Each list route takes `cursor`
+and `limit` and answers `next_cursor`, by the names
+[`architecture/admin`](admin.md#lists) gives every list, so the kinds below
+bind them unchanged. Its `organisation` is a required filter, declared as one
+on each kind's `list`. At the uniform address a list sends no window, so
+`ListOccurrences` answers the default one, as the next paragraph says.
+
 **A window is two instants.** `from` and `to` are instants as
 [`protocol/conventions`](../protocol/conventions.md) writes them. Absent,
 `to` is now and `from` is `status_window` before it
@@ -1350,7 +1366,7 @@ types:
       organisation:
         type: string
         required: true
-        description: The organisation the programme was adopted at
+        description: The id of the organisation the programme was adopted at, as the orchestrator minted it (Every request names its organisation and programme)
       programme:
         type: string
         required: true
@@ -1444,10 +1460,10 @@ types:
         type: string
         enum: [operation, workflow, notice]
         required: true
-      scope:
+      organisation:
         type: string
         required: true
-        description: The organisation the programme was adopted at
+        description: The id of the organisation the programme was adopted at, as the orchestrator minted it. Named `organisation` as every route's query parameter is, so the list's filter and the parameter are one name
       state:
         type: string
         enum: [paused, running, withdrawn]
@@ -1524,7 +1540,7 @@ types:
       organisation:
         type: string
         required: true
-        description: The item's organisation
+        description: The id of the item's organisation, as the orchestrator minted it
       project:
         type: string
         required: false
@@ -2020,7 +2036,7 @@ resources:
     fields:
       - {name: uid, access: read-only, present: text}
       - {name: programme, access: create, present: text}
-      - {name: organisation, access: create, present: text}
+      - {name: organisation, access: create, present: reference, kind: organisation}
       - {name: state, access: read-only, present: choice}
       - {name: installed_by, access: read-only, present: text}
       - {name: installed_at, access: read-only, present: instant}
@@ -2030,7 +2046,7 @@ resources:
       - {name: not_handed_over, access: read-only}
       - {name: build_plan, access: read-only}
     operations:
-      list: {capability: "programme:read", binds: ListInstallations, items: installations, filters: [programme, state]}
+      list: {capability: "programme:read", binds: ListInstallations, items: installations, filters: [organisation, programme, state], required_filters: [organisation]}
       get: {capability: "programme:read"}
       create: {capability: "programme:install", binds: InstallProgramme}
     verbs:
@@ -2066,7 +2082,7 @@ resources:
       - {name: programme, access: read-only, present: text}
       - {name: id, access: read-only, present: text}
       - {name: kind, access: read-only, present: choice}
-      - {name: scope, access: read-only, present: text}
+      - {name: organisation, access: read-only, present: reference, kind: organisation}
       - {name: state, access: read-only, present: choice}
       - {name: muted, access: read-only, present: boolean}
       - {name: schedule, access: read-only}
@@ -2076,7 +2092,7 @@ resources:
       - {name: authorisation, access: read-only}
       - {name: next_firing, access: read-only, present: instant, volatile: true}
     operations:
-      list: {capability: "programme:read", binds: ListItems, items: items, filters: [kind, programme, state, muted]}
+      list: {capability: "programme:read", binds: ListItems, items: items, filters: [organisation, kind, programme, state, muted], required_filters: [organisation]}
       get: {capability: "programme:read", binds: GetItem}
     verbs:
       - name: pause
@@ -2183,13 +2199,13 @@ resources:
       - {name: authority, access: read-only, present: text}
       - {name: interval_basis, access: read-only, present: choice}
       - {name: satisfies, access: read-only}
-      - {name: organisation, access: read-only, present: text}
-      - {name: project, access: read-only, present: text}
+      - {name: organisation, access: read-only, present: reference, kind: organisation}
+      - {name: project, access: read-only, present: reference, kind: project}
       - {name: undeclarable, access: read-only, present: boolean}
       - {name: undeclarable_reason, access: read-only, present: text}
       - {name: counts, access: read-only, volatile: true}
     operations:
-      list: {capability: "programme:read", binds: ListObligations, items: obligations, filters: [responsible, records, undeclarable, project]}
+      list: {capability: "programme:read", binds: ListObligations, items: obligations, filters: [organisation, responsible, records, undeclarable, project], required_filters: [organisation]}
       get: {capability: "programme:read", binds: GetObligation}
 
   - kind: occurrence
@@ -2211,14 +2227,14 @@ resources:
       - {name: escalated, access: read-only, present: boolean, volatile: true}
       - {name: escalated_to, access: read-only, present: text}
       - {name: responsible, access: read-only, present: text}
-      - {name: organisation, access: read-only, present: text}
-      - {name: project, access: read-only, present: text}
+      - {name: organisation, access: read-only, present: reference, kind: organisation}
+      - {name: project, access: read-only, present: reference, kind: project}
       - {name: records, access: read-only, present: text}
       - {name: attested_by, access: read-only, present: text}
       - {name: attested_at, access: read-only, present: instant}
       - {name: note, access: read-only, present: text}
     operations:
-      list: {capability: "programme:read", binds: ListOccurrences, items: occurrences, filters: [obligation, state, responsible, overdue, escalated]}
+      list: {capability: "programme:read", binds: ListOccurrences, items: occurrences, filters: [organisation, obligation, state, responsible, overdue, escalated], required_filters: [organisation]}
       get: {capability: "programme:read", binds: GetOccurrence}
     relations:
       - {relation: occurrence_of, to: obligation, field: obligation}
@@ -2345,6 +2361,7 @@ security:
 - [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
 - [ ] `POST /v1/programme/installations` on a registration or channel token is refused with `FORBIDDEN`, and installs nothing ([Who May Do What](#who-may-do-what) rule 2, [Error Handling](#error-handling))
 - [ ] An installation for a programme the organisation has no `adoption.md` for is refused with `PROGRAMME_NOT_ADOPTED`, and installs nothing ([Installing](#installing), [Error Handling](#error-handling))
+- [ ] An `InstallationRequest`, or any route's `organisation` parameter, naming an organisation by its `name` rather than the orchestrator's id is refused with `INVALID_REQUEST`; `GET /v1/admin/r/programme-adoption` with no `organisation` is refused before it is forwarded, and with one answers only that organisation's installations, a page at a time from `cursor` ([Endpoints](#endpoints), [`architecture/admin`](admin.md#lists))
 - [ ] Every item an installation creates is muted, carries a `uid`, and is paused unless its `start` is `running` ([Installing](#installing))
 - [ ] Installing the same programme twice at one scope creates no second item and publishes no second `programme.adopted` ([Installing](#installing), [Events it publishes](#events-it-publishes))
 - [ ] An installation asked for at a project is refused with `INVALID_REQUEST`, naming the organisation ([Error Handling](#error-handling))

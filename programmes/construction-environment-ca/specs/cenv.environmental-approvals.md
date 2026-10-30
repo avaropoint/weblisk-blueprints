@@ -38,7 +38,7 @@ register:
                  "Municipal sewer-use consent or discharge agreement",
                  "Conservation authority permission",
                  Other]}
-    - {key: number, label: Approval, registration or permit number, type: text}
+    - {key: number, label: "Approval, registration or permit number", type: text}
     - {key: description, label: What it authorises, type: longtext, required: true}
     - {key: holder, label: Who holds it, type: select, required: true,
        options: ["This organisation",
@@ -54,9 +54,9 @@ register:
     - {key: effective_from, label: In force from, type: date, required: true}
     - {key: expires_on, label: Expires on, type: date}
     - {key: no_expiry, label: The instrument has no expiry date, type: bool, required: true}
-    - {key: conditions_summary, label: The conditions, in summary, type: longtext, required: true}
+    - {key: conditions_summary, label: "The conditions, in summary", type: longtext, required: true}
     - {key: monitoring_conditions, label: Monitoring and sampling the conditions require, type: longtext}
-    - {key: reporting_conditions, label: Reporting the conditions require, and when, type: longtext}
+    - {key: reporting_conditions, label: "Reporting the conditions require, and when", type: longtext}
     - {key: qualified_professional, label: Qualified professional who prepared the supporting reports, type: text}
     - {key: status, label: Status, type: select, required: true,
        options: ["In force",

@@ -45,9 +45,9 @@ declares:
       - {key: access_list_current, label: Access list current, type: bool, required: true}
       - {key: visitors_logged, label: Visitors logged and escorted, type: bool, required: true}
       - {key: desks_checked, label: Desks checked, type: int, required: true}
-      - {key: desks_with_findings, label: Of those, with information left out, type: int, required: true}
+      - {key: desks_with_findings, label: "Of those, with information left out", type: int, required: true}
       - {key: equipment_rooms, label: Equipment rooms secured, type: bool, required: true}
-      - {key: utilities_ok, label: Power, cooling and cabling in order, type: bool, required: true}
+      - {key: utilities_ok, label: "Power, cooling and cabling in order", type: bool, required: true}
       - {key: notes, label: Findings and actions, type: longtext, required: true}
 ---
 

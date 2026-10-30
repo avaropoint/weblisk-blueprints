@@ -58,7 +58,7 @@ resources:
       - {name: owner_name, access: create, present: reference, kind: agent}
       - {name: opened_at, access: read-only, present: instant, volatile: true}
     operations:
-      list: {capability: "admin:read", binds: FixtureList, items: fixtures, filters: [state]}
+      list: {capability: "admin:read", binds: FixtureList, items: fixtures, filters: [state], required_filters: [state]}
       get: {capability: "admin:read"}
       create: {capability: "admin:*"}
       update: {capability: "admin:*"}

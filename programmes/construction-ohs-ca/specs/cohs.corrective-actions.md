@@ -10,7 +10,6 @@ satisfies:
   - iso_45001:10.2
   - iso_45001:10.3
   - iso_45001:9.1.2
-  - isnetworld:ISN-SAFE-06
 
 requires: [cohs.incident-investigation]
 
@@ -57,7 +56,7 @@ declares:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: incidents_reported, label: Incidents reported in the period, type: int, required: true}
-      - {key: incidents_uninvestigated, label: Of those, still uninvestigated past three days, type: int, required: true}
+      - {key: incidents_uninvestigated, label: "Of those, still uninvestigated past three days", type: int, required: true}
       - {key: open_actions, label: Actions open, type: int, required: true}
       - {key: overdue_actions, label: Actions past their due date, type: int, required: true}
       - {key: oldest_overdue, label: Oldest overdue action, type: text}
@@ -65,9 +64,9 @@ declares:
       - {key: worst_project, label: Project carrying the most overdue actions, type: relation,
          target: /registers/projects.md#records, display: project_id}
       - {key: recurred, label: Actions closed and then recurred, type: int, required: true}
-      - {key: extended, label: Extended, with the reason, type: longtext}
-      - {key: escalated, label: Escalated, and to whom, type: longtext}
-      - {key: accepted_as_risk, label: Accepted as a risk, and by whom, type: longtext}
+      - {key: extended, label: "Extended, with the reason", type: longtext}
+      - {key: escalated, label: "Escalated, and to whom", type: longtext}
+      - {key: accepted_as_risk, label: "Accepted as a risk, and by whom", type: longtext}
       - {key: projects_not_reporting, label: Live projects that reported no incident at all this period, type: longtext, required: true}
 ---
 

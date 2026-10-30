@@ -61,7 +61,7 @@ declares:
       - {key: implied_consent_expiring, label: Implied consent expiring within the next quarter, type: int, required: true}
       - {key: no_recorded_consent, label: With no recorded consent, type: int, required: true}
       - {key: unsubscribes, label: Unsubscribe requests received, type: int, required: true}
-      - {key: unsubscribes_late, label: Of those, actioned after 10 business days, type: int, required: true}
+      - {key: unsubscribes_late, label: "Of those, actioned after 10 business days", type: int, required: true}
       - {key: content_compliant, label: Identification and unsubscribe present in every message, type: bool, required: true}
       - {key: actions, label: Actions taken, type: longtext, required: true}
 ---

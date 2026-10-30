@@ -202,6 +202,15 @@ resources:
       get: {capability: "admin:read"}
     relations:
       - {relation: run_by, to: agent, field: owner_name}
+  - kind: lease
+    owner: fixture
+    type: FixtureItem
+    identity: {field: uid, form: minted}
+    fields:
+      - {name: uid, access: read-only, present: text}
+    operations:
+      list: {capability: "admin:read", filters: [title], required_filters: [owner_name]}
+      get: {capability: "admin:read"}
   - kind: workflow
     owner: fixture
     type: FixtureItem

@@ -43,7 +43,7 @@ declares:
       - {key: reviewed_on, label: Reviewed on, type: date, required: true}
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: providers_in_scope, label: Providers handling personal information, type: int, required: true}
-      - {key: without_terms, label: Of those, with no written privacy terms, type: int, required: true}
+      - {key: without_terms, label: "Of those, with no written privacy terms", type: int, required: true}
       - {key: outside_canada, label: Storing or processing outside Canada, type: int, required: true}
       - {key: notice_discloses, label: Privacy notice discloses the transfers, type: bool, required: true}
       - {key: sub_processors_changed, label: Sub-processors added in the period, type: int, required: true}

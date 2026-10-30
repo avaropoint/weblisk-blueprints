@@ -41,7 +41,7 @@ declares:
       - {key: positions_covered, label: Positions covered, type: int, required: true}
       - {key: new_work_types, label: Kinds of work taken on since the last review, type: longtext}
       - {key: requirements_added, label: Requirements added, type: longtext}
-      - {key: requirements_removed, label: Requirements removed, and why, type: longtext}
+      - {key: requirements_removed, label: "Requirements removed, and why", type: longtext}
       - {key: changes_in_law, label: Changes in law or standards taken into account, type: longtext, required: true}
       - {key: gaps_found, label: People currently below requirement, type: int, required: true}
       - {key: plan, label: How the gaps will be closed, type: longtext}

@@ -45,11 +45,11 @@ declares:
       - {key: reviewed_by, label: Reviewed by, type: user, required: true}
       - {key: inventory_current, label: Personal information inventory verified current, type: bool, required: true}
       - {key: new_processing, label: New or changed processing in the period, type: int, required: true}
-      - {key: new_processing_unassessed, label: Of those, not assessed, type: int, required: true}
+      - {key: new_processing_unassessed, label: "Of those, not assessed", type: int, required: true}
       - {key: requests_received, label: Access and correction requests received, type: int, required: true}
-      - {key: requests_late, label: Of those, answered late, type: int, required: true}
+      - {key: requests_late, label: "Of those, answered late", type: int, required: true}
       - {key: breaches, label: Breaches recorded, type: int, required: true}
-      - {key: breaches_reported, label: Of those, reported to a regulator, type: int, required: true}
+      - {key: breaches_reported, label: "Of those, reported to a regulator", type: int, required: true}
       - {key: complaints, label: Complaints received, type: int, required: true}
       - {key: changes_made, label: Changes made to the programme, type: longtext, required: true}
 ---

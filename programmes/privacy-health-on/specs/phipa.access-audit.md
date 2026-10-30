@@ -50,7 +50,7 @@ declares:
       - {key: audited_on, label: Audited on, type: date, required: true}
       - {key: period, label: Period covered, type: text, required: true}
       - {key: audited_by, label: Audited by, type: user, required: true}
-      - {key: method, label: Method — targeted, random or triggered, type: select, required: true,
+      - {key: method, label: "Method — targeted, random or triggered", type: select, required: true,
          options: [Random sample, Targeted — same surname, Targeted — VIP or staff record,
                    Targeted — high volume user, Triggered by a complaint, System-generated alerts]}
       - {key: accesses_reviewed, label: Accesses reviewed, type: int, required: true}
