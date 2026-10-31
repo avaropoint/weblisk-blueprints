@@ -117,6 +117,20 @@ change:
       verdict:                     # the build's own, never the plan's
         outcome: verified | failed | inconclusive | unchecked
         detail: <text>
+  config_edits:                    # a backend driver change the plan was made as though done
+    - path: <schemas/config path, e.g. content.backends[local].driver>
+      kind: <service section>
+      backend: <backend name>
+      from: <driver>
+      to: <driver>
+      blueprint: <the opt-in blueprint that declares to among its drivers>
+      applied: true                # set once apply wrote it, after that component built
+  replace_edited:                  # generated or unowned files the operator named, each with why
+    - component: <component ref>
+      path: <tenant path>
+      why: <the operator's reason, as given>
+      digest: sha256:<hex>         # the bytes the plan saw; apply refuses if they moved
+      unowned: true                # no generation wrote it: apply removes it before the build
   config_written: [<section>]      # each .weblisk/config.yaml section apply wrote
   verify: {result: pass | fail | repair, run: <run id>}
 ```
@@ -277,6 +291,12 @@ rules:
     rule: a change is approved only when conflicts.found is empty, or holds only C2 conflicts and strict is false
   - id: applied-run
     rule: applied_run is present exactly in states applied, verified and failed
+  - id: replace-edited
+    rule: each replace_edited entry has component, path, a non-empty why and a sha256 digest; an edited file the plan reaches is regenerated only when an entry names it, and is otherwise refused because edited
+  - id: unowned-named
+    rule: a file in a component's package that no record names is never kept silently; the plan refuses its component because unowned, naming the file and the tenant packages it imports, until a replace_edited entry with unowned true names it, and apply removes it before that component is built
+  - id: config-edit
+    rule: each config_edits entry names path, kind, backend, from, to and blueprint, and to is a driver blueprint declares; applied is set only in states applied, verified and failed, and only after that component was built
   - id: outcomes-present
     rule: outcomes is present only in states applied, verified and failed; each entry has component, a result of built, failed, refused or skipped, and a verdict whose outcome is verified, failed, inconclusive or unchecked
 ```

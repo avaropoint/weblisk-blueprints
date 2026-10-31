@@ -150,6 +150,9 @@ types:
    ([A run that did not complete](#a-run-that-did-not-complete)).
 9. **A complete run carries its `verdict`, and a run that did not complete
    carries none** ([The verdict a run ends with](#the-verdict-a-run-ends-with)).
+10. **A result written by anything but the run itself carries
+   `established_by`**, and only `weblisk build verify` writes one
+   ([A run that did not complete](#a-run-that-did-not-complete)).
 
 ## A run that did not complete
 
@@ -177,6 +180,17 @@ what its component was built from.**
   rebuild decision ([`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt))
   reads it for that file, so a resumed run keeps what the stopped one wrote and
   does not refuse it as edited.
+- **A record from before `result` existed can be established, never
+  asserted.** `weblisk build verify <component>` ([`architecture/cli`](../architecture/cli.md#until-a-tenant-runs-a-change-service))
+  checks that the tree holds every file the record names at the digest it
+  recorded, reads the record's inputs again at the commits it names, builds the
+  tree and runs its conformance. Every test that ran passed, with none failed
+  or unreachable, establishes `complete`; a failure, or a tree that does not
+  build or run, establishes `failed`; anything less establishes nothing and
+  the record still reads as `stopped`. What it writes carries `established_by`
+  beside it: the verify run's id, when, the command, the commits read, its
+  verdict, the files it found edited and the files no generation wrote. A
+  result established this way is never read as one its run wrote.
 
 `result` sits in `internalParameters` because SLSA Provenance has no field for
 how a build ended, and that block is the place it leaves to a build type.

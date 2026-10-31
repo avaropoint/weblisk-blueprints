@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.9.0
+version: 4.10.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -515,6 +515,22 @@ approval or run an apply. Until one does:
 - **`apply` reads the corpus at the change's pins, never at a source's head**
   ([`schemas/change`](../schemas/change.md#what-a-plan-is-bound-to)), so what
   it builds is what the plan read, whatever a refresh has fetched since.
+
+- **`change plan --upgrade` takes two edits a person names.**
+  `--driver <kind>.<backend>=<driver>` plans a backend driver change as though
+  made, recorded in `config_edits` and written only once that component is
+  built; a driver no blueprint declares is refused, naming what to change.
+  `--replace-edited <path>=<why>` names a file a person edited, or one no
+  generation wrote, that the change may replace or remove; it is recorded in
+  `replace_edited` with the bytes the plan saw ([`schemas/change`](../schemas/change.md#rules)).
+  A file differing from its record only by the CLI's own model-gateway splice
+  is the CLI's, never a person's edit.
+- **`build verify <component>` establishes how a run with no `result` ended**,
+  by evidence, as [`schemas/run-statement`](../schemas/run-statement.md#a-run-that-did-not-complete)
+  says, so a tenant built before results were recorded can be upgraded from
+  its last known state instead of rebuilt. It runs `cli-in-tenant`; it starts
+  each component where the tenant's configuration says it listens, never on
+  another port, so a pinned address cannot fail a test the tenant would pass.
 
 When a tenant's change service exists these four run as `tenant-api`, as the
 [executors table](../schemas/change.md#executors) gives them, and a change that
