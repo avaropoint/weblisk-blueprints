@@ -98,6 +98,26 @@ content:
   checkpoint_interval: duration    # How often a change log whose tip has moved is sealed
   max_entry_bytes: integer         # Largest entry the service will write
 
+# Optional — the services a programme runs on (schemas/programme, The
+# services, in the order they are built). Each section's presence declares
+# that service as one of this hub's components; an absent or null section
+# declares none
+execution:
+  port: integer                    # Listen port (default: 9804)
+  key_passphrase: string           # Where its service key's passphrase is held: <source>:<reference> (rule 23)
+notification:
+  port: integer                    # Listen port (default: 9805)
+  key_passphrase: string           # (rule 23)
+prompt_worker:
+  port: integer                    # Listen port (default: 9806)
+  key_passphrase: string           # (rule 23)
+programme_service:
+  port: integer                    # Listen port (default: 9807)
+  key_passphrase: string           # (rule 23)
+fabric:
+  port: integer                    # Listen port of the fabric service (default: 9808)
+  key_passphrase: string           # (rule 23)
+
 # Optional — federation configuration
 federation:
   enabled: boolean                 # Enable federation (default: false)
@@ -249,6 +269,38 @@ of it ([`architecture/content`](../architecture/content.md#scope_floor-covers-wh
 service's API after reading a census of what would leave
 ([`architecture/content`](../architecture/content.md#declaring-a-remote)).
 
+### The services a programme runs on
+
+`execution`, `notification`, `prompt_worker`, `programme_service` and
+`fabric` are each optional, and each declares the one service of that name in
+[`schemas/programme`](programme.md#the-services-in-the-order-they-are-built)'s
+table: its presence declares the service as one of this hub's components, and
+an absent or null section declares none. The section is the service's name
+with `_` for `-`; `fabric` declares `fabric-service`, which is built from
+[`architecture/fabric`](../architecture/fabric.md). What each service does,
+and what it reads from its own configuration, is its blueprint's.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `port` | integer | no | the service's row of [Port Conventions](#port-conventions) | Listen port |
+| `key_passphrase` | string | no | — | Where its service key's passphrase is held ([Service key passphrases](#service-key-passphrases)) |
+
+The model service has no section: it is the model gateway in the
+orchestrator's process ([`architecture/model-service`](../architecture/model-service.md#architecture)),
+and serves on the orchestrator's port.
+
+**The CLI writes a service's section when it builds the service.** A change
+that generates one of these services into a tenant
+([`architecture/cli`](../architecture/cli.md#changes)) writes the service's
+section with its conventional port where the file holds none, and records
+that it did on the change; a section already present is left as it is. So a
+service a change built is one `weblisk server start` starts.
+
+**They start after the content service, in the table's order**: execution,
+notification, the prompt worker, the programme service, then the fabric
+service, each once what it needs running first has started
+([`architecture/cli`](../architecture/cli.md#weblisk-server-start)).
+
 ### federation
 
 | Field | Type | Required | Default | Description |
@@ -269,8 +321,9 @@ service's API after reading a census of what would leave
 
 ## Service key passphrases
 
-`key_passphrase`, on `orchestrator`, `admin_gateway`, `content` and each
-`agents[]` entry, names where that component's service key passphrase is held,
+`key_passphrase`, on `orchestrator`, `admin_gateway`, `content`, each of the
+services a programme runs on (`execution`, `notification`, `prompt_worker`,
+`programme_service` and `fabric`) and each `agents[]` entry, names where that component's service key passphrase is held,
 as a secret source reference in the flag form
 `<source>:<reference>` ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference)).
 It is never the passphrase: the value is a pointer, and may be committed,
@@ -290,6 +343,11 @@ one reference; one passphrase then opens each of their keys.
 | 9801 | Federation |
 | 9802 | Content service |
 | 9803 | Admin gateway, internal listener |
+| 9804 | Execution |
+| 9805 | Notification |
+| 9806 | Prompt worker |
+| 9807 | Programme service |
+| 9808 | Fabric service |
 | 9443 | Admin gateway, admin listener |
 | 9700–9709 | Domain controllers |
 | 9710–9749 | Work agents |

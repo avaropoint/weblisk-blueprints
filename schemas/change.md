@@ -117,6 +117,7 @@ change:
       verdict:                     # the build's own, never the plan's
         outcome: verified | failed | inconclusive | unchecked
         detail: <text>
+  config_written: [<section>]      # each .weblisk/config.yaml section apply wrote
   verify: {result: pass | fail | repair, run: <run id>}
 ```
 
@@ -180,7 +181,8 @@ below and nothing else.
 | `verdict` | `because` may be |
 |---|---|
 | `generate` | `absent`, `non-compliant` |
-| `regenerate` | `reached-by-change` |
+| `regenerate` | `reached-by-change`, `incomplete` (the second for a component its latest run did not finish building: apply resumes that run, and every file it banked is reused) |
+| `repair` | `refuted`, `unverified` (a component whose latest run completed and whose verification refuted it, or reached no verdict on it: apply resumes its repair loop on the tree that run ended on) |
 | `review` | `reached-by-change`, `unmaintained` (the first for a node a person must look at, such as a document or a control; the second for a component an input reaches whose bytes moved and whose version did not) |
 | `redeploy` | `reached-by-change` |
 | `keep` | `unchanged` |
@@ -203,6 +205,27 @@ it. The corpus forbids the state outright
 ([`schemas/common`](common.md#blueprint-versions)), so a tenant meets it only
 where an edit escaped that rule, and a plan says so rather than deciding for
 the author.
+
+**A build that is refuted, unverified or unfinished is never `keep`.** An
+adoption's plan asks of a component the tenant has generated whether it was
+built, and reads the answer from the component's latest run statement
+([`schemas/run-statement`](run-statement.md#the-verdict-a-run-ends-with)): a
+run that did not complete is `regenerate`, because `incomplete`; one that
+completed with its conformance `refuted` is `repair`, because `refuted`; one
+that completed with conformance `not-run` is `repair`, because `unverified`.
+Only a complete run whose conformance is `established` is `keep`. Each is a
+`build_set` component, built by apply as a component that is absent is. A
+plan that asks whether a component's inputs are current, an upgrade's, still
+lists one whose latest run did not complete as unassessed
+([Unassessed is not a verdict](#unassessed-is-not-a-verdict)): the two plans
+ask different questions of the same record.
+
+**A change that generates a service a programme runs on writes its
+configuration section.** Where `.weblisk/config.yaml` holds no section for
+it, apply writes one with the service's conventional port
+([`schemas/config`](config.md#the-services-a-programme-runs-on)), and the
+change records each section it wrote in `config_written`; a section already
+present is left as it is and not recorded.
 
 A component a dependency pulled in is marked by its `build_set` entry's
 `added_by`, never in a plan entry's `because`, which keeps its verdict's own
