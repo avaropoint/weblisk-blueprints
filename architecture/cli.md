@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.7.0
+version: 4.8.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -2289,7 +2289,17 @@ CLI holds one for each identity at each hub:
   once the credential answers a challenge
   ([Authentication Flow](#authentication-flow)), minting a token there asks
   nobody, and the identity's holder is asked only to register, to attest, to
-  change its key and to re-confirm its person for a destructive act. What protects it is the machine session: while it is
+  change its key and to re-confirm its person for a destructive act. Where
+  the keychain's tool cannot take the key itself, the keychain holds the
+  generated passphrase of its envelope beside the identity instead
+  ([`protocol/secret-source`](../protocol/secret-source.md#the-built-in-sources)).
+  That is the credential kept in the keychain, and nobody types that
+  passphrase. A connect that will mint with such a credential, attested and
+  not due for renewal, does not ask for an identity's typed passphrase:
+  there is nothing it would open. A credential kept any other way before the
+  CLI had a keychain source is moved there the next time it is opened, the
+  opening that asks its holder anyway. The copy that holder kept is then
+  erased, or the person is told where it is. What protects it is the machine session: while it is
   unlocked, any program running as the person can have the CLI mint with it,
   as it can read a stored token. The identity's holder keeps it, as the next
   two items say, only where no keychain exists: on a platform the CLI carries
@@ -2610,7 +2620,14 @@ Seven outcomes, and they are told apart. The `--json` result carries the
 gateway's certificate was verified against; where it records none, no
 `tls_pin`. A console that makes its own requests to the gateway keeps a pin
 only where it was given one, as
-[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`):
+[`architecture/admin`](admin.md#certificate) says (`console-keeps-pin`).
+A `connected` result also carries `silent`: true where the credential the
+token was minted with is kept in the platform keychain, so that a later mint
+at this hub asks nobody, and false where every later mint asks the identity's
+holder ([A credential for each hub](#a-credential-for-each-hub)). A console
+that connects on a person's behalf tells them, from `silent` false, that each
+connect will ask their holder; it never infers that from a result without
+`silent`, which a CLI from before it gives:
 
 | State | Meaning |
 |---|---|
@@ -4153,7 +4170,7 @@ security:
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, connecting, switching from one hub to another and refreshing a token ask the identity to sign nothing while this device holds an attested credential at that hub that is not due ([One approval vouches for every hub](#one-approval-vouches-for-every-hub))
 - [ ] Every `Attestation` the CLI builds names the `identity_id` the hub's attestation-token answer carries, never one computed from the identity key, so an identity that changed its key still attests at every hub that accepted the change ([`weblisk operator attest`](#weblisk-operator-attest))
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, `connect` and `register` generate one ML-DSA-65 credential per identity per hub the first time they reach it, have the identity attest it once, keep its private key in the platform keychain source apart from the identity's holder, or, only where no keychain exists, in the `weblisk-key-v1` envelope or the identity's secret source, and mint every later token with it without the identity signing ([A credential for each hub](#a-credential-for-each-hub))
-- [ ] Once `weblisk/credential-auth/v1` has test vectors, on a platform with a keychain source, the credential key of an identity held by an encrypted key file or by a vault is written to the keychain and not beside the identity or in the vault, and a token is minted with it while the session is unlocked with no passphrase typed and no vault approval asked ([A credential for each hub](#a-credential-for-each-hub))
+- [ ] Once `weblisk/credential-auth/v1` has test vectors, on a platform with a keychain source, the credential key of an identity held by an encrypted key file or by a vault is written to the keychain — or, where the keychain's tool cannot take the key, sealed beside the identity under a generated passphrase only the keychain holds — and never in the vault or under the identity's passphrase, a credential kept either way before is moved there the next time it is opened, and a token is minted with it while the session is unlocked with no passphrase typed and no vault approval asked ([A credential for each hub](#a-credential-for-each-hub))
 - [ ] `connect`, `register` and `operator token` take the deprecated identity-signed path only at a hub that answers `POST /v1/admin/credentials/challenge` `404` or `405`, and at a hub that serves it obtain every operator token with a credential ([A credential for each hub](#a-credential-for-each-hub))
 - [ ] For every vector in [`vectors/fixed-form-statements.json`](../vectors/fixed-form-statements.json) under a prefix the CLI signs, `weblisk/auth/v1` and `weblisk/credential-auth/v1`, the CLI, which signs those statements and verifies neither, passes the test [`architecture/generation`](generation.md#published-test-vectors) gives for a component that signs
 - [ ] Once `weblisk/credential-auth/v1` has test vectors, where no keychain exists, for an identity held by a secret source whose `capabilities` do not list `store`, `connect` keeps the new credential key beside the identity in its own `weblisk-key-v1` envelope with `kdf` `argon2id`, under a passphrase the person chose for it, and never in the clear or under `kdf` `none` ([A credential for each hub](#a-credential-for-each-hub))

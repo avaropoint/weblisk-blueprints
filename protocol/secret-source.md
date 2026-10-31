@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: secret-source
-version: 1.7.1
+version: 1.8.0
 requires: [protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
@@ -194,9 +194,11 @@ command-line tool, and answers `not_installed` where that tool is missing.
 keychain, reached through this protocol as every source is: macOS's first,
 then the Secret Service on Linux, then Windows', in that order. It holds an
 identity whole unless the person asks it to remember only the passphrase. On
-a platform it carries none for, it answers `not_installed`. No CLI carries
-one yet, so until it does, a person who wants a keychain names a helper that
-speaks for it.
+a platform it carries none for, it answers `not_installed`, and so does a
+home with no keychain of its own, where asking would only put a dialog about
+a missing keychain in front of the person. Where the CLI carries none yet for
+a platform, a person who wants a keychain there names a helper that speaks
+for it.
 
 **The keychain source also holds each hub credential the CLI keeps there**,
 each as an item of its own: never inside the item or the file that holds the
@@ -207,6 +209,20 @@ locked, so what protects the key is the machine session. Which credentials
 the CLI keeps here, and where it keeps them when it has no keychain source,
 are the CLI's
 ([`architecture/cli`](../architecture/cli.md#a-credential-for-each-hub)).
+
+**Where the keychain's tool cannot take the key, the keychain holds what
+opens it.** A keychain whose only interface a caller may use for storing
+takes a value on standard input in lines too short for a private key holds a
+credential as two halves. macOS's `security` is one: its command line is
+forbidden above, and its interactive mode reads one command per line of at
+most 4095 bytes, where an ML-DSA-65 private key is 4032 bytes before any
+encoding. The key is kept beside the identity in a `weblisk-key-v1` envelope
+with `kdf` `argon2id`, sealed under a passphrase generated for that credential
+alone, and the keychain holds that passphrase as an item of its own. Neither
+half is a key without the other. The item is released as the key would be:
+without a prompt while the session is unlocked, and not while it is locked.
+The passphrase is never shown to a person or asked of one. Such a `keychain`
+source holds one value per reference, and answers `named_fields` false.
 
 ### Discovery
 
@@ -1065,5 +1081,5 @@ security:
 - [ ] A master key that protects a private key, directly or through a key derived from it, never comes from an environment variable ([An installation's master key](#an-installations-master-key))
 - [ ] An installation whose master key came from an environment variable reports that it did ([An installation's master key](#an-installations-master-key))
 - [ ] A `file:` master key is outside the installation's state and outside that state's backups and replicas ([An installation's master key](#an-installations-master-key))
-- [ ] A hub credential key the `keychain` source holds is an item of its own, never inside the item holding its identity, and is released to the CLI without a prompt while the session is unlocked and not while it is locked ([The built-in sources](#the-built-in-sources))
+- [ ] A hub credential key the `keychain` source holds — or, where the keychain's tool cannot take the key, the generated passphrase of the key's envelope beside the identity — is an item of its own, never inside the item holding its identity, and is released to the CLI without a prompt while the session is unlocked and not while it is locked ([The built-in sources](#the-built-in-sources))
 - [ ] A console never receives a value a source returned for the identity of anyone it acts for ([A console never holds the secrets of an identity it acts for](#a-console-never-holds-the-secrets-of-an-identity-it-acts-for))
