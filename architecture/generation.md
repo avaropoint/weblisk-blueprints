@@ -843,7 +843,6 @@ choice; content is not.
 | 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
 | 8 | **The blueprints themselves** | The specification being implemented |
 | 9 | **The tenant's existing state** — module path, the packages already present with their exported names and the full signature of each exported function and method, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not. A name without its signature is not enough to call: measured, an orchestrator told only that the tenant's `passphrase` package exports `ReadInjected` called it with one argument where it takes two |
-
 | 10 | **How a blueprint is read** — which sections bind, which are illustrative, and how each is parsed | A generator that sends a specification without saying how it is structured has asked the model to infer the document's own rules from the document. It infers differently each time |
 
 ### How a blueprint is read
