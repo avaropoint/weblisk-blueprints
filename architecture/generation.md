@@ -60,7 +60,8 @@ the tenant's model given no tool, no MCP server and no session
 **The sandbox is the pipeline, not the model**: the CLI writes nothing until
 every file succeeds, refuses any path that escapes the target, builds and
 starts the result in its target directory, and repairs it by asking the model
-for whole files again; the model never touches the target itself. An
+for edits to the files it generated, which the CLI applies; the model never
+touches the target itself. An
 instruction that needs logic no tool expresses is a reason to change the
 programme, never something the prompt worker may improvise.
 
@@ -841,7 +842,7 @@ choice; content is not.
 | 6 | **Verification Checklists** — as explicit acceptance criteria, not buried in the blueprint body | A checklist present as context is complied with by luck. Present as criteria, it is complied with on purpose |
 | 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
 | 8 | **The blueprints themselves** | The specification being implemented |
-| 9 | **The tenant's existing state** — module path, the packages already present with their exported names, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not |
+| 9 | **The tenant's existing state** — module path, the packages already present with their exported names and the full signature of each exported function and method, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not. A name without its signature is not enough to call: measured, an orchestrator told only that the tenant's `passphrase` package exports `ReadInjected` called it with one argument where it takes two |
 
 | 10 | **How a blueprint is read** — which sections bind, which are illustrative, and how each is parsed | A generator that sends a specification without saying how it is structured has asked the model to infer the document's own rules from the document. It infers differently each time |
 
@@ -944,7 +945,8 @@ response.** A generator MUST therefore:
    declaring files. An undefined symbol implicates whichever file owes it —
    which is usually not the file that called it.
 
-2. **Ask for those files together**, each complete, in one response.
+2. **Ask for those files together**, in one response, each answered as a
+   repair is ([A repair is an edit to the file as it stands](#a-repair-is-an-edit-to-the-file-as-it-stands)).
 
 3. **Reject a partial answer.** A group repair exists so the files agree
    afterwards; applying half of one leaves exactly the disagreement it was meant
@@ -961,6 +963,26 @@ side of it.
 A single-file error MUST remain a single-file repair. Grouping liberally sends
 the whole target every round, and a group is a claim that these files disagree
 with each other rather than that they are all broken.
+
+### A repair is an edit to the file as it stands
+
+**A repair prompt MUST carry the current content of every file it asks to
+change, and asks for edits to it**: each an exact span of the current text,
+in whole lines, and what it becomes. The generator applies them in order,
+refuses an edit whose span is absent or occurs more than once, never guessing
+which occurrence was meant, and holds the result to the same output contract
+as a generated file; the build then judges it like any other repair. An answer
+that is the whole file is still accepted. A refused edit is asked again with
+its reason, as any answer that is not an acceptable file is.
+
+Measured: a build repair asked for a 2,649-line file "rewritten so the
+implementation builds", showing its errors and declarations and never the file.
+Its eleven errors were one fault repeated, a closure missing `return nil`; both
+rounds ended "the model would not return the file itself", and nothing was
+tried. A small file survived the same prompt only because it could be written
+again from its purpose, which is regeneration and not repair. The size of a
+file decides nothing here, and nothing caps an answer: an edit is never larger
+than the file, and is usually a few lines.
 
 ---
 
@@ -1890,6 +1912,7 @@ and "nothing contradicted it".
 - [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output ([Validating a plan](#validating-a-plan))
 - [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained ([Reconciling a target](#reconciling-a-target))
 - [ ] A file a previous run wrote and this plan genuinely dropped is removed ([Reconciling a target](#reconciling-a-target))
+- [ ] A repair prompt carries the current content of every file it asks to change; an edit whose span is absent or occurs more than once is refused and asked again with its reason, and a whole-file answer is still accepted ([A repair is an edit to the file as it stands](#a-repair-is-an-edit-to-the-file-as-it-stands))
 - [ ] A file a previous run wrote in a package this plan writes into, and this plan does not name, is removed even when another component imports the package, and each such importer is reported as a dependant whose build is stale ([Reconciling a target](#reconciling-a-target))
 - [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record ([Reconciling a target](#reconciling-a-target))
 - [ ] A generation prompt states the tenant's module path and the exported names of packages already present ([The prompt contract](#the-prompt-contract) element 9)
