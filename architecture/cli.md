@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.10.0
+version: 4.11.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -520,6 +520,11 @@ approval or run an apply. Until one does:
   `--driver <kind>.<backend>=<driver>` plans a backend driver change as though
   made, recorded in `config_edits` and written only once that component is
   built; a driver no blueprint declares is refused, naming what to change.
+  `change plan --adopt` takes `--driver` too, under the same rules: a
+  `config_edits` entry belongs to a change of any kind
+  ([`schemas/change`](../schemas/change.md#shape)), and an adoption that
+  resumes a build made under a driver edit that never got written must build
+  through it, or the resume reads a graph its run's plan was not made from.
   `--replace-edited <path>=<why>` names a file a person edited, or one no
   generation wrote, that the change may replace or remove; it is recorded in
   `replace_edited` with the bytes the plan saw ([`schemas/change`](../schemas/change.md#rules)).
