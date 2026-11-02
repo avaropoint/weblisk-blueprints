@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.9.0
+version: 1.10.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -294,6 +294,24 @@ The third row is the one that is easy to miss. Element 9 tells a planner not to
 plan a file that already exists; the planner complies; and a reconciler that
 knows only "previously written, now absent" reads that compliance as a deletion.
 Both rules are correct and their conjunction deletes a working tenant.
+
+**An importer is never a reason to keep a file that contradicts the plan.** A
+file a previous run of this component wrote, in a package this plan writes
+into, is removed when this plan does not name it, whatever imports that
+package: the plan is the complete statement of the package, and a file kept
+beside it is compiled against declarations the plan has moved or dropped.
+Code another component owns that imports the package is reported as a
+dependant whose build is stale, to be built again after this component, as
+[Shared code is built first](#resolving-a-request-of-many-roots) says; its
+standing is its own to report. Only a package this plan writes nothing into
+keeps, for another component that imports it, the files this component's
+previous run wrote there. They are reported as kept and stay in this
+component's record, so a failing build that names only such a file is
+reported as naming this component's file, never as naming none. Measured: an
+orchestrator whose new plan moved its directory code into other files kept
+the old `directory.go` because the admin gateway imports its package; 34 of
+the build's 35 errors were in that file, and every repair round ended on
+"it names no file this plan owns".
 
 ### Surviving a provider outage
 
@@ -1872,6 +1890,7 @@ and "nothing contradicted it".
 - [ ] A plan is judged against the CALLER's target, never a target the model declared in its own output ([Validating a plan](#validating-a-plan))
 - [ ] A file a previous run wrote and this plan was instructed to omit survives reconciliation and is reported as retained ([Reconciling a target](#reconciling-a-target))
 - [ ] A file a previous run wrote and this plan genuinely dropped is removed ([Reconciling a target](#reconciling-a-target))
+- [ ] A file a previous run wrote in a package this plan writes into, and this plan does not name, is removed even when another component imports the package, and each such importer is reported as a dependant whose build is stale ([Reconciling a target](#reconciling-a-target))
 - [ ] The record of what a run wrote is keyed by component; two components in one tenant never share one record ([Reconciling a target](#reconciling-a-target))
 - [ ] A generation prompt states the tenant's module path and the exported names of packages already present ([The prompt contract](#the-prompt-contract) element 9)
 - [ ] A component is not shown its own previous output as existing tenant state ([How a blueprint is read](#how-a-blueprint-is-read))
