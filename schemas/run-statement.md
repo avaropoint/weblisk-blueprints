@@ -175,6 +175,25 @@ what its component was built from.**
   whose files the later run has partly replaced. A run that stopped and is
   read as the inputs makes a component look nearly current exactly when it is
   least so.
+- **A run records its accepted plan before it generates a file**, in its
+  record of having started: every entry, written or not, the `plan_digest`
+  its statement carries, the blueprints the plan was made from at the digests
+  read, and, as it banks each file, the cache entry it banked it under. A
+  subject carries the plan entry of a file the run wrote, so a statement alone
+  cannot say what a run that stopped at file six of forty-nine had still to
+  write.
+- **A resume is generated from the plan of the run it resumes**, and every
+  file that run banked is reused from the entry it was banked under
+  ([`schemas/change`](change.md#verdicts), `incomplete`). The model is never
+  asked to plan a resume. The plan is made again only when a blueprint it was
+  made from moved, was added or is no longer read, at the digests recorded, and
+  the run names which. The generator's own instructions are not among those
+  inputs: a release of the tool that words its prompts differently has not
+  changed what the tenant's blueprints require. A record from before plans were
+  recorded is resumed from the banked plan whose entries match every file its
+  run recorded, by path, purpose and declarations, and from the banked files
+  whose digests it recorded; where none matches, the run says the plan is
+  missing and makes one.
 - A subject of a run that did not complete is still a true record of the file
   it names: that file was written, from those blueprints, at that digest. The
   rebuild decision ([`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt))

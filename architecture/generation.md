@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.10.0
+version: 1.11.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -436,6 +436,17 @@ change only when something has really moved.
 
 Tenant exports still reach the per-file prompts, where the names matter.
 
+**A resume does not look its plan up by a key at all.** A run that did not
+complete is resumed from the plan it recorded ([`schemas/run-statement`](../schemas/run-statement.md#a-run-that-did-not-complete)),
+and that plan is made again only when a blueprint it was made from moved, was
+added or is no longer read, at the digests the run recorded. The instructions
+are an input to a fresh plan and never to a resumed one: measured on the
+development tenant, a CLI release that added function signatures to its file
+prompts changed the plan key, an orchestrator whose 49-file run had failed was
+re-planned to 51 files with nothing in its blueprints moved, five declarations
+moved between files, and the kept and regenerated files declared the same
+symbols twice.
+
 This is the difference between an incremental build and a build that merely
 starts from a cache: an input that the output perturbs is a feedback loop, not a
 key.
@@ -504,7 +515,13 @@ name the owning file, so the retry has somewhere to import from rather than a
 prohibition it can only guess at.
 
 The final check stays. It is the backstop, and a backstop that fires means the
-per-file check has a hole; it must not be the first thing to notice.
+per-file check has a hole; it must not be the first thing to notice. **When it
+fires it names each symbol and every file declaring it, and where the target
+has a build it is repaired, not stopped on**: the files are written, and the
+build's redeclaration errors bring both declaring files into one repair
+([Repairing a disagreement between files](#repairing-a-disagreement-between-files)).
+Stopping there discarded every file the run had generated, the new ones with
+the rest, banked and never written, with a verdict that named no symbol.
 
 More generally: **a check MUST run at the point where its fault can still be
 repaired cheaply.** A correct answer delivered after the work is discarded is
@@ -570,6 +587,18 @@ regenerated. This is why bindings are declared at field granularity, and why a
 dependency present in `requires:` and absent from the Dependencies block breaks
 more than tidiness — a file answerable for a binding nobody declared cannot be
 assessed, so it must be conservatively regenerated every time.
+
+**When the plan is not the one the kept files were written from, they are
+checked against it as a whole**, after the rows above: a kept file that
+declares a symbol the plan places in another file, or uses a symbol of its own
+package that the plan places somewhere other than where the previous run's
+records placed it, is generated as row three generates it, naming the symbol
+and both files. A file meets its own entry and still contradicts the plan when
+the plan moved what it leans on: measured, a new plan moved five types into new
+files, and every file that only used them met its entry, was kept, and failed
+the build against files that declared them twice or not at all. A resumed run
+generates from its own plan, so nothing has moved and the check keeps every
+file the rows kept.
 
 Until the cascade is implemented, an implementation MAY treat any change to a
 blueprint a file was generated from as reaching it. That is sound and blunt: it
@@ -1917,6 +1946,9 @@ and "nothing contradicted it".
 - [ ] A generation prompt states the tenant's module path and the exported names of packages already present ([The prompt contract](#the-prompt-contract) element 9)
 - [ ] A component is not shown its own previous output as existing tenant state ([How a blueprint is read](#how-a-blueprint-is-read))
 - [ ] A plan is not re-made because an unrelated component gained an exported name ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
+- [ ] A resume of a run that did not complete is generated from the plan that run recorded and every file it banked, with no plan asked of the model, after a change to the generator's own instructions; a plan is made again only when a blueprint the plan was made from moved, and the run names it ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
+- [ ] Beside a plan the kept files were not written from, a kept file that declares a symbol the plan places elsewhere, or uses one the plan moved, is regenerated, naming the symbol and both files ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
+- [ ] A symbol declared in more than one file is reported with every file declaring it, and with a build to repair against the files are written and repaired, not discarded ([A coherence fault MUST be caught where it is created](#a-coherence-fault-must-be-caught-where-it-is-created))
 - [ ] Every build receives `vectors/fixed-form-statements.json` unchanged at `testdata/weblisk-vectors/fixed-form-statements.json`, no prompt carries its content, and a component that builds or verifies a fixed-form statement the file has vectors for tests against every vector for that prefix, with the steps [Published test vectors](#published-test-vectors) gives for what the component does
 
 - [ ] A generator asks the model for a plan and does not impose a file structure ([The plan](#the-plan))
