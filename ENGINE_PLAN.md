@@ -1,6 +1,9 @@
 # The Weblisk tools: one engine, two front ends, driven by the corpus
 
-> **Status: proposal awaiting the owner.** Nothing here is normative. It stays
+> **Status: adopted by the owner on 2026-11-03, with the decisions recorded in
+> [Decisions](#decisions), including the reversals in
+> [Text already adopted that this proposal would change](#text-already-adopted-that-this-proposal-would-change).**
+> It is the plan of work, not yet normative. It stays
 > at the corpus root as a plan, because a file under `architecture/` is a
 > blueprint and its MUST lines are read as requirements. Each part becomes
 > normative only when it lands in the document
@@ -571,43 +574,32 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 
 ---
 
-## Decisions for the owner
+## Decisions
 
-1. **Where the engine module lives**: its own repository, or a separate module
-   inside the CLI repository. Its own repository makes neither front end the
-   owner.
-2. **How far the plan is fixed.** (a) The corpus fixes packages, boundary names
-   and a file-per-section rule, and the plan needs no model. (b) The corpus
-   fixes packages and boundary names, and the model splits files inside a
-   package, with that split recorded and reused. (a) is fully determined, and
-   it needs a file rule for every language.
-3. **Whether a translated test settles an S or J requirement**, or only a
-   declared check in the corpus does. This proposal counts translated tests at
-   build time and records which kind settled each requirement. The owner may
-   still require a declared check for S and J in production.
-4. **What a criterion's digest covers**: its text alone, as decided, or its
-   text plus the definitions it names by ref (an error code's status, a type's
-   fields). Text alone misses a criterion whose meaning moved because a
-   registry it cites changed.
-5. **Whether code generation may read the translated tests**, without being
-   able to write them. Reading them helps generation pass. Not reading them
-   rules out code written to the test rather than to the criterion.
-6. **What a failing live S or J check does after acceptance**: mark the
-   acceptance contradicted and show it (proposed), or withhold the reach
-   automatically.
-7. **Who may create a tenant, and where.** `tenant new` has no tenant to be a
-   client of. Should Studio run it on its own host, as it does today through
-   the CLI, or should creation be CLI-only or a hosted service?
-8. **The commands the corpus does not drive yet**: `app *`, `marketplace *`,
-   `deps audit` and `gateway policy *`. Either they get corpus documents and
-   join the engine, or they leave the tools. Parity forbids keeping them in one
-   front end only.
-9. **Minting ids for 2,643 checklist items** in one mechanical pass, frozen from
-   then on, or authoring ids blueprint by blueprint in the order
-   `ACCEPTANCE_PLAN` sets.
-10. **Whether model transcripts are kept in the tenant's record**, or only
-    their digests with the outputs. Transcripts make an action auditable, but
-    they are large and may quote the tenant's content.
-11. **The name and home of the instruction family**: a new `instructions/`
-    family, or a section of `skills/`. A skill is copied into tenants for
-    agents to read, and an instruction is read by the engine.
+Decided by the owner on 2026-11-03.
+
+1. **The engine has its own repository**, `weblisk-engine`, and both front
+   ends import it.
+2. **The corpus fixes packages and boundary names.** The model's split of a
+   package into files is recorded and reused, never re-asked.
+3. **Settling S and J.** A translated test may settle a security or contract
+   requirement in the development and network environments. In production,
+   only a check declared in the corpus settles one; a reviewed translated test
+   is promoted into the corpus to do so.
+4. **A criterion's digest covers its text and the definitions it cites**, such
+   as an error code's status or a type's fields.
+5. **Code generation may read translated tests**, and can never write them.
+6. **A live check failing after acceptance.** For a security (S) requirement,
+   the affected operations are withheld automatically. For a contract (J)
+   requirement, the acceptance is marked contradicted and shown.
+7. **Either front end may create a tenant**, on the host the tenant will live
+   on, by a signed-in operator.
+8. **Commands no corpus document drives leave the tools** until one defines
+   them: `app *`, `marketplace *`, `deps audit` and `gateway policy *`.
+9. **Ids for the unmarked checklist items** are minted in one mechanical pass,
+   then frozen.
+10. **Model transcripts are kept in the tenant's record**, as the account of
+    how each action was done.
+11. **Model instructions are a new `instructions/` family.**
+
+The adopted texts listed above are reversed as this plan's parts land.
