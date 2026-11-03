@@ -100,6 +100,7 @@ here would be a second thing to keep right.
 | `protocol/identity` — symmetric encryption | stdlib `crypto/aes`, `crypto/cipher` | stdlib |
 | `protocol/identity` — random source | stdlib `crypto/rand` | stdlib |
 | `protocol/identity` — non-echoing passphrase channel | `golang.org/x/term` | **only if the implementation prompts** — a headless service takes an injected credential and needs no terminal |
+| `architecture/admin` — verifying a step-up passkey's assertion (COSE `-7`, ES256; `-8`, EdDSA) | stdlib `crypto/ecdsa` with `crypto/elliptic`'s P-256, and `crypto/ed25519` | stdlib, **only in the code that verifies a step-up passkey**. A passkey proves a live session and signs nothing kept ([`protocol/identity`](../protocol/identity.md#post-quantum-cryptography)), so these are not a second signature algorithm for anything this table's first row covers, and nothing else imports them |
 | `protocol/types` — canonical JSON | stdlib `encoding/json` + canonicalisation | stdlib |
 | `protocol/spec` — HTTP transport | stdlib `net/http` | stdlib |
 | `architecture/storage` — default backend | stdlib `os`, `encoding/json` | stdlib |
@@ -779,7 +780,7 @@ made afresh on every file.
 
 | Blueprint form | Becomes | Rule |
 |---|---|---|
-| `yaml:types` — a type with fields | a `struct` in `internal/protocol` (`go-declared-names-in-contract`) | One exported field per declared field, with a `json:` tag carrying the declared key exactly. A field the block does not declare is not added |
+| `yaml:types` — a type with fields | a `struct` in `internal/protocol` (`go-declared-names-in-contract`) | One exported field per declared field, with a `json:` tag carrying the declared key exactly. A field the block does not declare is not added. `omitempty` is on exactly the fields the block does not require, as [What this rules out](#what-this-rules-out) says |
 | `yaml:types` — a named string enum | a `type X string` and one `const` per value, in `internal/protocol` | The constant's value is the declared string; the constant's name is the type's name followed by the value in PascalCase: `OperatorRole`'s `viewer` is `OperatorRoleViewer`. Every enum shares one package, so a constant named from its value alone collides as soon as two enums share a value |
 | `table` — an endpoints table | a route-table entry and a handler | Path constant, handler, request and response types all spelled from the `Operation` column per the mapping above |
 | `table` — any other | whatever the section specifies | Read by column NAME. A table that gains a column moves nothing |
@@ -795,8 +796,13 @@ made afresh on every file.
   other end rejects.
 - **A JSON tag derived from the Go field name.** The declared key is authority;
   `agent_id` does not become `agentId` because that is idiomatic elsewhere.
-- **An `omitempty` nobody declared.** It changes the wire shape: a required
-  field with a zero value disappears from the payload.
+- **An `omitempty` on a required field, or none on an optional one.**
+  [`protocol/types`](../protocol/types.md#conventions) leaves an optional
+  field that holds no value out of the JSON and always writes a required one,
+  and says which is which. So a required field carries no `omitempty`, and
+  its zero value is written; an optional one carries `omitempty`, on a
+  pointer where it is a scalar, so absent and zero stay distinct. Nothing
+  else decides it, Go convention included.
 - **A declared name placed outside the package the layout gives it**, however
   natural the grouping looks
   ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it)).
@@ -950,7 +956,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling ([The HTTP Surface](#the-http-surface))
 - [ ] The process binds its port and answers `GET /livez` when started with no terminal attached ([Evaluating a Declared Check in Go](#evaluating-a-declared-check-in-go) `starts-unattended`)
-- [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and no `omitempty` appears that the blueprint did not state ([Reading a Blueprint into Go](#reading-a-blueprint-into-go), [What this rules out](#what-this-rules-out))
+- [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and `omitempty` is on every optional field and on no required one ([Reading a Blueprint into Go](#reading-a-blueprint-into-go), [What this rules out](#what-this-rules-out))
 - [ ] Every field's Go type is the one [Type Mapping](#type-mapping) gives its declared type, and an optional scalar is a pointer ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious))
 - [ ] A cursor is carried as an opaque string and never decoded ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious))
 
