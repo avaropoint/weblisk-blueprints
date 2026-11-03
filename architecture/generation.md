@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.12.0
+version: 1.13.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -446,6 +446,22 @@ prompts changed the plan key, an orchestrator whose 49-file run had failed was
 re-planned to 51 files with nothing in its blueprints moved, five declarations
 moved between files, and the kept and regenerated files declared the same
 symbols twice.
+
+**A repair does not plan and does not generate.** A component whose latest
+run completed and whose verification refuted it, or reached no verdict, is
+`repair` ([`schemas/change`](../schemas/change.md#verdicts)). Apply takes the
+tree that run ended on as it stands — every file the run recorded, on disk at
+the digest it recorded — with the plan that run recorded, and runs the build
+gate, the repair loop and conformance on it against the blueprints as they are
+now: a repair after a corpus fix is what the verdict is for, so blueprints that
+moved since the run are read, never a reason to plan again. No plan is asked of
+the model and no file is generated. Where the tree is not that run's — no
+record of the run, a recorded file missing, or one on disk with other bytes
+than recorded — apply refuses the component and names what it expected; it
+never regenerates in its place. Measured on the development tenant: an
+adoption planned its orchestrator and content as `repair`, and apply asked the
+model for a plan, because the resume above applies only to a run that did not
+complete.
 
 This is the difference between an incremental build and a build that merely
 starts from a cache: an input that the output perturbs is a feedback loop, not a
@@ -1994,6 +2010,7 @@ and "nothing contradicted it".
 - [ ] A generation prompt states the tenant's module path and the exported names of packages already present ([The prompt contract](#the-prompt-contract) element 9)
 - [ ] A component is not shown its own previous output as existing tenant state ([How a blueprint is read](#how-a-blueprint-is-read))
 - [ ] A plan is not re-made because an unrelated component gained an exported name ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
+- [ ] A `repair` asks the model for no plan and generates no file: the tree its component's last run ended on, with that run's recorded plan, goes through the build gate, the repair loop and conformance against the blueprints as they are now, and a tree that is missing or is not the bytes that run recorded is refused, naming what was expected, never regenerated ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
 - [ ] A resume of a run that did not complete is generated from the plan that run recorded and every file it banked, with no plan asked of the model, after a change to the generator's own instructions; a plan is made again only when a blueprint the plan was made from moved, and the run names it ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes))
 - [ ] Beside a plan the kept files were not written from, a kept file that declares a symbol the plan places elsewhere, or uses one the plan moved, is regenerated, naming the symbol and both files ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
 - [ ] A symbol declared in more than one file is reported with every file declaring it, and with a build to repair against the files are written and repaired, not discarded ([A coherence fault MUST be caught where it is created](#a-coherence-fault-must-be-caught-where-it-is-created))
