@@ -1418,9 +1418,11 @@ only a new `hub_id`, which a hub regenerated without its state has, does.
 
 ### Orchestrator High Availability
 
-In a multi-instance orchestrator deployment, all instances MUST
-share the same ML-DSA-65 key pair. The key is loaded from shared
-storage (not generated per instance).
+IF more than one instance answers for the hub: every instance MUST
+share the same ML-DSA-65 key pair, loaded from shared storage and
+never generated per instance. `weblisk server start` refuses a second
+instance ([`architecture/cli`](../architecture/cli.md#weblisk-server-start)),
+so a tenant it starts settles this premise false.
 
 ### Agent Migration
 

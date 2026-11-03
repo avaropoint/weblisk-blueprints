@@ -1752,6 +1752,15 @@ that omits the door means.
   with a clean environment](#a-component-starts-with-a-clean-environment)) — is refused with every reason
   before anything starts. Starting part
   of a declaration leaves a tenant in a state nobody declared.
+- **One instance.** A component this CLI has a record of as running for the
+  tenant, or whose declared port already answers `GET /livez`, is not
+  started again: `server start` and `component <name> start` refuse a second
+  instance of it, naming the one running, and `replicas` above 1 is refused
+  whole, as above. No requirement of the corpus is met by more than one
+  instance yet, so every requirement written `IF more than one instance
+  answers for the hub` is not applicable to a tenant this CLI starts, and
+  this refusal is the explicit test that settles its premise false
+  ([`architecture/generation`](generation.md#conditional-assertions)). <!-- wl:id start-one-instance -->
 - **Named, not skipped.** A declared component that has not been generated is
   reported with the command that generates it, the rest start, and the command
   exits non-zero. A tenant running less than it declares is not started.
@@ -4126,6 +4135,7 @@ security:
 - [ ] `weblisk component <name> init` ends on the best tree it reached and never a worse one — on an error too — names the requirements it left unrepaired, and a re-run starts from that tree ([`weblisk component <name> init`](#weblisk-component-name-init), [`architecture/generation`](generation.md#a-repair-round-is-a-transaction))
 - [ ] `weblisk server init` reads YAML specs and dispatches to the configured LLM for code generation ([`weblisk server init`](#weblisk-server-init))
 - [ ] `weblisk server start` reads .weblisk/config.yaml and builds+starts all declared components ([`weblisk server start`](#weblisk-server-start))
+- [ ] `weblisk server start` and `weblisk component <name> start` refuse to start a component this CLI has a record of as running for the tenant, or whose declared port already answers `GET /livez`, naming the one running, and refuse `replicas` above 1 whole ([`weblisk server start`](#weblisk-server-start)) <!-- wl:check start-refuses-second-instance covers start-one-instance -->
 - [ ] `weblisk server start` starts a declared `execution`, `notification`, `prompt_worker`, `programme_service` and `fabric` after the content service and in that order, each on its section's port or its conventional one, each given its `key_passphrase` on its standard input, and `weblisk server stop` stops them before the content service ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on))
 - [ ] `change apply` of a change that generates one of the services a programme runs on writes that service's `.weblisk/config.yaml` section with its conventional port where the file holds none, leaves a section already there as it is, and records on the change that it did ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on))
 - [ ] A component whose section names `key_passphrase` receives the passphrase the named source returns as one line on its standard input, and in no argument, environment variable or file; one reference is asked once for every component naming it; a source that does not answer starts nothing; a component with no `key_passphrase` receives nothing on its standard input ([`weblisk server start`](#weblisk-server-start), [`schemas/config`](../schemas/config.md#service-key-passphrases)) <!-- wl:check start-passphrase-stdin covers start-injects-passphrase -->
