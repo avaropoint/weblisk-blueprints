@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.11.0
+version: 1.12.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -981,7 +981,9 @@ response.** A generator MUST therefore:
    to resolve.
 
 4. **Never implicate a file the plan does not own.** Generation may rewrite only
-   what it wrote.
+   what it wrote. The one exception is a completion's addition to a shared
+   package (see *A repair that needs another file is completed across it*),
+   which inserts and never rewrites.
 
 Sending more CONTEXT does not substitute. The single-file prompt already carried
 the other files' declarations, names and signatures included, and it was not
@@ -1011,6 +1013,50 @@ tried. A small file survived the same prompt only because it could be written
 again from its purpose, which is regeneration and not repair. The size of a
 file decides nothing here, and nothing caps an answer: an edit is never larger
 than the file, and is usually a few lines.
+
+### A repair that needs another file is completed across it
+
+A single-file repair can be right and still unable to build: it uses a name
+another file owes, or it changes a name other files use. **A repair whose own
+trial breaks the build MUST be completed before it is discarded.** The
+generator asks once more, showing the repair as it was tried, the diagnostics
+its build reported that the tree before did not, and the current content of
+every file it may complete into, and asks for edits to any of them, the
+repaired file included. What comes back is one repair across those files. It
+is applied, built and judged as one, kept as one, and undone as one, and the
+one-at-a-time retry (see *A repair round is a transaction*, rule 4) never
+splits it. A completion that is still worse is discarded with the repair,
+and the reason says both were tried.
+
+The files a completion may edit are bounded:
+
+- **A file the component owns** where a new diagnostic stands, or where a name
+  the repair removed or re-signed is used (the uses of rule 5), or that
+  declares, in the component's own packages, a qualified name a new
+  diagnostic names.
+- **A file of a shared package**, chosen by a qualified name a new diagnostic
+  names: the file that declares it, or for a name nothing declares yet, the
+  file whose names share the longest leading run of words with it. A package
+  is shared when it is under the module, a file of the repair imports it, the
+  component holds none of its files, and no other component's record claims
+  any. **A shared file MAY only be added to.** An edit that removes or changes
+  any line it has is refused, because other components import it and the
+  component's build does not compile them. A shared file is written and undone
+  with the tree, and it is never returned, banked or recorded as the
+  component's output.
+
+An answer for any other file, or one that changes none of the other files, is
+refused, and asked again with its reason, as any answer that is not an
+acceptable file is.
+
+Measured: a component rebuild of the development tenant ended refused with
+seven of its twenty-nine unrepaired requirements reading "the tree built and
+no longer does". A repair used `protocol.PathList`, which the shared protocol
+package did not declare. Another changed a function to return an error beside
+its value, and its callers still took one. A third re-typed a field whose
+every use the repair had been shown. Each was right in intent, and each was
+undone every round, because a single-file repair had authority over one side
+of the change. Two rounds without progress then ended the run.
 
 ---
 
@@ -1410,9 +1456,9 @@ A generator MUST treat every repair round as a transaction:
    variable, constant), and each export of a JavaScript or TypeScript file (the
    forms below), the repair is given every place another file uses it. Being
    shown the uses gives a single-file repair no authority over them. Where a
-   build of the trial shows its change breaking them, the repair is discarded,
-   and the change belongs to a repair across those files — see *Repairing a
-   disagreement between files*.
+   build of the trial shows its change breaking them, the repair is completed
+   across those files before it is discarded — see *A repair that needs
+   another file is completed across it*.
 
    A break no build shows is not caught. A Go change whose broken uses sit in
    an importer that a failing package hides, on the tree before and on the
@@ -1930,6 +1976,8 @@ and "nothing contradicted it".
 - [ ] An undefined symbol implicates the file that owes it, not only the caller ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
 - [ ] Files implicated together are asked for in ONE response and a partial answer is rejected ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
 - [ ] A file the plan does not own is never implicated ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
+- [ ] A repair whose own trial breaks the build is completed across the files it needs before it is discarded, and the completion is built, kept and undone as one, never split by the one-at-a-time retry ([A repair that needs another file is completed across it](#a-repair-that-needs-another-file-is-completed-across-it))
+- [ ] A completion edits only files the component owns that the repair's new diagnostics or changed names implicate, and files of a shared package a diagnostic names, which it may only add to; a shared file is never returned or recorded as the component's output ([A repair that needs another file is completed across it](#a-repair-that-needs-another-file-is-completed-across-it))
 - [ ] An ordinary single-file error is repaired as a single file, not as a group ([Repairing a disagreement between files](#repairing-a-disagreement-between-files))
 - [ ] A file whose digest differs from the recorded digest is reported and NOT overwritten ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))
 - [ ] A file that no longer declares its assigned symbols is regenerated even when no input changed ([Deciding whether a file must be rebuilt](#deciding-whether-a-file-must-be-rebuilt))

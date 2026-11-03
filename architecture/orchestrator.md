@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.7.0
+version: 4.7.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -1290,6 +1290,15 @@ NOT generated: the CLI installs them after generation, and they intercept their
 own paths ahead of the generated router. A hub MUST serve all of them as this
 section specifies; today's CLI serves four, and none of them as specified
 ([The tenant's model](#the-tenants-model), the gap note).
+
+An install is judged by compiling the orchestrator's own package with it in
+place, and nothing else. Nothing else can be broken by it, and a fault in
+another package is not the install's. **An orchestrator the routes cannot be
+installed into is a failed generation, and a failed start, never a warning**:
+the hub would otherwise serve without part of its declared surface. Measured:
+judged by compiling the whole module, an install during a component rebuild
+was refused for a sibling component whose own rebuild had not yet run, was
+reported as a warning, and left a hub whose model routes answered `404`.
 
 They are the tenant's model surface, and the model is the tenant's. Which
 backend runs a completion, and which model it asks for, is the tenant's own
@@ -3287,7 +3296,7 @@ agents hold, which is theirs.
 - [ ] `POST /v1/token/exchange` asked for `scope` `[content:read]` on an admin's token answers with a pass whose `cap` is `[content:read]` alone, whose `aud` is the audience, whose `act` names the gateway, and whose `exp` is no more than 30 seconds after its `iat`; asked for `[content:decide]` on a `viewer`'s token, or on an admin's token minted with `cap` `[content:read]`, it answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`, [`protocol/identity`](../protocol/identity.md#the-pass))
 - [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`)
 - [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [Contracts](#contracts), `token-exchange`)
-- [ ] Every exchange is audited, refused or not, with the person's identity id, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`)
+- [ ] Every exchange is audited, refused or not, with the identity id of the operator `subject_token` names where it names one, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`)
 - [ ] A pass or a work pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5)
 - [ ] `POST /v1/token/work` admits only a live registration token whose registration declares `work:exchange`, answers `WORK_AUTHORISATION_UNKNOWN` alike for an unknown authorisation and one that does not name the caller, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED` and `WORK_OWNER_UNREGISTERED` as their rule says, each in a 200 with `issued: false` ([Contracts](#contracts), `work-exchange`)
 - [ ] A work pass's `cap` is the intersection of `scope`, the authorisation's `capabilities` and what the owner's, the actor's and the audience's manifests declare; an empty intersection mints nothing and answers `FORBIDDEN`, except for a work pass addressed to the authorisation's owner, which is minted with an empty `cap` ([Contracts](#contracts), `work-exchange`)
