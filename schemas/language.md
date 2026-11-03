@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.0
+version: 1.1.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -43,7 +43,7 @@ sections:
     - {slot: overview, heading: Overview, required: true, use: navigates}
     - {slot: dependencies, heading: Dependencies, required: true, use: depends}
     - {slot: primitives, heading: Primitive Mapping, required: true, use: binds}
-    - {slot: project-structure, heading: Project Structure, required: true, use: instructs}
+    - {slot: project-structure, heading: Project Structure, required: true, use: binds}
     - {slot: domain-structure, heading: "Project Structure: Domain Controller", required: false, use: instructs}
     - {slot: runtime, heading: Runtime Requirements, required: true, use: binds}
     - {slot: build, heading: Build and Run, required: true, use: instructs}
@@ -119,7 +119,7 @@ itself — `name: go` implies `language: go`.
 | 3 | Overview | `## Overview` | narrative | **Yes** | What is essential when building in this language |
 | 4 | Dependencies | `## Dependencies` | yaml:requires | **Yes** | Dependency contracts |
 | 5 | Primitive Mapping | `## Primitive Mapping` | table | **Yes** | Where each required primitive comes from in this language |
-| 6 | Project Structure | `## Project Structure` | narrative | **Yes** | Module and directory layout |
+| 6 | Project Structure | `## Project Structure` | yaml:layout | **Yes** | Module and package layout, as [The layout block](#the-layout-block) declares it |
 | 7 | Runtime Requirements | `## Runtime Requirements` | yaml:runtime | **Yes** | Language version, dependency policy, build tools |
 | 8 | Build and Run | `## Build and Run` | table | **Yes** | Build and run commands |
 | 9 | Language Conventions | `## Language Conventions` | table | **Yes** | Idiom, concurrency model, IO patterns, error handling, logging |
@@ -156,6 +156,56 @@ under `identity-primitive/`, and how one is answered, with its package, its sour
 and the verdict UNFILLED where nothing answers it, is a rule of that class in
 [`schemas/mapping`](mapping.md#classes). Neither is restated here; the table a
 language file carries today is the form those rules replace.
+
+### Project Structure (`## Project Structure`)
+
+#### The layout block
+
+The section carries one `yaml` block whose root is `layout`. It is how this
+language arranges code, stated as data so a generator derives a component's
+package plan from it before a model is asked for anything, and validates the
+model's plan against it
+([`architecture/generation`](../architecture/generation.md#the-plan)). Each
+language declares its own. A language file with no `layout` block leaves the
+package plan unstated, and a generation for it is refused before any model
+call, naming the language, as a concept a mapping leaves UNFILLED is
+([`schemas/mapping`](mapping.md#requirements), `unfilled-is-stated`).
+
+```yaml
+layout:
+  module_root: <path>             # where the module manifest sits, relative to the tenant root
+  manifest: <file>                # the module manifest's file name
+  name: <spelling>                # how a blueprint's name becomes a package name: as-is | drop-hyphens | snake
+  contract:
+    package: <path>               # the one package every declared name lives in
+    holds: [<kind>, ...]          # which declared names, from the closed list below
+  packages:                       # ordered; the first rule whose from matches a blueprint wins
+    - from: <type>/{name}         # a blueprint path, {name} its file name
+      package: <path>             # where that blueprint's code goes; {name} spelled by name
+      role: contract | component | library
+      when: component             # optional: the rule matches only a component (below)
+  entry: <path>                   # a component's entry file; {service} is the name it registers under
+  imports:                        # for each role, what a package of it may import
+    entry: [<what>, ...]
+    component: [<what>, ...]
+    library: [<what>, ...]
+    contract: [<what>, ...]
+  rules:                          # what belongs in each package, each with an id
+    - id: <part id>
+      text: <the rule, as a model is given it>
+```
+
+| Key | Means |
+|---|---|
+| `holds` | Declared names of these kinds live in the contract package and nowhere else. The kinds are a closed list: `type` (a `yaml:types` type, with fields or an enum), `enum-constant`, `path-constant`, `request-type`, `response-type` and `error-code`, each spelled as the language's mappings spell it |
+| `role` | `contract` is the package `holds` names. `component` is a running thing: the blueprint a row of [`schemas/programme`](programme.md#the-services-in-the-order-they-are-built)'s services table names, for a service in a process of its own, an agent or a domain, and `architecture/gateway`, which [`schemas/config`](config.md) declares as `gateway`. `library` is every other blueprint whose requirements some code answers |
+| `imports` | What a package of each role may import: `own-component` (an entry, its own component's package), `library` (any library package), `required-library` (the package of a library blueprint the importer's blueprint `requires`, outside any `requires` cycle with it) and `contract`. Nothing else, and nothing a role's list leaves out |
+| `rules` | Binding statements of where code goes, each with an id a plan's validation cites when it refuses a plan. They are passed to the model as written |
+
+**What a layout leaves to the model.** Within a package: which files exist,
+what each is called, how the package's work is divided between them, and the
+names of what no blueprint declares. No caller observes any of them, and no
+blueprint declares them ([`architecture/generation`](../architecture/generation.md#what-the-model-still-decides)).
 
 ### Language Conventions (`## Language Conventions`)
 
@@ -242,7 +292,26 @@ requires:
 
 ## Project Structure
 
-<Module layout.>
+```yaml
+layout:
+  module_root: "."
+  manifest: <manifest file>
+  name: as-is
+  contract:
+    package: <path>
+    holds: [type, enum-constant, path-constant, request-type, response-type, error-code]
+  packages:
+    - {from: "protocol/{name}", package: <path>, role: contract}
+    - {from: "architecture/{name}", package: "<path>/{name}", role: component, when: component}
+    - {from: "architecture/{name}", package: "<path>/{name}", role: library}
+  entry: "<path>/{service}/<entry file>"
+  imports:
+    entry: [own-component, library, contract]
+    component: [library, contract]
+    library: [required-library, contract]
+    contract: []
+  rules: []
+```
 
 ---
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 4.0.0
+version: 5.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -155,13 +155,16 @@ its code.
     admin/main.go             #   <- architecture/admin
     <name>/main.go            #   <- agents/<name> or a domain controller
 
-  internal/                   # one directory per LIBRARY
-    protocol/                 #   <- protocol/types, protocol/spec
+  internal/                   # one directory per PACKAGE
+    protocol/                 #   <- the contract: every declared name, and protocol/*
     identity/                 #   <- protocol/identity
     storage/                  #   <- architecture/storage
     observability/            #   <- architecture/observability
+    scope/                    #   <- patterns/scope
+    logging/                  #   <- patterns/logging
     orchestrator/             #   <- architecture/orchestrator
     admin/                    #   <- architecture/admin
+    content/                  #   <- architecture/content
     agent/                    #   <- architecture/agent  (the framework)
     domain/                   #   <- architecture/domain (the framework)
     agents/<name>/            #   <- agents/<name>       (one agent's logic)
@@ -192,19 +195,118 @@ with it. `go.mod` sits at the tenant root, so `go mod tidy` runs there.
 
 Every directory above is named after a blueprint, and nothing is named after
 anything else. That is the rule, and it is what makes the layout derivable rather
-than a matter of taste:
+than a matter of taste. The tree is an illustration; the block below is the
+layout, in the form [`schemas/language`](../schemas/language.md#the-layout-block)
+declares, and a generator derives a component's package plan from it before it
+asks a model for anything
+([`architecture/generation`](../architecture/generation.md#the-plan)).
 
-| The blueprint | Is it a running thing? | Where its code goes |
-|---|---|---|
-| `architecture/orchestrator` | yes | `cmd/orchestrator` + `internal/orchestrator` |
-| `architecture/admin` | yes | `cmd/admin` + `internal/admin` |
-| `agents/<name>` | yes | `cmd/<name>` + `internal/agents/<name>` |
-| `architecture/agent` | no — a framework | `internal/agent` |
-| `architecture/domain` | no — a framework | `internal/domain` |
-| `protocol/identity` | no — a library | `internal/identity` |
-| `protocol/types`, `protocol/spec` | no — a library | `internal/protocol` |
-| `architecture/storage` | no — a library | `internal/storage` |
-| `architecture/observability` | no — a library | `internal/observability` |
+```yaml
+layout:
+  module_root: "."
+  manifest: go.mod
+  name: drop-hyphens
+  contract:
+    package: internal/protocol
+    holds: [type, enum-constant, path-constant, request-type, response-type, error-code]
+  packages:
+    - {from: "protocol/{name}", package: internal/protocol, role: contract}
+    - {from: "agents/{name}", package: "internal/agents/{name}", role: component}
+    - {from: "domains/{name}", package: "internal/domains/{name}", role: component}
+    - {from: "architecture/{name}", package: "internal/{name}", role: component, when: component}
+    - {from: "architecture/{name}", package: "internal/{name}", role: library}
+    - {from: "patterns/{name}", package: "internal/{name}", role: library}
+  entry: "cmd/{service}/main.go"
+  imports:
+    entry: [own-component, library, contract]
+    component: [library, contract]
+    library: [required-library, contract]
+    contract: []
+  rules:
+    - id: go-declared-names-in-contract
+      text: >-
+        Every type a yaml:types block declares, in any blueprint the tenant's
+        components are built from, is a struct or a named type in
+        internal/protocol, with its enum constants; so is every Path<Operation>
+        constant, for every endpoint of every component, every
+        <Operation>Request and <Operation>Response type, and the registry of
+        error codes protocol/types declares, each code with its status and
+        category. None of them is declared in any other package.
+    - id: go-handler-in-serving-component
+      text: >-
+        A handler, handle<Operation>, is a method on the server of the
+        component that serves the endpoint, in that component's package, and
+        so are the component's one route table and its Routes() function.
+    - id: go-requirement-in-its-blueprints-package
+      text: >-
+        Code that answers a requirement of a library blueprint, one whose
+        role is library above, is written in that blueprint's package, and a
+        component calls it there; code that answers a requirement a
+        protocol/* blueprint states of every implementation, such as
+        canonical JSON or writing an ErrorResponse, is written in
+        internal/protocol. What a handler does to serve its endpoint is
+        go-handler-in-serving-component's, whichever blueprint states it. A
+        component's package holds what answers its own blueprint's
+        requirements and the handlers it serves, and nothing a library's
+        requirement asks for.
+    - id: go-client-in-caller
+      text: >-
+        Code that calls another component's endpoint is written in the
+        calling package, against the contract's path constant and types. No
+        package imports the package of a component other than its own.
+    - id: go-entry-holds-main
+      text: >-
+        cmd/<service>/main.go is package main and holds main and the parsing
+        of its arguments; it constructs the component from the component's
+        package and runs it, and declares nothing a package could hold.
+    - id: go-package-only-where-code-is
+      text: >-
+        A package exists only where the plan writes code into it. A blueprint
+        whose requirements no code answers, such as one the component reads
+        and implements nothing of, has no package.
+    - id: go-one-definition
+      text: >-
+        A name the contract holds is declared in internal/protocol alone, and
+        an exported name of a library package in that package alone; neither
+        is declared again in any other package, under its own name or a
+        copy's.
+    - id: go-imports-acyclic
+      text: >-
+        A library package imports internal/protocol and the packages of the
+        library blueprints its own blueprint requires, and none other. Where
+        requires is cyclic among library blueprints, the packages in the
+        cycle do not import one another; code one of them needs from another
+        is a corpus fault to report, never a reason to merge them.
+```
+
+**What each key means** is [`schemas/language`](../schemas/language.md#the-layout-block)'s.
+Read in Go:
+
+- **`{name}`** is the blueprint's own name with every `-` removed, for the
+  directory and the package clause alike: `patterns/content-git` is
+  `internal/contentgit`, package `contentgit`. A package clause cannot hold a
+  hyphen, and a directory spelled otherwise than its clause is a second name.
+- **`{service}`** is the name the component registers under, from
+  [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)'s
+  services table, an agent's or a domain's own name. A binary's directory may
+  hold a hyphen, since `package main` names nothing: the fabric service is
+  `cmd/fabric-service`, its package `internal/fabric`.
+- **`when: component`** holds for the blueprint a row of that services table
+  names, where the service runs in a process of its own, and for
+  `architecture/gateway`, which [`schemas/config`](../schemas/config.md)'s
+  `gateway` section declares. The model service runs in the orchestrator's
+  process ([`architecture/model-service`](../architecture/model-service.md#architecture)),
+  so it has no entry of its own and its package is a library the
+  orchestrator's entry imports.
+- **Why every declared name is in one package.** A declared type is the wire
+  contract, and a contract with two definitions is two contracts that nothing
+  makes agree. Measured on the development tenant, a plan that kept protocol
+  types in the orchestrator's package left `ErrorResponse`, `PathRegister`,
+  `AuditEntry` and `ScopeLevel` each defined in three packages, and thirty
+  repairs, each of one file, could not move them. With the contract in one
+  package that imports nothing of the tenant's, no import cycle can form
+  through a type, even where two components' blueprints require each other,
+  as the orchestrator's and the admin gateway's do.
 
 Two consequences worth stating, because both were got wrong before this rule
 existed.
@@ -317,9 +419,9 @@ runtime:
   - Service updates: 1 MB limit
 
 ### Package Organization
-- One module rooted at the tenant. Every binary is a `package main` under
-  `cmd/<name>`, every library is a package under `internal/<name>`, and each
-  name comes from the blueprint that specifies it
+- The packages, what goes in each and what each may import are the
+  [layout block](#the-package-is-named-after-the-blueprint-that-specifies-it),
+  and nothing here adds to it
 - Shared code is **imported, never copied**. One definition of every wire type,
   reached by import path — see "Why one module, and not a copy per binary"
 - A package under `internal/` cannot be imported from outside the module, which
@@ -677,8 +779,8 @@ made afresh on every file.
 
 | Blueprint form | Becomes | Rule |
 |---|---|---|
-| `yaml:types` — a type with fields | a `struct` in the package the plan assigns | One exported field per declared field, with a `json:` tag carrying the declared key exactly. A field the block does not declare is not added |
-| `yaml:types` — a named string enum | a `type X string` and one `const` per value | The constant's value is the declared string; the constant's name is the value in PascalCase |
+| `yaml:types` — a type with fields | a `struct` in `internal/protocol` (`go-declared-names-in-contract`) | One exported field per declared field, with a `json:` tag carrying the declared key exactly. A field the block does not declare is not added |
+| `yaml:types` — a named string enum | a `type X string` and one `const` per value, in `internal/protocol` | The constant's value is the declared string; the constant's name is the type's name followed by the value in PascalCase: `OperatorRole`'s `viewer` is `OperatorRoleViewer`. Every enum shares one package, so a constant named from its value alone collides as soon as two enums share a value |
 | `table` — an endpoints table | a route-table entry and a handler | Path constant, handler, request and response types all spelled from the `Operation` column per the mapping above |
 | `table` — any other | whatever the section specifies | Read by column NAME. A table that gains a column moves nothing |
 | `yaml:security` — `enforcement` | a check on the path it names | Each `rule` is a refusal that must be reachable; the `mechanism` says where it lives |
@@ -695,8 +797,9 @@ made afresh on every file.
   `agent_id` does not become `agentId` because that is idiomatic elsewhere.
 - **An `omitempty` nobody declared.** It changes the wire shape: a required
   field with a zero value disappears from the payload.
-- **A type placed in a package the plan did not name**, however natural the
-  grouping looks.
+- **A declared name placed outside the package the layout gives it**, however
+  natural the grouping looks
+  ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it)).
 
 ### Where the Go type is not obvious
 
@@ -826,10 +929,12 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] Every import of a required module uses the exact package path in the Primitive Mapping table ([Primitive Mapping](#primitive-mapping))
 - [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod ([Primitive Mapping](#primitive-mapping), [Runtime Requirements](#runtime-requirements))
 - [ ] One module rooted at the tenant folder, with `go.mod` at that root ([One module, one definition of everything](#one-module-one-definition-of-everything))
-- [ ] Every package is named after the blueprint that specifies it; no directory is named after anything else ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it))
-- [ ] Binaries are `package main` under `cmd/<name>`; libraries are packages under `internal/<name>` ([One module, one definition of everything](#one-module-one-definition-of-everything), [Package Organization](#package-organization))
+- [ ] Every package is the one the layout block gives the blueprint its code answers, spelled with every `-` removed; no directory is named after anything else, and no package exists that the plan writes no code into ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-requirement-in-its-blueprints-package`, `go-package-only-where-code-is`)
+- [ ] Each component's entry is `cmd/<service>/main.go`, `package main`, holding `main` and its argument parsing alone; every other file is a package under `internal/` ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-entry-holds-main`)
 - [ ] A domain controller imports the same `internal/agent` framework as a work agent, and registers with `type: "domain"` ([Project Structure: Domain Controller](#project-structure-domain-controller))
-- [ ] No type, constant or function is defined in more than one place — shared code is imported, never copied ([Why one module, and not a copy per binary](#why-one-module-and-not-a-copy-per-binary), [Package Organization](#package-organization))
+- [ ] Every declared type, enum constant, `Path<Operation>` constant, `<Operation>Request` and `<Operation>Response` type and the error-code registry is declared in `internal/protocol` and in no other package, and no exported name of a library package is declared in another package ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-declared-names-in-contract`, `go-one-definition`; [Why one module, and not a copy per binary](#why-one-module-and-not-a-copy-per-binary))
+- [ ] No package imports the package of a component other than its own; a library package imports only `internal/protocol` and the packages of the library blueprints its blueprint requires, and none in a `requires` cycle with it ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-client-in-caller`, `go-imports-acyclic`)
+- [ ] Every handler `handle<Operation>`, the component's route table and its `Routes()` are in the package of the component that serves the endpoint ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-handler-in-serving-component`)
 - [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints ([A component's shape](#a-components-shape), [Run](#run))
 - [ ] `io.LimitReader` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
 - [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes ([Concurrency](#concurrency), [Concurrency](#concurrency-1))

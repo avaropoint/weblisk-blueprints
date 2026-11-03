@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 1.13.0
+version: 2.0.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -137,6 +137,8 @@ order](#what-a-repair-round-reads-and-in-what-order).
 
 - The prompt contract: what a generator MUST convey to a model
 - The generation loop: one file per call, against a declared file set
+- That a component's package plan is derived from its language's `layout`
+  block, and how a plan is held to it
 - The verification gate and the order its layers run in
 - Scope discipline: what a generated implementation must NOT contain
 
@@ -172,8 +174,11 @@ interfaces:
    enumerates, the endpoints it defines, the assertions every Verification
    Checklist states. This is the specification, and it already exists; nothing
    is authored to restate it.
-2. **The model proposes a plan** — which files it will write, what each contains,
-   and in what order they must be generated. The structure is the MODEL's.
+2. **The package plan is derived, and the model proposes the files** — the
+   packages and where each declared name lives come from the language
+   blueprint's `layout` ([The plan](#the-plan)); the model says which files it
+   will write in them, what each contains, and in what order they must be
+   generated.
 3. **The plan is validated against the requirements** — is every required type
    placed in some file? every endpoint served? Rejected plans are returned with
    what is missing, and re-planned.
@@ -193,25 +198,57 @@ interfaces:
 
 ## The plan
 
-A generator MUST NOT impose a file structure. It asks the model for one.
+**The packages are the language's; the files within a package are the
+model's.** A generator MUST derive a component's package plan from the
+`layout` block of the language blueprint it builds in
+([`schemas/language`](../schemas/language.md#the-layout-block)) before it asks
+for a plan: which packages the component's code occupies, which of them
+already exist in the tenant and whose they are, which declared name lives in
+which package, and what each package may import. It MUST give that package
+plan, and the layout's `rules` as written, to the model as requirements of the
+plan, and MUST validate the model's plan against it
+([Validating a plan](#validating-a-plan), rules 7 to 10). The model is asked
+how each package's work is divided into files.
 
-### Why the structure is the model's
+### Why the packages are fixed, and the files are not
 
-A specification constrains BEHAVIOUR. What a caller can observe — the endpoints
-served, the types exchanged, the properties asserted — is the contract. How that
-is divided into files is an implementation decision, and a specification that
-fixes it is asserting authority it does not have.
+A specification constrains BEHAVIOUR, and how work is divided into files is
+not behaviour: no caller can observe it. A file list authored by hand is a
+guess, and a guess encoded as law prevents a model from making a better
+decision, such as putting fifty-five types in three files rather than one, or
+omitting a helpers file it does not need. An authored list also tends to be a
+SUBSET of what the blueprints already enumerate, naming four required types
+where the protocol defines fifty-five, and so narrows the specification while
+appearing to sharpen it.
 
-There is a practical cost too. A file list authored by hand is a guess, and a
-guess encoded as law prevents a model from making a better decision: putting
-fifty-five types in three files rather than one, or omitting a helpers file it
-does not need. Worse, an authored list tends to be a SUBSET of what the
-blueprints already enumerate — naming four required types where the protocol
-defines fifty-five — and so narrows the specification while appearing to
-sharpen it.
+A package is not a file. Its path is what every other package imports, so it
+is part of what one component observes of another, and a declared type in two
+packages is two contracts that nothing makes agree. Left to the model, the
+layout was decided again on every plan. Measured on the development tenant,
+the same ten orchestrator blueprints, byte-identical across three corpus
+revisions, gave one plan whose protocol, identity and storage code sat in
+`internal/protocol`, `internal/identity` and `internal/storage`, and a later
+one that put all 48 library files in `internal/orchestrator`. `ErrorResponse`,
+`PathRegister`, `AuditEntry` and `ScopeLevel` each ended up defined in three
+packages, and 30 of the build's 159 repairs chased two placement assertions
+that no edit to one file could meet. The language blueprint already stated
+the layout; it was prose, so nothing derived a plan from it and nothing held a
+plan to it.
 
-The blueprints already state what must exist. The plan states how this
-implementation will arrange it.
+### What the model still decides
+
+| The model decides | Why it is the model's |
+|---|---|
+| Which files a package holds, what each is called, and how the package's work is divided between them | No caller observes it, and a fixed list is a guess as above |
+| What each file's `purpose` says | It explains the division the model chose |
+| The name of anything no blueprint declares: an unexported helper, a receiver, a local constant | Nothing declares one, so there is no name to take ([A name MUST come from the blueprint that declares it](#a-name-must-come-from-the-blueprint-that-declares-it)) |
+| The order files are generated in | It follows from `depends_on`, which follows from the division ([Generation order comes from the plan](#generation-order-comes-from-the-plan)) |
+
+The variance that remains enters here. Two plans of the same blueprints can
+divide a package's work differently, and a file whose declarations moved is
+rebuilt; that is why a plan is kept, resumed and repaired from rather than
+asked for again
+([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes)).
 
 ### What a plan declares
 
@@ -251,6 +288,21 @@ generated. It MUST be rejected, with what is missing, when:
 5. A file has no purpose.
 6. A path belongs to another component of the same target — its module, its
    entry point, or a file another component's manifest claims.
+7. A file is in a directory the package plan does not give this component, or
+   is a component's entry anywhere but the layout's `entry`.
+8. A name the layout's `contract.holds` names (a declared type, an enum
+   constant, a path constant, a request or response type, an error code) is
+   placed in a file outside the contract package.
+9. A name the contract holds, or an exported name of a library package, is
+   declared in a second package, by this plan or by a package the tenant
+   already holds. Rule 3 asks the same of files; this asks it of packages,
+   because the same name in two packages compiles and is still two
+   definitions.
+10. A file imports, or is planned to depend on, what the layout's `imports`
+    does not admit for its package's role.
+
+Rules 7 to 10 cite the layout rule they enforce by its id, so the revised
+plan is told which rule, not only which file.
 
 Rejection returns the specific gap and asks for a revised plan. This costs one
 call and saves generating a structure that could never satisfy the blueprints.
@@ -688,6 +740,13 @@ planned once however often it is asked for, and an output two components need
 (the protocol types package) has one owner: the first in topological order.
 Its run statement records every root that needed it.
 
+**A shared package is added to, never re-declared.** The contract package
+holds every component's declared names, so a component built after another
+plans its own declared names into the contract package beside the files the
+other wrote there. Those new files are its own; it never edits the other's,
+and a name already declared there is imported, never declared again
+(rule 9).
+
 **Shared code is built first.** The shared packages — what the protocol
 blueprints (`protocol/*`) generate, the types and helpers every component
 imports — belong to the component whose run wrote them, in a tenant usually
@@ -883,7 +942,7 @@ choice; content is not.
 | 2 | **The file's obligations** — its `path`, `purpose`, `declares`, `serves`, from the plan | A file generated from a filename alone is a guess |
 | 3 | **Accumulated declarations** — the actual top-level symbols already defined by previously generated files | Naming the FILES is not enough. A generator told only that `helpers.go` exists will redeclare its symbols, or invent helpers that were never written |
 | 4 | **The complete file set** — every path in the plan | So a file knows what it is NOT responsible for, and does not absorb another file's work |
-| 5 | **Platform constraints** — language, dependency policy, idioms | From the platform blueprint |
+| 5 | **Platform constraints** — language, dependency policy, idioms, and the package plan with the layout's `rules` as written | From the platform and language blueprints ([The plan](#the-plan)) |
 | 6 | **Verification Checklists** — as explicit acceptance criteria, not buried in the blueprint body | A checklist present as context is complied with by luck. Present as criteria, it is complied with on purpose |
 | 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
 | 8 | **The blueprints themselves** | The specification being implemented |
@@ -2016,7 +2075,9 @@ and "nothing contradicted it".
 - [ ] A symbol declared in more than one file is reported with every file declaring it, and with a build to repair against the files are written and repaired, not discarded ([A coherence fault MUST be caught where it is created](#a-coherence-fault-must-be-caught-where-it-is-created))
 - [ ] Every build receives `vectors/fixed-form-statements.json` unchanged at `testdata/weblisk-vectors/fixed-form-statements.json`, no prompt carries its content, and a component that builds or verifies a fixed-form statement the file has vectors for tests against every vector for that prefix, with the steps [Published test vectors](#published-test-vectors) gives for what the component does
 
-- [ ] A generator asks the model for a plan and does not impose a file structure ([The plan](#the-plan))
+- [ ] A generator derives the package plan from the language blueprint's `layout` block before any model call, gives it and the layout's rules to the planner, and asks the model only how each package's work is divided into files ([The plan](#the-plan), [What the model still decides](#what-the-model-still-decides))
+- [ ] A plan placing a file outside the package plan's directories, a contract name outside the contract package, a contract name or a library's exported name in a second package, or an import its package's role does not admit, is rejected, citing the layout rule ([Validating a plan](#validating-a-plan) rules 7 to 10)
+- [ ] A component built after another plans its declared names into the contract package in files of its own, edits none of the other's files there, and imports a name already declared there rather than declaring it again ([Resolving a request of many roots](#resolving-a-request-of-many-roots))
 - [ ] A plan omitting a type the protocol enumerates is rejected, naming the type ([Validating a plan](#validating-a-plan) rule 1)
 - [ ] A plan omitting an endpoint the protocol defines is rejected, naming the endpoint ([Validating a plan](#validating-a-plan) rule 2)
 - [ ] A plan declaring one symbol in two files is rejected ([Validating a plan](#validating-a-plan) rule 3)
