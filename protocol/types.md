@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.5.0
+version: 6.5.1
 requires: []
 platform: any
 tier: free
@@ -2757,7 +2757,7 @@ types:
         name: Development
         type: bool
         required: false
-        description: "True on a tenant flagged as a development tenant, the only place a requester may approve their own request; shown wherever the request is"
+        description: "True on a tenant flagged as a development tenant, one whose configuration says hub.environment: development (schemas/config, The environment, and the development tenant), the only place a requester may approve their own request; shown wherever the request is"
       justification:
         name: Justification
         type: string

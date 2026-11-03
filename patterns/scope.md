@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 3.2.0
+version: 3.2.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1176,7 +1176,7 @@ scope:
   propagation_mode: inherit              # default propagation rule
   escalation_strategy: maximum           # default escalation strategy
   violation_action: deny                 # default action on scope violation
-  environment: production                # active environment profile
+  environment: production                # the active profile: the tenant's hub.environment (schemas/config), read at start, never set per component
   custom_labels: {}                      # labels this component registers (Label Registration)
   audit:
     log_all_access: false                # log every access, not just violations
@@ -1193,7 +1193,7 @@ The following configuration parameters control scope behavior at runtime:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | Default scope level | `internal` | Scope applied to unclassified entities |
-| Active environment | `production` | Active environment profile |
+| Active environment | `production` | Active environment profile. It is the tenant's, [`schemas/config`](../schemas/config.md#the-environment-and-the-development-tenant) `hub.environment`, read when the component starts; a component does not set its own |
 | Violation action | `deny` | Default enforcement on violation (`audit`, `deny`, `block`) |
 | Reject unscoped | `false` | Whether to reject entities without scope declaration |
 | Strict propagation | `true` | Whether to fail if scope cannot be propagated |

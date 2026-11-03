@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.11.0
+version: 4.11.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -550,7 +550,8 @@ The rules of D25, which the change service enforces and a client only renders:
 2. **A knowledge change is approved by a holder of the position its spec
    names**, recorded as the approval's `position`.
 3. **Self-approval** — the requester approving their own change — **is allowed
-   only on a tenant flagged as a development tenant**, and is recorded with
+   only on a tenant flagged as a development tenant** — one whose configuration
+   says `hub.environment: development` ([`schemas/config`](../schemas/config.md#the-environment-and-the-development-tenant)) — and is recorded with
    `development: true` and shown as such wherever the change is shown.
 4. **The approval queue is the change queue.** A change awaiting approval is an
    [`ApprovalRequest`](../protocol/types.md#approvalrequest) held by the change

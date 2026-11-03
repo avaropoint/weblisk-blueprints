@@ -102,7 +102,7 @@ change:
     signature: <base64url ML-DSA-65 over the plan digest>
     plan_digest: sha256:<hex>
     at: <instant>
-    development: <bool>            # the tenant is flagged development
+    development: <bool>            # the tenant's hub.environment is development (schemas/config)
   rejection:                       # state rejected only: the person's signed refusal
     by: <identity id>
     reason: <text>
