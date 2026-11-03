@@ -147,7 +147,7 @@ order](#what-a-repair-round-reads-and-in-what-order).
 - What to build. `protocol/spec.md` defines the wire contract and the types; a
   platform blueprint gives language direction
 - How to verify behaviour. `architecture/testing.md` owns conformance
-- Prompt wording. This blueprint fixes what must be conveyed, never the phrasing
+- Prompt wording, except the instructions [Instructions given as written](#instructions-given-as-written) states, which a generator passes verbatim
 - Model selection. Any model that satisfies the contract is acceptable
 
 ---
@@ -264,7 +264,19 @@ plan:
       serves: []            # "METHOD /path" this file will handle
       implements: []        # requirement refs this file answers for
       depends_on: []        # files that must be generated first
+  gaps:                     # names the plan needs that no blueprint declares (instruction plan-names)
+    - kind: <type | path-constant | handler | request-type | response-type | store-operation | event-topic | error-code>
+      needs: <the requirement that needs it, quoted from the blueprint>
 ```
+
+**A plan with a gap is not generated.** A gap is a fault in the blueprints
+([A name MUST come from the blueprint that declares it](#a-name-must-come-from-the-blueprint-that-declares-it)),
+so the run records each one as a finding against the corpus, with the kind
+and the requirement quoted, generates no file, and ends refused before the
+first file. It is not planned again: asking again asks the model to fill in
+what it was told to report. A gap whose `needs` does not appear, whitespace
+aside, in a blueprint the plan was given is not a finding; the plan is
+rejected for it and asked again, as for any rule below.
 
 `declares` means top-level symbols: types, functions, methods, constants and
 package-level variables. It MUST NOT list struct fields, local variables, or
@@ -933,18 +945,20 @@ exercised, never as passed
 
 ## The prompt contract
 
-A generator MUST convey all of the following. Wording is the implementation's
-choice; content is not.
+A generator MUST convey all of the following. Where
+[Instructions given as written](#instructions-given-as-written) gives an
+element's instruction, that text is passed to the model verbatim; elsewhere
+wording is the implementation's choice, and content is not.
 
 | # | Element | Why it is required |
 |---|---------|--------------------|
-| 1 | **Output contract** — exactly one file, no prose, no fences, first character is the file's first character | A convention requested in prose is honoured differently by different models. This is the single largest source of unusable output |
+| 1 | **Output contract** — exactly one file, no prose, no fences, first character is the file's first character; or, in its place, one corpus finding (instruction `corpus-finding`) | A convention requested in prose is honoured differently by different models. This is the single largest source of unusable output |
 | 2 | **The file's obligations** — its `path`, `purpose`, `declares`, `serves`, from the plan | A file generated from a filename alone is a guess |
 | 3 | **Accumulated declarations** — the actual top-level symbols already defined by previously generated files | Naming the FILES is not enough. A generator told only that `helpers.go` exists will redeclare its symbols, or invent helpers that were never written |
 | 4 | **The complete file set** — every path in the plan | So a file knows what it is NOT responsible for, and does not absorb another file's work |
 | 5 | **Platform constraints** — language, dependency policy, idioms, and the package plan with the layout's `rules` as written | From the platform and language blueprints ([The plan](#the-plan)) |
 | 6 | **Verification Checklists** — as explicit acceptance criteria, not buried in the blueprint body | A checklist present as context is complied with by luck. Present as criteria, it is complied with on purpose |
-| 7 | **Scope prohibition** — build the declared obligations and nothing else | Below |
+| 7 | **Scope prohibition** — build the declared obligations and nothing else | Below; instruction `scope` |
 | 8 | **The blueprints themselves** | The specification being implemented |
 | 9 | **The tenant's existing state** — module path, the packages already present with their exported names and the full signature of each exported function and method, and which component owns which file | A component is almost never the first thing in a tenant. Without this a generator re-declares what it could import, and names the module something the tenant is not. A name without its signature is not enough to call: measured, an orchestrator told only that the tenant's `passphrase` package exports `ReadInjected` called it with one argument where it takes two |
 | 10 | **How a blueprint is read** — which sections bind, which are illustrative, and how each is parsed | A generator that sends a specification without saying how it is structured has asked the model to infer the document's own rules from the document. It infers differently each time |
@@ -987,7 +1001,10 @@ illustration as a requirement:
 component's own blueprint over a pattern it adopts, a pattern over the schema's
 example. If neither is more specific, that is a corpus fault and MUST be
 reported rather than resolved by the model — see "A name MUST come from the
-blueprint that declares it".
+blueprint that declares it". The model is told so by instruction `ties`, and
+reports it as a corpus finding in place of the file; a comment in the code
+saying it did not choose is not a report, and a generator MUST NOT ask for
+one.
 
 Element 9 is a statement of FACT, not of policy — what exists, not what is
 allowed. That distinction is why it belongs in a prompt at all: the blueprints
@@ -1009,7 +1026,8 @@ types already exist somewhere it must not re-declare them.
 ### Scope discipline
 
 A generator MUST instruct the model to produce ONLY what the plan declares for
-that file. It MUST NOT invite, and SHOULD explicitly forbid:
+that file, by passing instruction `scope` as written. It MUST NOT invite, and
+MUST explicitly forbid:
 
 - endpoints, routes or handlers not named in the plan for this file
 - configuration, metrics, dashboards, health pages or admin surfaces not
@@ -1021,6 +1039,81 @@ A model asked to build an orchestrator will build a generous one. Every
 unrequested addition is code nobody specified, nobody reviewed, and somebody
 must read before it can be trusted — and in a bootstrapped hub it is code that
 enlarges the attack surface of the component holding the tenant's keys.
+
+### Instructions given as written
+
+The instructions below are passed to the model verbatim, each in every prompt
+its `in` names. A generator MAY add to a prompt and MUST NOT reword, shorten
+or leave out one of these. Each was written because a generator's own wording
+of the rule said the opposite: told to *"name them from the nearest declared
+vocabulary"*, a planner filled in names the corpus did not declare; a file
+prompt with the scope prohibition removed left element 7 unconveyed; told to
+say a tie *"in a comment rather than choosing"*, a model settled corpus
+contradictions in generated code where nobody would read them.
+
+```yaml
+instructions:
+  - id: plan-names
+    in: [plan]
+    text: >-
+      Spell every type, path constant, handler, request type, response type,
+      store operation, event topic and error code exactly as the blueprint
+      that declares it spells it, through the language's mapping. If the plan
+      needs one of these that no blueprint declares, do not make one up and do
+      not use the closest declared name: leave it out of every file and list
+      it under gaps, with its kind and the sentence of the requirement that
+      needs it, quoted exactly. Anything else you declare, such as an
+      unexported helper, a receiver or a local constant, you name yourself.
+  - id: file-names
+    in: [file, repair]
+    text: >-
+      Spell every type, path constant, handler, request type, response type,
+      store operation, event topic and error code exactly as the plan and the
+      declarations you are given spell it. If this file needs one of these
+      that neither gives you and no blueprint declares, do not make one up and
+      do not use the closest declared name: answer with a corpus finding of
+      kind gap instead of the file.
+  - id: scope
+    in: [file, repair]
+    text: >-
+      Write only what this file's plan entry declares and serves. Do not add
+      an endpoint, route or handler the entry does not name; configuration, a
+      metric, a dashboard, a health page or an admin surface no blueprint
+      specifies; a dependency the language blueprint does not admit; or
+      anything else nobody asked for, however helpful it looks. If you believe
+      the file needs more than its entry gives it, write the file without it.
+  - id: ties
+    in: [plan, file, repair]
+    text: >-
+      Where two statements in the blueprints cannot both hold, follow the more
+      specific: a component's own blueprint over a pattern it adopts, a
+      pattern over a schema's example. If neither is more specific, do not
+      choose between them, and do not write a comment about it: answer with a
+      corpus finding of kind conflict instead of the file, or, in a plan,
+      instead of the plan.
+  - id: corpus-finding
+    in: [plan, file, repair]
+    text: >-
+      A corpus finding is your whole answer, on one line: WL-CORPUS-FINDING
+      followed by a space and a JSON object with the keys kind, first, second
+      and why. kind is conflict or gap. For a conflict, first and second are
+      the two statements, each quoted exactly from the blueprints you were
+      given. For a gap, first is the sentence of the requirement that needs
+      the name, quoted exactly, second is the kind of name, and why says what
+      the name is for. Give a finding only for a conflict or a gap; for
+      anything else, answer with the file.
+```
+
+**What a generator does with a finding.** A finding is not a file. The
+generator accepts it only where each quoted passage appears, whitespace aside,
+in the blueprints that prompt carried; one that does not is an output-contract
+failure and is asked again with that reason, as any answer that is not an
+acceptable file is. An accepted finding is recorded on the run as a finding
+against the corpus, with the file or plan it was given for; nothing is written
+for that file, and the run ends refused there. Files already banked stay
+banked, so once the corpus is corrected the run resumes from them. A finding
+is never retried as though the model had failed to comply: asking again asks
+it to settle what it was told to report.
 
 ---
 
@@ -2087,7 +2180,11 @@ and "nothing contradicted it".
 - [ ] A wrapping code fence is stripped; a response with prose around a fence is rejected ([Implementation Notes](#implementation-notes))
 - [ ] Each file's prompt includes the top-level declarations of every previously accepted file ([The prompt contract](#the-prompt-contract) element 3)
 - [ ] Each file's prompt includes the Verification Checklist assertions of the blueprints being implemented ([The prompt contract](#the-prompt-contract) element 6)
-- [ ] Each file's prompt forbids endpoints, configuration and dependencies not declared for it ([Scope discipline](#scope-discipline))
+- [ ] Each file's prompt forbids endpoints, configuration and dependencies not declared for it, by instruction `scope` as written ([Scope discipline](#scope-discipline), [Instructions given as written](#instructions-given-as-written))
+- [ ] Every instruction [Instructions given as written](#instructions-given-as-written) gives is in each prompt its `in` names, verbatim; none is reworded, shortened or left out ([Instructions given as written](#instructions-given-as-written))
+- [ ] No prompt tells the model to take the nearest or closest declared name, or to note a tie in a comment ([Instructions given as written](#instructions-given-as-written), [How a blueprint is read](#how-a-blueprint-is-read))
+- [ ] A plan listing a gap generates no file and ends the run refused with each gap recorded as a finding against the corpus, and is not planned again; a gap whose quoted requirement is in no blueprint the plan was given rejects the plan ([What a plan declares](#what-a-plan-declares))
+- [ ] A corpus finding whose quoted passages appear in the blueprints its prompt carried is recorded against the corpus, nothing is written for its file, and the run ends refused there with banked files kept; one whose passages do not appear is asked again as an output-contract failure ([Instructions given as written](#instructions-given-as-written))
 - [ ] No file is written to disk until every file in the target has been accepted ([Security](#security))
 - [ ] Layer 1 failure names the file and the missing symbol or endpoint ([Layer 1 — Structure](#layer-1--structure))
 - [ ] Layer 1 accepts a required symbol the implementation expresses as a struct field ([Layer 1 — Structure](#layer-1--structure))
