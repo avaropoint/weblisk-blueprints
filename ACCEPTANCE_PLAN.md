@@ -1,13 +1,11 @@
 # Accepting a generated component
 
-> **Status: proposal, awaiting the owner's decision. Nothing here is adopted.**
-> No blueprint, schema, check or tool follows it yet. It sits at the corpus root,
-> beside [`CONTRACT_BLOCK_PLAN.md`](CONTRACT_BLOCK_PLAN.md) and
-> [`CORPUS_SHAPE.md`](CORPUS_SHAPE.md), and not under `architecture/`, because
-> a file there is a blueprint: builds resolve it, the checks walk it, and its
-> MUST lines are read as requirements. A proposal placed there would be
-> normative by placement. Where each part would live once decided is
-> [What changes where](#what-changes-where).
+> **Status: adopted by the owner on 2026-11-03, with the decisions recorded in
+> [Decisions](#decisions).** It stays at the corpus root as the plan of work: a
+> file under `architecture/` is a blueprint, and its MUST lines are read as
+> requirements. Each part becomes normative only when it lands in the document
+> [What changes where](#what-changes-where) names for it, and from then on
+> that document, not this plan, is the authority.
 >
 > Written 2026-11-03, measured against the development tenant's rebuild in
 > change `6f533b1a`, at corpus `70c923d`.
@@ -658,27 +656,24 @@ No code. Each a short list.
 
 ---
 
-## Open questions only the owner can decide
+## Decisions
 
-1. **R1.** Should multi-instance obligations be written as `IF` requirements
-   while `server start` refuses more than one instance?
-2. **R2.** Is the audit record of a security act evidence (E) or security (S)?
-   It decides O1, X1, C15 and C16, and the threat model's crediting
-   granularity.
-3. **R3.** May a security gap be accepted when its whole reach is withheld by
-   something outside the component? Without it, a feature that is absent and
-   refuses still blocks the start.
-4. **Withholding.** Is withholding by capability and gateway route the
-   fail-closed mechanism? It is new, and is itself security-class work.
-5. **Who accepts in production.** Must it be a position holder other than the
-   requester, as written here, or is the residual risk register's "deployment
-   operator" enough?
-6. **E in production.** Should only audit-log gaps block production, or every
-   E gap?
-7. **Model readings.** Removing them from every verdict leaves most of the
-   2,834 items unsettled. B, E and F gaps do not block a start, so that is
-   honest. It does mean a build reports far more unsettled than unmet until
-   checks are written. Is that the reporting the owner wants?
-8. **First tranche.** Should the first declared checks be the S and J items
-   from this run only, or the whole S and J set of the foundations once
-   `acceptance-classes.py` has measured it?
+Decided by the owner on 2026-11-03.
+
+1. **R1: yes.** Multi-instance obligations are written as `IF` requirements,
+   and `server start` refuses a second instance of a component.
+2. **R2: security (S).** The audit record of a security act is what an
+   auditor relies on, so it is security-class. This decides O1, X1, C15 and C16.
+3. **R3: yes, conditionally.** A security gap may be accepted when its whole
+   reach is withheld by something outside the component, and only where that
+   withholding is itself settled by a declared check that passed.
+4. **Withholding: yes.** Withholding by capability and gateway route is the
+   fail-closed mechanism, and building it is security-class work.
+5. **Who accepts in production:** a position holder other than the requester.
+6. **E in production:** audit-log gaps block production. Every other E gap
+   qualifies each claim that cites the record.
+7. **Model readings: removed from every verdict.** Reporting far more
+   unsettled than unmet until checks are written is the honest report, and is
+   the one wanted.
+8. **First tranche:** the S and J items from this run first, then the whole S
+   and J set of the foundations, once `acceptance-classes.py` has measured it.
