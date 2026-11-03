@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.7.0
+version: 4.7.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -1290,6 +1290,15 @@ NOT generated: the CLI installs them after generation, and they intercept their
 own paths ahead of the generated router. A hub MUST serve all of them as this
 section specifies; today's CLI serves four, and none of them as specified
 ([The tenant's model](#the-tenants-model), the gap note).
+
+An install is judged by compiling the orchestrator's own package with it in
+place, and nothing else. Nothing else can be broken by it, and a fault in
+another package is not the install's. **An orchestrator the routes cannot be
+installed into is a failed generation, and a failed start, never a warning**:
+the hub would otherwise serve without part of its declared surface. Measured:
+judged by compiling the whole module, an install during a component rebuild
+was refused for a sibling component whose own rebuild had not yet run, was
+reported as a warning, and left a hub whose model routes answered `404`.
 
 They are the tenant's model surface, and the model is the tenant's. Which
 backend runs a completion, and which model it asks for, is the tenant's own
