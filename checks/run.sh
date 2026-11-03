@@ -1026,6 +1026,20 @@ mkdir -p "$tmp/rk" && cp -R programmes schemas "$tmp/rk/"
 sed 's/^| `implements` | blueprint, policy, procedure |/| `implements` | blueprint, policy, procedure, register |/' schemas/kinds.md >"$tmp/rk/schemas/kinds.md"
 expect 1 "register-satisfies control: an implements row admitting register stops the check" python3 checks/register-satisfies.py --root "$tmp/rk"
 
+# The closed needs: set is stated once, in schemas/programme.md, and the
+# prompt worker maps exactly its words. A copy of the prompt worker that maps
+# a word the set does not hold must report exactly that word.
+expect 0 "needs-set: the prompt worker maps exactly the closed set" python3 checks/needs-set.py
+sed 's/^  notify:$/  notify:\n  escalate:\n    capabilities: [content:read]\n    tools: []/' architecture/prompt-worker.md >"$tmp/pw.md"
+expect 1 "needs-set control: a word mapped outside the set fails" python3 checks/needs-set.py --worker "$tmp/pw.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^escalate: mapped by the prompt worker, and not in needs_set$' "$tmp/out"; then
+	echo "ok   needs-set control: exactly one finding, the unlisted word"
+else
+	echo "FAIL needs-set control: want exactly one finding, escalate"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]

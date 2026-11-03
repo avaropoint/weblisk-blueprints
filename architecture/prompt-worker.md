@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: prompt-worker
-version: 1.2.1
+version: 1.2.2
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/execution, architecture/model-service, architecture/orchestrator, architecture/content, architecture/programme-service, architecture/fabric, patterns/scope]
 platform: any
 tier: free
@@ -811,7 +811,9 @@ dispatch pass whatever capabilities it carries, and grants nothing from them.
 ### `needs:` comes to these capabilities
 
 The closed set is
-[`schemas/programme`](../schemas/programme.md#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does)'s.
+[`schemas/programme`](../schemas/programme.md#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does)'s
+`needs_set` block, and the keys of the block below are exactly its words,
+which [`checks/needs-set.py`](../checks/needs-set.py) holds them to.
 Each word comes to the capability names below, and gives the tools of
 [The Tool Set](#the-tool-set) listed beside it. This is the one statement of the
 mapping: a client asking a person to make a work authorisation for an
