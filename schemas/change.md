@@ -228,7 +228,12 @@ run that did not complete is `regenerate`, because `incomplete`; one that
 completed with its conformance `refuted` is `repair`, because `refuted`; one
 that completed with conformance `not-run` is `repair`, because `unverified`.
 Only a complete run whose conformance is `established` is `keep`. Each is a
-`build_set` component, built by apply as a component that is absent is. A
+`build_set` component, and apply builds each as its verdict says: `generate`
+and `regenerate` through generation, the second resuming its run; `repair`
+never through generation — it takes the tree the run ended on, plans nothing
+and generates nothing, and runs the build gate, the repair loop and
+conformance on it against the blueprints as they are now, refusing a tree that
+is not that run's ([`architecture/generation`](../architecture/generation.md#a-rebuild-input-must-not-be-something-the-build-changes)). A
 plan that asks whether a component's inputs are current, an upgrade's, still
 lists one whose latest run did not complete as unassessed
 ([Unassessed is not a verdict](#unassessed-is-not-a-verdict)): the two plans
