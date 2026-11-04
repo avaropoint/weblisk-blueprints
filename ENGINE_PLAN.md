@@ -331,6 +331,16 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 | `ACCEPTANCE_PLAN` "What counts" | A test the generator wrote does not count | That stays true; a test translated under the four conditions counts | Open: the row is ACCEPTANCE_PLAN's to amend; the four conditions are [`architecture/engine`](architecture/engine.md#what-makes-a-translated-test-count)'s |
 | Studio's MISSION.md | Studio's standards, adoption and evidence work needs no CLI equivalent | Every operation is reachable from both front ends | Open: Studio's to amend |
 
+## Open items
+
+Deferred by the owner on 2026-11-04, each until the condition its row names.
+Nothing here is decided; each row says what stays true until it is.
+
+| Item | Stays | Until | Where it is stated |
+|---|---|---|---|
+| The Rust crate for ML-DSA | **UNFILLED**. A generation for Rust is refused before any model call, naming the row | the owner names a crate | [`languages/rust`](languages/rust.md#primitive-mapping) |
+| A storage conditional-put primitive | not required of any backend | more than one instance may answer for a hub (`instances.max` above 1 in [`schemas/kinds`](schemas/kinds.md#component-kinds)) | [`architecture/storage`](architecture/storage.md#what-a-backend-must-be) |
+
 ## Decisions
 
 Decided by the owner on 2026-11-03.
