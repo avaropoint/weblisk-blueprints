@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 4.0.2
+version: 4.1.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -801,71 +801,8 @@ types:
 
 ### WorkflowPhase
 
-```yaml
-types:
-  WorkflowPhase:
-    fields:
-      name:
-        type: string
-        required: true
-        description: "Phase identifier (unique within workflow)"
-      agent:
-        type: string
-        required: false
-        description: "Target agent or `self`. Required on a machine phase; absent on a person's"
-      action:
-        type: string
-        required: false
-        description: "Task action to invoke. Required with `agent`"
-      task:
-        type: WorkflowTask
-        required: false
-        description: "A person's work. Exclusive with `agent` and `approvers`"
-      approvers:
-        type: "[]string"
-        required: false
-        description: "Positions whose holders must each accept. Exclusive with `task`; beside `agent` only with `approval: required`"
-      approval_order:
-        type: string
-        required: false
-        description: "`sequential`, or absent for any order. Only with `approvers`"
-      escalate:
-        type: WorkflowEscalation
-        required: false
-        description: "Only on a phase with `task` or `approvers`"
-      input:
-        type: map
-        required: false
-        description: "Input mapping with reference expressions"
-      output:
-        type: string
-        required: false
-        description: "Key name for storing phase result"
-      depends_on:
-        type: "[]string"
-        required: false
-        description: "Phases that must complete first"
-      timeout:
-        type: int
-        required: false
-        description: "Phase timeout in seconds (default: 300)"
-      approval:
-        type: string
-        required: false
-        description: "`required` or `auto` (default: `auto`)"
-      on_error:
-        type: string
-        required: false
-        description: "`fail`, `skip`, or `retry` (default: `fail`)"
-      max_attempts:
-        type: int
-        required: false
-        description: Total attempts, the first included (protocol/conventions:max-attempts)
-      condition:
-        type: string
-        required: false
-        description: "Expression evaluated per [patterns/expression](expression.md) (Workflow Phase Context); phase skipped if falsy"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowphase), which this pattern
+requires; it is not declared again here.
 
 ### WorkflowExecution
 
@@ -953,39 +890,13 @@ types:
 
 ### WorkflowTask
 
-```yaml
-types:
-  WorkflowTask:
-    fields:
-      activity:
-        type: string
-        required: true
-        description: "What the person does, in the author's words"
-      responsible:
-        type: string
-        required: true
-        description: "The position whose holder does it. Never a person"
-      due:
-        type: string
-        required: false
-        description: "`<n><h|d|w>` from the moment the wait opens"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowtask), which this pattern
+requires; it is not declared again here.
 
 ### WorkflowEscalation
 
-```yaml
-types:
-  WorkflowEscalation:
-    fields:
-      after:
-        type: string
-        required: true
-        description: "`<n><h|d|w>` past a task's due, or past an approval's opening"
-      to:
-        type: string
-        required: true
-        description: "The position it then also belongs to. Never a person"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowescalation), which this pattern
+requires; it is not declared again here.
 
 ---
 

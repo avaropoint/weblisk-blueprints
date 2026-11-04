@@ -1057,6 +1057,18 @@ A name is declared once, in the blueprint that specifies the thing:
 A blueprint that consumes one of these refers to it; it does not restate it. Two
 statements of a name are two names as soon as one of them is edited.
 
+**A type name is declared by one blueprint in the whole corpus.** Every
+declared type is generated into one contract package
+([`schemas/language`](language.md#the-layout-block), `holds`), so two
+blueprints declaring one name are two definitions in one package, and which of
+them a build keeps would be decided by whichever was read last. A blueprint
+that needs another's type binds it through its `requires` or `extends`; a
+blueprint that needs a different shape names it differently. A build set whose
+closure declares one type name in two blueprints is refused before any plan,
+naming both, never resolved by picking one. The names that still collide are
+listed in `checks/type-collisions.json`, a list that can only shrink, with the
+blueprints that declare each.
+
 ### A platform blueprint spells a name; it does not choose one
 
 `platforms/` blueprints MUST state how a declared name is rendered in their

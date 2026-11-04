@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.1.3
+version: 3.2.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -87,6 +87,31 @@ must be. A credential that **signs records**, attested with the purpose
 `sign-records`, is not such a credential: what it signs outlives every session,
 so it is ML-DSA-65 like everything else that signs (principal-identity,
 `record-signing`).
+
+The same rule, as data a tool reads rather than a sentence it interprets.
+`signs-kept` is everything whose signature outlives a session; `proves-session`
+lists each credential that may be classical, with the blueprint that names its
+algorithms. An algorithm a purpose does not list is refused for it.
+
+```yaml
+algorithms:
+  signs-kept:
+    covers: [identity, operating-credential, sign-records-credential, log-key, token, attestation, record-signature]
+    allowed: [ml-dsa-65]
+    backup: [slh-dsa-sha2-128s]
+  proves-session:
+    step-up-passkey:
+      allowed: [es256, eddsa]
+      cose: {es256: -7, eddsa: -8}
+      refused_with: CREDENTIAL_FORM_UNSUPPORTED
+      specified_by: architecture/admin
+    transport:
+      allowed: stated by the blueprint that specifies the third party's protocol
+      specified_by: patterns/content-git
+  key-encapsulation: [ml-kem-768]
+  symmetric: [aes-256-gcm]
+  key-derivation: [argon2id]
+```
 
 **Why ML-DSA-65?** ML-DSA is a lattice-based digital signature scheme
 selected by NIST after an 8-year international evaluation process

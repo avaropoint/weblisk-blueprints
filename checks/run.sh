@@ -610,6 +610,54 @@ else
 	fails=$((fails + 1))
 fi
 
+# No type name is declared by two blueprints beyond the known list, which can
+# only shrink; a known list without User must report exactly User, and one
+# naming a type that no longer collides must report exactly it.
+expect 0 "type-collisions: every type name declared twice is known, none new" python3 checks/type-collisions.py
+python3 - "$tmp" <<'PY'
+import json, sys
+k = json.load(open("checks/type-collisions.json", encoding="utf-8"))
+k["known"].pop("User")
+json.dump(k, open(sys.argv[1] + "/tc-new.json", "w"))
+k = json.load(open("checks/type-collisions.json", encoding="utf-8"))
+k["known"]["WorkflowPhase"] = ["patterns/workflow.md", "protocol/types.md"]
+json.dump(k, open(sys.argv[1] + "/tc-gone.json", "w"))
+PY
+expect 1 "type-collisions control: a collision not in the list fails" python3 checks/type-collisions.py --known "$tmp/tc-new.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^type User is declared in " "$tmp/out"; then
+	echo "ok   type-collisions control: exactly one finding, User"
+else
+	echo "FAIL type-collisions control: want exactly one finding, User"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "type-collisions control: a settled collision still listed fails" python3 checks/type-collisions.py --known "$tmp/tc-gone.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^type WorkflowPhase no longer collides" "$tmp/out"; then
+	echo "ok   type-collisions control: exactly one finding, WorkflowPhase"
+else
+	echo "FAIL type-collisions control: want exactly one finding, WorkflowPhase"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every standard's applies_in names a code of the shipped ISO 3166 list; a
+# copy of the standards where one names ZZ must be reported with exactly it.
+expect 0 "places: every applies_in names an ISO 3166 code of the shipped list" python3 checks/places.py
+mkdir -p "$tmp/std" && cp standards/*.json "$tmp/std/"
+python3 - "$tmp/std" <<'PY'
+import glob, json, sys
+p = next(p for p in sorted(glob.glob(sys.argv[1] + "/*.json")) if json.load(open(p)).get("applies_in", ["international"]) != ["international"])
+d = json.load(open(p)); d["applies_in"] = ["ZZ"]; json.dump(d, open(p, "w"))
+PY
+expect 1 "places control: a standard naming ZZ fails" python3 checks/places.py --standards "$tmp/std"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "applies_in names 'ZZ', which is no ISO 3166 code" "$tmp/out"; then
+	echo "ok   places control: exactly one finding, ZZ"
+else
+	echo "FAIL places control: want exactly one finding, ZZ"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

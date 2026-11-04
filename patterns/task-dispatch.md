@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 3.0.2
+version: 3.1.0
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -504,40 +504,10 @@ dead-letter store. Dead-lettered tasks are never silently dropped.
 
 ### Dead-Letter Entry
 
-Each dead-letter entry preserves:
-
-```yaml
-types:
-  DeadLetterEntry:
-    fields:
-      task_id:
-        type: string
-        description: "Original task ID"
-      target_agent:
-        type: string
-        description: "Agent the task was dispatched to"
-      action:
-        type: string
-        description: "Action that was requested"
-      original_submission:
-        type: object
-        description: "Full original TaskSubmission envelope"
-      error:
-        type: string
-        description: "Final failure reason"
-      attempts:
-        type: int
-        description: "Total dispatch attempts"
-      first_attempt_at:
-        type: timestamp
-        description: "Timestamp of first dispatch attempt"
-      dead_lettered_at:
-        type: timestamp
-        description: "Timestamp of dead-letter capture"
-      trace_id:
-        type: string
-        description: "Trace context for correlation"
-```
+Each dead-letter entry preserves the task's id, its target agent and action,
+the original `TaskSubmission`, the final error, the number of attempts, when
+the first attempt and the capture happened, and the trace: the fields of
+`DeadLetterEntry`, declared once under [Types](#types).
 
 ### Retention
 

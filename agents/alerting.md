@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 3.1.1
+version: 3.2.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -236,12 +236,6 @@ types:
       details: { type: object, required: false }
       timestamp: { type: datetime, format: ISO8601, required: true }
       fingerprint: { type: string, description: "Deduplication key", required: false }
-
-  AlertSource:
-    fields:
-      type: { type: enum, values: [agent, domain, system], required: true }
-      name: { type: string, required: true }
-      domain: { type: string, required: false }
 
   AlertRecord:
     fields:

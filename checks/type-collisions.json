@@ -1,0 +1,155 @@
+{
+ "measured_at": "wt/c0-blueprints, 2026-11-04",
+ "note": "Each name here is declared by more than one blueprint; settling one is the owner's decision of which declaration is the type and what the other is renamed to. Entries are removed as they are settled, never added.",
+ "known": {
+  "AgentContext": [
+   "architecture/agent.md",
+   "patterns/policy.md"
+  ],
+  "AgentMetrics": [
+   "agents/lifecycle.md",
+   "architecture/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "AlertEvent": [
+   "agents/alerting.md",
+   "patterns/alerting.md"
+  ],
+  "AlertRule": [
+   "agents/hub.md",
+   "patterns/alerting.md"
+  ],
+  "BehavioralFingerprint": [
+   "agents/hub.md",
+   "protocol/federation.md"
+  ],
+  "BoundarySpec": [
+   "protocol/federation.md",
+   "protocol/federation.md"
+  ],
+  "ChangeRecord": [
+   "agents/sync.md",
+   "architecture/change-management.md",
+   "patterns/offline.md"
+  ],
+  "DeadLetterEntry": [
+   "patterns/task-dispatch.md",
+   "protocol/types.md"
+  ],
+  "EmailQueueEntry": [
+   "agents/email-send.md",
+   "patterns/storage.md"
+  ],
+  "Endpoints": [
+   "patterns/file-upload.md",
+   "patterns/file-upload.md"
+  ],
+  "EntityContext": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "ErrorResponse": [
+   "patterns/api-rest.md",
+   "protocol/types.md"
+  ],
+  "FederatedTaskRequest": [
+   "protocol/federation.md",
+   "protocol/federation.md"
+  ],
+  "FederatedTaskResult": [
+   "protocol/federation.md",
+   "protocol/federation.md"
+  ],
+  "Feedback": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "Incident": [
+   "agents/incident-response.md",
+   "patterns/incident-response.md"
+  ],
+  "IntentDecision": [
+   "patterns/safety.md",
+   "protocol/types.md"
+  ],
+  "Observation": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "OperationIntent": [
+   "patterns/safety.md",
+   "protocol/types.md"
+  ],
+  "PhaseResult": [
+   "agents/workflow.md",
+   "patterns/workflow.md",
+   "protocol/types.md"
+  ],
+  "PolicyDecision": [
+   "patterns/policy.md",
+   "protocol/types.md"
+  ],
+  "PolicyRule": [
+   "patterns/policy.md",
+   "protocol/types.md"
+  ],
+  "PostIncidentReport": [
+   "agents/incident-response.md",
+   "patterns/incident-response.md"
+  ],
+  "ProposedChange": [
+   "architecture/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "Recommendation": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "Runbook": [
+   "agents/incident-response.md",
+   "patterns/incident-response.md"
+  ],
+  "RunbookStep": [
+   "agents/incident-response.md",
+   "patterns/incident-response.md"
+  ],
+  "Strategy": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "StrategyTarget": [
+   "agents/lifecycle.md",
+   "protocol/types.md"
+  ],
+  "Subscriber": [
+   "patterns/notification.md",
+   "patterns/webhook.md"
+  ],
+  "SyncResult": [
+   "agents/sync.md",
+   "architecture/fabric.md"
+  ],
+  "TaskResult": [
+   "patterns/task-dispatch.md",
+   "protocol/types.md"
+  ],
+  "TimelineEntry": [
+   "agents/incident-response.md",
+   "patterns/incident-response.md"
+  ],
+  "User": [
+   "patterns/auth-session.md",
+   "patterns/user-management.md"
+  ],
+  "WorkflowDefinition": [
+   "agents/workflow.md",
+   "patterns/workflow.md",
+   "protocol/types.md"
+  ],
+  "WorkflowExecution": [
+   "agents/workflow.md",
+   "patterns/workflow.md",
+   "protocol/types.md"
+  ]
+ }
+}

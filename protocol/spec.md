@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.1.1
+version: 4.2.0
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -834,6 +834,19 @@ never stand for each other. `system` is reserved in both senses.
    `*.<entity>.<action>`, at scope `"*"` with `event:observe`
    ([Event Scoping](#event-scoping)); the envelope's `source` names the
    component, as on any event.
+7. **A pattern names no event namespace.** Every topic a pattern blueprint
+   writes, `alert.fired`, `approval.decided`, `contract.violated`,
+   `incident.escalated`, `policy.violated`, `privacy.consent_revoked`,
+   `safety.kill_switch`, `schedule.fired`, `secrets.accessed` and every other,
+   is read as rule 6 reads one: its first segment is the entity, never a
+   namespace, and the component that emits it publishes it as
+   `<namespace>.<entity>.<action>` under the namespace it owns. A pattern's
+   subscription to `<entity>.<action>` is read as `*.<entity>.<action>`. So no
+   pattern's topic can be an event namespace that no component owns, and only
+   a component's manifest, through `publishes`, ever claims one. The event
+   names [`patterns/logging`](../patterns/logging.md) gives a `LogEntry`
+   (`auth.success`, `storage.write`) are log events, written to the log and
+   never published, and are no topic at all.
 
 ### Standard Namespaces
 
@@ -1376,6 +1389,7 @@ security:
 
 ### Event Publishing
 - [ ] Framework validates topic namespace ownership before publishing ([Namespace Rules](#namespace-rules)) <!-- wl:check framework-validates-topic-namespace-ownership -->
+- [ ] A component that emits an event a pattern defines publishes it as `<its namespace>.<entity>.<action>` and lists that topic in its `publishes`; no manifest claims a pattern's entity as its namespace ([Namespace Rules](#namespace-rules) 7) <!-- wl:check component-emits-event-pattern-defines-publishes -->
 - [ ] Framework resolves subscribers from local routing table ([Event Publishing](#event-publishing-framework-behavior)) <!-- wl:check framework-resolves-subscribers-local-routing -->
 - [ ] Framework applies scope filtering during subscriber resolution ([Scope Resolution at Delivery](#scope-resolution-at-delivery)) <!-- wl:check framework-applies-scope-filtering-during -->
 - [ ] Framework selects one subscriber per consumer group, as [`patterns/messaging`](../patterns/messaging.md#consumer-groups) balances them ([Event Publishing](#event-publishing-framework-behavior)) <!-- wl:check framework-selects-subscriber-per-consumer-group -->

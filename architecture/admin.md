@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.5.2
+version: 5.6.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -3251,6 +3251,21 @@ the 300-second replay window, at most 600 seconds, and is then deleted <!-- wl:i
 |-----------|-----------|-------------|
 | RecordTokenRequest | `(identityID string, jti string, until time) → (recorded bool, error)` | One atomic check-and-put: `false` where the pair is already recorded and unexpired, which is `TOKEN_REQUEST_REPLAYED`. An error refuses the request with `STORAGE_ERROR` and issues no token |
 | ExpireTokenRequests | `(now time) → error` | Delete every record whose `until` has passed |
+
+**IF more than one instance answers for this hub, how the record is shared.**
+`server start` refuses a second instance, so a tenant the CLI starts never
+meets this premise ([`architecture/cli`](cli.md#weblisk-server-start),
+`start-one-instance`); it is stated so that the obligation has a mechanism and
+not only an outcome. The record is one table in the backend every instance
+opens, keyed by the pair `(identity_id, jti)` with `until`, and
+`RecordTokenRequest` is one conditional insert on that key: it inserts where no
+row holds the key, or where the row that holds it has an `until` that has
+passed, which it replaces in the same statement, and it answers `recorded`
+from whether a row was written. It is never a read followed by a write, and no
+instance holds a copy of the table it consults instead. A backend that cannot
+make that insert atomic for every process that opens it, as a JSONL file
+cannot, cannot hold this store for more than one instance, and a configuration
+that would start a second instance on it is refused before either starts.
 
 The rules are `attestation-token-issuance`'s, in [Contracts](#contracts),
 including the bound `auth-route-rate-limit` puts on what one source can make

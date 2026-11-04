@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 4.0.1
+version: 4.1.0
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -221,22 +221,6 @@ types:
         type: unique
         fields: [task_id]
 
-  AgentCapacity:
-    description: Tracked capacity for a target agent
-    fields:
-      agent_name:
-        type: string
-        description: Agent identifier
-      max_concurrent:
-        type: int
-        description: Max concurrent tasks (from manifest)
-      in_flight:
-        type: int
-        default: 0
-        description: Currently dispatched task count
-      last_seen:
-        type: timestamp
-        description: Last registration or lease renewal the directory recorded for the agent
 ```
 
 ## Identity
