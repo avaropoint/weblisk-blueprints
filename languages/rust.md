@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 4.0.0
+version: 5.0.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -107,103 +107,131 @@ discipline: the set is fixed here and nothing outside it is permitted.
 
 ## Project Structure
 
-### Workspace Layout
+### One workspace, one crate per blueprint
 
-Rust uses a Cargo workspace to share types and protocol code between
-the orchestrator and agents without copying files. A shared library
-crate (`weblisk-core`) contains all protocol types, identity handling,
-and storage interfaces — each binary crate depends on it.
-
-```
-weblisk-app/
-  Cargo.toml                  # Workspace root — lists all members
-  weblisk-core/
-    Cargo.toml                # Library crate for shared types
-    src/
-      lib.rs                  # Re-exports all modules
-      protocol.rs             # Protocol types (AgentManifest, TaskRequest, etc.)
-      identity.rs             # ML-DSA-65 key management, signing, tokens
-      storage.rs              # Storage trait + the chosen backend (JSONL by default)
-      error.rs                # Error types (thiserror)
-      config.rs               # Configuration loader (env vars, CLI flags)
-  server/
-    Cargo.toml                # Binary crate — depends on weblisk-core
-    src/
-      main.rs                 # Entry point — configure and start orchestrator
-      orchestrator.rs         # HTTP server: registration, routing, channels, audit
-      handlers.rs             # HTTP handler functions
-  agents/<name>/
-    Cargo.toml                # Binary crate — depends on weblisk-core
-    src/
-      main.rs                 # Entry point — configure manifest, create agent, start
-      agent.rs                # Agent HTTP server, registration, messaging
-      <name>.rs               # Domain-specific logic (execute + handle_message)
-```
-
-### Workspace Cargo.toml
-
-```toml
-[workspace]
-members = [
-    "weblisk-core",
-    "server",
-    "agents/*",
-]
-resolver = "2"
-
-[workspace.dependencies]
-tokio = { version = "1", features = ["full"] }
-hyper = { version = "1", features = ["full"] }
-hyper-util = { version = "0.1", features = ["tokio"] }
-http-body-util = "0.1"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-pqcrypto-dilithium = "0.5"
-rand = "0.8"
-# only if SQLite was chosen (Storage Mapping); the JSONL default needs none of the three
-rusqlite = { version = "0.31", features = ["bundled"] }
-r2d2 = "0.8"
-r2d2_sqlite = "0.24"
-thiserror = "1"
-anyhow = "1"
-chrono = { version = "0.4", features = ["serde"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["json"] }
-```
-
-### Orchestrator
+The tenant folder is the workspace root. Every crate is named after the
+blueprint that specifies it, exactly as [`languages/go`](go.md#the-package-is-named-after-the-blueprint-that-specifies-it)
+names a package, so the layout is derived rather than chosen: a library crate
+under `crates/`, one per blueprint whose requirements some code answers, and a
+binary crate under `bins/`, one per component, named as the component
+registers. There is no `server` and no `weblisk-core`: neither corresponds to a
+blueprint, so a reader who finds one cannot trace it back to anything.
 
 ```
-server/
-  Cargo.toml          # [dependencies] weblisk-core = { path = "../weblisk-core" }
-  src/
-    main.rs           # Entry point — configure and start orchestrator
-    orchestrator.rs   # HTTP routing, registration, channels, audit
-    handlers.rs       # Handler functions for each endpoint
+<tenant>/                       # the tenant IS the root, and the workspace root
+  .weblisk/  blueprints/  assets/
+  Cargo.toml                    # [workspace]: members, and every dependency's version, once
+  Cargo.lock
+  crates/
+    protocol/                   #   <- the contract: every declared name, and protocol/*
+    identity/                   #   <- protocol/identity
+    storage/                    #   <- architecture/storage
+    orchestrator/               #   <- architecture/orchestrator
+    content/                    #   <- architecture/content
+    content_git/                #   <- patterns/content-git
+    agent/                      #   <- architecture/agent  (the framework)
+    domain/                     #   <- architecture/domain (the framework)
+    agents/<name>/              #   <- agents/<name>       (one agent's logic)
+    domains/<name>/
+  bins/
+    orchestrator/src/main.rs    # one binary crate per component, named as it registers
+    <service>/src/main.rs
+  target/                       # build output
 ```
 
-Build: `cargo build --release -p server`
-Run: `./target/release/server --port 9800`
+The block below is the layout, in the form
+[`schemas/language`](../schemas/language.md#the-layout-block) declares.
 
-The port on the Run line is an EXAMPLE. Whoever starts the component supplies
-the port, so a plan records the run command without it — and without any
-`--orch` flag, for the same reason. The run command must be a plain command,
-not a shell line: the process it starts IS the component, so that stopping it
-shuts the component down in an orderly way rather than killing a wrapper.
-
-### Agent
-
+```yaml
+layout:
+  module_root: "."
+  manifest: Cargo.toml
+  name: snake
+  contract:
+    package: crates/protocol
+    holds: [type, enum-constant, path-constant, request-type, response-type, error-code]
+  packages:
+    - {from: "protocol/{name}", package: crates/protocol, role: contract}
+    - {from: "agents/{name}", package: "crates/agents/{name}", role: component}
+    - {from: "domains/{name}", package: "crates/domains/{name}", role: component}
+    - {from: "architecture/{name}", package: "crates/{name}", role: component, when: component}
+    - {from: "architecture/{name}", package: "crates/{name}", role: library}
+    - {from: "patterns/{name}", package: "crates/{name}", role: library}
+  entry: "bins/{service}/src/main.rs"
+  imports:
+    entry: [own-component, library, contract]
+    component: [library, contract]
+    library: [required-library, contract]
+    contract: []
+  rules:
+    - id: rust-declared-names-in-contract
+      text: >-
+        Every type a yaml:types block declares, in any blueprint the tenant's
+        components are built from, is a struct or an enum in the crate
+        crates/protocol, with serde's Serialize and Deserialize; so is every
+        PATH_<OPERATION> constant, for every endpoint of every component, every
+        <Operation>Request and <Operation>Response type, and the registry of
+        error codes protocol/types declares, each code with its status and
+        category. None of them is declared in any other crate.
+    - id: rust-handler-in-serving-component
+      text: >-
+        A handler, handle_<operation>, is in the crate of the component that
+        serves the endpoint, and so are the component's one route table and the
+        one function that builds its router from it.
+    - id: rust-requirement-in-its-blueprints-crate
+      text: >-
+        Code that answers a requirement of a library blueprint is written in
+        that blueprint's crate, and a component calls it there; code that
+        answers a requirement a protocol/* blueprint states of every
+        implementation is written in crates/protocol. A component's crate
+        holds what answers its own blueprint's requirements and the handlers
+        it serves, and nothing a library's requirement asks for.
+    - id: rust-client-in-caller
+      text: >-
+        Code that calls another component's endpoint is written in the calling
+        crate, against the contract's path constant and types. No crate depends
+        on the crate of a component other than its own.
+    - id: rust-entry-holds-main
+      text: >-
+        bins/<service>/src/main.rs holds main and the parsing of its
+        arguments; it constructs the component from the component's crate and
+        runs it, and declares nothing a library crate could hold. Its package
+        is named <service>, so its binary is target/release/<service>.
+    - id: rust-crate-only-where-code-is
+      text: >-
+        A crate exists only where the plan writes code into it. A blueprint
+        whose requirements no code answers has no crate.
+    - id: rust-one-definition
+      text: >-
+        A name the contract holds is declared in crates/protocol alone, and a
+        public name of a library crate in that crate alone; neither is
+        declared again in any other crate, under its own name or a copy's.
+    - id: rust-imports-acyclic
+      text: >-
+        A library crate depends on crates/protocol and the crates of the
+        library blueprints its own blueprint requires, and none other. Where
+        requires is cyclic among library blueprints, the crates in the cycle
+        do not depend on one another (Cargo refuses a cyclic dependency); code
+        one of them needs from another is a corpus fault to report, never a
+        reason to merge them.
+    - id: rust-workspace-dependencies
+      text: >-
+        Every crate is a member of the root workspace, and every dependency's
+        version is stated once, under the root Cargo.toml's
+        [workspace.dependencies], and named in a crate with workspace = true.
 ```
-agents/<name>/
-  Cargo.toml          # [dependencies] weblisk-core = { path = "../../weblisk-core" }
-  src/
-    main.rs           # Entry point — configure manifest, create agent, start
-    agent.rs          # Agent base: HTTP server, registration, messaging
-    <name>.rs         # Domain-specific Execute + HandleMessage
-```
 
-Build: `cargo build --release -p weblisk-agent-<name>`
-Run: `./target/release/weblisk-agent-<component> --port 9710 --orch http://localhost:9800`
+**`{name}` is spelled `snake`**: every `-` becomes `_`, for the directory and
+the crate's package name alike, so `patterns/content-git` is
+`crates/content_git`, crate `content_git`, as Rust code names it. A binary
+crate's directory and package keep the service's own spelling
+(`bins/fabric-service`), since its name is the binary's.
+
+**Why one crate per blueprint, and not one shared crate.** A single
+`weblisk-core` holding every type and every library is the Go layout's
+"everything in one package" fault in another language: three types defined in
+three places, nothing to say which blueprint a module answers, and every
+component recompiled for any change.
 
 ---
 
@@ -228,9 +256,19 @@ runtime:
       - name: serde_json
         version: "1"
         purpose: JSON parsing and generation
-      - name: pqcrypto-dilithium
+      # The signature algorithm's crate is UNFILLED in the Primitive Mapping.
+      # pqcrypto-dilithium, named here before, implements Dilithium's third
+      # round, not FIPS 204's ML-DSA-65, and its signatures do not verify as
+      # ML-DSA-65's do.
+      - name: argon2
         version: "0.5"
-        purpose: ML-DSA-65 key generation, signing, verification
+        purpose: The key-derivation function protocol/identity requires
+      - name: aes-gcm
+        version: "0.10"
+        purpose: The symmetric encryption protocol/identity requires
+      - name: getrandom
+        version: "0.2"
+        purpose: The operating system's secure random source
       - name: thiserror
         version: "1"
         purpose: Ergonomic error type definitions
@@ -273,6 +311,46 @@ into the binary — no system SQLite library needed.
 
 ---
 
+### The module block
+
+What the workspace manifest may name, as
+[`schemas/language`](../schemas/language.md#runtime-requirements-the-module-block)
+declares it: the engine writes `Cargo.toml` from it and `cargo generate-lockfile`
+resolves the versions. The signature algorithm's crate is absent because the
+[Primitive Mapping](#primitive-mapping) leaves it UNFILLED, so until it is
+named a generation for Rust is refused before any model call, naming that row.
+
+```yaml
+module:
+  manifest: Cargo.toml
+  language_version: "2021"
+  requires:
+    - {name: tokio, when: always}
+    - {name: hyper, when: always}
+    - {name: hyper-util, when: always}
+    - {name: http-body-util, when: always}
+    - {name: serde, when: always}
+    - {name: serde_json, when: always}
+    - {name: thiserror, when: always}
+    - {name: anyhow, when: always}
+    - {name: argon2, when: always}
+    - {name: aes-gcm, when: always}
+    - {name: getrandom, when: always}
+    - {name: chrono, when: always}
+    - {name: tracing, when: always}
+    - {name: tracing-subscriber, when: always}
+    - {name: rusqlite, when: the SQLite backend was chosen}
+    - {name: r2d2, when: the SQLite backend was chosen}
+    - {name: r2d2_sqlite, when: the SQLite backend was chosen}
+    - {name: axum, when: the implementation chose axum's router over a match on bare hyper}
+  versions: resolved
+  written_by: engine
+```
+
+`language_version` is the Rust edition every crate's manifest states.
+
+---
+
 ## Build and Run
 
 ### Build
@@ -285,23 +363,76 @@ cargo build
 cargo build --release
 
 # Build specific binary
-cargo build --release -p server
-cargo build --release -p weblisk-agent-<component>
+cargo build --release -p orchestrator
+cargo build --release -p <service>
 ```
 
 ### Run
 
 ```bash
 # Run orchestrator
-./target/release/server --port 9800
+./target/release/orchestrator --port 9800
 
 # Run agent (connects to orchestrator)
-./target/release/weblisk-agent-<component> --orch http://localhost:9800
+./target/release/<service> --orch http://localhost:9800
 
 # Run directly via cargo (development)
-cargo run -p server -- --port 9800
-cargo run -p weblisk-agent-<component> -- --orch http://localhost:9800
+cargo run -p orchestrator -- --port 9800
+cargo run -p <service> -- --orch http://localhost:9800
 ```
+
+### Toolchain and diagnostics
+
+As [`schemas/language`](../schemas/language.md#the-toolchain-block) declares
+them. Cargo writes its diagnostics as JSON with `--message-format=json`, so
+they are read by pointer rather than by a pattern over rustc's human output.
+
+```yaml
+toolchain:
+  version: ">=1.75.0"
+  probe: {command: [rustc, --version], version: '^rustc ([0-9]+\.[0-9]+\.[0-9]+)'}
+  prepare: [[cargo, generate-lockfile]]
+  build: [cargo, build, --release, --workspace, --message-format=json]
+  build_component: [cargo, build, --release, -p, "{service}", --message-format=json]
+  run: ["target/release/{service}"]
+  vet: [cargo, clippy, --workspace, --all-targets, --message-format=json, --, -D, warnings]
+  env: {CARGO_TERM_COLOR: never}
+```
+
+```yaml
+diagnostics:
+  format: json-lines
+  select: {/reason: compiler-message, /message/level: error}
+  fields: {message: /message/message, code: /message/code/code, level: /message/level}
+  span: {list: /message/spans, where: {/is_primary: true}, file: /file_name, line: /line_start, col: /column_start}
+  symbols:
+    - {kind: undefined, pattern: '^cannot find (?:value|function|type|struct|trait|macro|module|crate) `(?P<symbol>\w+)`'}
+    - {kind: undefined, pattern: '^unresolved import `(?P<symbol>[\w:]+)`'}
+    - {kind: redeclared, pattern: '^the name `(?P<symbol>\w+)` is defined multiple times'}
+    - {kind: not-implemented, pattern: '^not all trait items implemented, missing: `(?P<symbol>\w+)`'}
+    - {kind: method-redeclared, pattern: '^duplicate definitions with name `(?P<symbol>\w+)`'}
+  load_failure:
+    - "failed to parse manifest"
+    - "could not find `Cargo.toml`"
+    - "cyclic package dependency"
+    - "no targets specified in the manifest"
+    - "failed to load manifest for workspace member"
+    - "current package believes it's in a workspace when it's not"
+  dependency_fault:
+    markers:
+      - "no matching package named"
+      - "failed to select a version for"
+      - "failed to load source for dependency"
+      - "the lock file needs to be updated"
+      - "cannot be built because it requires rustc"
+    fix: [[cargo, generate-lockfile]]
+  mechanism_failure: '^error: (?:could not compile|linker `[^`]+` not found)'
+```
+
+The JSON lines name only rustc's findings. A failure Cargo reports before
+rustc runs (a manifest it cannot parse, a dependency it cannot resolve) is on
+standard error as text, which is what `load_failure` and `dependency_fault`
+read.
 
 ### Environment Variables
 
@@ -319,7 +450,7 @@ cargo run -p weblisk-agent-<component> -- --orch http://localhost:9800
 cargo install cross
 
 # Build for Linux from macOS
-cross build --release --target x86_64-unknown-linux-musl -p server
+cross build --release --target x86_64-unknown-linux-musl -p orchestrator
 ```
 
 Produces fully static binaries with musl — deploy as a single file
@@ -369,7 +500,7 @@ blueprint's `## Endpoints` table declares the operation — `Register`, `Livez`,
 
 | Symbol | Spelling | Example |
 |---|---|---|
-| Path constant | `pub const PATH_<OPERATION>` in `weblisk-core` | `PATH_REGISTER` |
+| Path constant | `pub const PATH_<OPERATION>` in `crates/protocol` | `PATH_REGISTER` |
 | Handler | `handle_<operation>` in snake_case | `handle_register` |
 | Request type | `<Operation>Request` | `RegisterRequest` |
 | Response type | `<Operation>Response` | `RegisterResponse` |
@@ -397,7 +528,7 @@ splitters disagree about a trailing slash long before anybody notices.
 
 ### Error Handling
 
-- Use `thiserror` for defining error enums in `weblisk-core`
+- Use `thiserror` for defining error enums in the crate of the blueprint that declares them; the error-code registry is `crates/protocol`'s
 - Use `anyhow` for application-level error propagation in binary crates
 - Return `Result<T, E>` from all fallible functions — never `unwrap()` or
   `expect()` in production code paths
@@ -450,20 +581,17 @@ tracing::info!(component = "orchestrator", log_type = "process.startup", port, "
 ## Project Structure: Domain Controller
 
 ```
-domains/<name>/
-  Cargo.toml           # [dependencies] weblisk-core = { path = "../../weblisk-core" }
-  src/
-    main.rs            # Entry point — manifest, workflows, start
-    domain.rs          # Domain controller: workflow engine, dispatch, aggregation
-    workflows.rs       # Workflow definitions (parsed from embedded YAML or code)
-    <name>.rs          # Domain-specific aggregation rules and HandleMessage
+bins/<name>/src/main.rs   # entry point — manifest, workflows, start
+crates/domains/<name>/    # this controller's aggregation rules and handlers
+crates/domain/            # the workflow engine — architecture/domain
+crates/agent/             # the same framework a work agent uses
 ```
 
-Build: `cargo build --release -p weblisk-domain-<name>`
-Run: `./target/release/weblisk-domain-<component> --port 9700 --orch http://localhost:9800`
+Build: `cargo build --release -p <name>`
+Run: `./target/release/<name> --port 9700 --orch http://localhost:9800`
 
 The domain controller uses the same agent trait as work agents (6
-protocol endpoints). The workflow engine lives in `domain.rs` — see
+protocol endpoints). The workflow engine is `crates/domain`'s — see
 [architecture/domain.md](../architecture/domain.md) for the execution flow.
 
 ---
@@ -719,8 +847,8 @@ pub struct ErrorResponse {
 
 ### Cryptography
 
-- `pqcrypto-dilithium` for ML-DSA-65 key generation, signing, and verification
-- `rand` crate with `OsRng` for all secure random generation
+- The signature algorithm's crate is UNFILLED ([Primitive Mapping](#primitive-mapping)); a generation for Rust is refused until it is named
+- `getrandom` for all secure random generation
 - Hex encoding via the `hex` crate or manual implementation
 - No custom cryptography — use audited crates only
 
@@ -757,9 +885,9 @@ Rust's built-in test framework — tests live alongside source code:
 cargo test
 
 # Run tests for a specific crate
-cargo test -p weblisk-core
-cargo test -p server
-cargo test -p weblisk-agent-<component>
+cargo test -p protocol
+cargo test -p orchestrator
+cargo test -p <service>
 
 # Run with output
 cargo test -- --nocapture
@@ -813,7 +941,7 @@ mod tests {
 Integration tests live in a separate `tests/` directory per crate:
 
 ```
-server/
+bins/orchestrator/
   tests/
     registration.rs    # Test agent registration flow end-to-end
     task_routing.rs    # Test task routing to agents
@@ -837,6 +965,42 @@ async fn test_registration_flow() {
 }
 ```
 
+### Translated tests
+
+A test translated from a criterion
+([`schemas/language`](../schemas/language.md#the-tests-block)) is an
+integration test of the component's binary crate: one file per criterion under
+`bins/{service}/tests/`, which Cargo builds as its own test target with no
+manifest change. It is an HTTP black-box test using only the standard library
+(`std::net::TcpStream`, HTTP/1.1) and `serde_json`, already a dependency, and
+`crates/protocol`'s declared types. It reads the component's address from
+`WL_TEST_URL`, and fails, never passes, when that is unset. Cargo's test
+output has no stable JSON form, so its result is read from the text lines.
+
+```yaml
+tests:
+  owns: "bins/*/tests/**"
+  path: "bins/{service}/tests/{criterion}.rs"
+  name: snake
+  header: "// weblisk:criterion {ref} digest {digest} action {action}"
+  function: "{criterion}"
+  target: WL_TEST_URL
+  vectors: testdata/weblisk-vectors/
+  command: [cargo, test, -p, "{service}", --test, "{criterion}", --, --exact, "{criterion}"]
+  result:
+    format: text
+    line: '^test (?P<test>\S+) \.\.\. (?P<outcome>ok|FAILED|ignored)$'
+    test: test
+    outcome: outcome
+    pass: ok
+    fail: FAILED
+    skip: ignored
+  stub: >-
+    The plan's declared names in crates/protocol, and each component's binary
+    answering every route its blueprint declares with 501 and an
+    ErrorResponse; a translated test run against it must fail.
+```
+
 ### CI
 
 ```bash
@@ -858,8 +1022,8 @@ cargo audit
 
 ## Implementation Notes
 
-- Cargo workspace shares code via the `weblisk-core` library crate — no file
-  copying between binaries (unlike Go's copy-each-file approach)
+- The Cargo workspace shares code by depending on the crate of the blueprint
+  that specifies it — never by copying a file between crates
 - Use `std::env::args` for CLI flag parsing or the `clap` crate if richer
   argument handling is needed
 - `rusqlite` with `bundled` compiles SQLite from source — no system library needed
@@ -887,19 +1051,19 @@ opt-level = 3
 
 ## Verification Checklist
 
-- [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members ([Workspace Layout](#workspace-layout), [Workspace Cargo.toml](#workspace-cargotoml))
-- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface))
-- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface))
-- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
-- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface))
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResult`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates ([Protocol Type Definitions](#protocol-type-definitions), [Workspace Layout](#workspace-layout))
-- [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
-- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes))
-- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits))
-- [ ] IF SQLite was chosen: `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements](#sqlite-requirements), [Storage Mapping (Rust)](#storage-mapping-rust))
-- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode))
-- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling))
-- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency))
-- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables))
-- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism))
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI ([CI](#ci))
+- [ ] One workspace rooted at the tenant folder: a library crate under `crates/` for each blueprint the plan writes code for, named as the layout block gives, and a binary crate under `bins/` for each component, named as it registers — all members of the root `Cargo.toml` `[workspace]`, every dependency's version stated once under `[workspace.dependencies]` ([One workspace, one crate per blueprint](#one-workspace-one-crate-per-blueprint) `rust-workspace-dependencies`, `rust-entry-holds-main`) <!-- wl:check cargo-workspace-contains-weblisk-core-library -->
+- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `crates/protocol`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-pub-const-path-operation -->
+- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface)) <!-- wl:check component-declares-routes-table-builds-router -->
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check wrong-method-answers-405-allow-header -->
+- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface)) <!-- wl:check path-parameters-read-through-helper -->
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResult`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `crates/protocol` with `#[derive(Serialize, Deserialize)]`, in no other crate, and shared by every crate that needs them ([Protocol Type Definitions](#protocol-type-definitions), [One workspace, one crate per blueprint](#one-workspace-one-crate-per-blueprint) `rust-declared-names-in-contract`, `rust-one-definition`) <!-- wl:check protocol-types-agentmanifest-taskrequest -->
+- [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request <!-- wl:check http-body-util-limited-applied-request -->
+- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes)) <!-- wl:check shared-state-wrapped-arc-tokio-sync -->
+- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits)) <!-- wl:check concurrency-limiter-uses-tokio-sync-semaphore -->
+- [ ] IF SQLite was chosen: `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements](#sqlite-requirements), [Storage Mapping (Rust)](#storage-mapping-rust)) <!-- wl:check sqlite-chosen-rusqlite-uses-wal-journal -->
+- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode)) <!-- wl:check when-wl-dev-1-storage-falls -->
+- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling)) <!-- wl:check fallible-functions-return-result-t-e -->
+- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency)) <!-- wl:check no-unsafe-blocks-application-code-memory -->
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables)) <!-- wl:check configuration-loads-environment-variables -->
+- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism)) <!-- wl:check domain-controllers-use-tokio-task-joinset -->
+- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI ([CI](#ci)) <!-- wl:check cargo-fmt-check-cargo-clippy-d -->

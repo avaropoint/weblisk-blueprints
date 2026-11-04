@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: domain-controller
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
 platform: any
 tier: free
@@ -413,20 +413,20 @@ Domains MAY override or extend with domain-specific handling
 Every domain MUST pass these checks. Domains inherit them and add
 domain-specific items.
 
-- [ ] Registers with orchestrator and receives WLT token — [Domain Manifest](#domain-manifest), [`protocol/spec`](../protocol/spec.md#post-v1register)
-- [ ] Manifest declares type: domain with required_agents and workflows — [Domain Manifest](#domain-manifest)
-- [ ] The domain's readiness reflects its required agents' lease states, and it probes none of them — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Implementation Notes](#implementation-notes)
-- [ ] execute_workflow routes to correct workflow by task.action — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Workflow Structure](#workflow-structure)
-- [ ] Workflow phases execute in correct dependency order — [Workflow Structure](#workflow-structure), [Implementation Notes](#implementation-notes)
-- [ ] Independent phases run in parallel — [Workflow Conventions](#workflow-conventions)
-- [ ] Scoring formula produces 0–100 clamped result matching weight table — [Scoring](#scoring)
-- [ ] Conflict resolution applies domain-specific rules — [Aggregation Rules](#aggregation-rules)
-- [ ] Observations feed into lifecycle store — [Standard HandleMessage Actions](#standard-handlemessage-actions)
-- [ ] Recommendations sorted by priority and impact — [Aggregation Rules](#aggregation-rules)
-- [ ] Workflow history queryable via workflow_history action — [Standard HandleMessage Actions](#standard-handlemessage-actions)
-- [ ] Metrics emit for all workflow executions and agent dispatches — [Observability](#observability)
-- [ ] Optimize workflows reject unapproved recommendations — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Workflow Structure](#workflow-structure)
-- [ ] compare_before_after produces Feedback entries — [Standard HandleMessage Actions](#standard-handlemessage-actions)
+- [ ] Registers with orchestrator and receives WLT token — [Domain Manifest](#domain-manifest), [`protocol/spec`](../protocol/spec.md#post-v1register) <!-- wl:check registers-orchestrator-receives-wlt-token-domain -->
+- [ ] Manifest declares type: domain with required_agents and workflows — [Domain Manifest](#domain-manifest) <!-- wl:check manifest-declares-type-domain-required-agents -->
+- [ ] The domain's readiness reflects its required agents' lease states, and it probes none of them — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Implementation Notes](#implementation-notes) <!-- wl:check domains-readiness-reflects-required-agents-lease -->
+- [ ] execute_workflow routes to correct workflow by task.action — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Workflow Structure](#workflow-structure) <!-- wl:check execute-workflow-routes-correct-workflow-task -->
+- [ ] Workflow phases execute in correct dependency order — [Workflow Structure](#workflow-structure), [Implementation Notes](#implementation-notes) <!-- wl:check workflow-phases-execute-correct-dependency-order -->
+- [ ] Independent phases run in parallel — [Workflow Conventions](#workflow-conventions) <!-- wl:check independent-phases-run-parallel-workflow -->
+- [ ] Scoring formula produces 0–100 clamped result matching weight table — [Scoring](#scoring) <!-- wl:check scoring-formula-produces-0-100-clamped -->
+- [ ] Conflict resolution applies domain-specific rules — [Aggregation Rules](#aggregation-rules) <!-- wl:check conflict-resolution-applies-domain-specific -->
+- [ ] Observations feed into lifecycle store — [Standard HandleMessage Actions](#standard-handlemessage-actions) <!-- wl:check observations-feed-lifecycle-store-standard -->
+- [ ] Recommendations sorted by priority and impact — [Aggregation Rules](#aggregation-rules) <!-- wl:check recommendations-sorted-priority-impact -->
+- [ ] Workflow history queryable via workflow_history action — [Standard HandleMessage Actions](#standard-handlemessage-actions) <!-- wl:check workflow-history-queryable-via-workflow-history -->
+- [ ] Metrics emit for all workflow executions and agent dispatches — [Observability](#observability) <!-- wl:check metrics-emit-workflow-executions-agent -->
+- [ ] Optimize workflows reject unapproved recommendations — [Standard HandleMessage Actions](#standard-handlemessage-actions), [Workflow Structure](#workflow-structure) <!-- wl:check optimize-workflows-reject-unapproved -->
+- [ ] compare_before_after produces Feedback entries — [Standard HandleMessage Actions](#standard-handlemessage-actions) <!-- wl:check compare-before-after-produces-feedback-entries -->
 
 ---
 

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, architecture/agent, patterns/rate-limiting]
 platform: any
 tier: free
@@ -379,18 +379,18 @@ it overrides the category-based default.
 
 ## Verification Checklist
 
-- [ ] Transient errors trigger retry with exponential backoff — [Default Retry Configuration](#default-retry-configuration), [Error Classification](#error-classification)
-- [ ] Permanent errors fail immediately without retry — [Error Classification](#error-classification)
-- [ ] Every retry delay is full jitter under `protocol/conventions:backoff` — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
-- [ ] Max delay caps exponential growth — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
-- [ ] No retry on a 429 comes before its Retry-After — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff)
-- [ ] Circuit breaker trips after consecutive failure threshold — [States](#states), [Default Configuration](#default-configuration)
-- [ ] Circuit breaker enters HALF_OPEN after recovery timeout — [States](#states), [Default Configuration](#default-configuration)
-- [ ] `success_threshold` consecutive successful probes in HALF_OPEN close the circuit — [Contracts](#contracts), [States](#states)
-- [ ] Failed probe in HALF_OPEN reopens circuit — [States](#states)
-- [ ] Per-target circuits isolate failures — [Per-Target Circuits](#per-target-circuits)
-- [ ] Circuit breaker state changes emit events to alerting — [Circuit Breaker Events](#circuit-breaker-events)
-- [ ] Agent-specific overrides apply correctly — [Override Configuration](#override-configuration)
-- [ ] Domain workflow phase timeouts trigger retry logic — [Domain Workflow Integration](#domain-workflow-integration)
-- [ ] Metrics emit for retries, exhaustion, and circuit breaker state — [Observability](#observability)
-- [ ] Timeouts cancel in-flight requests where supported — [Timeout Handling](#timeout-handling)
+- [ ] Transient errors trigger retry with exponential backoff — [Default Retry Configuration](#default-retry-configuration), [Error Classification](#error-classification) <!-- wl:check transient-errors-trigger-retry-exponential -->
+- [ ] Permanent errors fail immediately without retry — [Error Classification](#error-classification) <!-- wl:check permanent-errors-fail-immediately-without-retry -->
+- [ ] Every retry delay is full jitter under `protocol/conventions:backoff` — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff) <!-- wl:check retry-delay-full-jitter-under-protocol -->
+- [ ] Max delay caps exponential growth — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff) <!-- wl:check max-delay-caps-exponential-growth-backoff -->
+- [ ] No retry on a 429 comes before its Retry-After — [Backoff](#backoff), [`protocol/conventions`](../protocol/conventions.md#backoff) <!-- wl:check no-retry-429-comes-before-retry -->
+- [ ] Circuit breaker trips after consecutive failure threshold — [States](#states), [Default Configuration](#default-configuration) <!-- wl:check circuit-breaker-trips-after-consecutive-failure -->
+- [ ] Circuit breaker enters HALF_OPEN after recovery timeout — [States](#states), [Default Configuration](#default-configuration) <!-- wl:check circuit-breaker-enters-half-open -->
+- [ ] `success_threshold` consecutive successful probes in HALF_OPEN close the circuit — [Contracts](#contracts), [States](#states) <!-- wl:check success-threshold-consecutive-successful-probes -->
+- [ ] Failed probe in HALF_OPEN reopens circuit — [States](#states) <!-- wl:check failed-probe-half-open-reopens-circuit -->
+- [ ] Per-target circuits isolate failures — [Per-Target Circuits](#per-target-circuits) <!-- wl:check per-target-circuits-isolate-failures -->
+- [ ] Circuit breaker state changes emit events to alerting — [Circuit Breaker Events](#circuit-breaker-events) <!-- wl:check circuit-breaker-state-changes-emit-events -->
+- [ ] Agent-specific overrides apply correctly — [Override Configuration](#override-configuration) <!-- wl:check agent-specific-overrides-apply-correctly -->
+- [ ] Domain workflow phase timeouts trigger retry logic — [Domain Workflow Integration](#domain-workflow-integration) <!-- wl:check domain-workflow-phase-timeouts-trigger-retry -->
+- [ ] Metrics emit for retries, exhaustion, and circuit breaker state — [Observability](#observability) <!-- wl:check metrics-emit-retries-exhaustion-circuit-breaker -->
+- [ ] Timeouts cancel in-flight requests where supported — [Timeout Handling](#timeout-handling) <!-- wl:check timeouts-cancel-flight-requests-where-supported -->

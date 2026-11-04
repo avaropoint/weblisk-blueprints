@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.0.0
+version: 5.2.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -206,6 +206,7 @@ asks a model for anything
 layout:
   module_root: "."
   manifest: go.mod
+  module_path: "{hub}"
   name: drop-hyphens
   contract:
     package: internal/protocol
@@ -464,6 +465,58 @@ A component other than the orchestrator is built the same way — `go build -o
 bin/<name> ./cmd/<name>` — and run with the flags its own blueprint defines. This document names no component beyond the orchestrator on purpose;
 which ones a deployment has is decided by adopting their blueprints.
 
+### Toolchain and diagnostics
+
+The commands above, and how a failed build's output is read, as
+[`schemas/language`](../schemas/language.md#the-toolchain-block) declares
+them. `GOFLAGS=-gcflags=all=-e` makes the compiler report every error rather
+than stopping at ten, so one build gives a repair every finding.
+
+```yaml
+toolchain:
+  version: ">=1.27"
+  probe: {command: [go, env, GOVERSION], version: '^go([0-9]+\.[0-9]+(?:\.[0-9]+)?)'}
+  prepare: [[go, mod, tidy]]
+  build: [go, build, ./...]
+  build_component: [go, build, -o, "bin/{service}", "./cmd/{service}"]
+  run: ["bin/{service}"]
+  vet: [go, vet, ./...]
+  env: {GOFLAGS: "-gcflags=all=-e"}
+```
+
+```yaml
+diagnostics:
+  format: text
+  line: '^\.?/?(?P<file>[\w./-]+\.go):(?P<line>\d+):(?:(?P<col>\d+):)?\s*(?P<message>.+)$'
+  continuation: '^(\t|    )'
+  reset: '^# '
+  drop: ['^too many errors$']
+  symbols:
+    - {kind: undefined, pattern: 'undefined: (?P<symbol>\w+)'}
+    - {kind: redeclared, pattern: '^(?P<symbol>\w+) redeclared in this block'}
+    - {kind: redeclared, pattern: '(?P<other_file>[\w./-]+\.go):\d+:\d+: other declaration of (?P<symbol>\w+)'}
+    - {kind: method-redeclared, pattern: 'method (?P<type>\w+)\.(?P<symbol>\w+) already declared at (?P<other_file>[\w./-]+\.go):'}
+    - {kind: not-implemented, pattern: '\*?(?P<symbol>\w+) does not implement \*?(?P<other>\w+)'}
+    - {kind: unused, pattern: '^declared and not used: (?P<symbol>\w+)'}
+  load_failure:
+    - "found packages "
+    - "import cycle not allowed"
+    - "is a program, not an importable package"
+    - "build constraints exclude all Go files"
+    - "no Go files in"
+    - "no non-test Go files in"
+    - "is not in std"
+  dependency_fault:
+    markers:
+      - "missing go.sum entry"
+      - "no required module provides package"
+      - "updates to go.mod needed"
+      - "inconsistent vendoring"
+      - "module lookup disabled"
+    fix: [[go, mod, tidy]]
+  mechanism_failure: '^go: '
+```
+
 ### Environment Variables
 
 | Variable | Required | Default | Description |
@@ -488,22 +541,44 @@ go test -race -count=1 ./...
 
 ## Go Module File
 
+The module is the tenant's ([One module, one definition of everything](#one-module-one-definition-of-everything)),
+and `go.mod` is written by the engine from this block, never by a model. Its
+module path is the tenant's `hub.name` ([`schemas/config`](../schemas/config.md)),
+which is already a valid Go module path, so two builds of one tenant never name
+the module differently. Its `go` directive is the toolchain's minimum. It
+requires the two modules the [Primitive Mapping](#primitive-mapping) marks
+**required**, `golang.org/x/term` only where the implementation prompts, and a
+storage driver only where a backend other than the default was chosen; nothing
+else. Versions are never written by generation: `go mod tidy`, the prepare
+step, resolves them and writes `go.sum`.
+
+```yaml
+module:
+  manifest: go.mod
+  language_version: "1.27"
+  requires:
+    - {name: github.com/cloudflare/circl, when: always}
+    - {name: golang.org/x/crypto, when: always}
+    - {name: golang.org/x/term, when: the implementation prompts for a passphrase}
+    - {name: modernc.org/sqlite, when: the SQLite backend was chosen and CGo is not used}
+    - {name: github.com/mattn/go-sqlite3, when: the SQLite backend was chosen with CGo}
+  versions: resolved
+  written_by: engine
 ```
-module <tenant>
+
+Written out for a tenant whose `hub.name` is `demo-hub`, before `go mod tidy`
+adds versions:
+
+```
+module demo-hub
 
 go 1.27
 
 require (
-    github.com/cloudflare/circl <version>
-    golang.org/x/crypto <version>
+    github.com/cloudflare/circl <resolved>
+    golang.org/x/crypto <resolved>
 )
 ```
-
-The module is the tenant's ([One module, one definition of everything](#one-module-one-definition-of-everything)).
-It requires the two modules the [Primitive Mapping](#primitive-mapping) marks
-**required**, and adds `golang.org/x/term` only where the implementation
-prompts, and a storage driver only where a backend other than the default was
-chosen. Nothing else.
 
 ---
 
@@ -750,27 +825,6 @@ a dependency level. Use a semaphore per target agent to respect
 
 ---
 
-## Evaluating a Declared Check in Go
-
-A blueprint's `declaration.checks:` names an expectation. The name is
-platform-neutral; **how it is evaluated is this platform's**, exactly as a
-declared name is neutral and its spelling is this platform's.
-
-| Check | Evaluated in Go by |
-|---|---|
-| `no-path-literals` | Walking the AST for a string literal beginning `/v` passed to `HandleFunc`, `Handle`, or assigned to a `pattern` field. A path reaches a route only through a `protocol.Path*` constant |
-| `no-method-less-pattern` | Every `HandleFunc` first argument resolves to a string beginning with a method name, or is exactly `"/"`. A bare path beside a wildcard sibling is a startup panic, not an error |
-| `endpoint-routed` | Resolving the route table's patterns — constants, local aliases and concatenation — and matching the declared `endpoint`. A pattern the resolver cannot read is reported as unread, never as absent |
-| `type-has-keys` | Parsing the named struct and comparing its `json:` tags against the declared `keys`. The tag is authority, not the field name |
-| `error-codes-registered` | Every SCREAMING_SNAKE string literal used as a code appears as a key of the central registry map. Environment variable names are excluded — they are found in `os.Getenv` calls, not guessed at by shape |
-| `starts-unattended` | Running the built binary with no terminal attached and requiring an answer on `GET /livez`. It catches a mux conflict and a passphrase prompt, and neither is visible in source review |
-
-A check this platform cannot evaluate is reported as **unevaluated**, never as
-passed. "We did not check this" and "this is correct" are different facts, and a
-platform that conflates them makes every check it does run worth less.
-
----
-
 ## Reading a Blueprint into Go
 
 [`architecture/generation`](../architecture/generation.md#how-a-blueprint-is-read)
@@ -916,6 +970,115 @@ go test -race -count=1 ./...
 
 ---
 
+### Translated tests
+
+A test translated from a criterion
+([`schemas/language`](../schemas/language.md#the-tests-block)) is an HTTP
+black-box test in a package of its own under `test/`, one file per criterion,
+using only the standard library and `internal/protocol`'s declared types. It
+reads the component's address from `WL_TEST_URL`, and fails, never skips, when
+that is unset.
+
+```yaml
+tests:
+  owns: "test/**"
+  path: "test/{service}/{criterion}_test.go"
+  name: snake
+  header: "// weblisk:criterion {ref} digest {digest} action {action}"
+  package: conformance
+  function: "Test_{criterion}"
+  target: WL_TEST_URL
+  vectors: testdata/weblisk-vectors/
+  command: [go, test, -count=1, -json, -run, "^Test_{criterion}$", "./test/{service}"]
+  result:
+    format: json-lines
+    test: /Test
+    outcome: /Action
+    pass: pass
+    fail: fail
+    skip: skip
+  stub: >-
+    The plan's declared names in internal/protocol, and each component's entry
+    answering every route its blueprint declares with 501 and an ErrorResponse;
+    a translated test run against it must fail.
+```
+
+---
+
+## Structure Queries
+
+A `structure` check ([`schemas/blocks`](../schemas/blocks.md#checks)) names a
+query and never holds its text, because a query is a question about one
+language's parse tree. These are Go's, in the form
+[`schemas/language`](../schemas/language.md#the-structure-block) declares. A
+check naming a query this block does not declare is **unread** for Go, never
+passed.
+
+```yaml
+structure:
+  parser: {grammar: tree-sitter-go, version: ">=0.23.0"}
+  files: "**/*.go"
+  queries:
+    path-literal:
+      text: >-
+        A string literal that begins with a versioned path, /v and a digit.
+        Outside internal/protocol, a path reaches a route, a client or a test
+        only through a Path<Operation> constant.
+      query: |
+        ([(interpreted_string_literal) (raw_string_literal)] @value
+          (#match? @value "^[\"`]/v[0-9]+(/|[\"`])"))
+    method-less-pattern:
+      text: >-
+        A pattern given to Handle or HandleFunc that does not begin with a
+        method and is not exactly "/". A pattern held in a variable or a
+        constant is unread here; the topology check starts-unattended is what
+        settles it, since net/http panics on the conflict at startup.
+      query: |
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . (interpreted_string_literal) @value
+            (#not-match? @value "^\"((GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) |/\"$)")))
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . (binary_expression left: (interpreted_string_literal) @value)
+            (#not-match? @value "^\"(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) ")))
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . [(identifier) (selector_expression)] @unread))
+    type-wire-keys:
+      text: >-
+        The wire keys of the struct named ${type}: the name in each field's
+        json tag. The tag is authority, never the field's name.
+      query: |
+        (type_spec name: (type_identifier) @_t (#eq? @_t "${type}")
+          type: (struct_type (field_declaration_list
+            (field_declaration tag: (raw_string_literal) @value))))
+      value: 'json:"([^",]*)'
+    error-code-use:
+      text: >-
+        A string literal shaped as an error code, SCREAMING_SNAKE with at
+        least one underscore. A literal passed to os.Getenv or os.LookupEnv
+        names an environment variable and is excluded.
+      query: |
+        ((interpreted_string_literal) @value
+          (#match? @value "^\"[A-Z][A-Z0-9]*(_[A-Z0-9]+)+\"$"))
+        (call_expression
+          function: (selector_expression operand: (identifier) @_p field: (field_identifier) @_f
+            (#eq? @_p "os") (#match? @_f "^(Getenv|LookupEnv)$"))
+          arguments: (argument_list (interpreted_string_literal) @exclude))
+      value: '^"(.*)"$'
+    error-code-registered:
+      text: >-
+        A key of a map literal in the contract package: the central registry
+        of error codes, each with its status and category.
+      query: |
+        (composite_literal type: (map_type)
+          body: (literal_value (keyed_element . (literal_element (interpreted_string_literal) @value))))
+      value: '^"(.*)"$'
+```
+
+---
+
 ## Implementation Notes
 
 - Each component is `package main` in its own directory; shared code is imported from `internal/`, never copied
@@ -932,33 +1095,33 @@ go test -race -count=1 ./...
 Assertions here apply to any Go implementation unless a group narrows them to one
 component. See `schemas/common.md` for what a group heading means.
 
-- [ ] Every import of a required module uses the exact package path in the Primitive Mapping table ([Primitive Mapping](#primitive-mapping))
-- [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod ([Primitive Mapping](#primitive-mapping), [Runtime Requirements](#runtime-requirements))
-- [ ] One module rooted at the tenant folder, with `go.mod` at that root ([One module, one definition of everything](#one-module-one-definition-of-everything))
-- [ ] Every package is the one the layout block gives the blueprint its code answers, spelled with every `-` removed; no directory is named after anything else, and no package exists that the plan writes no code into ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-requirement-in-its-blueprints-package`, `go-package-only-where-code-is`)
-- [ ] Each component's entry is `cmd/<service>/main.go`, `package main`, holding `main` and its argument parsing alone; every other file is a package under `internal/` ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-entry-holds-main`)
-- [ ] A domain controller imports the same `internal/agent` framework as a work agent, and registers with `type: "domain"` ([Project Structure: Domain Controller](#project-structure-domain-controller))
-- [ ] Every declared type, enum constant, `Path<Operation>` constant, `<Operation>Request` and `<Operation>Response` type and the error-code registry is declared in `internal/protocol` and in no other package, and no exported name of a library package is declared in another package ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-declared-names-in-contract`, `go-one-definition`; [Why one module, and not a copy per binary](#why-one-module-and-not-a-copy-per-binary))
-- [ ] No package imports the package of a component other than its own; a library package imports only `internal/protocol` and the packages of the library blueprints its blueprint requires, and none in a `requires` cycle with it ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-client-in-caller`, `go-imports-acyclic`)
-- [ ] Every handler `handle<Operation>`, the component's route table and its `Routes()` are in the package of the component that serves the endpoint ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-handler-in-serving-component`)
-- [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints ([A component's shape](#a-components-shape), [Run](#run))
-- [ ] `io.LimitReader` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
-- [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes ([Concurrency](#concurrency), [Concurrency](#concurrency-1))
-- [ ] Concurrency limiter returns 429 with `Retry-After` header and structured ErrorResponse when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter))
-- [ ] The storage contract in architecture/storage is satisfied — every declared operation exists and survives a restart ([`architecture/storage`](../architecture/storage.md#contracts), [Storage Mapping (Go)](#storage-mapping-go))
-- [ ] IF SQLite was chosen: WAL journal mode, `user_version` pragma for migrations, tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements — only when SQLite was chosen](#sqlite-requirements--only-when-sqlite-was-chosen))
-- [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode))
-- [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal ([Error Handling](#error-handling))
-- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables))
-- [ ] Every routed path is an exported `Path<Operation>` constant in `internal/protocol`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface))
-- [ ] Each component declares its routes as one table and registers them in one `Routes()` function; no registration happens in the file that defines a handler ([The HTTP Surface](#the-http-surface))
-- [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour ([The HTTP Surface](#the-http-surface))
-- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
-- [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling ([The HTTP Surface](#the-http-surface))
-- [ ] The process binds its port and answers `GET /livez` when started with no terminal attached ([Evaluating a Declared Check in Go](#evaluating-a-declared-check-in-go) `starts-unattended`)
-- [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and `omitempty` is on every optional field and on no required one ([Reading a Blueprint into Go](#reading-a-blueprint-into-go), [What this rules out](#what-this-rules-out))
-- [ ] Every field's Go type is the one [Type Mapping](#type-mapping) gives its declared type, and an optional scalar is a pointer ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious))
-- [ ] A cursor is carried as an opaque string and never decoded ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious))
+- [ ] Every import of a required module uses the exact package path in the Primitive Mapping table ([Primitive Mapping](#primitive-mapping)) <!-- wl:check import-required-module-uses-exact-package -->
+- [ ] No dependency outside the Primitive Mapping table — `github.com/cloudflare/circl`, `golang.org/x/crypto`, `golang.org/x/term`, and a storage driver only if a backend other than the JSONL default was chosen; every dependency declared in go.mod ([Primitive Mapping](#primitive-mapping), [Runtime Requirements](#runtime-requirements)) <!-- wl:check no-dependency-outside-primitive-mapping-table -->
+- [ ] One module rooted at the tenant folder, with `go.mod` at that root ([One module, one definition of everything](#one-module-one-definition-of-everything)) <!-- wl:check module-rooted-tenant-folder-go-mod -->
+- [ ] Every package is the one the layout block gives the blueprint its code answers, spelled with every `-` removed; no directory is named after anything else, and no package exists that the plan writes no code into ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-requirement-in-its-blueprints-package`, `go-package-only-where-code-is`) <!-- wl:check package-layout-block-gives-blueprint-code -->
+- [ ] Each component's entry is `cmd/<service>/main.go`, `package main`, holding `main` and its argument parsing alone; every other file is a package under `internal/` ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-entry-holds-main`) <!-- wl:check components-entry-cmd-service-main-go -->
+- [ ] A domain controller imports the same `internal/agent` framework as a work agent, and registers with `type: "domain"` ([Project Structure: Domain Controller](#project-structure-domain-controller)) <!-- wl:check domain-controller-imports-internal-agent -->
+- [ ] Every declared type, enum constant, `Path<Operation>` constant, `<Operation>Request` and `<Operation>Response` type and the error-code registry is declared in `internal/protocol` and in no other package, and no exported name of a library package is declared in another package ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-declared-names-in-contract`, `go-one-definition`; [Why one module, and not a copy per binary](#why-one-module-and-not-a-copy-per-binary)) <!-- wl:check declared-type-enum-constant-path-operation -->
+- [ ] No package imports the package of a component other than its own; a library package imports only `internal/protocol` and the packages of the library blueprints its blueprint requires, and none in a `requires` cycle with it ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-client-in-caller`, `go-imports-acyclic`) <!-- wl:check no-package-imports-package-component-other -->
+- [ ] Every handler `handle<Operation>`, the component's route table and its `Routes()` are in the package of the component that serves the endpoint ([The package is named after the blueprint that specifies it](#the-package-is-named-after-the-blueprint-that-specifies-it) `go-handler-in-serving-component`) <!-- wl:check handler-handle-operation-components-route-table -->
+- [ ] The blueprint names no specific agent or domain; which components exist is chosen by adopting their blueprints ([A component's shape](#a-components-shape), [Run](#run)) <!-- wl:check blueprint-names-no-specific-agent-domain -->
+- [ ] `io.LimitReader` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request <!-- wl:check io-limitreader-applied-request-body-reads -->
+- [ ] All registries and shared maps are protected by `sync.RWMutex` with `RLock` for reads and `Lock` for writes ([Concurrency](#concurrency), [Concurrency](#concurrency-1)) <!-- wl:check registries-shared-maps-protected-sync-rwmutex -->
+- [ ] Concurrency limiter returns 429 with `Retry-After` header and structured ErrorResponse when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter)) <!-- wl:check concurrency-limiter-returns-429-retry -->
+- [ ] The storage contract in architecture/storage is satisfied — every declared operation exists and survives a restart ([`architecture/storage`](../architecture/storage.md#contracts), [Storage Mapping (Go)](#storage-mapping-go)) <!-- wl:check storage-contract-architecture-storage-satisfied -->
+- [ ] IF SQLite was chosen: WAL journal mode, `user_version` pragma for migrations, tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements — only when SQLite was chosen](#sqlite-requirements--only-when-sqlite-was-chosen)) <!-- wl:check sqlite-chosen-wal-journal-mode-user -->
+- [ ] When `WL_DEV=1`, storage falls back to in-memory maps and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode)) <!-- wl:check when-wl-dev-1-storage-falls -->
+- [ ] Functions return errors — HTTP handlers write error JSON responses and do not panic; registration failures are fatal ([Error Handling](#error-handling)) <!-- wl:check functions-return-errors-http-handlers-write -->
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables)) <!-- wl:check configuration-loads-environment-variables -->
+- [ ] Every routed path is an exported `Path<Operation>` constant in `internal/protocol`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-exported-path-operation-constant -->
+- [ ] Each component declares its routes as one table and registers them in one `Routes()` function; no registration happens in the file that defines a handler ([The HTTP Surface](#the-http-surface)) <!-- wl:check component-declares-routes-table-registers-them -->
+- [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour ([The HTTP Surface](#the-http-surface)) <!-- wl:check routes-registered-gos-method-pattern-syntax -->
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check wrong-method-answers-405-allow-header -->
+- [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling ([The HTTP Surface](#the-http-surface)) <!-- wl:check 405-404-decided-single-handler-matching -->
+- [ ] The process binds its port and answers `GET /livez` when started with no terminal attached ([`architecture/orchestrator`](../architecture/orchestrator.md#declared-checks) `starts-unattended`) <!-- wl:check process-binds-port-answers-get-livez -->
+- [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and `omitempty` is on every optional field and on no required one ([Reading a Blueprint into Go](#reading-a-blueprint-into-go), [What this rules out](#what-this-rules-out)) <!-- wl:check struct-field-carries-json-tag-matching -->
+- [ ] Every field's Go type is the one [Type Mapping](#type-mapping) gives its declared type, and an optional scalar is a pointer ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious)) <!-- wl:check fields-go-type-type-mapping-gives -->
+- [ ] A cursor is carried as an opaque string and never decoded ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious)) <!-- wl:check cursor-carried-opaque-string-never-decoded -->
 
 ### Domain Controllers
-- [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism))
+- [ ] Domain controllers use `sync.WaitGroup` + goroutines for parallel phase execution and a per-agent semaphore respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism)) <!-- wl:check domain-controllers-use-sync-waitgroup-goroutines -->

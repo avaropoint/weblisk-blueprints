@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 3.0.1
+version: 3.0.2
 requires: [protocol/types, architecture/agent, patterns/retry]
 platform: any
 tier: free
@@ -740,17 +740,17 @@ perform the conversion.
 
 ## Verification Checklist
 
-- [ ] Events are published with every required field of [Envelope Fields](#envelope-fields)
-- [ ] Event IDs are unique across the hub, in the format [Event ID Generation](#event-id-generation) recommends — [Publish Flow](#publish-flow)
-- [ ] Framework validates namespace ownership before publishing — [Namespace Ownership](#namespace-ownership), [Publish Flow](#publish-flow)
-- [ ] Framework resolves subscribers from local routing table (no orchestrator call) — [Publish Guarantees](#publish-guarantees)
-- [ ] Scope filtering applied: self-scoped subscribers only get their own events — [How Scope Works](#how-scope-works)
-- [ ] Global observers (scope: "*") require `event:observe` capability — [Scope Permissions](#scope-permissions)
-- [ ] Consumer groups load-balance events across instances (round-robin) — [Consumer Groups](#consumer-groups)
-- [ ] Different consumer groups each receive matching events (fan-out) — [Consumer Groups](#consumer-groups)
-- [ ] Duplicate events (same event_id) detected and skipped by subscribers — [Idempotency](#idempotency)
-- [ ] Failed deliveries retried with exponential backoff — [Delivery Retry](#delivery-retry)
-- [ ] Exhausted retries result in dead-letter storage (not discard) — [Design Principles](#design-principles), [Dead-Letter Handling](#dead-letter-handling)
-- [ ] 429 responses from subscribers respected with Retry-After — [Delivery Retry](#delivery-retry), [Subscriber-Side](#subscriber-side)
-- [ ] Correlation ID propagated through execution chains — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow)
-- [ ] Every event and every delivery carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow)
+- [ ] Events are published with every required field of [Envelope Fields](#envelope-fields) <!-- wl:check events-published-required-field-envelope-fields -->
+- [ ] Event IDs are unique across the hub, in the format [Event ID Generation](#event-id-generation) recommends — [Publish Flow](#publish-flow) <!-- wl:check event-ids-unique-across-hub-format -->
+- [ ] Framework validates namespace ownership before publishing — [Namespace Ownership](#namespace-ownership), [Publish Flow](#publish-flow) <!-- wl:check framework-validates-namespace-ownership -->
+- [ ] Framework resolves subscribers from local routing table (no orchestrator call) — [Publish Guarantees](#publish-guarantees) <!-- wl:check framework-resolves-subscribers-local-routing -->
+- [ ] Scope filtering applied: self-scoped subscribers only get their own events — [How Scope Works](#how-scope-works) <!-- wl:check scope-filtering-applied-self-scoped-subscribers -->
+- [ ] Global observers (scope: "*") require `event:observe` capability — [Scope Permissions](#scope-permissions) <!-- wl:check global-observers-scope-require-event-observe -->
+- [ ] Consumer groups load-balance events across instances (round-robin) — [Consumer Groups](#consumer-groups) <!-- wl:check consumer-groups-load-balance-events-across -->
+- [ ] Different consumer groups each receive matching events (fan-out) — [Consumer Groups](#consumer-groups) <!-- wl:check different-consumer-groups-receive-matching -->
+- [ ] Duplicate events (same event_id) detected and skipped by subscribers — [Idempotency](#idempotency) <!-- wl:check duplicate-events-event-id-detected-skipped -->
+- [ ] Failed deliveries retried with exponential backoff — [Delivery Retry](#delivery-retry) <!-- wl:check failed-deliveries-retried-exponential-backoff -->
+- [ ] Exhausted retries result in dead-letter storage (not discard) — [Design Principles](#design-principles), [Dead-Letter Handling](#dead-letter-handling) <!-- wl:check exhausted-retries-result-dead-letter-storage -->
+- [ ] 429 responses from subscribers respected with Retry-After — [Delivery Retry](#delivery-retry), [Subscriber-Side](#subscriber-side) <!-- wl:check 429-responses-subscribers-respected-retry -->
+- [ ] Correlation ID propagated through execution chains — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow) <!-- wl:check correlation-id-propagated-through-execution -->
+- [ ] Every event and every delivery carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says — [Envelope Fields](#envelope-fields), [Publish Flow](#publish-flow) <!-- wl:check event-delivery-carries-trace-protocol-spec -->

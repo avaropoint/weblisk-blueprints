@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: storage
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -525,16 +525,16 @@ types:
 
 ## Verification Checklist
 
-- [ ] All persistent types declared in YAML with field types and descriptions — [Type Declaration](#type-declaration)
-- [ ] Primary keys declared for every type
-- [ ] Named constraints enforce business rules — [Constraints](#constraints)
-- [ ] Relationships declared with explicit cascade rules — [Relationships](#relationships), [Cascade Rules](#cascade-rules)
-- [ ] Indexes declared for known query patterns — [Indexes](#indexes)
-- [ ] Cross-agent references use source_type annotation — [Cross-Agent References](#cross-agent-references)
-- [ ] Migrations have both up and down sections — [Migration Actions](#migration-actions)
-- [ ] Migrations are versioned and applied in order — [Migration Actions](#migration-actions)
-- [ ] Retention rules configured for time-series data — [Retention](#retention)
-- [ ] Agent config declares its storage requirements and names no engine — [Storage Configuration](#storage-configuration)
-- [ ] Schema version interface exposes GetSchemaVersion, RecordMigration, ValidateSchema — [Schema Version Interface](#schema-version-interface)
-- [ ] schema_migrations table tracks all applied migrations — [Migration Actions](#migration-actions), [Schema Version Interface](#schema-version-interface)
-- [ ] Data migrations follow the governance pipeline — [Schema Version Interface](#schema-version-interface), [`patterns/migration`](migration.md#migration-lifecycle-state-machine)
+- [ ] All persistent types declared in YAML with field types and descriptions — [Type Declaration](#type-declaration) <!-- wl:check persistent-types-declared-yaml-field-types -->
+- [ ] Primary keys declared for every type <!-- wl:check primary-keys-declared-type -->
+- [ ] Named constraints enforce business rules — [Constraints](#constraints) <!-- wl:check named-constraints-enforce-business-rules -->
+- [ ] Relationships declared with explicit cascade rules — [Relationships](#relationships), [Cascade Rules](#cascade-rules) <!-- wl:check relationships-declared-explicit-cascade-rules -->
+- [ ] Indexes declared for known query patterns — [Indexes](#indexes) <!-- wl:check indexes-declared-known-query-patterns-indexes -->
+- [ ] Cross-agent references use source_type annotation — [Cross-Agent References](#cross-agent-references) <!-- wl:check cross-agent-references-use-source-type -->
+- [ ] Migrations have both up and down sections — [Migration Actions](#migration-actions) <!-- wl:check migrations-up-down-sections-migration-actions -->
+- [ ] Migrations are versioned and applied in order — [Migration Actions](#migration-actions) <!-- wl:check migrations-versioned-applied-order-migration -->
+- [ ] Retention rules configured for time-series data — [Retention](#retention) <!-- wl:check retention-rules-configured-time-series-data -->
+- [ ] Agent config declares its storage requirements and names no engine — [Storage Configuration](#storage-configuration) <!-- wl:check agent-config-declares-storage-requirements-names -->
+- [ ] Schema version interface exposes GetSchemaVersion, RecordMigration, ValidateSchema — [Schema Version Interface](#schema-version-interface) <!-- wl:check schema-version-interface-exposes -->
+- [ ] schema_migrations table tracks all applied migrations — [Migration Actions](#migration-actions), [Schema Version Interface](#schema-version-interface) <!-- wl:check schema-migrations-table-tracks-applied -->
+- [ ] Data migrations follow the governance pipeline — [Schema Version Interface](#schema-version-interface), [`patterns/migration`](migration.md#migration-lifecycle-state-machine) <!-- wl:check data-migrations-follow-governance-pipeline -->

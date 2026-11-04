@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
@@ -1159,61 +1159,61 @@ Errors follow the protocol/spec `ErrorResponse` structure:
 
 ### Envelope & Transfer
 
-- [ ] All sync operations use the SyncEnvelope format — no raw change records on the wire — [SyncEnvelope](#syncenvelope), [Implementation Notes](#implementation-notes)
-- [ ] Delta batches carry a unique `batch_id` and are de-duplicated on the server — [DeltaBatch](#deltabatch), [Implementation Notes](#implementation-notes)
-- [ ] Applying the same DeltaBatch twice produces identical state (idempotency) — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
-- [ ] Envelope `direction` field is set correctly for push and pull operations — [SyncEnvelope](#syncenvelope)
-- [ ] Batch `record_count` matches the actual length of the `records` array — [DeltaBatch](#deltabatch)
-- [ ] Payloads exceeding `max_payload_size` are rejected with `SYNC_PAYLOAD_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration)
-- [ ] Batches exceeding `batch_size` are rejected with `SYNC_BATCH_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration)
+- [ ] All sync operations use the SyncEnvelope format — no raw change records on the wire — [SyncEnvelope](#syncenvelope), [Implementation Notes](#implementation-notes) <!-- wl:check sync-operations-use-syncenvelope-format -->
+- [ ] Delta batches carry a unique `batch_id` and are de-duplicated on the server — [DeltaBatch](#deltabatch), [Implementation Notes](#implementation-notes) <!-- wl:check delta-batches-carry-unique-batch-id -->
+- [ ] Applying the same DeltaBatch twice produces identical state (idempotency) — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes) <!-- wl:check applying-deltabatch-twice-produces-identical -->
+- [ ] Envelope `direction` field is set correctly for push and pull operations — [SyncEnvelope](#syncenvelope) <!-- wl:check envelope-direction-field-set-correctly-push -->
+- [ ] Batch `record_count` matches the actual length of the `records` array — [DeltaBatch](#deltabatch) <!-- wl:check batch-record-count-matches-actual-length -->
+- [ ] Payloads exceeding `max_payload_size` are rejected with `SYNC_PAYLOAD_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration) <!-- wl:check payloads-exceeding-max-payload-size-rejected -->
+- [ ] Batches exceeding `batch_size` are rejected with `SYNC_BATCH_TOO_LARGE` — [Error Codes](#error-codes), [Configuration](#configuration) <!-- wl:check batches-exceeding-batch-size-rejected-sync -->
 
 ### Conflict Resolution
 
-- [ ] Every sync declares a `conflict_strategy` — no implicit default at the wire level — [SyncEnvelope](#syncenvelope), [Design Principles](#design-principles)
-- [ ] Conflicts are detected when server version diverges from client's base version — [Sync State Machine](#sync-state-machine)
-- [ ] `last-write-wins` selects the record with the higher timestamp — [ConflictStrategy](#conflictstrategy)
-- [ ] `merge` combines non-overlapping fields and applies LWW to overlapping fields — [ConflictStrategy](#conflictstrategy), [Implementation Notes](#implementation-notes)
-- [ ] `manual-review` flags the conflict without applying either version — [ConflictStrategy](#conflictstrategy)
-- [ ] `server-wins` and `client-wins` deterministically select the correct side — [ConflictStrategy](#conflictstrategy)
-- [ ] All conflict resolutions are logged with full audit trail (ConflictResolution type) — [ConflictResolution](#conflictresolution), [Design Principles](#design-principles)
+- [ ] Every sync declares a `conflict_strategy` — no implicit default at the wire level — [SyncEnvelope](#syncenvelope), [Design Principles](#design-principles) <!-- wl:check sync-declares-conflict-strategy-no-implicit -->
+- [ ] Conflicts are detected when server version diverges from client's base version — [Sync State Machine](#sync-state-machine) <!-- wl:check conflicts-detected-when-server-version-diverges -->
+- [ ] `last-write-wins` selects the record with the higher timestamp — [ConflictStrategy](#conflictstrategy) <!-- wl:check last-write-wins-selects-record-higher -->
+- [ ] `merge` combines non-overlapping fields and applies LWW to overlapping fields — [ConflictStrategy](#conflictstrategy), [Implementation Notes](#implementation-notes) <!-- wl:check merge-combines-non-overlapping-fields-applies -->
+- [ ] `manual-review` flags the conflict without applying either version — [ConflictStrategy](#conflictstrategy) <!-- wl:check manual-review-flags-conflict-without-applying -->
+- [ ] `server-wins` and `client-wins` deterministically select the correct side — [ConflictStrategy](#conflictstrategy) <!-- wl:check server-wins-client-wins-deterministically-select -->
+- [ ] All conflict resolutions are logged with full audit trail (ConflictResolution type) — [ConflictResolution](#conflictresolution), [Design Principles](#design-principles) <!-- wl:check conflict-resolutions-logged-full-audit-trail -->
 
 ### Cursors & Versioning
 
-- [ ] Clients treat SyncCursor values as opaque — no client-side parsing — [SyncCursor](#synccursor), [Implementation Notes](#implementation-notes)
-- [ ] Expired cursors return `SYNC_CURSOR_EXPIRED` and require full re-sync — [SyncCursor](#synccursor), [Error Codes](#error-codes)
-- [ ] Pull responses return changes in causal order relative to the cursor — [Contracts](#contracts) `delta-pull`
-- [ ] Cursor advances atomically with batch application — [Implementation Notes](#implementation-notes)
+- [ ] Clients treat SyncCursor values as opaque — no client-side parsing — [SyncCursor](#synccursor), [Implementation Notes](#implementation-notes) <!-- wl:check clients-treat-synccursor-values-opaque -->
+- [ ] Expired cursors return `SYNC_CURSOR_EXPIRED` and require full re-sync — [SyncCursor](#synccursor), [Error Codes](#error-codes) <!-- wl:check expired-cursors-return-sync-cursor-expired -->
+- [ ] Pull responses return changes in causal order relative to the cursor — [Contracts](#contracts) `delta-pull` <!-- wl:check pull-responses-return-changes-causal-order -->
+- [ ] Cursor advances atomically with batch application — [Implementation Notes](#implementation-notes) <!-- wl:check cursor-advances-atomically-batch-application -->
 
 ### Offline Queue
 
-- [ ] Offline queue persists across app restarts — [Implementation Notes](#implementation-notes)
-- [ ] Queue entries are flushed in the order the queue's `flush_strategy` declares — [Contracts](#contracts), [OfflineQueueEntry](#offlinequeueentry)
-- [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity — [Error Codes](#error-codes), [Configuration](#configuration)
-- [ ] Failed flush attempts increment `attempts` on the queue entry — [OfflineQueueEntry](#offlinequeueentry)
+- [ ] Offline queue persists across app restarts — [Implementation Notes](#implementation-notes) <!-- wl:check offline-queue-persists-across-app-restarts -->
+- [ ] Queue entries are flushed in the order the queue's `flush_strategy` declares — [Contracts](#contracts), [OfflineQueueEntry](#offlinequeueentry) <!-- wl:check queue-entries-flushed-order-queues-flush -->
+- [ ] Queue depth limit is enforced — `SYNC_QUEUE_FULL` raised at capacity — [Error Codes](#error-codes), [Configuration](#configuration) <!-- wl:check queue-depth-limit-enforced-sync-queue -->
+- [ ] Failed flush attempts increment `attempts` on the queue entry — [OfflineQueueEntry](#offlinequeueentry) <!-- wl:check failed-flush-attempts-increment-attempts-queue -->
 
 ### State Machine
 
-- [ ] Sync operations follow the declared state machine transitions — [Sync State Machine](#sync-state-machine)
-- [ ] Events are emitted at each state transition (push/pull started, completed, failed) — [Sync State Machine](#sync-state-machine)
-- [ ] `sync.conflict.detected` fires for each conflict before resolution — [Sync State Machine](#sync-state-machine)
+- [ ] Sync operations follow the declared state machine transitions — [Sync State Machine](#sync-state-machine) <!-- wl:check sync-operations-follow-declared-state-machine -->
+- [ ] Events are emitted at each state transition (push/pull started, completed, failed) — [Sync State Machine](#sync-state-machine) <!-- wl:check events-emitted-state-transition-push-pull -->
+- [ ] `sync.conflict.detected` fires for each conflict before resolution — [Sync State Machine](#sync-state-machine) <!-- wl:check sync-conflict-detected-fires-conflict -->
 
 ### Data Sovereignty & Persistence
 
-- [ ] Offline data carries scope classification, encryption level, and TTL from the server — [OfflineDataRecord](#offlinedatarecord), [Design Principles](#design-principles)
-- [ ] Browser clients use IndexedDB only — no localStorage or sessionStorage for offline data — [Storage Engines by Client Type](#storage-engines-by-client-type)
-- [ ] Native clients use encrypted SQLite with platform Keychain/Keystore-derived keys — [Storage Engines by Client Type](#storage-engines-by-client-type), [Key Derivation for Client-Side Encryption](#key-derivation-for-client-side-encryption)
-- [ ] IoT devices do NOT persist data offline (memory-only during session) — [Storage Engines by Client Type](#storage-engines-by-client-type)
-- [ ] Public-scope data may be stored in cleartext; internal+ requires AES-256-GCM minimum — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
-- [ ] Confidential-scope data on native clients uses hardware-backed key storage where available — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
-- [ ] Restricted-scope data is NOT stored offline except with elevated session + secure enclave — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope)
-- [ ] TTL is enforced on every app launch/foreground: expired records are securely deleted — [TTL Enforcement](#ttl-enforcement)
-- [ ] Data minimization is applied server-side before including records in pull responses — [Data Minimization](#data-minimization)
+- [ ] Offline data carries scope classification, encryption level, and TTL from the server — [OfflineDataRecord](#offlinedatarecord), [Design Principles](#design-principles) <!-- wl:check offline-data-carries-scope-classification -->
+- [ ] Browser clients use IndexedDB only — no localStorage or sessionStorage for offline data — [Storage Engines by Client Type](#storage-engines-by-client-type) <!-- wl:check browser-clients-use-indexeddb-no-localstorage -->
+- [ ] Native clients use encrypted SQLite with platform Keychain/Keystore-derived keys — [Storage Engines by Client Type](#storage-engines-by-client-type), [Key Derivation for Client-Side Encryption](#key-derivation-for-client-side-encryption) <!-- wl:check native-clients-use-encrypted-sqlite-platform -->
+- [ ] IoT devices do NOT persist data offline (memory-only during session) — [Storage Engines by Client Type](#storage-engines-by-client-type) <!-- wl:check iot-devices-not-persist-data-offline -->
+- [ ] Public-scope data may be stored in cleartext; internal+ requires AES-256-GCM minimum — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope) <!-- wl:check public-scope-data-stored-cleartext-internal -->
+- [ ] Confidential-scope data on native clients uses hardware-backed key storage where available — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope) <!-- wl:check confidential-scope-data-native-clients-uses -->
+- [ ] Restricted-scope data is NOT stored offline except with elevated session + secure enclave — [Encryption-at-Rest by Scope](#encryption-at-rest-by-scope) <!-- wl:check restricted-scope-data-not-stored-offline -->
+- [ ] TTL is enforced on every app launch/foreground: expired records are securely deleted — [TTL Enforcement](#ttl-enforcement) <!-- wl:check ttl-enforced-app-launch-foreground-expired -->
+- [ ] Data minimization is applied server-side before including records in pull responses — [Data Minimization](#data-minimization) <!-- wl:check data-minimization-applied-server-side -->
 
 ### Revocation & Compliance
 
-- [ ] RevocationDirectives in pull responses are processed before sync is marked complete — [Implementation Notes](#implementation-notes)
-- [ ] `purge` directives securely delete the targeted offline records — [RevocationDirective](#revocationdirective), [TTL Enforcement](#ttl-enforcement)
-- [ ] `reclassify` directives re-encrypt or purge records that exceed the new scope's client capability — [Implementation Notes](#implementation-notes)
-- [ ] `re-encrypt` directives upgrade encryption on targeted records — [RevocationDirective](#revocationdirective)
-- [ ] Clients confirm revocation completion to the server on next sync (offline.revocation.completed event) — [TTL Enforcement](#ttl-enforcement)
-- [ ] Unconfirmed revocations past the deadline trigger `OFFLINE_REVOCATION_OVERDUE` and block further pulls — [Error Codes](#error-codes), [Implementation Notes](#implementation-notes)
+- [ ] RevocationDirectives in pull responses are processed before sync is marked complete — [Implementation Notes](#implementation-notes) <!-- wl:check revocationdirectives-pull-responses-processed -->
+- [ ] `purge` directives securely delete the targeted offline records — [RevocationDirective](#revocationdirective), [TTL Enforcement](#ttl-enforcement) <!-- wl:check purge-directives-securely-delete-targeted -->
+- [ ] `reclassify` directives re-encrypt or purge records that exceed the new scope's client capability — [Implementation Notes](#implementation-notes) <!-- wl:check reclassify-directives-re-encrypt-purge-records -->
+- [ ] `re-encrypt` directives upgrade encryption on targeted records — [RevocationDirective](#revocationdirective) <!-- wl:check re-encrypt-directives-upgrade-encryption -->
+- [ ] Clients confirm revocation completion to the server on next sync (offline.revocation.completed event) — [TTL Enforcement](#ttl-enforcement) <!-- wl:check clients-confirm-revocation-completion-server -->
+- [ ] Unconfirmed revocations past the deadline trigger `OFFLINE_REVOCATION_OVERDUE` and block further pulls — [Error Codes](#error-codes), [Implementation Notes](#implementation-notes) <!-- wl:check unconfirmed-revocations-past-deadline-trigger -->

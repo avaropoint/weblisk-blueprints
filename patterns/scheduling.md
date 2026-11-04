@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scheduling
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/messaging, patterns/state-machine, patterns/storage]
 platform: any
 tier: free
@@ -717,19 +717,19 @@ dispatches a fresh execution with attempt = 1.
 
 ## Verification Checklist
 
-- [ ] Schedule registration validates cron expression syntax before persisting — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling)
-- [ ] Schedule registration rejects an invalid IANA identifier with `INVALID_TIMEZONE`, and gives a schedule that omits its timezone the configured fallback with a validation warning — [Error Handling](#error-handling), [Configuration](#configuration)
-- [ ] One-time schedules require `fire_at` and transition to `expired` after execution — [One-Time Schedules](#one-time-schedules), [Schedule Lifecycle](#schedule-lifecycle)
-- [ ] Recurring schedules compute `next_fire` in the declared timezone, including DST transitions — [Timezone Evaluation](#timezone-evaluation)
-- [ ] Overlap policy `skip-if-running` prevents dispatch when a pending execution exists — [Types](#types), [Evaluation Flow](#evaluation-flow)
-- [ ] Overlap policy `queue` respects `max_queue_depth` and rejects when full — [Configuration](#configuration), [Implementation Notes](#implementation-notes)
-- [ ] Missed-tick `fire-once` dispatches exactly one catch-up execution — [Types](#types), [Evaluation Flow](#evaluation-flow)
-- [ ] Missed-tick `fire-all` dispatches one execution per missed tick in order — [Types](#types), [Evaluation Flow](#evaluation-flow)
-- [ ] Missed-tick `skip` discards all missed ticks without dispatch — [Types](#types), [Evaluation Flow](#evaluation-flow)
-- [ ] Distributed lock guarantees only one executor instance dispatches per tick — [Design Principles](#design-principles), [Evaluation Flow](#evaluation-flow)
-- [ ] Lock TTL exceeds tick interval to prevent mid-tick expiration — [Implementation Notes](#implementation-notes), [Configuration](#configuration)
-- [ ] `schedule.fired` event emitted on every successful dispatch — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow)
-- [ ] `schedule.skipped` event emitted with reason and policy on every skip — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow)
-- [ ] `schedule.expired` event emitted when schedule reaches `expires_at` — [Contracts](#contracts), [Schedule Lifecycle](#schedule-lifecycle)
-- [ ] Failed executions retry with backoff up to `max_attempts` before emitting `schedule.failed` — [Retry Strategy](#retry-strategy), [Evaluation Flow](#evaluation-flow)
-- [ ] Schedule lifecycle transitions match the declared state machine (no illegal transitions) — [Schedule Lifecycle](#schedule-lifecycle)
+- [ ] Schedule registration validates cron expression syntax before persisting — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling) <!-- wl:check schedule-registration-validates-cron-expression -->
+- [ ] Schedule registration rejects an invalid IANA identifier with `INVALID_TIMEZONE`, and gives a schedule that omits its timezone the configured fallback with a validation warning — [Error Handling](#error-handling), [Configuration](#configuration) <!-- wl:check schedule-registration-rejects-invalid-iana -->
+- [ ] One-time schedules require `fire_at` and transition to `expired` after execution — [One-Time Schedules](#one-time-schedules), [Schedule Lifecycle](#schedule-lifecycle) <!-- wl:check time-schedules-require-fire-transition-expired -->
+- [ ] Recurring schedules compute `next_fire` in the declared timezone, including DST transitions — [Timezone Evaluation](#timezone-evaluation) <!-- wl:check recurring-schedules-compute-next-fire-declared -->
+- [ ] Overlap policy `skip-if-running` prevents dispatch when a pending execution exists — [Types](#types), [Evaluation Flow](#evaluation-flow) <!-- wl:check overlap-policy-skip-running-prevents-dispatch -->
+- [ ] Overlap policy `queue` respects `max_queue_depth` and rejects when full — [Configuration](#configuration), [Implementation Notes](#implementation-notes) <!-- wl:check overlap-policy-queue-respects-max-queue -->
+- [ ] Missed-tick `fire-once` dispatches exactly one catch-up execution — [Types](#types), [Evaluation Flow](#evaluation-flow) <!-- wl:check missed-tick-fire-once-dispatches-exactly -->
+- [ ] Missed-tick `fire-all` dispatches one execution per missed tick in order — [Types](#types), [Evaluation Flow](#evaluation-flow) <!-- wl:check missed-tick-fire-dispatches-execution -->
+- [ ] Missed-tick `skip` discards all missed ticks without dispatch — [Types](#types), [Evaluation Flow](#evaluation-flow) <!-- wl:check missed-tick-skip-discards-missed-ticks -->
+- [ ] Distributed lock guarantees only one executor instance dispatches per tick — [Design Principles](#design-principles), [Evaluation Flow](#evaluation-flow) <!-- wl:check distributed-lock-guarantees-executor-instance -->
+- [ ] Lock TTL exceeds tick interval to prevent mid-tick expiration — [Implementation Notes](#implementation-notes), [Configuration](#configuration) <!-- wl:check lock-ttl-exceeds-tick-interval-prevent -->
+- [ ] `schedule.fired` event emitted on every successful dispatch — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow) <!-- wl:check schedule-fired-event-emitted-successful-dispatch -->
+- [ ] `schedule.skipped` event emitted with reason and policy on every skip — [Contracts](#contracts), [Evaluation Flow](#evaluation-flow) <!-- wl:check schedule-skipped-event-emitted-reason-policy -->
+- [ ] `schedule.expired` event emitted when schedule reaches `expires_at` — [Contracts](#contracts), [Schedule Lifecycle](#schedule-lifecycle) <!-- wl:check schedule-expired-event-emitted-when-schedule -->
+- [ ] Failed executions retry with backoff up to `max_attempts` before emitting `schedule.failed` — [Retry Strategy](#retry-strategy), [Evaluation Flow](#evaluation-flow) <!-- wl:check failed-executions-retry-backoff-up-max -->
+- [ ] Schedule lifecycle transitions match the declared state machine (no illegal transitions) — [Schedule Lifecycle](#schedule-lifecycle) <!-- wl:check schedule-lifecycle-transitions-match-declared -->

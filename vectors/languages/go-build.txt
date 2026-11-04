@@ -1,0 +1,4 @@
+# demo-hub/internal/p
+internal/p/p.go:3:23: undefined: undefinedThing
+internal/p/p.go:6:6: T redeclared in this block
+	internal/p/p.go:5:6: other declaration of T

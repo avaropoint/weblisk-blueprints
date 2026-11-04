@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 3.0.1
+version: 3.0.2
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -566,19 +566,19 @@ revision records:
 
 ## Verification Checklist
 
-- [ ] Version field follows semantic versioning — [Semantic Versioning Rules](#semantic-versioning-rules)
-- [ ] MAJOR changes include migration steps — [Semantic Versioning Rules](#semantic-versioning-rules), [Zero-Downtime Transition](#zero-downtime-transition)
-- [ ] MINOR changes are backward-compatible — [Semantic Versioning Rules](#semantic-versioning-rules)
-- [ ] PATCH changes are non-functional — [Semantic Versioning Rules](#semantic-versioning-rules)
-- [ ] Revision records are created for every version change — [Blueprint Revision Record](#blueprint-revision-record)
-- [ ] Revision records include complete changelog — [Revision Fields](#revision-fields)
-- [ ] Blueprint hash is computed and stored per revision — [Revision Fields](#revision-fields), [Implementation Notes](#implementation-notes)
-- [ ] Migration steps execute in order — [Migration Execution](#migration-execution)
-- [ ] Failed migrations trigger automatic rollback — [Migration Execution](#migration-execution), [Automatic Rollback](#automatic-rollback)
-- [ ] Post-migration validation runs after migration — [Migration Execution](#migration-execution)
-- [ ] Data migrations follow the governance pipeline — [Implementation Notes](#implementation-notes)
-- [ ] Manual rollback to any previous version works — [Manual Rollback](#manual-rollback)
-- [ ] Revision history is retained indefinitely — [Retention](#retention)
-- [ ] Compatibility matrix validates cross-blueprint dependencies — [Compatibility Matrix](#compatibility-matrix)
-- [ ] Zero-downtime transition — agent serves requests during update — [Zero-Downtime Transition](#zero-downtime-transition), [Transition States](#transition-states)
-- [ ] Version transition events are emitted to the bus — [Contracts](#contracts), [Zero-Downtime Transition](#zero-downtime-transition)
+- [ ] Version field follows semantic versioning — [Semantic Versioning Rules](#semantic-versioning-rules) <!-- wl:check version-field-follows-semantic-versioning -->
+- [ ] MAJOR changes include migration steps — [Semantic Versioning Rules](#semantic-versioning-rules), [Zero-Downtime Transition](#zero-downtime-transition) <!-- wl:check major-changes-include-migration-steps-semantic -->
+- [ ] MINOR changes are backward-compatible — [Semantic Versioning Rules](#semantic-versioning-rules) <!-- wl:check minor-changes-backward-compatible-semantic -->
+- [ ] PATCH changes are non-functional — [Semantic Versioning Rules](#semantic-versioning-rules) <!-- wl:check patch-changes-non-functional-semantic-versioning -->
+- [ ] Revision records are created for every version change — [Blueprint Revision Record](#blueprint-revision-record) <!-- wl:check revision-records-created-version-change -->
+- [ ] Revision records include complete changelog — [Revision Fields](#revision-fields) <!-- wl:check revision-records-include-complete-changelog -->
+- [ ] Blueprint hash is computed and stored per revision — [Revision Fields](#revision-fields), [Implementation Notes](#implementation-notes) <!-- wl:check blueprint-hash-computed-stored-per-revision -->
+- [ ] Migration steps execute in order — [Migration Execution](#migration-execution) <!-- wl:check migration-steps-execute-order-migration -->
+- [ ] Failed migrations trigger automatic rollback — [Migration Execution](#migration-execution), [Automatic Rollback](#automatic-rollback) <!-- wl:check failed-migrations-trigger-automatic-rollback -->
+- [ ] Post-migration validation runs after migration — [Migration Execution](#migration-execution) <!-- wl:check post-migration-validation-runs-after-migration -->
+- [ ] Data migrations follow the governance pipeline — [Implementation Notes](#implementation-notes) <!-- wl:check data-migrations-follow-governance-pipeline -->
+- [ ] Manual rollback to any previous version works — [Manual Rollback](#manual-rollback) <!-- wl:check manual-rollback-previous-version-works-manual -->
+- [ ] Revision history is retained indefinitely — [Retention](#retention) <!-- wl:check revision-history-retained-indefinitely-retention -->
+- [ ] Compatibility matrix validates cross-blueprint dependencies — [Compatibility Matrix](#compatibility-matrix) <!-- wl:check compatibility-matrix-validates-cross-blueprint -->
+- [ ] Zero-downtime transition — agent serves requests during update — [Zero-Downtime Transition](#zero-downtime-transition), [Transition States](#transition-states) <!-- wl:check zero-downtime-transition-agent-serves-requests -->
+- [ ] Version transition events are emitted to the bus — [Contracts](#contracts), [Zero-Downtime Transition](#zero-downtime-transition) <!-- wl:check version-transition-events-emitted-bus-contracts -->

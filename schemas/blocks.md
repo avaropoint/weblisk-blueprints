@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.1
+version: 1.3.0
 noun: block
 ---
 # Schema: Blocks
@@ -206,6 +206,65 @@ blocks:
     family: mapping
 ```
 
+## Checks
+
+A `verifies` entry is a **check**: it names the criteria it settles (`covers`)
+and how they are settled (`check`). A checklist item's `wl:check` comment is
+today's spelling of one ([`schemas/common`](common.md#every-item-has-a-frozen-id)),
+with its `check` left `translated`; a `verifies` entry with the same id, in
+the same file, declares its kind and data.
+
+`check` is a closed vocabulary, the definition `check-kind`. The engine
+implements each kind once, as an interpreter, and holds no check of its own: a
+kind is a contract with code, as a capability is ([`schemas/kinds`](kinds.md#the-model-open-kinds-closed-capabilities)).
+The corpus writes every check of a kind as data, under the key that names the
+kind, in the shape that kind's definition gives. A name the vocabulary does not
+hold is refused by `checks/check-kinds.py`, not read as a new kind.
+
+| Kind | Run against | The corpus writes | The executor | Fits |
+|---|---|---|---|---|
+| `translated` | a component | nothing beyond the criterion | runs the test the translate step wrote from the criterion alone, at the path and with the command the language declares | anything not yet written as data; the default |
+| `exchange` | a component | requests in order, the identity and token each is made with, and what each answer must hold (`check-exchange`) | starts the component sealed, sends them, compares | refusals, scope, step-up, replay, routing |
+| `vector` | a component | a published vector file, which entries, and the one request each entry is put through (`check-vector`) | sends the request once per entry, filled from it | signatures, canonical forms, fixed-form statements |
+| `join` | a component | what to start beside it and what to observe (`check-join`) | starts them, observes registration, lease and readiness | joining a tenant; L4-01 to L4-04 |
+| `record` | a component | an exchange, then the record that must follow it (`check-record`) | runs it, reads the audit route or the log lines | evidence |
+| `topology` | a component | instances, what they share, and acts on them (`check-topology`) | arranges them, acts, then runs any steps | `jti` across instances, durability across a restart, starting unattended |
+| `structure` | a component's source | a query the language blueprint declares by name, and what it must find (`check-structure`) | runs the language's query over the parse tree | form; the code's shape |
+| `walk-validates`, `walk-refuses`, `vectors-agree`, `corpus-check`, `neutrality-derived` | the corpus | an assertion | `checks/` or a walker | the corpus's own rules |
+
+Three fields every component check may carry:
+
+- **`applies_to`** names the components it is run against: a component kind,
+  or a selector, from the `component_kinds` block of
+  [`schemas/kinds`](kinds.md#component-kinds). Absent, the check runs against
+  every component that owes what it covers. A check addressed to an agent is
+  never a failure of an orchestrator.
+- **`live`** is `safe` where the check may run against a running tenant, and
+  `sealed-only`, the default, where it changes state or needs fixtures only a
+  build's sealed run has.
+- **Placeholders.** A string in a request or an expectation may hold
+  `${name}`: a value an earlier step captured; `${now}`; `${token}`, the token
+  the step's `token` gives; `${self/<pointer>}`, the manifest the component
+  under test describes itself with; a fixture of
+  [`architecture/testing`](../architecture/testing.md#test-fixtures) as
+  `${fixture/<name>/<pointer>}`, an identity's `public_key` derived from its
+  seed; or, in a `vector` check, the entry as `${v/<pointer>}`. A string that
+  is one placeholder and nothing else is replaced by the value, whatever its
+  type. A value that resolves to nothing is a fault of the check, reported as
+  such, never sent empty.
+- **The orchestrator under test.** `start.orchestrator: mock` starts the mock
+  unless the component under test is of a kind that holds the directory
+  ([`schemas/kinds`](kinds.md#component-kinds): it does not register and runs
+  with nothing), which is instead started with the `test-orchestrator`
+  fixture's key, so that a token the harness mints verifies at either.
+
+A check whose executor cannot read what it must judge (a pattern it cannot
+resolve, a query the language does not declare, a component that will not
+start) reports **unread**, never passed and never failed
+([`architecture/testing`](../architecture/testing.md), "A check that cannot
+read the artifact MUST say so"). Examples of every kind, and one invalid
+check per rule, are [`vectors/check-kinds/`](../vectors/check-kinds/README.md).
+
 ## Definitions
 
 ```yaml
@@ -251,8 +310,198 @@ defs:
     properties:
       id: {$ref: "#/$defs/part-id"}
       covers: {type: array, minItems: 1, items: {$ref: "#/$defs/ref"}}
-      check: {type: string, description: "The kind of check that proves it."}
+      check: {type: string, description: "The kind of check that proves it: a value of check-kind; translated when absent."}
       assertion: {type: string, minLength: 1}
+      applies_to: {type: array, minItems: 1, items: {type: string, pattern: "^[a-z][a-z0-9-]*$"}, description: "The components it is run against: a component kind schemas/kinds declares, or a selector its component_kinds block declares. Every component the requirement is owed by, when absent."}
+      live: {enum: [safe, sealed-only], default: sealed-only, description: "Whether it may run against a running tenant (safe) or only in a build's sealed run."}
+      exchange: {$ref: "#/$defs/check-exchange"}
+      vector: {$ref: "#/$defs/check-vector"}
+      join: {$ref: "#/$defs/check-join"}
+      record: {$ref: "#/$defs/check-record"}
+      topology: {$ref: "#/$defs/check-topology"}
+      structure: {$ref: "#/$defs/check-structure"}
+    allOf:
+      - {if: {required: [check], properties: {check: {const: exchange}}}, then: {required: [exchange]}}
+      - {if: {required: [check], properties: {check: {const: vector}}}, then: {required: [vector]}}
+      - {if: {required: [check], properties: {check: {const: join}}}, then: {required: [join]}}
+      - {if: {required: [check], properties: {check: {const: record}}}, then: {required: [record]}}
+      - {if: {required: [check], properties: {check: {const: topology}}}, then: {required: [topology]}}
+      - {if: {required: [check], properties: {check: {const: structure}}}, then: {required: [structure]}}
+  check-kind:
+    description: "The closed vocabulary of check kinds. Each is implemented once, by an interpreter in the engine, and the corpus writes every check of it as data."
+    anyOf:
+      - {$ref: "#/$defs/check-kind-component"}
+      - {$ref: "#/$defs/check-kind-corpus"}
+  check-kind-component:
+    description: "Kinds run against a tenant's component. translated is settled by a test the translate step writes from the criterion alone; the rest by the data under the key of the kind's name."
+    enum: [translated, exchange, vector, join, record, topology, structure]
+  check-kind-corpus:
+    description: "Kinds run against the corpus itself, by checks/ or a walker."
+    enum: [walk-validates, walk-refuses, vectors-agree, corpus-check, neutrality-derived]
+  duration-literal: {type: string, pattern: "^[0-9]+(ms|s|m)$"}
+  json-pointer: {type: string, pattern: "^(/[^/]*)*$"}
+  check-start:
+    type: object
+    description: "How the component under test is started. Absent: alone, sealed, with no orchestrator, standard input closed."
+    unevaluatedProperties: false
+    properties:
+      orchestrator: {enum: [none, mock, built], default: none, description: "none; the mock architecture/testing specifies, built as a component; or the orchestrator tree this build is judged against."}
+      with: {type: array, items: {$ref: "#/$defs/ref"}, description: "Other components started first, each from the tree it was accepted with, in the order the services table gives."}
+      keys: {type: string, description: "An identity fixture of architecture/testing whose key the component is started with, in place of a generated one."}
+      mock_agent: {type: object, additionalProperties: {}, description: "Responses the mock agent of architecture/testing gives, keyed by action; a value is the TaskResult or payload it answers."}
+      env: {type: object, additionalProperties: {type: string}, description: "Variables added to the clean start environment."}
+  exchange-request:
+    type: object
+    unevaluatedProperties: false
+    anyOf: [{required: [method]}, {required: [endpoint]}, {required: [replay]}]
+    properties:
+      method: {enum: [GET, HEAD, POST, PUT, PATCH, DELETE]}
+      endpoint: {const: each, description: "The method and path of each endpoint the check's for_each selects, its path parameters filled with conformance-probe."}
+      replay: {$ref: "#/$defs/part-id", description: "Send again the exact bytes an earlier step with this id sent."}
+      path: {type: string, pattern: "^/", description: "The path as sent; a placeholder ${name} is filled from an earlier capture or a fixture."}
+      operation: {$ref: "#/$defs/ref", description: "An operation a serves block or Endpoints table declares; its method and path, in place of path."}
+      listener: {enum: [public, admin], default: public}
+      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, captured], default: none, description: "The bearer token. own: a token the harness mints for the as identity under the test-orchestrator fixture's key; expired: the same, past exp; bad-signature: the same, its signature broken; wrong-type: one of a type the route does not take; channel-self and channel-other: a channel token scoped to the component under test, or to another target; captured: the value an earlier step captured as token."}
+      headers: {type: object, additionalProperties: {type: string}}
+      body: {description: "Any JSON value; strings may hold placeholders."}
+      body_bytes: {type: integer, minimum: 0, description: "A body of this many bytes, in place of body."}
+      sign:
+        type: object
+        required: [over, into]
+        unevaluatedProperties: false
+        description: "Sign part of the body with the as identity's key, as protocol/identity signs: over the canonical form of the value at over, encoded as the field at into declares."
+        properties:
+          over: {$ref: "#/$defs/json-pointer"}
+          members: {type: array, minItems: 1, items: {type: string}, description: "Sign the object of only these members of the value at over."}
+          into: {$ref: "#/$defs/json-pointer"}
+          encoding: {enum: [base64url, hex], default: base64url}
+          with: {enum: [own, other-key, other-bytes], default: own, description: "own key over those bytes; another fixture's key; or the own key over other bytes."}
+          timestamp: {$ref: "#/$defs/json-pointer", description: "Where the signing instant is written."}
+          age: {$ref: "#/$defs/duration-literal", description: "How long before now the timestamp says; 0s when absent."}
+  exchange-expect:
+    type: object
+    unevaluatedProperties: false
+    properties:
+      status: {oneOf: [{type: integer}, {type: array, minItems: 1, items: {type: integer}}]}
+      status_not: {type: array, minItems: 1, items: {type: integer}}
+      code: {type: string, pattern: "^[A-Z][A-Z0-9_]*$", description: "The registered error code the body carries."}
+      json: {type: boolean, description: "The body is JSON."}
+      has: {type: array, items: {$ref: "#/$defs/json-pointer"}, description: "Members the body holds."}
+      lacks: {type: array, items: {$ref: "#/$defs/json-pointer"}, description: "Members the body does not hold."}
+      only: {type: array, items: {type: string}, description: "The body's top-level members are exactly these."}
+      equals: {type: object, additionalProperties: {}, description: "JSON pointer to the value found there."}
+      matches: {type: object, additionalProperties: {type: string}, description: "JSON pointer to a regular expression its string value matches."}
+      mentions: {type: array, items: {type: string}, description: "The error member's text holds at least one of these words."}
+  exchange-step:
+    type: object
+    required: [request, expect]
+    unevaluatedProperties: false
+    properties:
+      id: {$ref: "#/$defs/part-id"}
+      as: {type: string, description: "An identity fixture of architecture/testing, or anonymous."}
+      instance: {type: string, description: "The instance it is sent to, in a topology check; or a component started beside it, by name."}
+      repeat: {type: integer, minimum: 1, description: "Sent this many times at once."}
+      request: {$ref: "#/$defs/exchange-request"}
+      expect: {$ref: "#/$defs/exchange-expect"}
+      capture: {type: object, additionalProperties: {$ref: "#/$defs/json-pointer"}, description: "A name for a value of the response, by pointer, for later steps' placeholders."}
+  check-exchange:
+    type: object
+    required: [steps]
+    unevaluatedProperties: false
+    properties:
+      start: {$ref: "#/$defs/check-start"}
+      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint declares, or per one whose auth requires a token."}
+      steps: {type: array, minItems: 1, items: {$ref: "#/$defs/exchange-step"}}
+  check-vector:
+    type: object
+    required: [file, entries, step]
+    unevaluatedProperties: false
+    properties:
+      file: {type: string, pattern: "^vectors/", description: "A published vector file."}
+      entries: {$ref: "#/$defs/json-pointer", description: "Where its list of entries is."}
+      where: {type: object, additionalProperties: {}, description: "Only entries whose member at each pointer has this value."}
+      start: {$ref: "#/$defs/check-start"}
+      step: {$ref: "#/$defs/exchange-step", description: "Sent once per entry; ${v/<pointer>} reads the entry."}
+  check-join:
+    type: object
+    required: [observe]
+    unevaluatedProperties: false
+    properties:
+      start: {$ref: "#/$defs/check-start"}
+      observe:
+        type: array
+        minItems: 1
+        items: {enum: [listens, no-exit, registered, listed, lease-current, lease-renewed, readyz-agrees]}
+        description: "listens: it binds its port; no-exit: it does not exit; registered: it holds an agent_id and a token; listed: the orchestrator's directory lists it; lease-current: its lease_state is ready, or not_ready where its blueprint allows, never unknown; lease-renewed: it renews within a third of its duration; readyz-agrees: its /readyz answers as its last renewal did."
+      within: {oneOf: [{$ref: "#/$defs/duration-literal"}, {const: lease}], description: "How long each observation may take; lease is one lease duration."}
+      steps: {type: array, items: {$ref: "#/$defs/exchange-step"}, description: "Sent once joined."}
+  check-record:
+    type: object
+    required: [steps, record]
+    unevaluatedProperties: false
+    properties:
+      start: {$ref: "#/$defs/check-start"}
+      steps: {type: array, minItems: 1, items: {$ref: "#/$defs/exchange-step"}}
+      record:
+        type: object
+        required: [source, match]
+        unevaluatedProperties: false
+        properties:
+          source: {enum: [audit, log, event, trace]}
+          read: {$ref: "#/$defs/exchange-request", description: "How the record is read where it is served (audit); a log is read from the process's standard output."}
+          match: {type: object, additionalProperties: {}, description: "JSON pointer, in one record, to the value it must hold."}
+          count: {type: integer, minimum: 0, description: "Exactly this many records match; at least one when absent."}
+          within: {$ref: "#/$defs/duration-literal"}
+  check-topology:
+    type: object
+    required: [instances, acts]
+    unevaluatedProperties: false
+    properties:
+      instances:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required: [name]
+          unevaluatedProperties: false
+          properties:
+            name: {$ref: "#/$defs/part-id"}
+            shares: {type: array, items: {type: string}, description: "Stores it shares with the instances that name the same store."}
+            stdin: {enum: [closed, terminal], default: closed}
+            env: {type: object, additionalProperties: {type: string}}
+      acts:
+        type: array
+        minItems: 1
+        items:
+          type: object
+          required: [act]
+          unevaluatedProperties: false
+          properties:
+            act: {enum: [start, stop, restart, kill, make-unreadable, wait]}
+            instance: {type: string}
+            store: {type: string}
+            for: {$ref: "#/$defs/duration-literal"}
+            expect: {enum: [ready, live, exits, refuses-start], description: "What the act must lead to."}
+            within: {$ref: "#/$defs/duration-literal"}
+      steps: {type: array, items: {$ref: "#/$defs/exchange-step"}}
+  check-structure:
+    type: object
+    required: [query, expect]
+    unevaluatedProperties: false
+    properties:
+      query: {$ref: "#/$defs/part-id", description: "A query the language blueprint's structure block declares; a language that declares none leaves the check unsettled for that language."}
+      args: {type: object, additionalProperties: {type: [string, array]}, description: "Values for the query's ${name} placeholders."}
+      scope: {enum: [component, module, contract, outside-contract], default: component}
+      expect:
+        oneOf:
+          - {enum: [none, some]}
+          - type: object
+            minProperties: 1
+            maxProperties: 1
+            unevaluatedProperties: false
+            properties:
+              includes: {type: array, minItems: 1, items: {type: string}, description: "The captured values include every one of these."}
+              subset_of: {$ref: "#/$defs/part-id", description: "Every captured value is one another query captures."}
   field:
     type: object
     required: [type, description]

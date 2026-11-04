@@ -506,6 +506,189 @@ for id in $lost; do
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
 
+# Criterion ids are frozen by checks/criterion-ids.json. A copy of
+# languages/go.md with its first item's id removed, one with that id renamed,
+# and the register with that id retired while the file still writes it, must
+# each be reported with exactly the faults that change makes.
+first=$(python3 -c '
+import re, sys
+t = open("languages/go.md", encoding="utf-8").read()
+print(re.search(r"^- \[ \] .*<!-- wl:check ([a-z0-9-]+) -->$", t, re.M).group(1))')
+python3 - "$tmp" "$first" <<'PY'
+import json, sys
+tmp, cid = sys.argv[1], sys.argv[2]
+t = open("languages/go.md", encoding="utf-8").read()
+mark = f" <!-- wl:check {cid} -->"
+assert t.count(mark) == 1
+open(tmp + "/go-noid.md", "w", encoding="utf-8").write(t.replace(mark, ""))
+open(tmp + "/go-renamed.md", "w", encoding="utf-8").write(t.replace(mark, f" <!-- wl:check {cid}-x -->"))
+r = json.load(open("checks/criterion-ids.json", encoding="utf-8"))
+r["files"]["languages/go.md"].remove(cid)
+r.setdefault("retired", {}).setdefault("languages/go.md", []).append(cid)
+json.dump(r, open(tmp + "/register-retired.json", "w", encoding="utf-8"))
+PY
+expect 1 "requirement-ids control: an item whose id was removed fails" python3 checks/requirement-ids.py --file "$tmp/go-noid.md" --as languages/go.md
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "a checklist item with no id" "$tmp/out" && grep -q "registered id '$first' is no longer written" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the item and its lost id"
+else
+	echo "FAIL requirement-ids control: want exactly the item with no id and its lost id"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "requirement-ids control: an id renamed in place fails" python3 checks/requirement-ids.py --file "$tmp/go-renamed.md" --as languages/go.md
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "registered id '$first' is no longer written" "$tmp/out" && grep -q "id '$first-x' is not in the register" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the old id lost and the new one unregistered"
+else
+	echo "FAIL requirement-ids control: want exactly the old id lost and the new one unregistered"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "requirement-ids control: a retired id written again fails" python3 checks/requirement-ids.py --file languages/go.md --as languages/go.md --register "$tmp/register-retired.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "id '$first' was retired and is never given again" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the reused id"
+else
+	echo "FAIL requirement-ids control: want exactly the reused id"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Component kinds and their cardinality, declared once in schemas/kinds.md,
+# against the services table; a copy without fabric-service must be reported
+# with exactly that service.
+expect 0 "component-kinds: every service is a kind with a count" python3 checks/component-kinds.py
+grep -v '^    fabric-service: ' schemas/kinds.md >"$tmp/kinds.md"
+expect 1 "component-kinds control: a kinds.md without fabric-service fails" python3 checks/component-kinds.py --kinds "$tmp/kinds.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "service 'fabric-service' is in the services table and is no component kind" "$tmp/out"; then
+	echo "ok   component-kinds control: exactly one finding, fabric-service"
+else
+	echo "FAIL component-kinds control: want exactly one finding, fabric-service"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every declared check is data of a kind schemas/blocks declares; the kind
+# vectors each give exactly their fault. A copy of the orchestrator naming a
+# structure query no language declares, and a copy of the valid vectors with
+# no topology example, must each be reported with exactly that one finding.
+expect 0 "check-kinds: every verifies entry is a declared kind with valid data" python3 checks/check-kinds.py
+expect 0 "check-kinds vectors: every example passes and every invalid case gives its fault" python3 checks/check-kinds.py --vectors
+sed 's/structure: {query: path-literal, /structure: {query: path-literals, /' architecture/orchestrator.md >"$tmp/orchestrator.md"
+expect 1 "check-kinds control: a check naming an undeclared query fails" python3 checks/check-kinds.py --file "$tmp/orchestrator.md" --as architecture/orchestrator.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "names structure query 'path-literals', which no language declares" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the undeclared query"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the undeclared query"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+python3 - "$tmp/testing.md" <<'PY'
+import re, sys
+t = open("architecture/testing.md", encoding="utf-8").read()
+m = re.search(r"^  - id: l4-04-standalone\n.*?(?=^  - id: |^```)", t, re.S | re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "check-kinds control: a suite without L4-04's check fails" python3 checks/check-kinds.py --file "$tmp/testing.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "conformance test L4-04 has no check" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, L4-04"
+else
+	echo "FAIL check-kinds control: want exactly one finding, L4-04"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
+python3 - "$tmp/ck/valid.yaml" <<'PY'
+import sys, yaml
+v = yaml.safe_load(open("vectors/check-kinds/valid.yaml", encoding="utf-8"))
+v["verifies"] = [e for e in v["verifies"] if e.get("check") != "topology"]
+yaml.safe_dump(v, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+expect 1 "check-kinds control: vectors with no topology example fail" python3 checks/check-kinds.py --vectors "$tmp/ck"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "no example of kind 'topology'" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the missing kind"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the missing kind"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every language declares its layout, module, toolchain, diagnostics and
+# tests, and reads its own toolchain's real output as vectors/languages
+# expects. A copy of rust.md without its diagnostics block, and a copy of
+# go.md that has lost its pattern for an undefined name, must each be
+# reported with exactly that one finding.
+expect 0 "language-blocks: every language declares how it is built, read and tested" python3 checks/language-blocks.py
+python3 - "$tmp/rust.md" <<'PY'
+import re, sys
+t = open("languages/rust.md", encoding="utf-8").read()
+m = re.search(r"^```yaml\ndiagnostics:\n.*?^```\n", t, re.S | re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "language-blocks control: a language without diagnostics fails" python3 checks/language-blocks.py --file "$tmp/rust.md" --as rust
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^rust: no diagnostics block$" "$tmp/out"; then
+	echo "ok   language-blocks control: exactly one finding, rust's diagnostics"
+else
+	echo "FAIL language-blocks control: want exactly one finding, rust's diagnostics"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+grep -v "kind: undefined, pattern: 'undefined:" languages/go.md >"$tmp/go.md"
+expect 1 "language-blocks control: a grammar that misreads its vectors fails" python3 checks/language-blocks.py --file "$tmp/go.md" --as go
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^go: diagnostics read " "$tmp/out"; then
+	echo "ok   language-blocks control: exactly one finding, go's diagnostics"
+else
+	echo "FAIL language-blocks control: want exactly one finding, go's diagnostics"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# No type name is declared by two blueprints beyond the known list, which can
+# only shrink; a known list without User must report exactly User, and one
+# naming a type that no longer collides must report exactly it.
+expect 0 "type-collisions: every type name declared twice is known, none new" python3 checks/type-collisions.py
+python3 - "$tmp" <<'PY'
+import json, sys
+k = json.load(open("checks/type-collisions.json", encoding="utf-8"))
+k["known"].pop("User")
+json.dump(k, open(sys.argv[1] + "/tc-new.json", "w"))
+k = json.load(open("checks/type-collisions.json", encoding="utf-8"))
+k["known"]["WorkflowPhase"] = ["patterns/workflow.md", "protocol/types.md"]
+json.dump(k, open(sys.argv[1] + "/tc-gone.json", "w"))
+PY
+expect 1 "type-collisions control: a collision not in the list fails" python3 checks/type-collisions.py --known "$tmp/tc-new.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^type User is declared in " "$tmp/out"; then
+	echo "ok   type-collisions control: exactly one finding, User"
+else
+	echo "FAIL type-collisions control: want exactly one finding, User"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "type-collisions control: a settled collision still listed fails" python3 checks/type-collisions.py --known "$tmp/tc-gone.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^type WorkflowPhase no longer collides" "$tmp/out"; then
+	echo "ok   type-collisions control: exactly one finding, WorkflowPhase"
+else
+	echo "FAIL type-collisions control: want exactly one finding, WorkflowPhase"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# Every standard's applies_in names a code of the shipped ISO 3166 list; a
+# copy of the standards where one names ZZ must be reported with exactly it.
+expect 0 "places: every applies_in names an ISO 3166 code of the shipped list" python3 checks/places.py
+mkdir -p "$tmp/std" && cp standards/*.json "$tmp/std/"
+python3 - "$tmp/std" <<'PY'
+import glob, json, sys
+p = next(p for p in sorted(glob.glob(sys.argv[1] + "/*.json")) if json.load(open(p)).get("applies_in", ["international"]) != ["international"])
+d = json.load(open(p)); d["applies_in"] = ["ZZ"]; json.dump(d, open(p, "w"))
+PY
+expect 1 "places control: a standard naming ZZ fails" python3 checks/places.py --standards "$tmp/std"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "applies_in names 'ZZ', which is no ISO 3166 code" "$tmp/out"; then
+	echo "ok   places control: exactly one finding, ZZ"
+else
+	echo "FAIL places control: want exactly one finding, ZZ"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

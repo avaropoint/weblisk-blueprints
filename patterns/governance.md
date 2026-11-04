@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: governance
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/identity, protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/messaging]
 platform: any
 tier: free
@@ -654,16 +654,16 @@ evidence trail.
 
 ## Verification Checklist
 
-- [ ] Compliance profiles group policies with control IDs — [Compliance Profiles](#compliance-profiles)
-- [ ] Governance events include evidence blocks (input_hash, policy_version) — [Governance Events](#governance-events)
-- [ ] Compliance report filters by profile and control — [Compliance Report Endpoint](#compliance-report-endpoint)
-- [ ] Evidence export streams raw events for audit — [Evidence Export](#evidence-export)
-- [ ] Governance directives are signed by orchestrator — [Signature Verification](#signature-verification)
-- [ ] Unsigned directives are rejected — [Signature Verification](#signature-verification)
-- [ ] policy_update directive installs new policies at runtime — [Directive Types](#directive-types)
-- [ ] suspend/resume directives control task acceptance — [Directive Types](#directive-types)
-- [ ] Metrics emit for evaluations, violations, and directives — [Observability](#observability)
-- [ ] Trust is assessed through verifiable compliance signals, not assertions — [Trust Signals](#trust-signals)
-- [ ] No trust hierarchy exists — trust is mutual and negotiated between parties — [Continuous Compliance Trust Model](#continuous-compliance-trust-model)
-- [ ] Marketplace publishers satisfy conformance validation before distribution — [Marketplace Conformance](#marketplace-conformance)
-- [ ] Either party can revoke trust independently without the other's consent — [Protection Against Bad Actors](#protection-against-bad-actors)
+- [ ] Compliance profiles group policies with control IDs — [Compliance Profiles](#compliance-profiles) <!-- wl:check compliance-profiles-group-policies-control-ids -->
+- [ ] Governance events include evidence blocks (input_hash, policy_version) — [Governance Events](#governance-events) <!-- wl:check governance-events-include-evidence-blocks-input -->
+- [ ] Compliance report filters by profile and control — [Compliance Report Endpoint](#compliance-report-endpoint) <!-- wl:check compliance-report-filters-profile-control -->
+- [ ] Evidence export streams raw events for audit — [Evidence Export](#evidence-export) <!-- wl:check evidence-export-streams-raw-events-audit -->
+- [ ] Governance directives are signed by orchestrator — [Signature Verification](#signature-verification) <!-- wl:check governance-directives-signed-orchestrator -->
+- [ ] Unsigned directives are rejected — [Signature Verification](#signature-verification) <!-- wl:check unsigned-directives-rejected-signature -->
+- [ ] policy_update directive installs new policies at runtime — [Directive Types](#directive-types) <!-- wl:check policy-update-directive-installs-new-policies -->
+- [ ] suspend/resume directives control task acceptance — [Directive Types](#directive-types) <!-- wl:check suspend-resume-directives-control-task -->
+- [ ] Metrics emit for evaluations, violations, and directives — [Observability](#observability) <!-- wl:check metrics-emit-evaluations-violations-directives -->
+- [ ] Trust is assessed through verifiable compliance signals, not assertions — [Trust Signals](#trust-signals) <!-- wl:check trust-assessed-through-verifiable-compliance -->
+- [ ] No trust hierarchy exists — trust is mutual and negotiated between parties — [Continuous Compliance Trust Model](#continuous-compliance-trust-model) <!-- wl:check no-trust-hierarchy-exists-trust-mutual -->
+- [ ] Marketplace publishers satisfy conformance validation before distribution — [Marketplace Conformance](#marketplace-conformance) <!-- wl:check marketplace-publishers-satisfy-conformance -->
+- [ ] Either party can revoke trust independently without the other's consent — [Protection Against Bad Actors](#protection-against-bad-actors) <!-- wl:check party-revoke-trust-independently-without-others -->

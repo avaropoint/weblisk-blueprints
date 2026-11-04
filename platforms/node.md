@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 4.0.1
+version: 4.0.2
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -968,18 +968,18 @@ the npm ecosystem.
 
 ## Verification Checklist
 
-- [ ] Project uses Node.js 20+ with ES modules (`"type": "module"` in package.json) and TypeScript compiled to JavaScript for production ([Runtime Requirements](#runtime-requirements), [package.json](#packagejson), [Implementation Notes](#implementation-notes))
-- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface))
-- [ ] Every route is declared in one `registerRoutes(app)` function; no module registers its own routes alongside its handlers ([The HTTP Surface](#the-http-surface))
-- [ ] Routes are registered with Fastify's method-specific helpers and read parameters from `request.params`; no handler branches on `request.method` ([The HTTP Surface](#the-http-surface))
-- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
-- [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600 ([Primitive Mapping](#primitive-mapping), [Cryptography](#cryptography))
-- [ ] IF SQLite was chosen: it is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON` ([SQLite Implementation](#sqlite-implementation--only-if-sqlite-was-chosen-srcstoragesqlitets), [Storage](#storage))
-- [ ] Every log line is a `LogEntry` on standard output, as [`patterns/logging`](../patterns/logging.md) defines it ([Logging](#logging), [Structured Logging](#structured-logging))
-- [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits ([Process Management](#process-management))
-- [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly ([Input Validation](#input-validation))
-- [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev` ([Dependencies](#dependencies-1), [Implementation Notes](#implementation-notes))
-- [ ] Node is started with `--disable-proto=delete` to prevent prototype pollution ([Runtime Hardening](#runtime-hardening))
-- [ ] Agent entry point registers all 7 protocol endpoints (`/livez`, `/readyz`, describe, execute, message, services, event) via `registerEndpoints`, and renews its lease at `POST /v1/lease` ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [`architecture/agent`](../architecture/agent.md#lease-renewal))
-- [ ] Task handler dispatches by `action` field, and the execute endpoint returns a signed `TaskResult`, one with `status: "failed"` when the handler throws ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [Error Handling](#error-handling), [`architecture/agent`](../architecture/agent.md#post-v1execute))
-- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and `POST /v1/execute` returns a signed `TaskResult` with `status: "success"` for a valid action ([Integration Tests](#integration-tests), [`protocol/types`](../protocol/types.md#taskresult))
+- [ ] Project uses Node.js 20+ with ES modules (`"type": "module"` in package.json) and TypeScript compiled to JavaScript for production ([Runtime Requirements](#runtime-requirements), [package.json](#packagejson), [Implementation Notes](#implementation-notes)) <!-- wl:check project-uses-node-js-20-es -->
+- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-exported-path-operation-constant -->
+- [ ] Every route is declared in one `registerRoutes(app)` function; no module registers its own routes alongside its handlers ([The HTTP Surface](#the-http-surface)) <!-- wl:check route-declared-registerroutes-app-function -->
+- [ ] Routes are registered with Fastify's method-specific helpers and read parameters from `request.params`; no handler branches on `request.method` ([The HTTP Surface](#the-http-surface)) <!-- wl:check routes-registered-fastifys-method-specific -->
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check wrong-method-answers-405-allow-header -->
+- [ ] ML-DSA-65 keys are generated and verified via `@noble/post-quantum` (FIPS 204); private keys stored with mode 0o600 ([Primitive Mapping](#primitive-mapping), [Cryptography](#cryptography)) <!-- wl:check ml-dsa-65-keys-generated-verified -->
+- [ ] IF SQLite was chosen: it is configured with `pragma journal_mode = WAL` and `pragma foreign_keys = ON` ([SQLite Implementation](#sqlite-implementation--only-if-sqlite-was-chosen-srcstoragesqlitets), [Storage](#storage)) <!-- wl:check sqlite-chosen-configured-pragma-journal-mode -->
+- [ ] Every log line is a `LogEntry` on standard output, as [`patterns/logging`](../patterns/logging.md) defines it ([Logging](#logging), [Structured Logging](#structured-logging)) <!-- wl:check log-line-logentry-standard-output-patterns -->
+- [ ] SIGTERM triggers graceful shutdown: Fastify server closes, storage closes, then process exits ([Process Management](#process-management)) <!-- wl:check sigterm-triggers-graceful-shutdown-fastify -->
+- [ ] All request payloads are validated with zod schemas — raw `request.body` is never trusted directly ([Input Validation](#input-validation)) <!-- wl:check request-payloads-validated-zod-schemas-raw -->
+- [ ] Dependency versions are pinned in `package-lock.json` (committed to repo); production Docker uses `npm ci --omit=dev` ([Dependencies](#dependencies-1), [Implementation Notes](#implementation-notes)) <!-- wl:check dependency-versions-pinned-package-lock-json -->
+- [ ] Node is started with `--disable-proto=delete` to prevent prototype pollution ([Runtime Hardening](#runtime-hardening)) <!-- wl:check node-started-disable-proto-delete-prevent -->
+- [ ] Agent entry point registers all 7 protocol endpoints (`/livez`, `/readyz`, describe, execute, message, services, event) via `registerEndpoints`, and renews its lease at `POST /v1/lease` ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [`architecture/agent`](../architecture/agent.md#lease-renewal)) <!-- wl:check agent-entry-point-registers-7-protocol -->
+- [ ] Task handler dispatches by `action` field, and the execute endpoint returns a signed `TaskResult`, one with `status: "failed"` when the handler throws ([Standard Endpoints (src/protocol/endpoints.ts)](#standard-endpoints-srcprotocolendpointsts), [Error Handling](#error-handling), [`architecture/agent`](../architecture/agent.md#post-v1execute)) <!-- wl:check task-handler-dispatches-action-field-execute -->
+- [ ] Integration tests verify `GET /livez` returns 200 with `{"live": true}` and `POST /v1/execute` returns a signed `TaskResult` with `status: "success"` for a valid action ([Integration Tests](#integration-tests), [`protocol/types`](../protocol/types.md#taskresult)) <!-- wl:check integration-tests-verify-get-livez-returns -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: safety
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -1490,27 +1490,27 @@ same operator approval mechanism.
 
 ## Verification Checklist
 
-- [ ] Every side-effecting operation files an OperationIntent before execution — [MUST](#must)
-- [ ] Read operations (ordinal 0) are exempt from intent filing — [Implementation Notes](#implementation-notes)
-- [ ] Intent evaluation is fail-closed — missing context produces deny — [MUST](#must), [Intent Evaluation Flow](#intent-evaluation-flow)
-- [ ] Protection gate matrix is configured for all three environments (dev, staging, production) — [Gate Configuration (YAML)](#gate-configuration-yaml)
-- [ ] Scope amplification shifts gates toward more restrictive outcomes — [Scope Amplification](#scope-amplification)
-- [ ] Policy decisions compose with gate results using most-restrictive-wins — [MUST](#must), [Policy (`patterns/policy`)](#policy-patternspolicy)
-- [ ] Kill switch stops new task acceptance immediately on trigger — [Kill Switch Behavior](#kill-switch-behavior)
-- [ ] Kill switch allows in-flight tasks to complete within drain timeout — [MUST](#must), [Implementation Notes](#implementation-notes)
-- [ ] Kill switch transitions agent to quarantine after drain completes — [Kill Switch Behavior](#kill-switch-behavior)
-- [ ] `safety.kill_switch` event emitted on every kill switch activation — [Kill Switch Behavior](#kill-switch-behavior), [MUST](#must)
-- [ ] Quarantined agents cannot send messages, execute tasks, or access storage — [Quarantine Effects](#quarantine-effects)
-- [ ] Quarantine state persists across hub restarts — [Implementation Notes](#implementation-notes)
-- [ ] Quarantine exit requires operator review, remediation, and explicit approval — [Quarantine Exit](#quarantine-exit)
-- [ ] `safety.quarantine` event emitted on quarantine entry — [Contracts](#contracts)
-- [ ] `safety.quarantine_exit` event emitted on quarantine exit — [Contracts](#contracts)
-- [ ] Admin override requires admin role + MFA + justification + audit — [Admin Override](#admin-override), [MUST](#must)
-- [ ] Destroy on system/critical resources in production is denied without exception — [Admin Override](#admin-override), [MUST](#must)
-- [ ] Safety violations are accumulated in a rolling window per agent — [Implementation Notes](#implementation-notes)
-- [ ] Accumulated violations beyond threshold trigger automatic quarantine — [Quarantine Entry](#quarantine-entry)
-- [ ] Intent decisions expire after the configured validity window — [Intent Decision](#intent-decision), [Implementation Notes](#implementation-notes)
-- [ ] All safety errors use standard ErrorResponse format with appropriate codes — [Safety-Related Errors](#safety-related-errors)
-- [ ] Development environment is permissive — most operations allowed, destructive audited — [Environment Enforcement Profiles](#environment-enforcement-profiles)
-- [ ] Staging environment is moderate — destructive operations on application resources and above require approval or are denied, as the staging matrix gives — [Staging Environment (moderate)](#staging-environment-moderate), [Environment Enforcement Profiles](#environment-enforcement-profiles)
-- [ ] Production environment is strict — all delete/destroy operations gated — [Production Environment (strict)](#production-environment-strict), [Environment Enforcement Profiles](#environment-enforcement-profiles)
+- [ ] Every side-effecting operation files an OperationIntent before execution — [MUST](#must) <!-- wl:check side-effecting-operation-files-operationintent -->
+- [ ] Read operations (ordinal 0) are exempt from intent filing — [Implementation Notes](#implementation-notes) <!-- wl:check read-operations-ordinal-0-exempt-intent -->
+- [ ] Intent evaluation is fail-closed — missing context produces deny — [MUST](#must), [Intent Evaluation Flow](#intent-evaluation-flow) <!-- wl:check intent-evaluation-fail-closed-missing-context -->
+- [ ] Protection gate matrix is configured for all three environments (dev, staging, production) — [Gate Configuration (YAML)](#gate-configuration-yaml) <!-- wl:check protection-gate-matrix-configured-three -->
+- [ ] Scope amplification shifts gates toward more restrictive outcomes — [Scope Amplification](#scope-amplification) <!-- wl:check scope-amplification-shifts-gates-toward-more -->
+- [ ] Policy decisions compose with gate results using most-restrictive-wins — [MUST](#must), [Policy (`patterns/policy`)](#policy-patternspolicy) <!-- wl:check policy-decisions-compose-gate-results-using -->
+- [ ] Kill switch stops new task acceptance immediately on trigger — [Kill Switch Behavior](#kill-switch-behavior) <!-- wl:check kill-switch-stops-new-task-acceptance -->
+- [ ] Kill switch allows in-flight tasks to complete within drain timeout — [MUST](#must), [Implementation Notes](#implementation-notes) <!-- wl:check kill-switch-allows-flight-tasks-complete -->
+- [ ] Kill switch transitions agent to quarantine after drain completes — [Kill Switch Behavior](#kill-switch-behavior) <!-- wl:check kill-switch-transitions-agent-quarantine -->
+- [ ] `safety.kill_switch` event emitted on every kill switch activation — [Kill Switch Behavior](#kill-switch-behavior), [MUST](#must) <!-- wl:check safety-kill-switch-event-emitted-kill -->
+- [ ] Quarantined agents cannot send messages, execute tasks, or access storage — [Quarantine Effects](#quarantine-effects) <!-- wl:check quarantined-agents-cannot-send-messages-execute -->
+- [ ] Quarantine state persists across hub restarts — [Implementation Notes](#implementation-notes) <!-- wl:check quarantine-state-persists-across-hub-restarts -->
+- [ ] Quarantine exit requires operator review, remediation, and explicit approval — [Quarantine Exit](#quarantine-exit) <!-- wl:check quarantine-exit-requires-operator-review -->
+- [ ] `safety.quarantine` event emitted on quarantine entry — [Contracts](#contracts) <!-- wl:check safety-quarantine-event-emitted-quarantine-entry -->
+- [ ] `safety.quarantine_exit` event emitted on quarantine exit — [Contracts](#contracts) <!-- wl:check safety-quarantine-exit-event-emitted-quarantine -->
+- [ ] Admin override requires admin role + MFA + justification + audit — [Admin Override](#admin-override), [MUST](#must) <!-- wl:check admin-override-requires-admin-role-mfa -->
+- [ ] Destroy on system/critical resources in production is denied without exception — [Admin Override](#admin-override), [MUST](#must) <!-- wl:check destroy-system-critical-resources-production -->
+- [ ] Safety violations are accumulated in a rolling window per agent — [Implementation Notes](#implementation-notes) <!-- wl:check safety-violations-accumulated-rolling-window -->
+- [ ] Accumulated violations beyond threshold trigger automatic quarantine — [Quarantine Entry](#quarantine-entry) <!-- wl:check accumulated-violations-beyond-threshold-trigger -->
+- [ ] Intent decisions expire after the configured validity window — [Intent Decision](#intent-decision), [Implementation Notes](#implementation-notes) <!-- wl:check intent-decisions-expire-after-configured -->
+- [ ] All safety errors use standard ErrorResponse format with appropriate codes — [Safety-Related Errors](#safety-related-errors) <!-- wl:check safety-errors-use-standard-errorresponse-format -->
+- [ ] Development environment is permissive — most operations allowed, destructive audited — [Environment Enforcement Profiles](#environment-enforcement-profiles) <!-- wl:check development-environment-permissive-most -->
+- [ ] Staging environment is moderate — destructive operations on application resources and above require approval or are denied, as the staging matrix gives — [Staging Environment (moderate)](#staging-environment-moderate), [Environment Enforcement Profiles](#environment-enforcement-profiles) <!-- wl:check staging-environment-moderate-destructive -->
+- [ ] Production environment is strict — all delete/destroy operations gated — [Production Environment (strict)](#production-environment-strict), [Environment Enforcement Profiles](#environment-enforcement-profiles) <!-- wl:check production-environment-strict-delete-destroy -->

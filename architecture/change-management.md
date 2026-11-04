@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-management
-version: 4.1.0
+version: 4.1.1
 requires: [protocol/spec, protocol/types, architecture/orchestrator, architecture/agent, patterns/messaging, patterns/versioning]
 platform: any
 tier: free
@@ -1570,29 +1570,29 @@ security:
 
 ## Verification Checklist
 
-- [ ] Dependency contracts declare version ranges (semver) ([Contract Schema](#contract-schema), [Version Ranges](#version-ranges))
-- [ ] Bindings specify exact endpoints, types, fields, events used ([Contract Schema](#contract-schema))
-- [ ] on_change rules defined for compatible, breaking, and removed ([Contract Schema](#contract-schema))
-- [ ] Orchestrator computes structured diff on blueprint update ([Diff Computation](#diff-computation))
-- [ ] Impact classification maps diff entries against agent bindings ([Impact Classification](#impact-classification))
-- [ ] system.change.assessment emitted per affected agent ([Phase 2 — Impact Assessment](#phase-2--impact-assessment), [Events](#events))
-- [ ] Transitive dependencies resolved (full graph walk) ([Transitive Dependencies](#transitive-dependencies))
-- [ ] Cycle detection flags circular dependencies ([Transitive Dependencies](#transitive-dependencies))
-- [ ] Agents self-govern reconciliation per on_change policy ([Phase 3 — Reconciliation](#phase-3--reconciliation))
-- [ ] Reconciliation results tracked per agent per change ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))
-- [ ] Ecosystem rollback triggers when critical agent fails ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))
-- [ ] Reconciliation deadline enforced with timeout events ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking), [Constraints](#constraints))
-- [ ] Blue-green: new version starts alongside old version ([Deployment Phases](#deployment-phases))
-- [ ] Blue-green: shadow mode validates without side effects ([Deployment Phases](#deployment-phases))
-- [ ] Blue-green: cutover follows the deployment's cutover strategy, shifting all traffic at once only under `immediate` ([Cutover Strategies](#cutover-strategies))
-- [ ] Blue-green: rollback restores previous version within seconds ([Deployment Phases](#deployment-phases), Phase 5)
-- [ ] Blue-green: destructive migrations deferred until cutover confirmed ([Deployment Phases](#deployment-phases), [Constraints](#constraints))
-- [ ] Scaling: inter-agent communication is message-bus-only ([Inter-Agent Communication](#inter-agent-communication))
-- [ ] Scaling: intra-agent coordination via shared storage + leader election ([Intra-Agent Coordination](#intra-agent-coordination))
-- [ ] Scaling: an agent addresses a peer by name, resolved from the service directory it holds, never by a hard-coded address or one from a directory it has replaced ([Inter-Agent Communication](#inter-agent-communication), [`protocol/spec`](../protocol/spec.md#post-v1services))
-- [ ] Scaling: during blue-green, bus routes shadow traffic correctly ([Message Routing During Versioning](#message-routing-during-versioning))
-- [ ] All events published with correct topics and payloads ([Events](#events))
-- [ ] Change records, assessments, and results persisted with relationships ([Storage](#storage))
-- [ ] Deployment records track full blue-green lifecycle ([Storage](#storage), [Deployment Phases](#deployment-phases))
-- [ ] Concurrent changes to same blueprint serialized ([Constraints](#constraints))
-- [ ] Operator notified for halted/failed reconciliation ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking))
+- [ ] Dependency contracts declare version ranges (semver) ([Contract Schema](#contract-schema), [Version Ranges](#version-ranges)) <!-- wl:check dependency-contracts-declare-version-ranges -->
+- [ ] Bindings specify exact endpoints, types, fields, events used ([Contract Schema](#contract-schema)) <!-- wl:check bindings-specify-exact-endpoints-types-fields -->
+- [ ] on_change rules defined for compatible, breaking, and removed ([Contract Schema](#contract-schema)) <!-- wl:check change-rules-defined-compatible-breaking-removed -->
+- [ ] Orchestrator computes structured diff on blueprint update ([Diff Computation](#diff-computation)) <!-- wl:check orchestrator-computes-structured-diff-blueprint -->
+- [ ] Impact classification maps diff entries against agent bindings ([Impact Classification](#impact-classification)) <!-- wl:check impact-classification-maps-diff-entries-against -->
+- [ ] system.change.assessment emitted per affected agent ([Phase 2 — Impact Assessment](#phase-2--impact-assessment), [Events](#events)) <!-- wl:check system-change-assessment-emitted-per-affected -->
+- [ ] Transitive dependencies resolved (full graph walk) ([Transitive Dependencies](#transitive-dependencies)) <!-- wl:check transitive-dependencies-resolved-full-graph-walk -->
+- [ ] Cycle detection flags circular dependencies ([Transitive Dependencies](#transitive-dependencies)) <!-- wl:check cycle-detection-flags-circular-dependencies -->
+- [ ] Agents self-govern reconciliation per on_change policy ([Phase 3 — Reconciliation](#phase-3--reconciliation)) <!-- wl:check agents-self-govern-reconciliation-per-change -->
+- [ ] Reconciliation results tracked per agent per change ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking)) <!-- wl:check reconciliation-results-tracked-per-agent -->
+- [ ] Ecosystem rollback triggers when critical agent fails ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking)) <!-- wl:check ecosystem-rollback-triggers-when-critical-agent -->
+- [ ] Reconciliation deadline enforced with timeout events ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking), [Constraints](#constraints)) <!-- wl:check reconciliation-deadline-enforced-timeout-events -->
+- [ ] Blue-green: new version starts alongside old version ([Deployment Phases](#deployment-phases)) <!-- wl:check blue-green-new-version-starts-alongside -->
+- [ ] Blue-green: shadow mode validates without side effects ([Deployment Phases](#deployment-phases)) <!-- wl:check blue-green-shadow-mode-validates -->
+- [ ] Blue-green: cutover follows the deployment's cutover strategy, shifting all traffic at once only under `immediate` ([Cutover Strategies](#cutover-strategies)) <!-- wl:check blue-green-cutover-follows-deployments-cutover -->
+- [ ] Blue-green: rollback restores previous version within seconds ([Deployment Phases](#deployment-phases), Phase 5) <!-- wl:check blue-green-rollback-restores-previous-version -->
+- [ ] Blue-green: destructive migrations deferred until cutover confirmed ([Deployment Phases](#deployment-phases), [Constraints](#constraints)) <!-- wl:check blue-green-destructive-migrations-deferred -->
+- [ ] Scaling: inter-agent communication is message-bus-only ([Inter-Agent Communication](#inter-agent-communication)) <!-- wl:check scaling-inter-agent-communication-message-bus -->
+- [ ] Scaling: intra-agent coordination via shared storage + leader election ([Intra-Agent Coordination](#intra-agent-coordination)) <!-- wl:check scaling-intra-agent-coordination-via-shared -->
+- [ ] Scaling: an agent addresses a peer by name, resolved from the service directory it holds, never by a hard-coded address or one from a directory it has replaced ([Inter-Agent Communication](#inter-agent-communication), [`protocol/spec`](../protocol/spec.md#post-v1services)) <!-- wl:check scaling-agent-addresses-peer-name-resolved -->
+- [ ] Scaling: during blue-green, bus routes shadow traffic correctly ([Message Routing During Versioning](#message-routing-during-versioning)) <!-- wl:check scaling-during-blue-green-bus-routes -->
+- [ ] All events published with correct topics and payloads ([Events](#events)) <!-- wl:check events-published-correct-topics-payloads -->
+- [ ] Change records, assessments, and results persisted with relationships ([Storage](#storage)) <!-- wl:check change-records-assessments-results-persisted -->
+- [ ] Deployment records track full blue-green lifecycle ([Storage](#storage), [Deployment Phases](#deployment-phases)) <!-- wl:check deployment-records-track-full-blue-green -->
+- [ ] Concurrent changes to same blueprint serialized ([Constraints](#constraints)) <!-- wl:check concurrent-changes-blueprint-serialized -->
+- [ ] Operator notified for halted/failed reconciliation ([Phase 4 — Ecosystem Tracking](#phase-4--ecosystem-tracking)) <!-- wl:check operator-notified-halted-failed-reconciliation -->

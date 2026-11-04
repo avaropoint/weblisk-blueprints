@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 2.2.0
+version: 2.2.1
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -1418,16 +1418,16 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Agent responds to POST /v1/describe with valid AgentManifest ([`protocol/spec`](../protocol/spec.md#post-v1describe))
-- [ ] check-all reads every registered agent's and domain's state from its lease and probes none of them (the probes are superseded by the lease) ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
-- [ ] A probed component's state transitions follow [State Transitions](#state-transitions); a registered component's state is its lease's, never a probe's ([`architecture/orchestrator`](../architecture/orchestrator.md#presence))
-- [ ] Consecutive failure counter resets on a successful probe of a component that is still probed, never of a registered one ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
-- [ ] Hub health score reflects weighted component formula ([Hub Health Score](#hub-health-score))
-- [ ] State changes are dispatched to the alerting agent's `alert` action with a severity it declares ([Alert Integration](#alert-integration), [`agents/alerting`](alerting.md#alert-fields))
-- [ ] Health map is queryable via get-health-map action ([get-health-map](#get-health-map), [Health Map](#health-map))
-- [ ] Health history returns snapshots within requested time range ([get-health-history](#get-health-history))
-- [ ] Federation advertisement includes hub health summary ([Federation Health Advertisement](#federation-health-advertisement))
-- [ ] Health-monitor continues operating when alerting agent is down ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes))
-- [ ] No registered component is probed through `/v1/describe` or any other endpoint; the `/v1/describe` probe is superseded by the lease ([Implementation Notes](#implementation-notes), [`architecture/orchestrator`](../architecture/orchestrator.md#presence))
-- [ ] Default thresholds are applied; custom thresholds are respected ([Default Thresholds](#default-thresholds), [configure](#configure))
-- [ ] Metrics emit for all probes and state changes ([Observability](#observability))
+- [ ] Agent responds to POST /v1/describe with valid AgentManifest ([`protocol/spec`](../protocol/spec.md#post-v1describe)) <!-- wl:check agent-responds-post-v1-describe-valid -->
+- [ ] check-all reads every registered agent's and domain's state from its lease and probes none of them (the probes are superseded by the lease) ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence)) <!-- wl:check check-reads-registered-agents-domains-state -->
+- [ ] A probed component's state transitions follow [State Transitions](#state-transitions); a registered component's state is its lease's, never a probe's ([`architecture/orchestrator`](../architecture/orchestrator.md#presence)) <!-- wl:check probed-components-state-transitions-follow-state -->
+- [ ] Consecutive failure counter resets on a successful probe of a component that is still probed, never of a registered one ([Health Check Protocol](#health-check-protocol), [`architecture/orchestrator`](../architecture/orchestrator.md#presence)) <!-- wl:check consecutive-failure-counter-resets-successful -->
+- [ ] Hub health score reflects weighted component formula ([Hub Health Score](#hub-health-score)) <!-- wl:check hub-health-score-reflects-weighted-component -->
+- [ ] State changes are dispatched to the alerting agent's `alert` action with a severity it declares ([Alert Integration](#alert-integration), [`agents/alerting`](alerting.md#alert-fields)) <!-- wl:check state-changes-dispatched-alerting-agents-alert -->
+- [ ] Health map is queryable via get-health-map action ([get-health-map](#get-health-map), [Health Map](#health-map)) <!-- wl:check health-map-queryable-via-get-health -->
+- [ ] Health history returns snapshots within requested time range ([get-health-history](#get-health-history)) <!-- wl:check health-history-returns-snapshots-within -->
+- [ ] Federation advertisement includes hub health summary ([Federation Health Advertisement](#federation-health-advertisement)) <!-- wl:check federation-advertisement-includes-hub-health -->
+- [ ] Health-monitor continues operating when alerting agent is down ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes)) <!-- wl:check health-monitor-continues-operating-when-alerting -->
+- [ ] No registered component is probed through `/v1/describe` or any other endpoint; the `/v1/describe` probe is superseded by the lease ([Implementation Notes](#implementation-notes), [`architecture/orchestrator`](../architecture/orchestrator.md#presence)) <!-- wl:check no-registered-component-probed-through-v1 -->
+- [ ] Default thresholds are applied; custom thresholds are respected ([Default Thresholds](#default-thresholds), [configure](#configure)) <!-- wl:check default-thresholds-applied-custom-thresholds -->
+- [ ] Metrics emit for all probes and state changes ([Observability](#observability)) <!-- wl:check metrics-emit-probes-state-changes -->

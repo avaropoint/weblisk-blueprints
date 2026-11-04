@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 3.1.0
+version: 3.2.0
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -236,12 +236,6 @@ types:
       details: { type: object, required: false }
       timestamp: { type: datetime, format: ISO8601, required: true }
       fingerprint: { type: string, description: "Deduplication key", required: false }
-
-  AlertSource:
-    fields:
-      type: { type: enum, values: [agent, domain, system], required: true }
-      name: { type: string, required: true }
-      domain: { type: string, required: false }
 
   AlertRecord:
     fields:
@@ -1608,20 +1602,20 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse))
-- [ ] Alert events are validated against [Alert Fields](#alert-fields) ([Processing Pipeline](#processing-pipeline) step 2)
-- [ ] Routing rules match alerts to correct channels by severity ([Processing Pipeline](#processing-pipeline) step 4)
-- [ ] Deduplication prevents duplicate notifications within throttle window ([Deduplication](#deduplication))
-- [ ] Throttled alerts include suppressed count on next delivery ([Deduplication](#deduplication))
-- [ ] Email channel delegates to email-send agent as [Email Channel](#email-channel) says
-- [ ] Webhook channel includes HMAC-SHA256 signature ([Webhook Channel](#webhook-channel))
-- [ ] Webhook retries a failed delivery as [Webhook Channel](#webhook-channel)'s delivery rules say
-- [ ] Slack channel sends Block Kit formatted messages ([Slack Channel](#slack-channel))
-- [ ] Alert history is stored ([Storage](#storage)), and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading nothing, while the manifest declares none of them among its `pass_routes` ([Endpoints](#endpoints))
-- [ ] Stats endpoint returns correct counts by severity and source ([Query API](#query-api), [get_stats](#get_stats))
-- [ ] Custom alerts from any agent are accepted and routed ([Custom Alerts](#custom-alerts))
-- [ ] Graceful degradation when email-send agent is unavailable ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes))
-- [ ] Metrics emit for received, delivered, throttled, and failed alerts ([Observability](#observability))
-- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
+- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse)) <!-- wl:check agent-registers-orchestrator-receives-wlt-token -->
+- [ ] Alert events are validated against [Alert Fields](#alert-fields) ([Processing Pipeline](#processing-pipeline) step 2) <!-- wl:check alert-events-validated-against-alert-fields -->
+- [ ] Routing rules match alerts to correct channels by severity ([Processing Pipeline](#processing-pipeline) step 4) <!-- wl:check routing-rules-match-alerts-correct-channels -->
+- [ ] Deduplication prevents duplicate notifications within throttle window ([Deduplication](#deduplication)) <!-- wl:check deduplication-prevents-duplicate-notifications -->
+- [ ] Throttled alerts include suppressed count on next delivery ([Deduplication](#deduplication)) <!-- wl:check throttled-alerts-include-suppressed-count-next -->
+- [ ] Email channel delegates to email-send agent as [Email Channel](#email-channel) says <!-- wl:check email-channel-delegates-email-send-agent -->
+- [ ] Webhook channel includes HMAC-SHA256 signature ([Webhook Channel](#webhook-channel)) <!-- wl:check webhook-channel-includes-hmac-sha256-signature -->
+- [ ] Webhook retries a failed delivery as [Webhook Channel](#webhook-channel)'s delivery rules say <!-- wl:check webhook-retries-failed-delivery-webhook-channels -->
+- [ ] Slack channel sends Block Kit formatted messages ([Slack Channel](#slack-channel)) <!-- wl:check slack-channel-sends-block-kit-formatted -->
+- [ ] Alert history is stored ([Storage](#storage)), and `GET /v1/admin/alerts`, `GET /v1/admin/alerts/{id}` and `GET /v1/admin/alerts/stats` refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading nothing, while the manifest declares none of them among its `pass_routes` ([Endpoints](#endpoints)) <!-- wl:check alert-history-stored-storage-get-v1 -->
+- [ ] Stats endpoint returns correct counts by severity and source ([Query API](#query-api), [get_stats](#get_stats)) <!-- wl:check stats-endpoint-returns-correct-counts-severity -->
+- [ ] Custom alerts from any agent are accepted and routed ([Custom Alerts](#custom-alerts)) <!-- wl:check custom-alerts-agent-accepted-routed -->
+- [ ] Graceful degradation when email-send agent is unavailable ([Error Handling](#error-handling), [Implementation Notes](#implementation-notes)) <!-- wl:check graceful-degradation-when-email-send-agent -->
+- [ ] Metrics emit for received, delivered, throttled, and failed alerts ([Observability](#observability)) <!-- wl:check metrics-emit-received-delivered-throttled-failed -->
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready` <!-- wl:check get-livez-answers-live-not-live -->
 
 Port: 9752

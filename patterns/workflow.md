@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: workflow
-version: 4.0.1
+version: 4.1.0
 requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/messaging, patterns/observability, patterns/expression]
 platform: any
 tier: free
@@ -801,71 +801,8 @@ types:
 
 ### WorkflowPhase
 
-```yaml
-types:
-  WorkflowPhase:
-    fields:
-      name:
-        type: string
-        required: true
-        description: "Phase identifier (unique within workflow)"
-      agent:
-        type: string
-        required: false
-        description: "Target agent or `self`. Required on a machine phase; absent on a person's"
-      action:
-        type: string
-        required: false
-        description: "Task action to invoke. Required with `agent`"
-      task:
-        type: WorkflowTask
-        required: false
-        description: "A person's work. Exclusive with `agent` and `approvers`"
-      approvers:
-        type: "[]string"
-        required: false
-        description: "Positions whose holders must each accept. Exclusive with `task`; beside `agent` only with `approval: required`"
-      approval_order:
-        type: string
-        required: false
-        description: "`sequential`, or absent for any order. Only with `approvers`"
-      escalate:
-        type: WorkflowEscalation
-        required: false
-        description: "Only on a phase with `task` or `approvers`"
-      input:
-        type: map
-        required: false
-        description: "Input mapping with reference expressions"
-      output:
-        type: string
-        required: false
-        description: "Key name for storing phase result"
-      depends_on:
-        type: "[]string"
-        required: false
-        description: "Phases that must complete first"
-      timeout:
-        type: int
-        required: false
-        description: "Phase timeout in seconds (default: 300)"
-      approval:
-        type: string
-        required: false
-        description: "`required` or `auto` (default: `auto`)"
-      on_error:
-        type: string
-        required: false
-        description: "`fail`, `skip`, or `retry` (default: `fail`)"
-      max_attempts:
-        type: int
-        required: false
-        description: Total attempts, the first included (protocol/conventions:max-attempts)
-      condition:
-        type: string
-        required: false
-        description: "Expression evaluated per [patterns/expression](expression.md) (Workflow Phase Context); phase skipped if falsy"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowphase), which this pattern
+requires; it is not declared again here.
 
 ### WorkflowExecution
 
@@ -953,39 +890,13 @@ types:
 
 ### WorkflowTask
 
-```yaml
-types:
-  WorkflowTask:
-    fields:
-      activity:
-        type: string
-        required: true
-        description: "What the person does, in the author's words"
-      responsible:
-        type: string
-        required: true
-        description: "The position whose holder does it. Never a person"
-      due:
-        type: string
-        required: false
-        description: "`<n><h|d|w>` from the moment the wait opens"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowtask), which this pattern
+requires; it is not declared again here.
 
 ### WorkflowEscalation
 
-```yaml
-types:
-  WorkflowEscalation:
-    fields:
-      after:
-        type: string
-        required: true
-        description: "`<n><h|d|w>` past a task's due, or past an approval's opening"
-      to:
-        type: string
-        required: true
-        description: "The position it then also belongs to. Never a person"
-```
+Declared once, in [`protocol/types`](../protocol/types.md#workflowescalation), which this pattern
+requires; it is not declared again here.
 
 ---
 
@@ -1029,32 +940,32 @@ from patterns/observability):
 
 ## Verification Checklist
 
-- [ ] Workflows declared in YAML with required fields — [Declaration Fields](#declaration-fields)
-- [ ] Reference expressions resolve correctly from every root — [Grammar](#grammar), [Roots](#roots)
-- [ ] Array indexing and expansion produce correct results — [Array Indexing](#array-indexing), [Array Expansion](#array-expansion)
-- [ ] Unresolvable references return null (not errors) — [Resolution Rules](#resolution-rules)
-- [ ] The executor receives workflow.trigger events and resolves DAG — [Phase 1 — Trigger](#phase-1--trigger), [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
-- [ ] Phase dispatch through the executor's dispatcher — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
-- [ ] Task completion matched to workflow phase via workflow_id + phase name — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
-- [ ] DAG levels advance when all phases in a level complete — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
-- [ ] Independent phases within a level dispatch concurrently — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes)
-- [ ] on_error: fail stops the entire workflow — [Error Strategies](#error-strategies), [Error Propagation](#error-propagation)
-- [ ] on_error: skip marks phase skipped, dependents receive null — [Error Propagation](#error-propagation)
-- [ ] on_error: retry re-submits via task.submit with backoff — [Error Propagation](#error-propagation)
-- [ ] approval: required pauses workflow, publishes workflow.approval.required — [Approval Gates](#approval-gates)
-- [ ] A decision resumes or fails the phase only when a person makes it at the executor's decision route; `workflow.approval.decision` published by any other component decides nothing — [Approval Gates](#approval-gates)
-- [ ] A phase carrying `task` or `approvers` dispatches nothing and opens a wait — [A Person's Phase](#a-persons-phase), [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven)
-- [ ] A phase carrying more than one of `agent`, `task` and `approvers` is refused at declaration — [A Person's Phase](#a-persons-phase)
-- [ ] With `approval_order: sequential`, a decision as a later position before an earlier one has accepted is refused — [A Person's Phase](#a-persons-phase)
-- [ ] An approval closes accepted only when every named position has accepted, and rejected on the first reject — [A Person's Phase](#a-persons-phase)
-- [ ] An escalation fires once, `after` past a task's due or an approval's opening, and adds its `to` position — [A Person's Phase](#a-persons-phase)
-- [ ] A wait naming a position whose holders cannot be read is decided by nobody — [A Person's Phase](#a-persons-phase)
-- [ ] Time spent waiting for a person counts towards no phase or workflow timeout — [Approval Gates](#approval-gates)
-- [ ] Workflow-level timeout cancels in-flight tasks — [Implementation Notes](#implementation-notes)
-- [ ] Phase-level timeout cancels individual phase — [Implementation Notes](#implementation-notes)
-- [ ] Circular dependency detection fails the workflow at init — [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order)
-- [ ] WorkflowExecution records persist to durable storage — [Phase 3 — Initialize Execution](#phase-3--initialize-execution), [Implementation Notes](#implementation-notes)
-- [ ] workflow.completed published with scope = invoker — [Phase 6 — Aggregate](#phase-6--aggregate), [Event Topics](#event-topics)
-- [ ] callback_topic receives result if specified — [Phase 6 — Aggregate](#phase-6--aggregate)
-- [ ] Metrics emit for all workflow and phase executions — [Observability](#observability)
-- [ ] trace_id and correlation_id propagate through all events — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes)
+- [ ] Workflows declared in YAML with required fields — [Declaration Fields](#declaration-fields) <!-- wl:check workflows-declared-yaml-required-fields -->
+- [ ] Reference expressions resolve correctly from every root — [Grammar](#grammar), [Roots](#roots) <!-- wl:check reference-expressions-resolve-correctly-root -->
+- [ ] Array indexing and expansion produce correct results — [Array Indexing](#array-indexing), [Array Expansion](#array-expansion) <!-- wl:check array-indexing-expansion-produce-correct-results -->
+- [ ] Unresolvable references return null (not errors) — [Resolution Rules](#resolution-rules) <!-- wl:check unresolvable-references-return-null-not-errors -->
+- [ ] The executor receives workflow.trigger events and resolves DAG — [Phase 1 — Trigger](#phase-1--trigger), [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order) <!-- wl:check executor-receives-workflow-trigger-events -->
+- [ ] Phase dispatch through the executor's dispatcher — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven) <!-- wl:check phase-dispatch-through-executors-dispatcher -->
+- [ ] Task completion matched to workflow phase via workflow_id + phase name — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven) <!-- wl:check task-completion-matched-workflow-phase-via -->
+- [ ] DAG levels advance when all phases in a level complete — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven) <!-- wl:check dag-levels-advance-when-phases-level -->
+- [ ] Independent phases within a level dispatch concurrently — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes) <!-- wl:check independent-phases-within-level-dispatch -->
+- [ ] on_error: fail stops the entire workflow — [Error Strategies](#error-strategies), [Error Propagation](#error-propagation) <!-- wl:check error-fail-stops-entire-workflow-error -->
+- [ ] on_error: skip marks phase skipped, dependents receive null — [Error Propagation](#error-propagation) <!-- wl:check error-skip-marks-phase-skipped-dependents -->
+- [ ] on_error: retry re-submits via task.submit with backoff — [Error Propagation](#error-propagation) <!-- wl:check error-retry-re-submits-via-task -->
+- [ ] approval: required pauses workflow, publishes workflow.approval.required — [Approval Gates](#approval-gates) <!-- wl:check approval-required-pauses-workflow-publishes -->
+- [ ] A decision resumes or fails the phase only when a person makes it at the executor's decision route; `workflow.approval.decision` published by any other component decides nothing — [Approval Gates](#approval-gates) <!-- wl:check decision-resumes-fails-phase-when-person -->
+- [ ] A phase carrying `task` or `approvers` dispatches nothing and opens a wait — [A Person's Phase](#a-persons-phase), [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven) <!-- wl:check phase-carrying-task-approvers-dispatches-nothing -->
+- [ ] A phase carrying more than one of `agent`, `task` and `approvers` is refused at declaration — [A Person's Phase](#a-persons-phase) <!-- wl:check phase-carrying-more-agent-task-approvers -->
+- [ ] With `approval_order: sequential`, a decision as a later position before an earlier one has accepted is refused — [A Person's Phase](#a-persons-phase) <!-- wl:check approval-order-sequential-decision-later -->
+- [ ] An approval closes accepted only when every named position has accepted, and rejected on the first reject — [A Person's Phase](#a-persons-phase) <!-- wl:check approval-closes-accepted-when-named-position -->
+- [ ] An escalation fires once, `after` past a task's due or an approval's opening, and adds its `to` position — [A Person's Phase](#a-persons-phase) <!-- wl:check escalation-fires-once-after-past-tasks -->
+- [ ] A wait naming a position whose holders cannot be read is decided by nobody — [A Person's Phase](#a-persons-phase) <!-- wl:check wait-naming-position-holders-cannot-read -->
+- [ ] Time spent waiting for a person counts towards no phase or workflow timeout — [Approval Gates](#approval-gates) <!-- wl:check time-spent-waiting-person-counts-towards -->
+- [ ] Workflow-level timeout cancels in-flight tasks — [Implementation Notes](#implementation-notes) <!-- wl:check workflow-level-timeout-cancels-flight-tasks -->
+- [ ] Phase-level timeout cancels individual phase — [Implementation Notes](#implementation-notes) <!-- wl:check phase-level-timeout-cancels-individual-phase -->
+- [ ] Circular dependency detection fails the workflow at init — [Phase 4 — Resolve Execution Order](#phase-4--resolve-execution-order) <!-- wl:check circular-dependency-detection-fails-workflow -->
+- [ ] WorkflowExecution records persist to durable storage — [Phase 3 — Initialize Execution](#phase-3--initialize-execution), [Implementation Notes](#implementation-notes) <!-- wl:check workflowexecution-records-persist-durable -->
+- [ ] workflow.completed published with scope = invoker — [Phase 6 — Aggregate](#phase-6--aggregate), [Event Topics](#event-topics) <!-- wl:check workflow-completed-published-scope-invoker-phase -->
+- [ ] callback_topic receives result if specified — [Phase 6 — Aggregate](#phase-6--aggregate) <!-- wl:check callback-topic-receives-result-specified-phase -->
+- [ ] Metrics emit for all workflow and phase executions — [Observability](#observability) <!-- wl:check metrics-emit-workflow-phase-executions -->
+- [ ] trace_id and correlation_id propagate through all events — [Phase 5 — Execute Levels (Event-Driven)](#phase-5--execute-levels-event-driven), [Implementation Notes](#implementation-notes) <!-- wl:check trace-id-correlation-id-propagate-through -->

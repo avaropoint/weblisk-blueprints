@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.0
+version: 1.3.1
 kind: reference
 noun: position
 match: [positions/*.md]
@@ -493,22 +493,22 @@ field yet lets a tenant set one for a register the corpus declares.
 
 ## Verification Checklist
 
-- [ ] The filename, without `.md`, equals the declared `id` ([Format](#format))
-- [ ] The `id` is a position at least one programme in `programmes/` names ([What is reported rather than refused](#what-is-reported-rather-than-refused))
-- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
-- [ ] At least one recognised section has content
-- [ ] No artifact id and no register path appears anywhere in the body ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
-- [ ] Prose naming a cadence, an authority, an escalation target or an approver is not refused; only the two patterns the section lists are ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact))
-- [ ] No individual is named, and no tenant, customer or project is named ([Format](#format))
+- [ ] The filename, without `.md`, equals the declared `id` ([Format](#format)) <!-- wl:check filename-without-md-equals-declared-id -->
+- [ ] The `id` is a position at least one programme in `programmes/` names ([What is reported rather than refused](#what-is-reported-rather-than-refused)) <!-- wl:check id-position-least-programme-programmes-names -->
+- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly <!-- wl:check heading-body-closed-set-headings-lists -->
+- [ ] At least one recognised section has content <!-- wl:check least-recognised-section-content -->
+- [ ] No artifact id and no register path appears anywhere in the body ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact)) <!-- wl:check no-artifact-id-no-register-path -->
+- [ ] Prose naming a cadence, an authority, an escalation target or an approver is not refused; only the two patterns the section lists are ([A guide may not restate derived fact](#a-guide-may-not-restate-derived-fact)) <!-- wl:check prose-naming-cadence-authority-escalation-target -->
+- [ ] No individual is named, and no tenant, customer or project is named ([Format](#format)) <!-- wl:check no-individual-named-no-tenant-customer -->
 
 ### The position-holders register
 
-- [ ] It is written at `registers/position-holders.md` in the organisation's records repository, and a write of it anywhere else is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` ([The register](#the-register))
-- [ ] Every column the block declares is present, `holder` and `note` are `restricted` and labelled `pii`, and `recorded_by` is not labelled ([The register](#the-register))
-- [ ] A row's `holder` is an identity id, never a name or an address ([The register](#the-register))
-- [ ] A row's `project` is the id the orchestrator records the project by, never its scope path or name ([The register](#the-register))
-- [ ] At a project with a covering row for the position, only that project's holders are answered; with none, the organisation's are ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
-- [ ] A position with no covering row resolves to no holder, never to a person and never to an error ([Resolving a position to its holders](#resolving-a-position-to-its-holders))
-- [ ] A holding that ends is given a `last_day`, and no row is removed ([Changing who holds a position](#changing-who-holds-a-position))
-- [ ] A change recording the person making it as a holder is refused with `CONTENT_SELF_HOLDING_REFUSED` and writes nothing when it is a direct write by a person who is not an admin, or a decision by its requester or by the person the row names, whatever `self_decision_ceiling` says; the same change decided by a different person, or written by a person able to use `admin:*`, is applied and its change log entry names who requested and who decided or wrote it; a refusal is recorded in an `AuditEntry` ([Changing who holds a position](#changing-who-holds-a-position))
-- [ ] A tenant service reads the register only on a work pass under the authorisation of the work it resolves for ([Who may read it](#who-may-read-it))
+- [ ] It is written at `registers/position-holders.md` in the organisation's records repository, and a write of it anywhere else is refused with `CONTENT_RECORDS_REPOSITORY_REQUIRED` ([The register](#the-register)) <!-- wl:check written-registers-position-holders-md -->
+- [ ] Every column the block declares is present, `holder` and `note` are `restricted` and labelled `pii`, and `recorded_by` is not labelled ([The register](#the-register)) <!-- wl:check column-block-declares-present-holder-note -->
+- [ ] A row's `holder` is an identity id, never a name or an address ([The register](#the-register)) <!-- wl:check rows-holder-identity-id-never-name -->
+- [ ] A row's `project` is the id the orchestrator records the project by, never its scope path or name ([The register](#the-register)) <!-- wl:check rows-project-id-orchestrator-records-project -->
+- [ ] At a project with a covering row for the position, only that project's holders are answered; with none, the organisation's are ([Resolving a position to its holders](#resolving-a-position-to-its-holders)) <!-- wl:check project-covering-row-position-projects-holders -->
+- [ ] A position with no covering row resolves to no holder, never to a person and never to an error ([Resolving a position to its holders](#resolving-a-position-to-its-holders)) <!-- wl:check position-no-covering-row-resolves -->
+- [ ] A holding that ends is given a `last_day`, and no row is removed ([Changing who holds a position](#changing-who-holds-a-position)) <!-- wl:check holding-ends-given-last-day -->
+- [ ] A change recording the person making it as a holder is refused with `CONTENT_SELF_HOLDING_REFUSED` and writes nothing when it is a direct write by a person who is not an admin, or a decision by its requester or by the person the row names, whatever `self_decision_ceiling` says; the same change decided by a different person, or written by a person able to use `admin:*`, is applied and its change log entry names who requested and who decided or wrote it; a refusal is recorded in an `AuditEntry` ([Changing who holds a position](#changing-who-holds-a-position)) <!-- wl:check change-recording-person-making-holder-refused -->
+- [ ] A tenant service reads the register only on a work pass under the authorisation of the work it resolves for ([Who may read it](#who-may-read-it)) <!-- wl:check tenant-service-reads-register-work-pass -->

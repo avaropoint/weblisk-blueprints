@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 3.0.1
+version: 3.0.2
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -1428,29 +1428,29 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Subscribes to workflow.trigger (scope: self) and dispatches DAG ([Subscribed](#subscribed), [HandleEvent: workflow.trigger](#handleevent-workflowtrigger))
-- [ ] Fetches workflow definitions from source domains via get_workflow message ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2)
-- [ ] Caches definitions, invalidates on system.agent.registered ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2, [Implementation Notes](#implementation-notes))
-- [ ] Topological sort with cycle detection ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 5, [Execute Workflow](#execute-workflow) Phase 3)
-- [ ] Phases dispatched concurrently within a level via task.submit events ([Phase Dispatch](#phase-dispatch), [Implementation Notes](#implementation-notes))
-- [ ] Phase results tracked from task.completed/task.failed events ([HandleEvent: task.completed](#handleevent-taskcompleted), [HandleEvent: task.failed](#handleevent-taskfailed))
-- [ ] on_error strategies applied as [HandleEvent: task.failed](#handleevent-taskfailed) step 3 says
-- [ ] Approval gates pause execution until workflow.approval.decision ([HandleEvent: task.completed](#handleevent-taskcompleted) step 5, [HandleEvent: workflow.approval.decision](#handleevent-workflowapprovaldecision))
-- [ ] workflow.completed published with scope = invoker ([Workflow Completion](#workflow-completion) step 3)
-- [ ] callback_topic receives result if specified ([Workflow Completion](#workflow-completion) step 4)
-- [ ] WorkflowExecution is persisted to the stores [Storage](#storage) declares and survives a restart
-- [ ] Workflow-level timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine))
-- [ ] Every event carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Phase Dispatch](#phase-dispatch))
-- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
-- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
-- [ ] Shutdown cancels in-flight phases and fails active workflows ([Shutdown Sequence](#shutdown-sequence))
-- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
-- [ ] Scaling: inter-agent communication via message bus (except definition fetch) ([Scaling](#scaling), [Constraints](#constraints))
-- [ ] Scaling: leader election prevents duplicate workflow execution ([Scaling](#scaling))
-- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
-- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
-- [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass ([Constraints](#constraints))
-- [ ] Security: all endpoints require valid token ([Security](#security))
-- [ ] A phase whose agent is `self` is dispatched to the invoker domain through the task agent, never by a direct message ([Phase Dispatch](#phase-dispatch), [Constraints](#constraints), [Implementation Notes](#implementation-notes))
+- [ ] Subscribes to workflow.trigger (scope: self) and dispatches DAG ([Subscribed](#subscribed), [HandleEvent: workflow.trigger](#handleevent-workflowtrigger)) <!-- wl:check subscribes-workflow-trigger-scope-self -->
+- [ ] Fetches workflow definitions from source domains via get_workflow message ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2) <!-- wl:check fetches-workflow-definitions-source-domains-via -->
+- [ ] Caches definitions, invalidates on system.agent.registered ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 2, [Implementation Notes](#implementation-notes)) <!-- wl:check caches-definitions-invalidates-system-agent -->
+- [ ] Topological sort with cycle detection ([HandleEvent: workflow.trigger](#handleevent-workflowtrigger) step 5, [Execute Workflow](#execute-workflow) Phase 3) <!-- wl:check topological-sort-cycle-detection -->
+- [ ] Phases dispatched concurrently within a level via task.submit events ([Phase Dispatch](#phase-dispatch), [Implementation Notes](#implementation-notes)) <!-- wl:check phases-dispatched-concurrently-within-level-via -->
+- [ ] Phase results tracked from task.completed/task.failed events ([HandleEvent: task.completed](#handleevent-taskcompleted), [HandleEvent: task.failed](#handleevent-taskfailed)) <!-- wl:check phase-results-tracked-task-completed-task -->
+- [ ] on_error strategies applied as [HandleEvent: task.failed](#handleevent-taskfailed) step 3 says <!-- wl:check error-strategies-applied-handleevent-task-failed -->
+- [ ] Approval gates pause execution until workflow.approval.decision ([HandleEvent: task.completed](#handleevent-taskcompleted) step 5, [HandleEvent: workflow.approval.decision](#handleevent-workflowapprovaldecision)) <!-- wl:check approval-gates-pause-execution-until-workflow -->
+- [ ] workflow.completed published with scope = invoker ([Workflow Completion](#workflow-completion) step 3) <!-- wl:check workflow-completed-published-scope-invoker -->
+- [ ] callback_topic receives result if specified ([Workflow Completion](#workflow-completion) step 4) <!-- wl:check callback-topic-receives-result-specified -->
+- [ ] WorkflowExecution is persisted to the stores [Storage](#storage) declares and survives a restart <!-- wl:check workflowexecution-persisted-stores-storage -->
+- [ ] Workflow-level timeout cancels all in-flight phases ([Implementation Notes](#implementation-notes), [State Machine](#state-machine)) <!-- wl:check workflow-level-timeout-cancels-flight-phases -->
+- [ ] Every event carries its trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Phase Dispatch](#phase-dispatch)) <!-- wl:check event-carries-trace-protocol-spec-says -->
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check dependencies-declare-version-ranges-specific -->
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check change-rules-defined-dependencies -->
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine)) <!-- wl:check state-machine-transitions-validated-no-implicit -->
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence)) <!-- wl:check startup-sequence-validation-gates-step-validates -->
+- [ ] Shutdown cancels in-flight phases and fails active workflows ([Shutdown Sequence](#shutdown-sequence)) <!-- wl:check shutdown-cancels-flight-phases-fails-active -->
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready` <!-- wl:check get-livez-answers-live-not-live -->
+- [ ] Scaling: inter-agent communication via message bus (except definition fetch) ([Scaling](#scaling), [Constraints](#constraints)) <!-- wl:check scaling-inter-agent-communication-via-message -->
+- [ ] Scaling: leader election prevents duplicate workflow execution ([Scaling](#scaling)) <!-- wl:check scaling-leader-election-prevents-duplicate -->
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling)) <!-- wl:check scaling-consumer-group-ensures-per-event -->
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names <!-- wl:check override-audit-records-fields-manual-overrides -->
+- [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass ([Constraints](#constraints)) <!-- wl:check constraints-enforced-max-concurrent-max-phases -->
+- [ ] Security: all endpoints require valid token ([Security](#security)) <!-- wl:check security-endpoints-require-valid-token -->
+- [ ] A phase whose agent is `self` is dispatched to the invoker domain through the task agent, never by a direct message ([Phase Dispatch](#phase-dispatch), [Constraints](#constraints), [Implementation Notes](#implementation-notes)) <!-- wl:check phase-agent-self-dispatched-invoker-domain -->

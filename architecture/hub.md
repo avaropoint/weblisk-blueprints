@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 3.0.1
+version: 3.0.2
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
@@ -1495,21 +1495,21 @@ security:
 
 ## Verification Checklist
 
-- [ ] Listings are signed by provider hub's ML-DSA-65 key ([Capability Listing](#capability-listing), [Security Considerations](#security-considerations) 1)
-- [ ] Registry verifies listing signatures before indexing ([Security Considerations](#security-considerations) 1, [Security](#security))
-- [ ] Hubs can search by domain, action, tier, jurisdiction ([Registry Search](#registry-search))
-- [ ] Free tier uses the same security model as pro tier ([Free vs Pro Tiers](#free-vs-pro-tiers))
-- [ ] Usage metering is dual-signed (consumer + provider) ([Usage Metering](#usage-metering))
-- [ ] Collaboration requires explicit data contract review ([Design Principles](#design-principles) 3, [Collaboration Flow](#collaboration-flow))
-- [ ] BREAKING changes keep the old version for the deprecation window [Provider Obligations](#provider-obligations) gives
-- [ ] CRITICAL changes trigger immediate listing suspension ([Provider Obligations](#provider-obligations))
-- [ ] Collaborators can pin to a specific capability version ([Collaborator Protections](#collaborator-protections))
-- [ ] Emergency revocation purges all cross-boundary data ([Emergency Revocation](#emergency-revocation))
-- [ ] Registry never handles actual task data ([Registry Architecture](#registry-architecture))
-- [ ] Multiple registries can federate for redundancy ([Registry Federation](#registry-federation))
-- [ ] Delisting respects deprecation window for active collaborators ([Provider Delists](#provider-delists))
-- [ ] Marketplace purchases generate dual-signed receipts ([Purchase Flow](#purchase-flow), [Security Considerations](#security-considerations) 7)
-- [ ] Verified reviews require proof of purchase and hub identity ([Verified Reviews](#verified-reviews), [Security Considerations](#security-considerations) 7)
-- [ ] Installable assets are signature-verified before generation ([Purchase Flow (Installable Asset)](#purchase-flow-installable-asset), [Security Considerations](#security-considerations) 8)
-- [ ] Marketplace endpoints enforce proper authentication (hub-auth, peer-auth) ([Hub Endpoints](#hub-endpoints))
-- [ ] Seller dashboard data is scoped to the authenticated hub ([Hub Endpoints](#hub-endpoints), [Seller Dashboard](#seller-dashboard))
+- [ ] Listings are signed by provider hub's ML-DSA-65 key ([Capability Listing](#capability-listing), [Security Considerations](#security-considerations) 1) <!-- wl:check listings-signed-provider-hubs-ml-dsa -->
+- [ ] Registry verifies listing signatures before indexing ([Security Considerations](#security-considerations) 1, [Security](#security)) <!-- wl:check registry-verifies-listing-signatures -->
+- [ ] Hubs can search by domain, action, tier, jurisdiction ([Registry Search](#registry-search)) <!-- wl:check hubs-search-domain-action-tier-jurisdiction -->
+- [ ] Free tier uses the same security model as pro tier ([Free vs Pro Tiers](#free-vs-pro-tiers)) <!-- wl:check free-tier-uses-security-model-pro -->
+- [ ] Usage metering is dual-signed (consumer + provider) ([Usage Metering](#usage-metering)) <!-- wl:check usage-metering-dual-signed-consumer-provider -->
+- [ ] Collaboration requires explicit data contract review ([Design Principles](#design-principles) 3, [Collaboration Flow](#collaboration-flow)) <!-- wl:check collaboration-requires-explicit-data-contract -->
+- [ ] BREAKING changes keep the old version for the deprecation window [Provider Obligations](#provider-obligations) gives <!-- wl:check breaking-changes-keep-old-version-deprecation -->
+- [ ] CRITICAL changes trigger immediate listing suspension ([Provider Obligations](#provider-obligations)) <!-- wl:check critical-changes-trigger-immediate-listing -->
+- [ ] Collaborators can pin to a specific capability version ([Collaborator Protections](#collaborator-protections)) <!-- wl:check collaborators-pin-specific-capability-version -->
+- [ ] Emergency revocation purges all cross-boundary data ([Emergency Revocation](#emergency-revocation)) <!-- wl:check emergency-revocation-purges-cross-boundary-data -->
+- [ ] Registry never handles actual task data ([Registry Architecture](#registry-architecture)) <!-- wl:check registry-never-handles-actual-task-data -->
+- [ ] Multiple registries can federate for redundancy ([Registry Federation](#registry-federation)) <!-- wl:check multiple-registries-federate-redundancy -->
+- [ ] Delisting respects deprecation window for active collaborators ([Provider Delists](#provider-delists)) <!-- wl:check delisting-respects-deprecation-window-active -->
+- [ ] Marketplace purchases generate dual-signed receipts ([Purchase Flow](#purchase-flow), [Security Considerations](#security-considerations) 7) <!-- wl:check marketplace-purchases-generate-dual-signed -->
+- [ ] Verified reviews require proof of purchase and hub identity ([Verified Reviews](#verified-reviews), [Security Considerations](#security-considerations) 7) <!-- wl:check verified-reviews-require-proof-purchase-hub -->
+- [ ] Installable assets are signature-verified before generation ([Purchase Flow (Installable Asset)](#purchase-flow-installable-asset), [Security Considerations](#security-considerations) 8) <!-- wl:check installable-assets-signature-verified -->
+- [ ] Marketplace endpoints enforce proper authentication (hub-auth, peer-auth) ([Hub Endpoints](#hub-endpoints)) <!-- wl:check marketplace-endpoints-enforce-proper -->
+- [ ] Seller dashboard data is scoped to the authenticated hub ([Hub Endpoints](#hub-endpoints), [Seller Dashboard](#seller-dashboard)) <!-- wl:check seller-dashboard-data-scoped-authenticated-hub -->

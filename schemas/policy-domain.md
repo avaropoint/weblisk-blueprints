@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.1.1
 kind: reference
 noun: policy-domain
 match: [policy-domains/*.md]
@@ -423,20 +423,20 @@ counts would make a report of substance indistinguishable from a broken file.
 
 ### The declaration half
 
-- [ ] Every entry has an `id`, a `name`, a `description` and at least one keyword ([The declaration half](#the-declaration-half--policy-domainscataloguejson))
-- [ ] No two entries in the catalogue share an `id`
-- [ ] The embedded copy in a consumer is byte-identical to this one, and a guard says so ([How it reaches an installation](#how-it-reaches-an-installation))
-- [ ] A domain added here has a `policy-domains/<id>.md` beside it, or is knowingly left `undescribed` ([What is reported rather than refused](#what-is-reported-rather-than-refused))
+- [ ] Every entry has an `id`, a `name`, a `description` and at least one keyword ([The declaration half](#the-declaration-half--policy-domainscataloguejson)) <!-- wl:check entry-id-name-description-least-keyword -->
+- [ ] No two entries in the catalogue share an `id` <!-- wl:check no-two-entries-catalogue-share-id -->
+- [ ] The embedded copy in a consumer is byte-identical to this one, and a guard says so ([How it reaches an installation](#how-it-reaches-an-installation)) <!-- wl:check embedded-copy-consumer-byte-identical-guard -->
+- [ ] A domain added here has a `policy-domains/<id>.md` beside it, or is knowingly left `undescribed` ([What is reported rather than refused](#what-is-reported-rather-than-refused)) <!-- wl:check domain-added-here-policy-domains-id -->
 
 ### The commentary half
 
-- [ ] The filename, without `.md`, equals the declared `id` ([The commentary half — format](#the-commentary-half--format))
-- [ ] The `id` is a domain the policy-domain catalogue declares ([Frontmatter](#frontmatter))
-- [ ] Every `requires` entry is one of the closed values [`requires` — a closed vocabulary](#requires--a-closed-vocabulary) lists
-- [ ] Every `boundaries` key is a declared domain id, and is not this domain ([Frontmatter](#frontmatter), [`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal))
-- [ ] Every boundary is declared on both sides ([`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal))
-- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly
-- [ ] At least one recognised section has content ([Body — a closed set of headings](#body--a-closed-set-of-headings))
-- [ ] No artifact id and no register path appears anywhere in the body ([A domain may not restate derived fact](#a-domain-may-not-restate-derived-fact))
-- [ ] None of the fields [Frontmatter](#frontmatter) says the commentary half deliberately has no: `name`, `description`, `category`, `keywords`, `programmes` or `standards`
-- [ ] No individual is named, and no tenant, customer or project is named ([The commentary half — format](#the-commentary-half--format))
+- [ ] The filename, without `.md`, equals the declared `id` ([The commentary half — format](#the-commentary-half--format)) <!-- wl:check filename-without-md-equals-declared-id -->
+- [ ] The `id` is a domain the policy-domain catalogue declares ([Frontmatter](#frontmatter)) <!-- wl:check id-domain-policy-domain-catalogue-declares -->
+- [ ] Every `requires` entry is one of the closed values [`requires` — a closed vocabulary](#requires--a-closed-vocabulary) lists <!-- wl:check requires-entry-closed-values-requires-closed -->
+- [ ] Every `boundaries` key is a declared domain id, and is not this domain ([Frontmatter](#frontmatter), [`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal)) <!-- wl:check boundaries-key-declared-domain-id -->
+- [ ] Every boundary is declared on both sides ([`boundaries` — and why they are reciprocal](#boundaries--and-why-they-are-reciprocal)) <!-- wl:check boundary-declared-sides -->
+- [ ] Every `##` heading is one of those [Body — a closed set of headings](#body--a-closed-set-of-headings) lists, spelled exactly <!-- wl:check heading-body-closed-set-headings-lists -->
+- [ ] At least one recognised section has content ([Body — a closed set of headings](#body--a-closed-set-of-headings)) <!-- wl:check least-recognised-section-content -->
+- [ ] No artifact id and no register path appears anywhere in the body ([A domain may not restate derived fact](#a-domain-may-not-restate-derived-fact)) <!-- wl:check no-artifact-id-no-register-path -->
+- [ ] None of the fields [Frontmatter](#frontmatter) says the commentary half deliberately has no: `name`, `description`, `category`, `keywords`, `programmes` or `standards` <!-- wl:check none-fields-frontmatter-says-commentary-half -->
+- [ ] No individual is named, and no tenant, customer or project is named ([The commentary half — format](#the-commentary-half--format)) <!-- wl:check no-individual-named-no-tenant-customer -->

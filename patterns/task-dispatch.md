@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: task-dispatch
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/spec, protocol/types, patterns/messaging, patterns/retry]
 platform: any
 tier: free
@@ -504,40 +504,10 @@ dead-letter store. Dead-lettered tasks are never silently dropped.
 
 ### Dead-Letter Entry
 
-Each dead-letter entry preserves:
-
-```yaml
-types:
-  DeadLetterEntry:
-    fields:
-      task_id:
-        type: string
-        description: "Original task ID"
-      target_agent:
-        type: string
-        description: "Agent the task was dispatched to"
-      action:
-        type: string
-        description: "Action that was requested"
-      original_submission:
-        type: object
-        description: "Full original TaskSubmission envelope"
-      error:
-        type: string
-        description: "Final failure reason"
-      attempts:
-        type: int
-        description: "Total dispatch attempts"
-      first_attempt_at:
-        type: timestamp
-        description: "Timestamp of first dispatch attempt"
-      dead_lettered_at:
-        type: timestamp
-        description: "Timestamp of dead-letter capture"
-      trace_id:
-        type: string
-        description: "Trace context for correlation"
-```
+Each dead-letter entry preserves the task's id, its target agent and action,
+the original `TaskSubmission`, the final error, the number of attempts, when
+the first attempt and the capture happened, and the trace: the fields of
+`DeadLetterEntry`, declared once under [Types](#types).
 
 ### Retention
 
@@ -830,23 +800,23 @@ to handle failures in their workflow.
 
 ## Verification Checklist
 
-- [ ] Tasks submitted via `task.submit` receive a `task.accepted` event with task ID and queue position — [Contracts](#contracts), [State Transitions](#state-transitions)
-- [ ] Tasks are dispatched in priority order — [Priority Levels](#priority-levels)
-- [ ] Within the same priority, tasks dispatch in FIFO order — [Priority Levels](#priority-levels)
-- [ ] Dispatch respects per-agent `max_concurrent` — excess tasks queue — [Capacity Model](#capacity-model), [Dispatch Gate](#dispatch-gate)
-- [ ] Queued tasks dispatch immediately when an in-flight slot opens — [Dispatch Gate](#dispatch-gate)
-- [ ] Target agents receive `POST /v1/execute` with correct envelope format — [HTTP Dispatch](#http-dispatch)
-- [ ] Successful execution produces `task.completed` with result — [Response Handling](#response-handling)
-- [ ] Failed execution produces `task.failed` with error context — [Response Handling](#response-handling)
-- [ ] Timeout enforcement publishes `task.timeout` after configured seconds — [Timeout Enforcement](#timeout-enforcement)
-- [ ] 429 responses re-queue the task with `Retry-After` delay (not counted as retry) — [Response Handling](#response-handling), [Implementation Notes](#implementation-notes)
-- [ ] Transient failures (5xx, connection error) retry per `patterns/retry` — [Response Handling](#response-handling), [Dispatch Errors](#dispatch-errors)
-- [ ] Tasks failing after `max_attempts` are dead-lettered with full context — [Dead-Letter Handling](#dead-letter-handling), [State Transitions](#state-transitions)
-- [ ] Dead-letter entries are queryable and replayable — [Retention](#retention)
-- [ ] `task.cancelled` is published when a queued or in-flight task is cancelled — [State Transitions](#state-transitions)
-- [ ] Agent deregistration fails all in-flight and queued tasks for that agent — [Capacity Updates](#capacity-updates)
-- [ ] Queue depth limit rejects new submissions when exceeded — [Queue Depth Limits](#queue-depth-limits)
-- [ ] Duplicate `task_id` submissions are detected and rejected — [Implementation Notes](#implementation-notes)
-- [ ] All events include `trace_id` for distributed tracing — [Implementation Notes](#implementation-notes)
-- [ ] Each task event carries the payload [Contracts](#contracts) declares for it, and no more — [Implementation Notes](#implementation-notes)
-- [ ] Graceful shutdown drains in-flight tasks before exiting — [Implementation Notes](#implementation-notes)
+- [ ] Tasks submitted via `task.submit` receive a `task.accepted` event with task ID and queue position — [Contracts](#contracts), [State Transitions](#state-transitions) <!-- wl:check tasks-submitted-via-task-submit-receive -->
+- [ ] Tasks are dispatched in priority order — [Priority Levels](#priority-levels) <!-- wl:check tasks-dispatched-priority-order-priority-levels -->
+- [ ] Within the same priority, tasks dispatch in FIFO order — [Priority Levels](#priority-levels) <!-- wl:check within-priority-tasks-dispatch-fifo-order -->
+- [ ] Dispatch respects per-agent `max_concurrent` — excess tasks queue — [Capacity Model](#capacity-model), [Dispatch Gate](#dispatch-gate) <!-- wl:check dispatch-respects-per-agent-max-concurrent -->
+- [ ] Queued tasks dispatch immediately when an in-flight slot opens — [Dispatch Gate](#dispatch-gate) <!-- wl:check queued-tasks-dispatch-immediately-when-flight -->
+- [ ] Target agents receive `POST /v1/execute` with correct envelope format — [HTTP Dispatch](#http-dispatch) <!-- wl:check target-agents-receive-post-v1-execute -->
+- [ ] Successful execution produces `task.completed` with result — [Response Handling](#response-handling) <!-- wl:check successful-execution-produces-task-completed -->
+- [ ] Failed execution produces `task.failed` with error context — [Response Handling](#response-handling) <!-- wl:check failed-execution-produces-task-failed-error -->
+- [ ] Timeout enforcement publishes `task.timeout` after configured seconds — [Timeout Enforcement](#timeout-enforcement) <!-- wl:check timeout-enforcement-publishes-task-timeout -->
+- [ ] 429 responses re-queue the task with `Retry-After` delay (not counted as retry) — [Response Handling](#response-handling), [Implementation Notes](#implementation-notes) <!-- wl:check 429-responses-re-queue-task-retry -->
+- [ ] Transient failures (5xx, connection error) retry per `patterns/retry` — [Response Handling](#response-handling), [Dispatch Errors](#dispatch-errors) <!-- wl:check transient-failures-5xx-connection-error-retry -->
+- [ ] Tasks failing after `max_attempts` are dead-lettered with full context — [Dead-Letter Handling](#dead-letter-handling), [State Transitions](#state-transitions) <!-- wl:check tasks-failing-after-max-attempts-dead -->
+- [ ] Dead-letter entries are queryable and replayable — [Retention](#retention) <!-- wl:check dead-letter-entries-queryable-replayable -->
+- [ ] `task.cancelled` is published when a queued or in-flight task is cancelled — [State Transitions](#state-transitions) <!-- wl:check task-cancelled-published-when-queued-flight -->
+- [ ] Agent deregistration fails all in-flight and queued tasks for that agent — [Capacity Updates](#capacity-updates) <!-- wl:check agent-deregistration-fails-flight-queued-tasks -->
+- [ ] Queue depth limit rejects new submissions when exceeded — [Queue Depth Limits](#queue-depth-limits) <!-- wl:check queue-depth-limit-rejects-new-submissions -->
+- [ ] Duplicate `task_id` submissions are detected and rejected — [Implementation Notes](#implementation-notes) <!-- wl:check duplicate-task-id-submissions-detected-rejected -->
+- [ ] All events include `trace_id` for distributed tracing — [Implementation Notes](#implementation-notes) <!-- wl:check events-include-trace-id-distributed-tracing -->
+- [ ] Each task event carries the payload [Contracts](#contracts) declares for it, and no more — [Implementation Notes](#implementation-notes) <!-- wl:check task-event-carries-payload-contracts-declares -->
+- [ ] Graceful shutdown drains in-flight tasks before exiting — [Implementation Notes](#implementation-notes) <!-- wl:check graceful-shutdown-drains-flight-tasks -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 3.0.1
+version: 3.0.2
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
 platform: any
 tier: free
@@ -972,25 +972,25 @@ security:
 
 ## Verification Checklist
 
-- [ ] POST /v1/describe returns the agent manifest as JSON without requiring authentication ([POST /v1/describe](#post-v1describe))
-- [ ] POST /v1/execute parses TaskRequest, calls Execute, and returns a signed TaskResult with task_id, agent_name, and timestamp ([POST /v1/execute](#post-v1execute))
-- [ ] POST /v1/execute returns status=failed with the error summary when Execute returns an error ([POST /v1/execute](#post-v1execute))
-- [ ] `GET /livez` and `GET /readyz` answer without authentication as [`patterns/observability`](../patterns/observability.md#health-endpoint) says ([Endpoints](#endpoints), [GET /livez and GET /readyz](#get-livez-and-get-readyz))
-- [ ] The agent renews its lease at `POST /v1/lease` on the cadence [`LeaseRenewal`](../protocol/types.md#leaserenewal) sets, registers again on 404 `NOT_FOUND`, and renews with `ready: false` while draining ([Lease Renewal](#lease-renewal), [Graceful Shutdown](#graceful-shutdown))
-- [ ] POST /v1/message verifies the sender's ML-DSA-65 signature when present and returns 401 on invalid signature ([POST /v1/message](#post-v1message))
-- [ ] POST /v1/message builds a signed response with from=self, to=original sender, type=response ([POST /v1/message](#post-v1message))
-- [ ] POST /v1/services updates the internal service list, routing table, and namespace map (thread-safe) ([POST /v1/services](#post-v1services))
-- [ ] POST /v1/event checks idempotency (event_id), dispatches to matching handlers, returns 200 immediately ([POST /v1/event](#post-v1event))
-- [ ] POST /v1/event skips duplicate events (same event_id) with 200 OK ([POST /v1/event](#post-v1event))
-- [ ] Event handlers registered via on_event(pattern, handler) with topic matching (exact, *, #) ([POST /v1/event](#post-v1event))
-- [ ] Framework resolves subscribers from local routing table when publishing (no orchestrator call) ([Routing Table Cache](#routing-table-cache))
-- [ ] Manifest declares publishes and subscriptions for namespace ownership and event routing ([Manifest Fields: Publishing & Subscriptions](#manifest-fields-publishing--subscriptions))
-- [ ] Registration flow signs the manifest JSON with the agent's ML-DSA-65 private key and includes a timestamp ([Registration Flow (from agent side)](#registration-flow-from-agent-side))
-- [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity ([Agent-Side Limits](#agent-side-limits))
-- [ ] The default max concurrent limits per agent kind are enforced, each configurable via runtime configuration ([Agent-Side Limits](#agent-side-limits))
-- [ ] Outbound HTTP calls respect the configured outbound rate limit ([Default Timeouts and Resilience](#default-timeouts-and-resilience))
-- [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (7 endpoints, the two probes among them), starts server, registers with orchestrator, and starts renewing its lease ([Startup Sequence](#startup-sequence))
-- [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold ([Token Refresh](#token-refresh))
-- [ ] Token refresh failure makes the agent not ready, on `/readyz` and on its lease, after the attempts [Token Refresh](#token-refresh) step 3 allows, waiting as `protocol/conventions:backoff` says
-- [ ] Graceful shutdown when asked to stop, by whatever mechanism the platform blueprint names: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes the server ([Graceful Shutdown](#graceful-shutdown))
-- [ ] Shutdown respects the configured shutdown timeout for in-flight task drain ([Graceful Shutdown](#graceful-shutdown))
+- [ ] POST /v1/describe returns the agent manifest as JSON without requiring authentication ([POST /v1/describe](#post-v1describe)) <!-- wl:check post-v1-describe-returns-agent-manifest -->
+- [ ] POST /v1/execute parses TaskRequest, calls Execute, and returns a signed TaskResult with task_id, agent_name, and timestamp ([POST /v1/execute](#post-v1execute)) <!-- wl:check post-v1-execute-parses-taskrequest-calls -->
+- [ ] POST /v1/execute returns status=failed with the error summary when Execute returns an error ([POST /v1/execute](#post-v1execute)) <!-- wl:check post-v1-execute-returns-status-failed -->
+- [ ] `GET /livez` and `GET /readyz` answer without authentication as [`patterns/observability`](../patterns/observability.md#health-endpoint) says ([Endpoints](#endpoints), [GET /livez and GET /readyz](#get-livez-and-get-readyz)) <!-- wl:check get-livez-get-readyz-answer -->
+- [ ] The agent renews its lease at `POST /v1/lease` on the cadence [`LeaseRenewal`](../protocol/types.md#leaserenewal) sets, registers again on 404 `NOT_FOUND`, and renews with `ready: false` while draining ([Lease Renewal](#lease-renewal), [Graceful Shutdown](#graceful-shutdown)) <!-- wl:check agent-renews-lease-post-v1-lease -->
+- [ ] POST /v1/message verifies the sender's ML-DSA-65 signature when present and returns 401 on invalid signature ([POST /v1/message](#post-v1message)) <!-- wl:check post-v1-message-verifies-senders-ml -->
+- [ ] POST /v1/message builds a signed response with from=self, to=original sender, type=response ([POST /v1/message](#post-v1message)) <!-- wl:check post-v1-message-builds-signed-response -->
+- [ ] POST /v1/services updates the internal service list, routing table, and namespace map (thread-safe) ([POST /v1/services](#post-v1services)) <!-- wl:check post-v1-services-updates-internal-service -->
+- [ ] POST /v1/event checks idempotency (event_id), dispatches to matching handlers, returns 200 immediately ([POST /v1/event](#post-v1event)) <!-- wl:check post-v1-event-checks-idempotency-event -->
+- [ ] POST /v1/event skips duplicate events (same event_id) with 200 OK ([POST /v1/event](#post-v1event)) <!-- wl:check post-v1-event-skips-duplicate-events -->
+- [ ] Event handlers registered via on_event(pattern, handler) with topic matching (exact, *, #) ([POST /v1/event](#post-v1event)) <!-- wl:check event-handlers-registered-via-event-pattern -->
+- [ ] Framework resolves subscribers from local routing table when publishing (no orchestrator call) ([Routing Table Cache](#routing-table-cache)) <!-- wl:check framework-resolves-subscribers-local-routing -->
+- [ ] Manifest declares publishes and subscriptions for namespace ownership and event routing ([Manifest Fields: Publishing & Subscriptions](#manifest-fields-publishing--subscriptions)) <!-- wl:check manifest-declares-publishes-subscriptions -->
+- [ ] Registration flow signs the manifest JSON with the agent's ML-DSA-65 private key and includes a timestamp ([Registration Flow (from agent side)](#registration-flow-from-agent-side)) <!-- wl:check registration-flow-signs-manifest-json-agents -->
+- [ ] Agent returns 429 Too Many Requests with Retry-After header and retryable error body when at max concurrent capacity ([Agent-Side Limits](#agent-side-limits)) <!-- wl:check agent-returns-429-too-many-requests -->
+- [ ] The default max concurrent limits per agent kind are enforced, each configurable via runtime configuration ([Agent-Side Limits](#agent-side-limits)) <!-- wl:check default-max-concurrent-limits-per-agent -->
+- [ ] Outbound HTTP calls respect the configured outbound rate limit ([Default Timeouts and Resilience](#default-timeouts-and-resilience)) <!-- wl:check outbound-http-calls-respect-configured-outbound -->
+- [ ] Agent startup sequence generates ML-DSA-65 keys, registers HTTP routes (7 endpoints, the two probes among them), starts server, registers with orchestrator, and starts renewing its lease ([Startup Sequence](#startup-sequence)) <!-- wl:check agent-startup-sequence-generates-ml-dsa -->
+- [ ] Token refresh triggers re-registration when remaining TTL drops below the configured refresh threshold ([Token Refresh](#token-refresh)) <!-- wl:check token-refresh-triggers-re-registration -->
+- [ ] Token refresh failure makes the agent not ready, on `/readyz` and on its lease, after the attempts [Token Refresh](#token-refresh) step 3 allows, waiting as `protocol/conventions:backoff` says <!-- wl:check token-refresh-failure-makes-agent -->
+- [ ] Graceful shutdown when asked to stop, by whatever mechanism the platform blueprint names: stops accepting tasks, drains in-flight work, sends DELETE /v1/register, closes the server ([Graceful Shutdown](#graceful-shutdown)) <!-- wl:check graceful-shutdown-when-asked-stop-whatever -->
+- [ ] Shutdown respects the configured shutdown timeout for in-flight task drain ([Graceful Shutdown](#graceful-shutdown)) <!-- wl:check shutdown-respects-configured-shutdown-timeout -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 3.0.1
+version: 3.0.2
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -711,16 +711,16 @@ describe("liveness probe", () => {
 
 ## Verification Checklist
 
-- [ ] Signing uses the vendored first-party implementation, and while none is vendored and measured the slot is reported UNFILLED, never filled by a named package; keys exported as raw ArrayBuffer and hex-encoded for protocol ([Primitive Mapping](#primitive-mapping), [The signature slot, and why it stays UNFILLED](#the-signature-slot-and-why-it-stays-unfilled), [Crypto](#crypto))
-- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test ([The HTTP Surface](#the-http-surface))
-- [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding ([The HTTP Surface](#the-http-surface))
-- [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse` ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
-- [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent) ([State (Orchestrator)](#state-orchestrator), [Storage has no single default here, and that is the answer](#storage-has-no-single-default-here-and-that-is-the-answer))
-- [ ] Durable Object alarm handles channel TTL cleanup ([State (Orchestrator)](#state-orchestrator), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))
-- [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads ([Storage Mapping (Cloudflare)](#storage-mapping-cloudflare), [D1 for Queryable Data](#d1-for-queryable-data), [KV for Fast Reads](#kv-for-fast-reads))
-- [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json ([Runtime Requirements](#runtime-requirements), [Dependencies](#dependencies-1))
-- [ ] A private key comes from a Workers Secret on a hosted deployment or is generated on first Durable Object creation and stored internally, and on a CLI start only the second; never in wrangler.toml or source code ([Key Storage](#key-storage), [Secrets Management](#secrets-management))
-- [ ] The Worker's `fetch` delegates to the one route table's dispatcher, which applies auth to the routes the Protocol Paths table marks as authenticated ([The HTTP Surface](#the-http-surface), [`protocol/types`](../protocol/types.md#protocol-paths))
-- [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent` ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
-- [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific))
-- [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping ([wrangler.toml](#wranglertoml), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare))
+- [ ] Signing uses the vendored first-party implementation, and while none is vendored and measured the slot is reported UNFILLED, never filled by a named package; keys exported as raw ArrayBuffer and hex-encoded for protocol ([Primitive Mapping](#primitive-mapping), [The signature slot, and why it stays UNFILLED](#the-signature-slot-and-why-it-stays-unfilled), [Crypto](#crypto)) <!-- wl:check signing-uses-vendored-first-party-implementation -->
+- [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-exported-path-operation-constant -->
+- [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding ([The HTTP Surface](#the-http-surface)) <!-- wl:check routes-declared-method-path-handler-table -->
+- [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse` ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check known-path-wrong-method-answers-405 -->
+- [ ] Agent registry is stored in a Durable Object for strong consistency; KV is used for the service directory cache (eventually consistent) ([State (Orchestrator)](#state-orchestrator), [Storage has no single default here, and that is the answer](#storage-has-no-single-default-here-and-that-is-the-answer)) <!-- wl:check agent-registry-stored-durable-object-strong -->
+- [ ] Durable Object alarm handles channel TTL cleanup ([State (Orchestrator)](#state-orchestrator), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare)) <!-- wl:check durable-object-alarm-handles-channel-ttl -->
+- [ ] Queryable data (observations, audit logs, workflow executions) is stored in D1; entity context uses KV for fast edge reads ([Storage Mapping (Cloudflare)](#storage-mapping-cloudflare), [D1 for Queryable Data](#d1-for-queryable-data), [KV for Fast Reads](#kv-for-fast-reads)) <!-- wl:check queryable-data-observations-audit-logs-workflow -->
+- [ ] Zero runtime dependencies — only `devDependencies` (wrangler) exist in package.json ([Runtime Requirements](#runtime-requirements), [Dependencies](#dependencies-1)) <!-- wl:check zero-runtime-dependencies-devdependencies -->
+- [ ] A private key comes from a Workers Secret on a hosted deployment or is generated on first Durable Object creation and stored internally, and on a CLI start only the second; never in wrangler.toml or source code ([Key Storage](#key-storage), [Secrets Management](#secrets-management)) <!-- wl:check private-key-comes-workers-secret-hosted -->
+- [ ] The Worker's `fetch` delegates to the one route table's dispatcher, which applies auth to the routes the Protocol Paths table marks as authenticated ([The HTTP Surface](#the-http-surface), [`protocol/types`](../protocol/types.md#protocol-paths)) <!-- wl:check workers-fetch-delegates-route-tables-dispatcher -->
+- [ ] Concurrency limiting is coordinated through the Durable Object (`acquireSlot`/`releaseSlot` pattern) respecting agent `max_concurrent` ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific)) <!-- wl:check concurrency-limiting-coordinated-through-durable -->
+- [ ] Domain controllers dispatch parallel workflow phases using `Promise.all()` for independent phases within a dependency level ([Concurrency (Cloudflare-Specific)](#concurrency-cloudflare-specific)) <!-- wl:check domain-controllers-dispatch-parallel-workflow -->
+- [ ] wrangler.toml declares Durable Object bindings, D1 database bindings, and KV namespace bindings as required by the storage mapping ([wrangler.toml](#wranglertoml), [Storage Mapping (Cloudflare)](#storage-mapping-cloudflare)) <!-- wl:check wrangler-toml-declares-durable-object-bindings -->

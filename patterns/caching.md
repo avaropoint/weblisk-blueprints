@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: caching
-version: 2.0.2
+version: 2.0.3
 requires: [protocol/types]
 platform: any
 tier: free
@@ -285,13 +285,13 @@ Standard metrics (if patterns/observability is extended):
 
 ## Verification Checklist
 
-- [ ] Cache Get/Set/Delete/Clear operations work correctly — [Cache Interface](#cache-interface)
-- [ ] TTL expiry removes entries after configured duration — [Eviction Policy](#eviction-policy)
-- [ ] LRU eviction triggers when max_size is reached — [Eviction Policy](#eviction-policy), [Contracts](#contracts)
-- [ ] Service directory push clears service + route namespaces — [Cache-Aside Pattern](#cache-aside-pattern), [Event-Driven Invalidation](#event-driven-invalidation)
-- [ ] Cache stats are emitted as the standard cache metrics, and never in a health answer — [Observability](#observability)
-- [ ] Concurrent access is safe (no data races) — [Implementation Notes](#implementation-notes)
-- [ ] Cache keys are namespaced (no collisions) — [Cache Namespaces](#cache-namespaces), [Design Principles](#design-principles)
-- [ ] AI embedding cache uses content-hash keys — [AI Response Caching](#ai-response-caching)
-- [ ] Non-deterministic AI responses are NOT cached — [AI Response Caching](#ai-response-caching)
-- [ ] Cold start works correctly (empty cache, no errors) — [Implementation Notes](#implementation-notes)
+- [ ] Cache Get/Set/Delete/Clear operations work correctly — [Cache Interface](#cache-interface) <!-- wl:check cache-get-set-delete-clear-operations -->
+- [ ] TTL expiry removes entries after configured duration — [Eviction Policy](#eviction-policy) <!-- wl:check ttl-expiry-removes-entries-after-configured -->
+- [ ] LRU eviction triggers when max_size is reached — [Eviction Policy](#eviction-policy), [Contracts](#contracts) <!-- wl:check lru-eviction-triggers-when-max-size -->
+- [ ] Service directory push clears service + route namespaces — [Cache-Aside Pattern](#cache-aside-pattern), [Event-Driven Invalidation](#event-driven-invalidation) <!-- wl:check service-directory-push-clears-service-route -->
+- [ ] Cache stats are emitted as the standard cache metrics, and never in a health answer — [Observability](#observability) <!-- wl:check cache-stats-emitted-standard-cache-metrics -->
+- [ ] Concurrent access is safe (no data races) — [Implementation Notes](#implementation-notes) <!-- wl:check concurrent-access-safe-no-data-races -->
+- [ ] Cache keys are namespaced (no collisions) — [Cache Namespaces](#cache-namespaces), [Design Principles](#design-principles) <!-- wl:check cache-keys-namespaced-no-collisions-cache -->
+- [ ] AI embedding cache uses content-hash keys — [AI Response Caching](#ai-response-caching) <!-- wl:check ai-embedding-cache-uses-content-hash -->
+- [ ] Non-deterministic AI responses are NOT cached — [AI Response Caching](#ai-response-caching) <!-- wl:check non-deterministic-ai-responses-not-cached -->
+- [ ] Cold start works correctly (empty cache, no errors) — [Implementation Notes](#implementation-notes) <!-- wl:check cold-start-works-correctly-empty-cache -->

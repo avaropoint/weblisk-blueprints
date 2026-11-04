@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: notification
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/retry, patterns/secrets]
 platform: any
 tier: free
@@ -519,17 +519,17 @@ below.
 
 ## Verification Checklist
 
-- [ ] Notification request validates against schema — [Request Fields](#request-fields)
-- [ ] All enabled channel adapters deliver successfully — [Channel Configuration](#channel-configuration), [Delivery Pipeline](#delivery-pipeline)
-- [ ] Subscriber preferences filter by severity and source — [Preference Model](#preference-model), [Delivery Pipeline](#delivery-pipeline)
-- [ ] Quiet hours suppress non-exception notifications — [Preference Model](#preference-model)
-- [ ] Digest batches notifications at configured frequency — [Preference Model](#preference-model), [Implementation Notes](#implementation-notes)
-- [ ] Deduplication prevents duplicate notifications within window — [Throttling](#throttling)
-- [ ] Throttled notifications include suppressed count on next delivery — [Throttling](#throttling)
-- [ ] Templates render correctly for all channels — [Template Structure](#template-structure)
-- [ ] Template filters (upper, truncate, datetime) produce correct output — [Template Filters](#template-filters)
-- [ ] Failed deliveries retry per channel retry configuration — [Retry Behavior](#retry-behavior)
-- [ ] Delivery receipts record status for every send attempt — [Delivery Receipt](#delivery-receipt)
-- [ ] Metrics emit for sent, delivered, failed, and throttled — [Observability](#observability)
-- [ ] New channels can be added with only an adapter implementation — [Channel Adapter Interface](#channel-adapter-interface), [Implementation Notes](#implementation-notes)
-- [ ] Email channel delegates to email-send agent — [Implementation Notes](#implementation-notes)
+- [ ] Notification request validates against schema — [Request Fields](#request-fields) <!-- wl:check notification-request-validates-against-schema -->
+- [ ] All enabled channel adapters deliver successfully — [Channel Configuration](#channel-configuration), [Delivery Pipeline](#delivery-pipeline) <!-- wl:check enabled-channel-adapters-deliver-successfully -->
+- [ ] Subscriber preferences filter by severity and source — [Preference Model](#preference-model), [Delivery Pipeline](#delivery-pipeline) <!-- wl:check subscriber-preferences-filter-severity-source -->
+- [ ] Quiet hours suppress non-exception notifications — [Preference Model](#preference-model) <!-- wl:check quiet-hours-suppress-non-exception-notifications -->
+- [ ] Digest batches notifications at configured frequency — [Preference Model](#preference-model), [Implementation Notes](#implementation-notes) <!-- wl:check digest-batches-notifications-configured -->
+- [ ] Deduplication prevents duplicate notifications within window — [Throttling](#throttling) <!-- wl:check deduplication-prevents-duplicate-notifications -->
+- [ ] Throttled notifications include suppressed count on next delivery — [Throttling](#throttling) <!-- wl:check throttled-notifications-include-suppressed-count -->
+- [ ] Templates render correctly for all channels — [Template Structure](#template-structure) <!-- wl:check templates-render-correctly-channels-template -->
+- [ ] Template filters (upper, truncate, datetime) produce correct output — [Template Filters](#template-filters) <!-- wl:check template-filters-upper-truncate-datetime-produce -->
+- [ ] Failed deliveries retry per channel retry configuration — [Retry Behavior](#retry-behavior) <!-- wl:check failed-deliveries-retry-per-channel-retry -->
+- [ ] Delivery receipts record status for every send attempt — [Delivery Receipt](#delivery-receipt) <!-- wl:check delivery-receipts-record-status-send-attempt -->
+- [ ] Metrics emit for sent, delivered, failed, and throttled — [Observability](#observability) <!-- wl:check metrics-emit-sent-delivered-failed-throttled -->
+- [ ] New channels can be added with only an adapter implementation — [Channel Adapter Interface](#channel-adapter-interface), [Implementation Notes](#implementation-notes) <!-- wl:check new-channels-added-adapter-implementation -->
+- [ ] Email channel delegates to email-send agent — [Implementation Notes](#implementation-notes) <!-- wl:check email-channel-delegates-email-send-agent -->

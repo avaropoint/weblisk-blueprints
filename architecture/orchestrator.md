@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.7.1
+version: 4.9.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -736,75 +736,393 @@ declaration:
       relations:
         - {relation: held_at, to: organisation, field: organisation}
         - {relation: held_at, to: project, field: project}
-  checks:
-    - check: no-path-literals
-      subject: route registration
-      why: Every routed path is a Path<Operation> constant, so a path is corrected in one place
-    - check: no-method-less-pattern
-      subject: route registration
-      why: net/http panics at startup when a method-less pattern sits beside a wildcard sibling
-    - check: endpoint-routed
-      endpoint: POST /v1/register
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/token
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/credentials/challenge
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/credentials/token
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/{name}/key
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/hub/proof
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/{name}/credentials
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/operators/{name}/credentials
-    - check: endpoint-routed
-      endpoint: DELETE /v1/admin/operators/{name}/credentials/{cid}
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/audit
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/audit/export
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/records/orchestrator/snapshot
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/model/audit
-    - check: endpoint-routed
-      endpoint: POST /v1/model/audit
-    - check: endpoint-routed
-      endpoint: POST /v1/token/exchange
-    - check: endpoint-routed
-      endpoint: POST /v1/token/work
-    - check: endpoint-routed
-      endpoint: GET /v1/work/authorisations
-    - check: endpoint-routed
-      endpoint: DELETE /v1/work/authorisations/{id}
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/work-authorisations
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/work-authorisations
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/work-authorisations/{id}/renew
-    - check: endpoint-routed
-      endpoint: DELETE /v1/admin/work-authorisations/{id}
-    - check: endpoint-routed
-      endpoint: POST /v1/lease
-    - check: endpoint-routed
-      endpoint: GET /livez
-    - check: endpoint-routed
-      endpoint: GET /readyz
-    - check: type-has-keys
-      type: RegisterResponse
-      keys: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
-    - check: type-has-keys
-      type: ChannelGrant
-      keys: [channel_id, channel_token, target_url, target_pub_key, expires_at]
-    - check: error-codes-registered
-      subject: the central error registry
-      why: Every status lookup for an unregistered code falls through to 500
-    - check: starts-unattended
-      subject: the built binary
-      why: A hub that prompts for a passphrase dies on EOF and never binds its port
+```
+
+### Declared checks
+
+What used to be `declaration.checks` (31 named expectations that nothing ran)
+is written here as checks of the kinds [`schemas/blocks`](../schemas/blocks.md#checks)
+declares, each with the criterion it settles. The `structure` queries are the
+language's to declare ([`languages/go`](../languages/go.md#structure-queries)),
+so these checks name a query and never its text. `starts-unattended` is a
+`topology` check, because a mux conflict and a passphrase prompt are visible
+only when the binary runs.
+
+```yaml
+verifies:
+- id: no-path-literals
+  covers: ['languages/go:routed-path-exported-path-operation-constant']
+  check: structure
+  assertion: Every routed path is a Path<Operation> constant, so a path is corrected in one place.
+  structure: {query: path-literal, scope: outside-contract, expect: none}
+- id: no-method-less-pattern
+  covers: ['languages/go:405-404-decided-single-handler-matching']
+  check: structure
+  assertion: net/http panics at startup when a method-less pattern sits beside a wildcard sibling.
+  structure: {query: method-less-pattern, scope: component, expect: none}
+- id: routed-post-register
+  covers: [post-v1-register-returns-registerresponse-agent]
+  check: exchange
+  assertion: 'POST /v1/register is routed: a request without a token is answered by the route, never 404
+    or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/register
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-token
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/token is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/token
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-credentials-challenge
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/credentials/challenge is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/challenge
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-credentials-token
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/credentials/token is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/token
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-name-key
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/{name}/key is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/conformance-probe-subject/key
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-hub-proof
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/hub/proof is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/hub/proof
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-name-credentials
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/{name}/credentials is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/conformance-probe-subject/credentials
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-operators-name-credentials
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/operators/{name}/credentials is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/operators/conformance-probe-subject/credentials}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-admin-operators-name-credentials-cid
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'DELETE /v1/admin/operators/{name}/credentials/{cid} is routed: a request without a token
+    is answered by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/admin/operators/conformance-probe-subject/credentials/0000000000000000000000000000000000000000000000000000000000000000}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-audit
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/audit is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/audit}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-audit-export
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/audit/export is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/audit/export}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-records-orchestrator-snapshot
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/records/orchestrator/snapshot is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/records/orchestrator/snapshot}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-model-audit
+  covers: [post-v1-admin-model-audit-outside]
+  check: translated
+  assertion: POST /v1/admin/model/audit is in the route table and is dispatched in process; from outside the process it is answered 404 where the model gateway is installed, so no exchange from outside can tell routed from absent, and the test is translated from this criterion.
+- id: routed-post-model-audit
+  covers: [post-v1-model-audit-outside-process]
+  check: translated
+  assertion: POST /v1/model/audit is in the route table and is dispatched in process; from outside the process it is answered 404 where the model gateway is installed, so no exchange from outside can tell routed from absent, and the test is translated from this criterion.
+- id: routed-post-token-exchange
+  covers: [post-v1-token-exchange-answers-issued]
+  check: exchange
+  assertion: 'POST /v1/token/exchange is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/token/exchange
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-token-work
+  covers: [post-v1-token-work-admits-live]
+  check: exchange
+  assertion: 'POST /v1/token/work is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/token/work
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-work-authorisations
+  covers: [registration-token-pass-work-pass-cannot]
+  check: exchange
+  assertion: 'GET /v1/work/authorisations is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/work/authorisations}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-work-authorisations-id
+  covers: [registration-token-pass-work-pass-cannot]
+  check: exchange
+  assertion: 'DELETE /v1/work/authorisations/{id} is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/work/authorisations/conformance-probe-id}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-work-authorisations
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/work-authorisations is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/work-authorisations
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-work-authorisations
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/work-authorisations is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/work-authorisations}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-work-authorisations-id-renew
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/work-authorisations/{id}/renew is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/work-authorisations/conformance-probe-id/renew
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-admin-work-authorisations-id
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'DELETE /v1/admin/work-authorisations/{id} is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe-id}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-lease
+  covers: [renewal-post-v1-lease-after-lapse]
+  check: exchange
+  assertion: 'POST /v1/lease is routed: a request without a token is answered by the route, never 404
+    or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/lease
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-livez
+  covers: [get-livez-get-readyz-answer]
+  check: exchange
+  assertion: 'GET /livez is routed: a request without a token is answered by the route, never 404 or 405
+    and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /livez}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-readyz
+  covers: [get-livez-get-readyz-answer]
+  check: exchange
+  assertion: 'GET /readyz is routed: a request without a token is answered by the route, never 404 or
+    405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /readyz}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: type-register-response-has-keys
+  covers: [post-v1-register-returns-registerresponse-agent]
+  check: structure
+  assertion: The contract's RegisterResponse carries the wire keys agent_id, token, expires_at, services,
+    lease, orchestrator, protocol_version; the key the language writes on the wire is authority, not the
+    field's name.
+  structure:
+    query: type-wire-keys
+    args: {type: RegisterResponse}
+    scope: contract
+    expect:
+      includes: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
+- id: type-channel-grant-has-keys
+  covers: [channelgrant-names-target-url-where-orchestrator]
+  check: structure
+  assertion: The contract's ChannelGrant carries the wire keys channel_id, channel_token, target_url,
+    target_pub_key, expires_at; the key the language writes on the wire is authority, not the field's
+    name.
+  structure:
+    query: type-wire-keys
+    args: {type: ChannelGrant}
+    scope: contract
+    expect:
+      includes: [channel_id, channel_token, target_url, target_pub_key, expires_at]
+- id: error-codes-registered
+  covers: ['languages/go:declared-type-enum-constant-path-operation']
+  check: structure
+  assertion: 'Every status lookup for an unregistered code falls through to 500: every error code the
+    code uses is a key of the central registry.'
+  structure:
+    query: error-code-use
+    scope: module
+    expect: {subset_of: error-code-registered}
+- id: starts-unattended
+  covers: ['languages/go:process-binds-port-answers-get-livez']
+  check: topology
+  assertion: 'A hub that prompts for a passphrase dies on EOF and never binds its port: started with no
+    terminal and standard input closed, the built binary binds its port and answers live.'
+  topology:
+    instances:
+    - {name: a, stdin: closed}
+    acts:
+    - {act: start, instance: a, expect: live, within: 20s}
 ```
 
 ---
@@ -1432,8 +1750,11 @@ in, in the grammar a standard's `applies_in` is written in
 ([`schemas/standard`](../schemas/standard.md#applies_in--where-a-standard-has-force)):
 ISO 3166-1 alpha-2 and ISO 3166-2 codes, ascending, with no subdivision of a
 country it already lists, and never `international`, which is a standard's
-reach and nobody's place. A list outside that grammar is refused with
-`INVALID_REQUEST`. **Absent means nobody has said**, and narrows nothing; it
+reach and nobody's place. A code is checked against the shipped list
+[`schemas/places/iso-3166.json`](../schemas/places/iso-3166.json), so `ZZ`,
+well formed and assigned to nothing, is refused as surely as `zz`; the list is
+built into the orchestrator from the release it names. A list outside that
+grammar is refused with `INVALID_REQUEST`. **Absent means nobody has said**, and narrows nothing; it
 is never read as everywhere or as nowhere. A client compares it with each
 standard's `applies_in` to suggest what an organisation might adopt. It is
 never an adoption, never hides a standard already adopted, and is never data
@@ -3206,118 +3527,118 @@ agents hold, which is theirs.
 ---
 
 ## Verification Checklist
-- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key — an attestation token, per [`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance`
-- [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them ([`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance`, [Auth Middleware](#auth-middleware))
-- [ ] `POST /v1/admin/operators/token` refuses a request with no `jti` with `INVALID_REQUEST`, and one whose `jti` it has recorded for that operator with `TOKEN_REQUEST_REPLAYED`, as [`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance` states
-- [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request ([Security](#security))
-- [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live ([Auth Middleware](#auth-middleware) step 7, [`architecture/admin`](admin.md#contracts)'s `token-status-on-use`)
-- [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke` ([Administrative endpoints](#administrative-endpoints))
-- [ ] `POST /v1/admin/operators/{name}/key` is served as `OperatorKeyChange`, requires no bearer token, and keeps the operator's `identity_id` while revoking its credentials ([`architecture/admin`](admin.md#contracts), `operator-key-change`)
-- [ ] `POST /v1/admin/hub/proof` is served as `HubProof` and requires no bearer token: a request carrying none reaches its handler, and is never answered `401` `valid token required` ([`architecture/admin`](admin.md#contracts), `hub-proof`; [Auth Middleware](#auth-middleware))
-- [ ] A token with `type` `attestation` is refused as [Auth Middleware](#auth-middleware) step 5 says, on every route but `CredentialAttest` (`GET /v1/audit` and `POST /v1/channel` included) and on `CredentialAttest` for any operator but its `sub`
-- [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs ([Auth Middleware](#auth-middleware) step 6)
+- [ ] `POST /v1/admin/operators/token` issues a token to an approved operator whose signature verifies against the stored public key — an attestation token, per [`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance` <!-- wl:check post-v1-admin-operators-token-issues -->
+- [ ] `POST /v1/admin/operators/token` requires no bearer token — it is the endpoint that issues them ([`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance`, [Auth Middleware](#auth-middleware)) <!-- wl:check post-v1-admin-operators-token-requires -->
+- [ ] `POST /v1/admin/operators/token` refuses a request with no `jti` with `INVALID_REQUEST`, and one whose `jti` it has recorded for that operator with `TOKEN_REQUEST_REPLAYED`, as [`architecture/admin`](admin.md#contracts)'s `attestation-token-issuance` states <!-- wl:check post-v1-admin-operators-token-refuses -->
+- [ ] An operator token carries the role and capabilities from the orchestrator's own record, never from the request ([Security](#security)) <!-- wl:check operator-token-carries-role-capabilities -->
+- [ ] `POST /v1/admin/credentials/challenge` and `POST /v1/admin/credentials/token` require no bearer token, and every other operator route refuses a token whose operator or credential is no longer live ([Auth Middleware](#auth-middleware) step 7, [`architecture/admin`](admin.md#contracts)'s `token-status-on-use`) <!-- wl:check post-v1-admin-credentials-challenge-post -->
+- [ ] The credential routes are served with the Operation names declared above: `CredentialChallenge`, `CredentialToken`, `CredentialAttest`, `CredentialList` and `CredentialRevoke` ([Administrative endpoints](#administrative-endpoints)) <!-- wl:check credential-routes-served-operation-names -->
+- [ ] `POST /v1/admin/operators/{name}/key` is served as `OperatorKeyChange`, requires no bearer token, and keeps the operator's `identity_id` while revoking its credentials ([`architecture/admin`](admin.md#contracts), `operator-key-change`) <!-- wl:check post-v1-admin-operators-name-key -->
+- [ ] `POST /v1/admin/hub/proof` is served as `HubProof` and requires no bearer token: a request carrying none reaches its handler, and is never answered `401` `valid token required` ([`architecture/admin`](admin.md#contracts), `hub-proof`; [Auth Middleware](#auth-middleware)) <!-- wl:check post-v1-admin-hub-proof-served -->
+- [ ] A token with `type` `attestation` is refused as [Auth Middleware](#auth-middleware) step 5 says, on every route but `CredentialAttest` (`GET /v1/audit` and `POST /v1/channel` included) and on `CredentialAttest` for any operator but its `sub` <!-- wl:check token-type-attestation-refused-auth-middleware -->
+- [ ] A token whose `type` is not `operator`, an agent token included, is refused with `CREDENTIAL_REQUIRED` on every `/v1/admin/*` route that requires a token, before the handler runs ([Auth Middleware](#auth-middleware) step 6) <!-- wl:check token-type-not-operator-agent-token -->
 
-- [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection ([Registration Flow](#registration-flow-post-v1register) step 2)
-- [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict) ([Namespace Enforcement Rules](#namespace-enforcement-rules))
-- [ ] `POST /v1/register` rejects reserved namespace claims (403) ([Namespace Enforcement Rules](#namespace-enforcement-rules))
-- [ ] `POST /v1/register` refuses a manifest naming any capability [`protocol/types`](../protocol/types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY` ([Error Handling](../protocol/types.md#error-handling)), records no agent and issues no token
-- [ ] A registration token carries `identity_id`, the fingerprint of `manifest.public_key` ([Registration Flow](#registration-flow-post-v1register) step 5)
-- [ ] `POST /v1/register` validates subscription scopes (event:observe for "*") ([Registration Flow](#registration-flow-post-v1register) step 4)
-- [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory ([Registration Flow](#registration-flow-post-v1register) step 9)
-- [ ] `DELETE /v1/register` releases owned namespaces and routing table entries ([Deregistration Flow](#deregistration-flow-delete-v1register))
-- [ ] Service directory includes `routing_table` and namespaces map ([Service Directory](#service-directory-get-v1services))
-- [ ] A `ServiceEntry` carries the `pass_routes` its manifest declared, unchanged, and a registration whose `pass_routes` name `content:write` or another person-only capability is not refused for it, while one whose `capabilities` names one still is with `CAPABILITY_PERSON_ONLY` ([Registration Flow](#registration-flow-post-v1register) steps 1 and 6)
-- [ ] `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in its `capabilities` or in a pass route's `capabilities` or body requirement, and one with two pass routes that can match one request, such as `GET /v1/x/{id}` and `GET /v1/x/special` ([Registration Flow](#registration-flow-post-v1register) step 1)
-- [ ] A sixth request within a minute from one source to any one of the six administrative routes served without a token is refused before any signature is verified or made, the source being the `X-Forwarded-For` address only on a request from an address `orchestrator.admin_gateway_from` names, and the connection's address on every other, whatever `X-Forwarded-For` it carries ([Auth Middleware](#auth-middleware); [`architecture/admin`](admin.md#contracts), `auth-route-rate-limit`)
-- [ ] Service directory broadcast to every other registered agent after every registration or deregistration ([Service Broadcasting](#service-broadcasting))
-- [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not))
-- [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not))
-- [ ] `address_provenance` is never reported as `verified` on the strength of an unauthenticated `GET /livez` or `GET /readyz` probe ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not))
-- [ ] A `ChannelGrant` names a `target_url` only where the orchestrator would publish that address as `declared` ([Presenting a credential to a component](#presenting-a-credential-to-a-component))
-- [ ] A `ChannelGrant`'s capabilities are the intersection of the requester's and the target's registered manifest, and no wider on either side ([Presenting a credential to a component](#presenting-a-credential-to-a-component))
-- [ ] `POST /v1/channel` verifies `from_agent` matches token.sub ([Channel Brokering](#channel-brokering-post-v1channel) step 3)
-- [ ] `POST /v1/channel` requires agent:message capability (403 if missing) ([Channel Brokering](#channel-brokering-post-v1channel) step 4)
-- [ ] Channel tokens expire after the channel TTL ([Channel Brokering](#channel-brokering-post-v1channel) step 7, [Configuration](#configuration))
-- [ ] Auth middleware rejects unauthenticated requests on protected endpoints ([Auth Middleware](#auth-middleware))
-- [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header ([Auth Middleware](#auth-middleware) steps 2 and 8)
-- [ ] `GET /livez` and `GET /readyz` answer without auth with `live` or `ready` alone, and no count, version or name ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz))
-- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration with an unchanged manifest over a current lease leaves its last renewal and `expires_at` unchanged, and one with a changed manifest, over a lapsed lease or over a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal ([`protocol/spec`](../protocol/spec.md#post-v1register) step 8, [Presence](#presence))
-- [ ] An entry whose lease is past `expires_at` reads `lease_state` `unknown`, stays in the directory, and is never reported `ready` ([Presence](#presence), [`protocol/types`](../protocol/types.md#leasestate))
-- [ ] A renewal at `POST /v1/lease` after a lapse restores the lease without a new registration ([`protocol/spec`](../protocol/spec.md#post-v1lease) step 2)
-- [ ] The orchestrator sends no request to a registered component to learn its presence or readiness, and has no setting that times, bounds or counts such a request ([Presence](#presence))
-- [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast ([`protocol/spec`](../protocol/spec.md#post-v1lease) step 3)
-- [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing ([Registration Flow](#registration-flow-post-v1register) step 10, [System Events](#system-events))
-- [ ] system.agent.deregistered event published after deregistration ([Deregistration Flow](#deregistration-flow-delete-v1register) step 6)
-- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line, except a lease renewal that leaves `lease_state` as it was ([Audit Logging](#audit-logging))
-- [ ] A lease renewal that leaves `lease_state` as it was appends no audit entry and updates the entry's `lease`, `last_renewal` and `last_seen`; one that changes it, and every refused renewal, appends one naming the state before and after or the refusal ([Presence](#presence))
-- [ ] With 100,000 entries in the audit log, a token exchange is answered within one flush plus 5 ms at p99, as with none, and no lookup it or Auth Middleware makes reads a store's file ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#a-store-is-opened-once), `durable-records`)
-- [ ] Concurrent token exchanges are each answered only after a flush covering its audit entry, and none waits under the audit store's lock for another's flush ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`)
-- [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease ([Domain Dependency Tracking](#domain-dependency-tracking))
-- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives ([Weblisk Orchestrator Blueprint](#weblisk-orchestrator-blueprint), its opening paragraphs)
+- [ ] `POST /v1/register` verifies ML-DSA-65 signature and replay protection ([Registration Flow](#registration-flow-post-v1register) step 2) <!-- wl:check post-v1-register-verifies-ml-dsa -->
+- [ ] `POST /v1/register` enforces exclusive namespace ownership (409 on conflict) ([Namespace Enforcement Rules](#namespace-enforcement-rules)) <!-- wl:check post-v1-register-enforces-exclusive-namespace -->
+- [ ] `POST /v1/register` rejects reserved namespace claims (403) ([Namespace Enforcement Rules](#namespace-enforcement-rules)) <!-- wl:check post-v1-register-rejects-reserved-namespace -->
+- [ ] `POST /v1/register` refuses a manifest naming any capability [`protocol/types`](../protocol/types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY` ([Error Handling](../protocol/types.md#error-handling)), records no agent and issues no token <!-- wl:check post-v1-register-refuses-manifest-naming -->
+- [ ] A registration token carries `identity_id`, the fingerprint of `manifest.public_key` ([Registration Flow](#registration-flow-post-v1register) step 5) <!-- wl:check registration-token-carries-identity-id -->
+- [ ] `POST /v1/register` validates subscription scopes (event:observe for "*") ([Registration Flow](#registration-flow-post-v1register) step 4) <!-- wl:check post-v1-register-validates-subscription-scopes -->
+- [ ] `POST /v1/register` returns `RegisterResponse` with agent ID, token, and service directory ([Registration Flow](#registration-flow-post-v1register) step 9) <!-- wl:check post-v1-register-returns-registerresponse-agent -->
+- [ ] `DELETE /v1/register` releases owned namespaces and routing table entries ([Deregistration Flow](#deregistration-flow-delete-v1register)) <!-- wl:check delete-v1-register-releases-owned-namespaces -->
+- [ ] Service directory includes `routing_table` and namespaces map ([Service Directory](#service-directory-get-v1services)) <!-- wl:check service-directory-includes-routing-table -->
+- [ ] A `ServiceEntry` carries the `pass_routes` its manifest declared, unchanged, and a registration whose `pass_routes` name `content:write` or another person-only capability is not refused for it, while one whose `capabilities` names one still is with `CAPABILITY_PERSON_ONLY` ([Registration Flow](#registration-flow-post-v1register) steps 1 and 6) <!-- wl:check serviceentry-carries-pass-routes-manifest -->
+- [ ] `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in its `capabilities` or in a pass route's `capabilities` or body requirement, and one with two pass routes that can match one request, such as `GET /v1/x/{id}` and `GET /v1/x/special` ([Registration Flow](#registration-flow-post-v1register) step 1) <!-- wl:check post-v1-register-refuses-400-invalid -->
+- [ ] A sixth request within a minute from one source to any one of the six administrative routes served without a token is refused before any signature is verified or made, the source being the `X-Forwarded-For` address only on a request from an address `orchestrator.admin_gateway_from` names, and the connection's address on every other, whatever `X-Forwarded-For` it carries ([Auth Middleware](#auth-middleware); [`architecture/admin`](admin.md#contracts), `auth-route-rate-limit`) <!-- wl:check sixth-request-within-minute-source-six -->
+- [ ] Service directory broadcast to every other registered agent after every registration or deregistration ([Service Broadcasting](#service-broadcasting)) <!-- wl:check service-directory-broadcast-other-registered -->
+- [ ] `POST /v1/register` refuses with `409 ADDRESS_CONFLICT` when the registered `url` contradicts the address the tenant declared for that component ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not)) <!-- wl:check post-v1-register-refuses-409-address -->
+- [ ] Every `ServiceEntry` carries `address_provenance`, and an entry the orchestrator has not matched against the tenant's declaration reports `self-asserted` rather than omitting the field ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not)) <!-- wl:check serviceentry-carries-address-provenance-entry -->
+- [ ] `address_provenance` is never reported as `verified` on the strength of an unauthenticated `GET /livez` or `GET /readyz` probe ([What the directory attests, and what it does not](#what-the-directory-attests-and-what-it-does-not)) <!-- wl:check address-provenance-never-reported-verified -->
+- [ ] A `ChannelGrant` names a `target_url` only where the orchestrator would publish that address as `declared` ([Presenting a credential to a component](#presenting-a-credential-to-a-component)) <!-- wl:check channelgrant-names-target-url-where-orchestrator -->
+- [ ] A `ChannelGrant`'s capabilities are the intersection of the requester's and the target's registered manifest, and no wider on either side ([Presenting a credential to a component](#presenting-a-credential-to-a-component)) <!-- wl:check channelgrant-s-capabilities-intersection -->
+- [ ] `POST /v1/channel` verifies `from_agent` matches token.sub ([Channel Brokering](#channel-brokering-post-v1channel) step 3) <!-- wl:check post-v1-channel-verifies-agent-matches -->
+- [ ] `POST /v1/channel` requires agent:message capability (403 if missing) ([Channel Brokering](#channel-brokering-post-v1channel) step 4) <!-- wl:check post-v1-channel-requires-agent-message -->
+- [ ] Channel tokens expire after the channel TTL ([Channel Brokering](#channel-brokering-post-v1channel) step 7, [Configuration](#configuration)) <!-- wl:check channel-tokens-expire-after-channel-ttl -->
+- [ ] Auth middleware rejects unauthenticated requests on protected endpoints ([Auth Middleware](#auth-middleware)) <!-- wl:check auth-middleware-rejects-unauthenticated-requests -->
+- [ ] On a `/v1/admin/*` route, Auth Middleware refuses with `FORBIDDEN`, before any handler, an operator token whose role carries the route's capability but whose `cap` does not name it, and reads a token only from the `Authorization` header ([Auth Middleware](#auth-middleware) steps 2 and 8) <!-- wl:check v1-admin-route-auth-middleware-refuses -->
+- [ ] `GET /livez` and `GET /readyz` answer without auth with `live` or `ready` alone, and no count, version or name ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)) <!-- wl:check get-livez-get-readyz-answer -->
+- [ ] A first `POST /v1/register` grants a `Lease` of `orchestrator.lease_duration`, and the entry reads `not_ready` until the first renewal; a re-registration with an unchanged manifest over a current lease leaves its last renewal and `expires_at` unchanged, and one with a changed manifest, over a lapsed lease or over a lease from before the orchestrator's last start is granted a fresh lease that reads `not_ready` until the first renewal ([`protocol/spec`](../protocol/spec.md#post-v1register) step 8, [Presence](#presence)) <!-- wl:check first-post-v1-register-grants-lease -->
+- [ ] An entry whose lease is past `expires_at` reads `lease_state` `unknown`, stays in the directory, and is never reported `ready` ([Presence](#presence), [`protocol/types`](../protocol/types.md#leasestate)) <!-- wl:check entry-lease-past-expires-reads-lease -->
+- [ ] A renewal at `POST /v1/lease` after a lapse restores the lease without a new registration ([`protocol/spec`](../protocol/spec.md#post-v1lease) step 2) <!-- wl:check renewal-post-v1-lease-after-lapse -->
+- [ ] The orchestrator sends no request to a registered component to learn its presence or readiness, and has no setting that times, bounds or counts such a request ([Presence](#presence)) <!-- wl:check orchestrator-sends-no-request-registered -->
+- [ ] A change of an entry's `lease_state` is followed by a `ServiceDirectory` broadcast ([`protocol/spec`](../protocol/spec.md#post-v1lease) step 3) <!-- wl:check change-entrys-lease-state-followed -->
+- [ ] system.agent.registered published after every registration except a re-registration with an unchanged manifest over a current lease, which publishes nothing ([Registration Flow](#registration-flow-post-v1register) step 10, [System Events](#system-events)) <!-- wl:check system-agent-registered-published -->
+- [ ] system.agent.deregistered event published after deregistration ([Deregistration Flow](#deregistration-flow-delete-v1register) step 6) <!-- wl:check system-agent-deregistered-event-published -->
+- [ ] Every operation creates an `AuditEntry`, persisted to JSONL and echoed to stdout as an `audit` log line, except a lease renewal that leaves `lease_state` as it was ([Audit Logging](#audit-logging)) <!-- wl:check operation-creates-auditentry-persisted-jsonl -->
+- [ ] A lease renewal that leaves `lease_state` as it was appends no audit entry and updates the entry's `lease`, `last_renewal` and `last_seen`; one that changes it, and every refused renewal, appends one naming the state before and after or the refusal ([Presence](#presence)) <!-- wl:check lease-renewal-leaves-lease-state-appends -->
+- [ ] With 100,000 entries in the audit log, a token exchange is answered within one flush plus 5 ms at p99, as with none, and no lookup it or Auth Middleware makes reads a store's file ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#a-store-is-opened-once), `durable-records`) <!-- wl:check 100-000-entries-audit-log-token -->
+- [ ] Concurrent token exchanges are each answered only after a flush covering its audit entry, and none waits under the audit store's lock for another's flush ([Audit Logging](#audit-logging); [`architecture/storage`](storage.md#appends-share-a-flush), `durable-records`) <!-- wl:check concurrent-token-exchanges-answered-after-flush -->
+- [ ] The orchestrator keeps no domain status of its own: a domain's readiness is its lease ([Domain Dependency Tracking](#domain-dependency-tracking)) <!-- wl:check orchestrator-keeps-no-domain-status-own -->
+- [ ] Orchestrator does NOT handle tasks, programme objectives or context, and holds no decision queue (it records, never makes, a person's decision); it serves neither the decision inbox nor any route for objectives ([Weblisk Orchestrator Blueprint](#weblisk-orchestrator-blueprint), its opening paragraphs) <!-- wl:check orchestrator-not-handle-tasks-programme -->
 - [ ] `DELETE /v1/admin/operators/{name}`, `POST /v1/admin/operators/{name}/approve`, `PUT /v1/admin/operators/{name}/role` and `POST /v1/admin/agents/{name}/deregister` are refused `STEP_UP_REQUIRED` on a token without a `step_up_at` recent enough for [`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up`, and a token request whose `step_up` verifies mints a token carrying `step_up_at` <!-- wl:check orchestrator-serves-step-up covers orchestrator-step-up -->
-- [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model ([Administrative endpoints](#administrative-endpoints))
-- [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 8)
-- [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none ([The tenant's model](#the-tenants-model))
-- [ ] `PUT /v1/admin/model` naming a backend `GET /v1/admin/model/providers` reports unavailable is refused with `MODEL_BACKEND_UNAVAILABLE`, one naming a `model` or a `roles` model the backend's own list does not hold with `MODEL_NOT_LISTED`, and one carrying `api_key_env` with `INVALID_REQUEST`; none of them changes `.weblisk/model.json` or appends a `model_set` entry ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do))
-- [ ] An accepted `PUT /v1/admin/model` appends a `model_set` entry naming the configuration before and after before it writes anything, answers `config` and `withdrawn`, and changes nothing, answering `MODEL_UNRECORDED`, where `POST /v1/admin/model/audit` does not answer `201` ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do))
-- [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool the gateway does not run answer-only ([The tenant's model](#the-tenants-model), [Running a tool answer-only](#running-a-tool-answer-only))
-- [ ] A coding agent's command-line tool whose own `--help` does not advertise every flag answer-only relies on is reported `available` false with a `detail` naming what is missing, and `PUT /v1/admin/model` naming it is refused with `MODEL_BACKEND_UNAVAILABLE` ([Running a tool answer-only](#running-a-tool-answer-only), [The tenant's model](#the-tenants-model))
-- [ ] A completion on a coding agent's command-line tool runs it with every flag answer-only relies on and no prompt among its arguments, the prompt on its standard input, in a new empty directory outside the hub's root that is gone when it ends, with no `WL_` variable and no key in its environment, and kills it with every process it started at its deadline ([Running a tool answer-only](#running-a-tool-answer-only))
-- [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none ([The tenant's model](#the-tenants-model))
-- [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing ([A model is a destination](#a-model-is-a-destination))
-- [ ] A completion whose backend refuses under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported its reset, runs no other backend, and is kept as a `Completion` with `route` `admin` and `ended` `failed` ([The tenant's model](#the-tenants-model))
-- [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing ([The tenant's model](#the-tenants-model))
-- [ ] A completion appends a `model_complete` entry with `status` `ok` once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok` where the backend answered, `denied` where the gate refused it, and `failed` for every other refusal or failure after the first, a body refused with `INVALID_REQUEST` included, its `detail` naming the code; and returns no answer or refusal whose second entry was not appended ([Recording what the model routes do](#recording-what-the-model-routes-do))
-- [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) step 8)
-- [ ] `POST /v1/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it refuses an operator token with `FORBIDDEN`, a registration token whose `cap` does not name `llm:chat` with `FORBIDDEN`, and an `action` other than `model_complete` with `INVALID_REQUEST`, and otherwise appends an `AuditEntry` whose `actor` is the token's `identity_id` ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) steps 6 and 8)
-- [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 8)
-- [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs ([Administrative endpoints](#administrative-endpoints))
-- [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8)
-- [ ] `/v1/admin/overview` reports only figures this orchestrator holds, and never reports a figure another component owns, as zero or otherwise ([A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`, [`architecture/admin`](admin.md#get-v1adminoverview))
-- [ ] `GET /v1/admin/agents/{name}` answers the agent's `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen`, and no `status` or `token` member, so the registration token its `AgentEntry` holds, live for up to 24 hours and carrying the agent's capabilities, reaches no operator ([Administrative endpoints](#administrative-endpoints), [AgentEntry](#agententry), [Registration Flow](#registration-flow-post-v1register) step 5)
-- [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend ([A model is a destination](#a-model-is-a-destination))
-- [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED` ([A model is a destination](#a-model-is-a-destination))
-- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but its models, `model` and the models `roles` gives, or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal` ([A model is a destination](#a-model-is-a-destination))
-- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only its model to one the agreement does not list withdraws nothing, and `GET /v1/admin/model/ceiling` then answers `internal` for that name and model, so a `confidential` `POST /v1/admin/complete` is refused with `SCOPE_CEILING_EXCEEDED`; changing it back to a listed model answers the agreement's level again ([A model is a destination](#a-model-is-a-destination))
-- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only a `roles` entry withdraws nothing, and a completion stating that role is gated at the ceiling of the role's model: `internal` where the agreement does not list it, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`, and the agreement's level where it does ([A model is a destination](#a-model-is-a-destination))
-- [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says ([A model is a destination](#a-model-is-a-destination))
-- [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, one with no `models` with `INVALID_REQUEST`, and one listing a model at a backend a current agreement covers for that model with `MODEL_AGREEMENT_EXISTS` ([A model is a destination](#a-model-is-a-destination))
-- [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, for a model the agreement listing the backend does not list, and for a backend asked for no model, and `internal` again once the agreement that listed it lapses or is withdrawn ([A model is a destination](#a-model-is-a-destination))
-- [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND` ([A model is a destination](#a-model-is-a-destination))
-- [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, refuses an attestation token with `CREDENTIAL_REQUIRED`, and refuses an operator token, a channel token and the admin gateway's registration token with `FORBIDDEN` ([A model is a destination](#a-model-is-a-destination), [Auth Middleware](#auth-middleware) steps 5 and 6)
-- [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 6)
-- [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST` ([Contracts](#contracts), `token-exchange`)
-- [ ] `POST /v1/token/exchange` answers `issued: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past its `exp`, each as a 200 ([Token Exchange](#token-exchange-post-v1tokenexchange), [`TokenExchangeResponse`](../protocol/types.md#tokenexchangeresponse)), and mints no pass
-- [ ] `POST /v1/token/exchange` called with an operator token, a channel token, or the registration token of a component whose registration does not declare `token:exchange`, in its `Authorization` header, is refused with `FORBIDDEN`, with a pass with `PASS_AUDIENCE_MISMATCH` and a security event, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token` ([Contracts](#contracts), `token-exchange`, [Auth Middleware](#auth-middleware) steps 5 and 6)
+- [ ] Administrative endpoints are gated on the capability each declares — an `admin:` capability, `llm:chat` or `model:attest` — carried in the caller's token, not on a separate role model ([Administrative endpoints](#administrative-endpoints)) <!-- wl:check administrative-endpoints-gated-capability -->
+- [ ] `POST /v1/admin/complete` refuses with `FORBIDDEN` a token that cannot use `llm:chat`, one carrying `admin:read` or `admin:*` without it included, and sends nothing to a backend ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 8) <!-- wl:check post-v1-admin-complete-refuses-forbidden -->
+- [ ] `GET /v1/admin/model` answers the hub's `ModelConfig`, and `{}` at a hub that holds none ([The tenant's model](#the-tenants-model)) <!-- wl:check get-v1-admin-model-answers-hubs -->
+- [ ] `PUT /v1/admin/model` naming a backend `GET /v1/admin/model/providers` reports unavailable is refused with `MODEL_BACKEND_UNAVAILABLE`, one naming a `model` or a `roles` model the backend's own list does not hold with `MODEL_NOT_LISTED`, and one carrying `api_key_env` with `INVALID_REQUEST`; none of them changes `.weblisk/model.json` or appends a `model_set` entry ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do)) <!-- wl:check put-v1-admin-model-naming-backend -->
+- [ ] An accepted `PUT /v1/admin/model` appends a `model_set` entry naming the configuration before and after before it writes anything, answers `config` and `withdrawn`, and changes nothing, answering `MODEL_UNRECORDED`, where `POST /v1/admin/model/audit` does not answer `201` ([The tenant's model](#the-tenants-model), [Recording what the model routes do](#recording-what-the-model-routes-do)) <!-- wl:check accepted-put-v1-admin-model-appends -->
+- [ ] `GET /v1/admin/model/providers` gives each `ModelBackend` the `models` its backend's own list answered for that request, names no default model, and reports `available` false for a backend that needs a key and for a coding agent's command-line tool the gateway does not run answer-only ([The tenant's model](#the-tenants-model), [Running a tool answer-only](#running-a-tool-answer-only)) <!-- wl:check get-v1-admin-model-providers-gives -->
+- [ ] A coding agent's command-line tool whose own `--help` does not advertise every flag answer-only relies on is reported `available` false with a `detail` naming what is missing, and `PUT /v1/admin/model` naming it is refused with `MODEL_BACKEND_UNAVAILABLE` ([Running a tool answer-only](#running-a-tool-answer-only), [The tenant's model](#the-tenants-model)) <!-- wl:check coding-agents-command-line-tool-own -->
+- [ ] A completion on a coding agent's command-line tool runs it with every flag answer-only relies on and no prompt among its arguments, the prompt on its standard input, in a new empty directory outside the hub's root that is gone when it ends, with no `WL_` variable and no key in its environment, and kills it with every process it started at its deadline ([Running a tool answer-only](#running-a-tool-answer-only)) <!-- wl:check completion-coding-agents-command-line-tool -->
+- [ ] `POST /v1/admin/complete` refuses a body naming `provider` or `model` with `INVALID_REQUEST`, runs the model `roles` gives the request's `role` and `model` otherwise, and answers a `CompletionResponse` whose `model` is the one the backend's answer names, absent where it names none ([The tenant's model](#the-tenants-model)) <!-- wl:check post-v1-admin-complete-refuses-body -->
+- [ ] A completion for which the configuration names no model, neither in `roles` for its `role` nor as `model`, at a local model server whose first loaded model a current agreement lists at `confidential`, is gated at `internal`, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED` and runs nothing ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check completion-configuration-names-no-model-roles -->
+- [ ] A completion whose backend refuses under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported its reset, runs no other backend, and is kept as a `Completion` with `route` `admin` and `ended` `failed` ([The tenant's model](#the-tenants-model)) <!-- wl:check completion-backend-refuses-under-own-limit -->
+- [ ] A completion whose backend fails, or refuses its model, is answered `MODEL_BACKEND_FAILED` and runs no other backend or model, and one with no model chosen at a local model server that reports none loaded is answered `MODEL_NONE_LOADED` and loads nothing ([The tenant's model](#the-tenants-model)) <!-- wl:check completion-backend-fails-refuses-model-answered -->
+- [ ] A completion appends a `model_complete` entry with `status` `ok` once its body is read and before the gate or anything else, and a second when it ends, with `status` `ok` where the backend answered, `denied` where the gate refused it, and `failed` for every other refusal or failure after the first, a body refused with `INVALID_REQUEST` included, its `detail` naming the code; and returns no answer or refusal whose second entry was not appended ([Recording what the model routes do](#recording-what-the-model-routes-do)) <!-- wl:check completion-appends-model-complete-entry-status -->
+- [ ] `POST /v1/admin/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it judges the token on the capability its `action` names, refusing with `FORBIDDEN` a `model_complete` on a token that cannot use `llm:chat` and a `model_set` on one that cannot use `admin:*`, appends an `AuditEntry` whose `actor` is the token's `identity_id`, and refuses an `action` outside its set with `INVALID_REQUEST` before it judges any capability ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) step 8) <!-- wl:check post-v1-admin-model-audit-outside -->
+- [ ] `POST /v1/model/audit` from outside the process is answered `404` where the model gateway is installed; dispatched in process, it refuses an operator token with `FORBIDDEN`, a registration token whose `cap` does not name `llm:chat` with `FORBIDDEN`, and an `action` other than `model_complete` with `INVALID_REQUEST`, and otherwise appends an `AuditEntry` whose `actor` is the token's `identity_id` ([Recording what the model routes do](#recording-what-the-model-routes-do), [Auth Middleware](#auth-middleware) steps 6 and 8) <!-- wl:check post-v1-model-audit-outside-process -->
+- [ ] An admin's token whose `cap` names only `content:` capabilities is refused with `FORBIDDEN` at `OperatorApprove`, `OperatorRole`, `OperatorDelete`, `AdminAgentDeregister` and `CredentialRevoke`, its own credential included, and at `CredentialAttest` for the admin ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 8) <!-- wl:check admins-token-cap-names-content-capabilities -->
+- [ ] The orchestrator serves only the administrative endpoints backed by state it owns — operators, agents, its audit log, its own overview, and the tenant's model surface the CLI installs ([Administrative endpoints](#administrative-endpoints)) <!-- wl:check orchestrator-serves-administrative-endpoints -->
+- [ ] `GET /v1/admin/audit` and `GET /v1/admin/audit/export` answer a request that can use `admin:audit` and refuse any other with `FORBIDDEN`, an agent token with `CREDENTIAL_REQUIRED`; the export answers the entries the list would for the same filters, as JSON where `format` is `json` or absent and as RFC 4180 CSV with a header row where it is `csv`, a field beginning with `=`, `+`, `-`, `@`, a tab or a carriage return written with a single quote before it, and refuses any other `format` with 400 `INVALID_REQUEST` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8) <!-- wl:check get-v1-admin-audit-get-v1 -->
+- [ ] `/v1/admin/overview` reports only figures this orchestrator holds, and never reports a figure another component owns, as zero or otherwise ([A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`, [`architecture/admin`](admin.md#get-v1adminoverview)) <!-- wl:check v1-admin-overview-reports-figures-orchestrator -->
+- [ ] `GET /v1/admin/agents/{name}` answers the agent's `manifest`, `agent_id`, `lease`, `last_renewal`, `registered_at` and `last_seen`, and no `status` or `token` member, so the registration token its `AgentEntry` holds, live for up to 24 hours and carrying the agent's capabilities, reaches no operator ([Administrative endpoints](#administrative-endpoints), [AgentEntry](#agententry), [Registration Flow](#registration-flow-post-v1register) step 5) <!-- wl:check get-v1-admin-agents-name-answers -->
+- [ ] `POST /v1/admin/complete` with no `scope` is refused with `SCOPE_MISSING`, one above the ceiling `GET /v1/admin/model/ceiling` reports for the backend and model it would run is refused with `SCOPE_CEILING_EXCEEDED`, and one at `restricted` is refused whatever the ceiling; none of them runs a backend ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check post-v1-admin-complete-no-scope -->
+- [ ] `POST /v1/admin/model/agreements` and `DELETE /v1/admin/model/agreements/{id}` refuse a token without `model:attest` with `FORBIDDEN`, including one holding `admin:*`, and a service's or an agent's token with `CREDENTIAL_REQUIRED` ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check post-v1-admin-model-agreements-delete -->
+- [ ] A `PUT /v1/admin/model` on a token carrying `admin:*` and not `model:attest` that sets a name a current agreement lists, and changes anything of it but its models, `model` and the models `roles` gives, or held another name before, withdraws that agreement, names it in its answer, and `GET /v1/admin/model/ceiling` then answers that name `internal` ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check put-v1-admin-model-token-carrying -->
+- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only its model to one the agreement does not list withdraws nothing, and `GET /v1/admin/model/ceiling` then answers `internal` for that name and model, so a `confidential` `POST /v1/admin/complete` is refused with `SCOPE_CEILING_EXCEEDED`; changing it back to a listed model answers the agreement's level again ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check put-v1-admin-model-keeps-listed -->
+- [ ] A `PUT /v1/admin/model` that keeps a listed name and changes only a `roles` entry withdraws nothing, and a completion stating that role is gated at the ceiling of the role's model: `internal` where the agreement does not list it, so a `confidential` one is refused with `SCOPE_CEILING_EXCEEDED`, and the agreement's level where it does ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check put-v1-admin-model-keeps-listed-name -->
+- [ ] A recorded agreement's `recorded_by` is the token's `identity_id`, whatever the body says ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check recorded-agreements-recorded-tokens-identity-id -->
+- [ ] An agreement whose `level` is `restricted` is refused with `MODEL_AGREEMENT_LEVEL_REFUSED`, one whose `not_after` is 91 days ahead with `MODEL_AGREEMENT_LAPSE_INVALID`, one with no `models` with `INVALID_REQUEST`, and one listing a model at a backend a current agreement covers for that model with `MODEL_AGREEMENT_EXISTS` ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check agreement-level-restricted-refused-model -->
+- [ ] `GET /v1/admin/model/ceiling` answers `internal` for a backend no current agreement lists, for a model the agreement listing the backend does not list, and for a backend asked for no model, and `internal` again once the agreement that listed it lapses or is withdrawn ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check get-v1-admin-model-ceiling-answers -->
+- [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND` ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check ceiling-route-answers-backend-name-tenants -->
+- [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, refuses an attestation token with `CREDENTIAL_REQUIRED`, and refuses an operator token, a channel token and the admin gateway's registration token with `FORBIDDEN` ([A model is a destination](#a-model-is-a-destination), [Auth Middleware](#auth-middleware) steps 5 and 6) <!-- wl:check get-v1-model-ceiling-answers-registered -->
+- [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 6) <!-- wl:check platform-provided-model-route-authorised -->
+- [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-reads-callers -->
+- [ ] `POST /v1/token/exchange` answers `issued: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past its `exp`, each as a 200 ([Token Exchange](#token-exchange-post-v1tokenexchange), [`TokenExchangeResponse`](../protocol/types.md#tokenexchangeresponse)), and mints no pass <!-- wl:check post-v1-token-exchange-answers-issued -->
+- [ ] `POST /v1/token/exchange` called with an operator token, a channel token, or the registration token of a component whose registration does not declare `token:exchange`, in its `Authorization` header, is refused with `FORBIDDEN`, with a pass with `PASS_AUDIENCE_MISMATCH` and a security event, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token` ([Contracts](#contracts), `token-exchange`, [Auth Middleware](#auth-middleware) steps 5 and 6) <!-- wl:check post-v1-token-exchange-called-operator -->
 - [ ] `POST /v1/register` refuses a manifest naming `token:exchange` with 403 `CAPABILITY_GATEWAY_ONLY`, recording nothing, where its key's fingerprint is not `orchestrator.admin_gateway_identity` or none is configured, and admits it under the declared key; `POST /v1/token/exchange` refuses with `FORBIDDEN` a registration token whose `identity_id` is not that fingerprint ([Registration Flow](#registration-flow-post-v1register) step 1, [Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-only-declared-gateway covers exchange-declared-gateway-only -->
-- [ ] `POST /v1/token/exchange` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`)
-- [ ] `POST /v1/token/exchange` asked to exchange a pass, a registration token or a channel token answers `issued: false` with `CREDENTIAL_REQUIRED`, so a pass is never exchanged again ([Contracts](#contracts), `token-exchange`)
-- [ ] `POST /v1/token/exchange` with an `audience` that is not the identity id of a component registered here now, or that is the caller's own, is refused with 404 `NOT_FOUND`, and mints nothing ([Contracts](#contracts), `token-exchange`)
-- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read]` on an admin's token answers with a pass whose `cap` is `[content:read]` alone, whose `aud` is the audience, whose `act` names the gateway, and whose `exp` is no more than 30 seconds after its `iat`; asked for `[content:decide]` on a `viewer`'s token, or on an admin's token minted with `cap` `[content:read]`, it answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`, [`protocol/identity`](../protocol/identity.md#the-pass))
-- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`)
-- [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [Contracts](#contracts), `token-exchange`)
-- [ ] Every exchange is audited, refused or not, with the identity id of the operator `subject_token` names where it names one, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`)
-- [ ] A pass or a work pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5)
-- [ ] `POST /v1/token/work` admits only a live registration token whose registration declares `work:exchange`, answers `WORK_AUTHORISATION_UNKNOWN` alike for an unknown authorisation and one that does not name the caller, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED` and `WORK_OWNER_UNREGISTERED` as their rule says, each in a 200 with `issued: false` ([Contracts](#contracts), `work-exchange`)
-- [ ] A work pass's `cap` is the intersection of `scope`, the authorisation's `capabilities` and what the owner's, the actor's and the audience's manifests declare; an empty intersection mints nothing and answers `FORBIDDEN`, except for a work pass addressed to the authorisation's owner, which is minted with an empty `cap` ([Contracts](#contracts), `work-exchange`)
-- [ ] A work pass carries `type` `work`, the audience as `aud`, the owner as `sub` and `identity_id`, the actor as `act`, the authorisation as `cid`, its `definition` and the request's `run`, expires no more than 30 seconds after it was issued, and carries no `identity_key`, `record_keys`, `step_up_at` or `role` ([Contracts](#contracts), `work-exchange`; [`protocol/identity`](../protocol/identity.md#the-work-pass))
-- [ ] `POST /v1/admin/work-authorisations` admits only a person's operator token able to use `work:authorise`, refuses a capability the person may not use with `FORBIDDEN`, a person-only one with `CAPABILITY_PERSON_ONLY`, an admin or exchange capability with `INVALID_REQUEST`, a `not_after` more than 90 days ahead with `INVALID_REQUEST`, and makes none of a request any part of which is refused ([Contracts](#contracts), `work-authorisation`)
-- [ ] A registration token, a pass and a work pass cannot make, renew or widen a work authorisation; an owner's registration can revoke one naming it as owner at `DELETE /v1/work/authorisations/{id}`, and any other caller is refused with `FORBIDDEN` ([Contracts](#contracts), `work-authorisation`; [Endpoints](#endpoints))
-- [ ] `OperatorDelete` revokes no work authorisation and names each live one the removed operator made in its audit entry, and a verified key rotation renames the component in every authorisation naming it ([Contracts](#contracts), `work-authorisation`)
-- [ ] Every work exchange and every making, renewal, revocation and renaming of a work authorisation is audited with the action [Audit Actions](#audit-actions) names for it ([Contracts](#contracts), `work-exchange`, `work-authorisation`)
-- [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered ([Auth Middleware](#auth-middleware) step 6)
-- [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it ([Auth Middleware](#auth-middleware) step 6)
-- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key` ([Auth Middleware](#auth-middleware) step 6)
-- [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure ([Security](#security), [A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`)
-- [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers ([Auth Middleware](#auth-middleware) step 9)
-- [ ] `GET /v1/admin/resources` answers `agent`, `lease`, `organisation`, `project` and `grant`, each `available`, with the declarations the [Declaration](#declaration)'s `resources:` holds, and no other kind ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
-- [ ] `AdminOrganisationCreate` and `AdminProjectCreate` mint an `id` of 32 lowercase hex characters that no item has held, and refuse a `name` an organisation, or a project of the same organisation, has ever held, retired ones included, with `SCOPE_NAME_TAKEN` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects))
-- [ ] A `PATCH` of an organisation or a project naming `id`, `name` or a project's `organisation` changes nothing and is refused as a field not settable there ([The tenant's organisations and projects](#the-tenants-organisations-and-projects); [`architecture/admin`](admin.md#writes-and-what-guards-them))
-- [ ] An `operates_in` holding `international`, a code outside ISO 3166-1 alpha-2 and ISO 3166-2, a subdivision of a country it also lists, or codes out of ascending order is refused with `INVALID_REQUEST`; an organisation that has none answers no `operates_in`, never an empty list taken to mean everywhere ([The tenant's organisations and projects](#the-tenants-organisations-and-projects))
-- [ ] `AdminOrganisationRetire` with an active project in the organisation, `AdminProjectCreate` or `AdminProjectRestore` in a retired organisation, and `AdminGrantCreate` naming an operator that is not `approved` or a scope that is not active, are each refused with `INVALID_STATE` and change nothing ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
-- [ ] Neither `organisation`, `project` nor `grant` is answered at `DELETE`; a retired organisation or project and a revoked grant are still answered by `get` with their `id` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
-- [ ] `AdminGrantCreate` naming the person making it, and `AdminGrantRevoke` of a grant naming the person revoking it, are refused with `GRANT_SELF_REFUSED`, whatever that person's role, and change nothing ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project))
-- [ ] `AdminGrantCreate` and `AdminGrantRevoke` are refused without a recent re-confirmation, as `AdminAgentDeregister` is ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`)
-- [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns))
-- [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events))
-- [ ] `GET /v1/admin/records/orchestrator/snapshot` answers a request that can use `admin:*` with every store this orchestrator owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses any other with `FORBIDDEN` and an agent token with `CREDENTIAL_REQUIRED`, appends an `AuditEntry` for each snapshot it answers, and no route restores the store ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8, [`architecture/storage`](storage.md#putting-a-store-back))
+- [ ] `POST /v1/token/exchange` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-called-registration -->
+- [ ] `POST /v1/token/exchange` asked to exchange a pass, a registration token or a channel token answers `issued: false` with `CREDENTIAL_REQUIRED`, so a pass is never exchanged again ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-exchange -->
+- [ ] `POST /v1/token/exchange` with an `audience` that is not the identity id of a component registered here now, or that is the caller's own, is refused with 404 `NOT_FOUND`, and mints nothing ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-audience -->
+- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read]` on an admin's token answers with a pass whose `cap` is `[content:read]` alone, whose `aud` is the audience, whose `act` names the gateway, and whose `exp` is no more than 30 seconds after its `iat`; asked for `[content:decide]` on a `viewer`'s token, or on an admin's token minted with `cap` `[content:read]`, it answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`, [`protocol/identity`](../protocol/identity.md#the-pass)) <!-- wl:check post-v1-token-exchange-asked-scope -->
+- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-scope-content -->
+- [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [Contracts](#contracts), `token-exchange`) <!-- wl:check operator-token-cap-empty-list-viewer -->
+- [ ] Every exchange is audited, refused or not, with the identity id of the operator `subject_token` names where it names one, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-audited-refused-not-identity-id -->
+- [ ] A pass or a work pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5) <!-- wl:check pass-work-pass-presented-route-orchestrator -->
+- [ ] `POST /v1/token/work` admits only a live registration token whose registration declares `work:exchange`, answers `WORK_AUTHORISATION_UNKNOWN` alike for an unknown authorisation and one that does not name the caller, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED` and `WORK_OWNER_UNREGISTERED` as their rule says, each in a 200 with `issued: false` ([Contracts](#contracts), `work-exchange`) <!-- wl:check post-v1-token-work-admits-live -->
+- [ ] A work pass's `cap` is the intersection of `scope`, the authorisation's `capabilities` and what the owner's, the actor's and the audience's manifests declare; an empty intersection mints nothing and answers `FORBIDDEN`, except for a work pass addressed to the authorisation's owner, which is minted with an empty `cap` ([Contracts](#contracts), `work-exchange`) <!-- wl:check work-passs-cap-intersection-scope-authorisations -->
+- [ ] A work pass carries `type` `work`, the audience as `aud`, the owner as `sub` and `identity_id`, the actor as `act`, the authorisation as `cid`, its `definition` and the request's `run`, expires no more than 30 seconds after it was issued, and carries no `identity_key`, `record_keys`, `step_up_at` or `role` ([Contracts](#contracts), `work-exchange`; [`protocol/identity`](../protocol/identity.md#the-work-pass)) <!-- wl:check work-pass-carries-type-work-audience -->
+- [ ] `POST /v1/admin/work-authorisations` admits only a person's operator token able to use `work:authorise`, refuses a capability the person may not use with `FORBIDDEN`, a person-only one with `CAPABILITY_PERSON_ONLY`, an admin or exchange capability with `INVALID_REQUEST`, a `not_after` more than 90 days ahead with `INVALID_REQUEST`, and makes none of a request any part of which is refused ([Contracts](#contracts), `work-authorisation`) <!-- wl:check post-v1-admin-work-authorisations-admits -->
+- [ ] A registration token, a pass and a work pass cannot make, renew or widen a work authorisation; an owner's registration can revoke one naming it as owner at `DELETE /v1/work/authorisations/{id}`, and any other caller is refused with `FORBIDDEN` ([Contracts](#contracts), `work-authorisation`; [Endpoints](#endpoints)) <!-- wl:check registration-token-pass-work-pass-cannot -->
+- [ ] `OperatorDelete` revokes no work authorisation and names each live one the removed operator made in its audit entry, and a verified key rotation renames the component in every authorisation naming it ([Contracts](#contracts), `work-authorisation`) <!-- wl:check operatordelete-revokes-no-work-authorisation -->
+- [ ] Every work exchange and every making, renewal, revocation and renaming of a work authorisation is audited with the action [Audit Actions](#audit-actions) names for it ([Contracts](#contracts), `work-exchange`, `work-authorisation`) <!-- wl:check work-exchange-making-renewal-revocation-renaming -->
+- [ ] An operator token is refused with `FORBIDDEN`, before any handler, at every route outside `/v1/admin/*` that requires a token, and logged as a security event that names it by its claims and records no part of its bytes: a `viewer`'s token gets no entry from `GET /v1/audit`, and `DELETE /v1/register` on an operator token whose `sub` is a registered agent's name leaves that agent registered ([Auth Middleware](#auth-middleware) step 6) <!-- wl:check operator-token-refused-forbidden-before-handler -->
+- [ ] A channel token is refused with `FORBIDDEN` at every route outside `/v1/admin/*` that requires a token, and with `CREDENTIAL_REQUIRED` under it ([Auth Middleware](#auth-middleware) step 6) <!-- wl:check channel-token-refused-forbidden-route-outside -->
+- [ ] The admin gateway's registration token, whose `cap` names `token:exchange`, is answered at `GET /v1/services`, `POST /v1/lease` and `POST /v1/token/exchange`, and refused with `FORBIDDEN` at `GET /v1/audit`, `POST /v1/channel`, `GET /v1/model/ceiling`, `DELETE /v1/register` and `POST /v1/rotate-key` ([Auth Middleware](#auth-middleware) step 6) <!-- wl:check admin-gateways-registration-token-cap-names -->
+- [ ] The orchestrator presents no token it received to any party: `GET /v1/admin/overview` asks no other component for a figure ([Security](#security), [A model is a destination](#a-model-is-a-destination), its closing paragraph on `/v1/admin/overview`) <!-- wl:check orchestrator-presents-no-token-received-party -->
+- [ ] A token whose signature does not verify is refused with 401 `INVALID_SIGNATURE`, and one past `exp` with 401 `TOKEN_EXPIRED`, on every route Auth Middleware covers ([Auth Middleware](#auth-middleware) step 9) <!-- wl:check token-signature-not-verify-refused-401 -->
+- [ ] `GET /v1/admin/resources` answers `agent`, `lease`, `organisation`, `project` and `grant`, each `available`, with the declarations the [Declaration](#declaration)'s `resources:` holds, and no other kind ([Resources this orchestrator owns](#resources-this-orchestrator-owns)) <!-- wl:check get-v1-admin-resources-answers-agent -->
+- [ ] `AdminOrganisationCreate` and `AdminProjectCreate` mint an `id` of 32 lowercase hex characters that no item has held, and refuse a `name` an organisation, or a project of the same organisation, has ever held, retired ones included, with `SCOPE_NAME_TAKEN` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects)) <!-- wl:check adminorganisationcreate-adminprojectcreate-mint -->
+- [ ] A `PATCH` of an organisation or a project naming `id`, `name` or a project's `organisation` changes nothing and is refused as a field not settable there ([The tenant's organisations and projects](#the-tenants-organisations-and-projects); [`architecture/admin`](admin.md#writes-and-what-guards-them)) <!-- wl:check patch-organisation-project-naming-id-name -->
+- [ ] An `operates_in` holding `international`, a code outside ISO 3166-1 alpha-2 and ISO 3166-2, a subdivision of a country it also lists, or codes out of ascending order is refused with `INVALID_REQUEST`; an organisation that has none answers no `operates_in`, never an empty list taken to mean everywhere ([The tenant's organisations and projects](#the-tenants-organisations-and-projects)) <!-- wl:check operates-holding-international-code-outside-iso -->
+- [ ] `AdminOrganisationRetire` with an active project in the organisation, `AdminProjectCreate` or `AdminProjectRestore` in a retired organisation, and `AdminGrantCreate` naming an operator that is not `approved` or a scope that is not active, are each refused with `INVALID_STATE` and change nothing ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project)) <!-- wl:check adminorganisationretire-active-project -->
+- [ ] Neither `organisation`, `project` nor `grant` is answered at `DELETE`; a retired organisation or project and a revoked grant are still answered by `get` with their `id` ([The tenant's organisations and projects](#the-tenants-organisations-and-projects), [A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project)) <!-- wl:check organisation-project-nor-grant-answered-delete -->
+- [ ] `AdminGrantCreate` naming the person making it, and `AdminGrantRevoke` of a grant naming the person revoking it, are refused with `GRANT_SELF_REFUSED`, whatever that person's role, and change nothing ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project)) <!-- wl:check admingrantcreate-naming-person-making -->
+- [ ] `AdminGrantCreate` and `AdminGrantRevoke` are refused without a recent re-confirmation, as `AdminAgentDeregister` is ([A role held at an organisation or a project](#a-role-held-at-an-organisation-or-a-project); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`) <!-- wl:check admingrantcreate-admingrantrevoke-refused -->
+- [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns)) <!-- wl:check adminagentget-answers-etag-not-change -->
+- [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events)) <!-- wl:check adminleaseevents-announces-updated-renewal -->
+- [ ] `GET /v1/admin/records/orchestrator/snapshot` answers a request that can use `admin:*` with every store this orchestrator owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses any other with `FORBIDDEN` and an agent token with `CREDENTIAL_REQUIRED`, appends an `AuditEntry` for each snapshot it answers, and no route restores the store ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8, [`architecture/storage`](storage.md#putting-a-store-back)) <!-- wl:check get-v1-admin-records-orchestrator-snapshot -->

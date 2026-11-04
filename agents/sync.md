@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 4.0.0
+version: 4.0.1
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
@@ -1120,19 +1120,19 @@ errors:
 client can correct the batch rather than bisect it.
 ## Verification Checklist
 
-- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse))
-- [ ] Client can push a batch of changes ([sync_push](#sync_push-1))
-- [ ] Server detects conflicts as [Execute Workflow](#execute-workflow) Phase 3 says
-- [ ] Conflict resolution strategy is applied per configuration ([Conflict Resolution Strategies](#conflict-resolution-strategies), [sync_push](#sync_push-1) step 4)
-- [ ] Client receives server-side changes in response ([sync_push](#sync_push-1) step 7)
-- [ ] Version checkpoint advances after sync ([sync_push](#sync_push-1) step 6)
-- [ ] Batch size limit is enforced (rejects oversized batches) ([sync_push](#sync_push-1) step 1, [Implementation Notes](#implementation-notes))
-- [ ] Duplicate pushes are idempotent ([sync_push](#sync_push-1), [Implementation Notes](#implementation-notes))
-- [ ] Deletions are soft deletes with a tombstone, and a pull returns the tombstone ([ChangeRecord](#changerecord))
-- [ ] Real-time notification is sent after sync ([sync_push](#sync_push-1) step 8, [Implementation Notes](#implementation-notes))
-- [ ] Manual conflicts include both versions for resolution ([Execute Workflow](#execute-workflow) Phase 4, [ConflictRecord](#conflictrecord))
-- [ ] Atomic transaction rolls back on partial failure ([sync_push](#sync_push-1) step 5, [Constraints](#constraints))
-- [ ] Metrics emit for all sync operations ([Observability](#observability))
-- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)); every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric ([Observability](#observability)), never on the lease or `/readyz`
+- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse)) <!-- wl:check agent-registers-orchestrator-receives-wlt-token -->
+- [ ] Client can push a batch of changes ([sync_push](#sync_push-1)) <!-- wl:check client-push-batch-changes -->
+- [ ] Server detects conflicts as [Execute Workflow](#execute-workflow) Phase 3 says <!-- wl:check server-detects-conflicts-execute-workflow-phase -->
+- [ ] Conflict resolution strategy is applied per configuration ([Conflict Resolution Strategies](#conflict-resolution-strategies), [sync_push](#sync_push-1) step 4) <!-- wl:check conflict-resolution-strategy-applied -->
+- [ ] Client receives server-side changes in response ([sync_push](#sync_push-1) step 7) <!-- wl:check client-receives-server-side-changes-response -->
+- [ ] Version checkpoint advances after sync ([sync_push](#sync_push-1) step 6) <!-- wl:check version-checkpoint-advances-after-sync -->
+- [ ] Batch size limit is enforced (rejects oversized batches) ([sync_push](#sync_push-1) step 1, [Implementation Notes](#implementation-notes)) <!-- wl:check batch-size-limit-enforced-rejects-oversized -->
+- [ ] Duplicate pushes are idempotent ([sync_push](#sync_push-1), [Implementation Notes](#implementation-notes)) <!-- wl:check duplicate-pushes-idempotent -->
+- [ ] Deletions are soft deletes with a tombstone, and a pull returns the tombstone ([ChangeRecord](#changerecord)) <!-- wl:check deletions-soft-deletes-tombstone-pull-returns -->
+- [ ] Real-time notification is sent after sync ([sync_push](#sync_push-1) step 8, [Implementation Notes](#implementation-notes)) <!-- wl:check real-time-notification-sent-after-sync -->
+- [ ] Manual conflicts include both versions for resolution ([Execute Workflow](#execute-workflow) Phase 4, [ConflictRecord](#conflictrecord)) <!-- wl:check manual-conflicts-include-versions-resolution -->
+- [ ] Atomic transaction rolls back on partial failure ([sync_push](#sync_push-1) step 5, [Constraints](#constraints)) <!-- wl:check atomic-transaction-rolls-back-partial-failure -->
+- [ ] Metrics emit for all sync operations ([Observability](#observability)) <!-- wl:check metrics-emit-sync-operations -->
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)); every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`; the connected client count is the `sync_connected_clients` metric ([Observability](#observability)), never on the lease or `/readyz` <!-- wl:check get-livez-answers-live-not-live -->
 
 Port: 9751

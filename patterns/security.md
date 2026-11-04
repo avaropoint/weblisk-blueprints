@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.4
+version: 1.0.5
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
@@ -493,55 +493,55 @@ is inherited and extends the agent-specific verification checklist.
 
 ### Transport
 
-- [ ] The minimum TLS version is enforced in production environments — [TLS Requirements](#tls-requirements), [Certificate Management](#certificate-management)
-- [ ] Non-TLS requests rejected in production — [Request Verification Chain](#request-verification-chain), [TLS Requirements](#tls-requirements), [`protocol/spec`](../protocol/spec.md#security)
-- [ ] Certificate validation enabled for outbound HTTPS requests — [Inter-Agent TLS](#inter-agent-tls)
+- [ ] The minimum TLS version is enforced in production environments — [TLS Requirements](#tls-requirements), [Certificate Management](#certificate-management) <!-- wl:check minimum-tls-version-enforced-production -->
+- [ ] Non-TLS requests rejected in production — [Request Verification Chain](#request-verification-chain), [TLS Requirements](#tls-requirements), [`protocol/spec`](../protocol/spec.md#security) <!-- wl:check non-tls-requests-rejected-production-request -->
+- [ ] Certificate validation enabled for outbound HTTPS requests — [Inter-Agent TLS](#inter-agent-tls) <!-- wl:check certificate-validation-enabled-outbound-https -->
 
 ### Input
 
-- [ ] Request body size limits enforced — [Validation Rules](#validation-rules)
-- [ ] Content-Type validated as application/json — [Validation Rules](#validation-rules)
-- [ ] All required fields validated before processing — [Validation Rules](#validation-rules), [Validation Flow](#validation-flow)
-- [ ] String length limits enforced — [Validation Rules](#validation-rules)
-- [ ] Array size limits enforced — [Validation Rules](#validation-rules)
-- [ ] JSON nesting depth limited — [Validation Rules](#validation-rules)
-- [ ] File paths validated against traversal attacks — [Validation Rules](#validation-rules)
-- [ ] URLs validated (http/https scheme only) — [Validation Rules](#validation-rules)
+- [ ] Request body size limits enforced — [Validation Rules](#validation-rules) <!-- wl:check request-body-size-limits-enforced-validation -->
+- [ ] Content-Type validated as application/json — [Validation Rules](#validation-rules) <!-- wl:check content-type-validated-application-json -->
+- [ ] All required fields validated before processing — [Validation Rules](#validation-rules), [Validation Flow](#validation-flow) <!-- wl:check required-fields-validated-before-processing -->
+- [ ] String length limits enforced — [Validation Rules](#validation-rules) <!-- wl:check string-length-limits-enforced-validation-rules -->
+- [ ] Array size limits enforced — [Validation Rules](#validation-rules) <!-- wl:check array-size-limits-enforced-validation-rules -->
+- [ ] JSON nesting depth limited — [Validation Rules](#validation-rules) <!-- wl:check json-nesting-depth-limited-validation-rules -->
+- [ ] File paths validated against traversal attacks — [Validation Rules](#validation-rules) <!-- wl:check file-paths-validated-against-traversal-attacks -->
+- [ ] URLs validated (http/https scheme only) — [Validation Rules](#validation-rules) <!-- wl:check urls-validated-http-https-scheme-validation -->
 
 ### Output
 
-- [ ] Stack traces never included in production responses — [Sanitization Rules](#sanitization-rules)
-- [ ] Absolute paths stripped from responses — [Sanitization Rules](#sanitization-rules), [Response Filtering](#response-filtering)
-- [ ] Secrets never appear in response bodies — [Sanitization Rules](#sanitization-rules)
-- [ ] Error messages are generic (detailed errors logged server-side) — [Sanitization Rules](#sanitization-rules)
+- [ ] Stack traces never included in production responses — [Sanitization Rules](#sanitization-rules) <!-- wl:check stack-traces-never-included-production-responses -->
+- [ ] Absolute paths stripped from responses — [Sanitization Rules](#sanitization-rules), [Response Filtering](#response-filtering) <!-- wl:check absolute-paths-stripped-responses-sanitization -->
+- [ ] Secrets never appear in response bodies — [Sanitization Rules](#sanitization-rules) <!-- wl:check secrets-never-appear-response-bodies -->
+- [ ] Error messages are generic (detailed errors logged server-side) — [Sanitization Rules](#sanitization-rules) <!-- wl:check error-messages-generic-detailed-errors-logged -->
 
 ### Headers
 
-- [ ] X-Content-Type-Options: nosniff on all responses — [Required Headers](#required-headers)
-- [ ] X-Frame-Options: DENY on all responses — [Required Headers](#required-headers)
-- [ ] X-Request-ID on all responses — [Required Headers](#required-headers)
-- [ ] HSTS header in production — [Required Headers](#required-headers)
-- [ ] Cache-Control: no-store on all API responses — [Required Headers](#required-headers)
+- [ ] X-Content-Type-Options: nosniff on all responses — [Required Headers](#required-headers) <!-- wl:check x-content-type-options-nosniff-responses -->
+- [ ] X-Frame-Options: DENY on all responses — [Required Headers](#required-headers) <!-- wl:check x-frame-options-deny-responses-required -->
+- [ ] X-Request-ID on all responses — [Required Headers](#required-headers) <!-- wl:check x-request-id-responses-required-headers -->
+- [ ] HSTS header in production — [Required Headers](#required-headers) <!-- wl:check hsts-header-production-required-headers -->
+- [ ] Cache-Control: no-store on all API responses — [Required Headers](#required-headers) <!-- wl:check cache-control-no-store-api-responses -->
 
 ### Identity
 
-- [ ] Token signature verified on all protected endpoints — [Request Verification Chain](#request-verification-chain), [`protocol/identity`](../protocol/identity.md#conventions)
-- [ ] Token `alg` field checked against the one allowed algorithm — reject unknown algorithms — [`protocol/identity`](../protocol/identity.md#conventions), [Header](../protocol/identity.md#header)
-- [ ] Token expiry checked on every request — [Request Verification Chain](#request-verification-chain)
-- [ ] Message signatures verified when sender public key is known — [Request Verification Chain](#request-verification-chain)
-- [ ] Governance directive signatures verified against orchestrator key — [Request Verification Chain](#request-verification-chain)
-- [ ] Every deployment signs with the one algorithm [`protocol/identity`](../protocol/identity.md#conventions) allows, and no other
+- [ ] Token signature verified on all protected endpoints — [Request Verification Chain](#request-verification-chain), [`protocol/identity`](../protocol/identity.md#conventions) <!-- wl:check token-signature-verified-protected-endpoints -->
+- [ ] Token `alg` field checked against the one allowed algorithm — reject unknown algorithms — [`protocol/identity`](../protocol/identity.md#conventions), [Header](../protocol/identity.md#header) <!-- wl:check token-alg-field-checked-against-allowed -->
+- [ ] Token expiry checked on every request — [Request Verification Chain](#request-verification-chain) <!-- wl:check token-expiry-checked-request-request -->
+- [ ] Message signatures verified when sender public key is known — [Request Verification Chain](#request-verification-chain) <!-- wl:check message-signatures-verified-when-sender-public -->
+- [ ] Governance directive signatures verified against orchestrator key — [Request Verification Chain](#request-verification-chain) <!-- wl:check governance-directive-signatures-verified-against -->
+- [ ] Every deployment signs with the one algorithm [`protocol/identity`](../protocol/identity.md#conventions) allows, and no other <!-- wl:check deployment-signs-algorithm-protocol-identity -->
 
 ### Monitoring
 
-- [ ] Security events emitted for all threat classifications — [Standard Security Events](#standard-security-events), [Implementation Notes](#implementation-notes)
-- [ ] Critical security events trigger immediate alerts — [Threat Levels](#threat-levels)
-- [ ] Failed auth attempts logged with source information — [Standard Security Events](#standard-security-events), [Security Event Format](#security-event-format)
+- [ ] Security events emitted for all threat classifications — [Standard Security Events](#standard-security-events), [Implementation Notes](#implementation-notes) <!-- wl:check security-events-emitted-threat-classifications -->
+- [ ] Critical security events trigger immediate alerts — [Threat Levels](#threat-levels) <!-- wl:check critical-security-events-trigger-immediate -->
+- [ ] Failed auth attempts logged with source information — [Standard Security Events](#standard-security-events), [Security Event Format](#security-event-format) <!-- wl:check failed-auth-attempts-logged-source-information -->
 
 ### Supply Chain
 
-- [ ] All dependencies pinned to exact versions in lockfile — [Dependency Rules](#dependency-rules)
-- [ ] No new dependencies added without `weblisk deps audit` review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification)
-- [ ] `weblisk validate --deps` passes (no known vulnerabilities) — [Lockfile Verification](#lockfile-verification)
-- [ ] Client-side framework has zero external runtime dependencies — [Client-Side Policy](#client-side-policy)
-- [ ] Critical CVEs are handled within the deadline and by the action [Vulnerability Response](#vulnerability-response) gives
+- [ ] All dependencies pinned to exact versions in lockfile — [Dependency Rules](#dependency-rules) <!-- wl:check dependencies-pinned-exact-versions-lockfile -->
+- [ ] No new dependencies added without `weblisk deps audit` review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification) <!-- wl:check no-new-dependencies-added-without-weblisk -->
+- [ ] `weblisk validate --deps` passes (no known vulnerabilities) — [Lockfile Verification](#lockfile-verification) <!-- wl:check weblisk-validate-deps-passes-no-known -->
+- [ ] Client-side framework has zero external runtime dependencies — [Client-Side Policy](#client-side-policy) <!-- wl:check client-side-framework-zero-external-runtime -->
+- [ ] Critical CVEs are handled within the deadline and by the action [Vulnerability Response](#vulnerability-response) gives <!-- wl:check critical-cves-handled-within-deadline-action -->
