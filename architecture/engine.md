@@ -165,6 +165,32 @@ and events the catalogue gives it. <!-- wl:id manifest-is-the-catalogue -->
 Both front ends MUST build their commands, help and menus from the manifest,
 and hold no list of operations of their own. <!-- wl:id front-ends-render-manifest -->
 
+### Front-end-only commands
+
+Three commands describe the tool itself rather than act on a corpus or a
+tenant, so they are a front end's and not the engine's: `version` (the front
+end's version and the engine's it embeds), `help` (the manifest, rendered),
+and `commands` (the manifest, printed). In Studio they are the about panel,
+the help it renders and the operations route. They are not operations: the
+manifest does not list them, they return no event stream, and parity does not
+compare them, because each front end presents them its own way (owner's
+decision, 2026-11-04).
+
+A front end MUST hold no command other than the manifest's operations and
+these three, and each of the three MUST read nothing but the manifest and the
+front end's own build. <!-- wl:id front-end-only-three -->
+
+**Commands no corpus document drives leave the tools** until a corpus document
+defines them: `doctor`, `update`, `app *`, `marketplace *`, `deps audit` and
+`gateway policy *`. A behaviour the corpus does not describe is one no tool
+has ([Overview](#overview)). Each returns when the document that defines it
+lands, as an operation of [The operation catalogue](#the-operation-catalogue).
+The CLI's commands as built today, and when each is removed, are
+[`ENGINE_PLAN.md`](../ENGINE_PLAN.md#2-the-engines-operations)'s.
+
+The tools MUST NOT offer `doctor`, `update`, `app *`, `marketplace *`,
+`deps audit` or `gateway policy *` while no corpus document defines it. <!-- wl:id undriven-commands-absent -->
+
 ### Events
 
 Every event has the same envelope.
@@ -253,12 +279,6 @@ check that holds both against this catalogue is
 
 ```yaml
 operations:
-  # The manifest itself.
-  - ops: [commands]
-    executor: local
-    events: [item]
-    records: nothing
-    driven_by: [architecture/engine]
   # Corpus: each reads a source the person holds, and none touches a tenant.
   - ops: [corpus sources, corpus update]
     executor: local
@@ -913,6 +933,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] An operation acting on a tenant calls the tenant's model through the tenant, and Studio calls no model of its own ([Three hosts](#three-hosts)) <!-- wl:check tenant-model-for-tenant-acts covers model-is-the-acts-owner -->
 - [ ] Every operation in the manifest returns one event stream opened by one `started` and closed by one `finished`, with `seq` rising by one from 1 ([Events](#events)) <!-- wl:check streams-bracketed covers one-command-one-stream stream-bracketed -->
 - [ ] The manifest lists exactly the catalogue's operations with their executors and events, and each front end exposes it unchanged ([The manifest](#the-manifest), [The operation catalogue](#the-operation-catalogue)) <!-- wl:check manifest-equals-catalogue covers manifest-is-the-catalogue front-ends-render-manifest front-end-parity -->
+- [ ] Each front end offers the manifest's operations and `version`, `help` and `commands` and nothing else; the three read only the manifest and the front end's own build; and neither front end offers `doctor`, `update`, `app *`, `marketplace *`, `deps audit` or `gateway policy *` ([Front-end-only commands](#front-end-only-commands)) <!-- wl:check front-end-own-commands covers front-end-only-three undriven-commands-absent -->
 - [ ] Driving one operation through the CLI under `--json` and through Studio's stream route, with the same scripted answers, gives streams equal byte for byte once `invocation` and `at` are normalised ([Events](#events)) <!-- wl:check streams-equal covers streams-byte-equal front-end-parity -->
 - [ ] An operation needing a passphrase emits a `question` and waits; with no answer it ends refused naming the question; and the answer appears in no event, record, transcript or log ([Questions](#questions)) <!-- wl:check questions-asked-and-kept-secret covers question-is-the-only-ask secret-answers-never-recorded unanswered-is-refused -->
 - [ ] A front end shows a verdict, threshold or list only as an operation's events carry it, and the neutrality check over its source reports one computed in it ([The parts, and the line between them](#the-parts-and-the-line-between-them)) <!-- wl:check front-end-computes-nothing covers front-end-decides-nothing -->

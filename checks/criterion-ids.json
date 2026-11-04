@@ -1011,7 +1011,8 @@
    "record-held-by-tenant",
    "actions-reused",
    "incremental-from-record",
-   "component-owes"
+   "component-owes",
+   "front-end-own-commands"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",
