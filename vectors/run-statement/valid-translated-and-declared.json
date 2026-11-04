@@ -221,6 +221,39 @@
             "finished": "2026-11-04T10:08:00.000Z"
           },
           {
+            "id": "accept-1",
+            "step": "accept",
+            "kind": "model",
+            "instructions": [
+              {
+                "ref": "instruction://weblisk/instructions/advise",
+                "version": "1.0.0",
+                "digest": "sha256:a2b432ba71513eda56eff94b8ee8906d8bae243c20408e83b170588c88a2b557"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "criterion",
+                "digest": "sha256:5f435b82e7e9e75e9819dcd54055941f2fabdc9356b034f6507ac9f70e447f5b"
+              },
+              {
+                "name": "tree",
+                "digest": "sha256:dc9c5edb8b2d479e697b4b0b8ab874f32b325138598ce9e7b759eb8292110622"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "readings",
+                "digest": "sha256:396031532be9bd7b1ac49a4436e05fff52662d683afd680d64fa60462c4c4f77"
+              }
+            ],
+            "model": "example-model-1",
+            "transcript": "sha256:a8d63f5125f601380e7d7a7b20dae3428ab57058bc7b7fac12c56bb9c4e7e874",
+            "result": "done",
+            "started": "2026-11-04T10:08:30.000Z",
+            "finished": "2026-11-04T10:08:45.000Z"
+          },
+          {
             "id": "record-1",
             "step": "record",
             "kind": "deterministic",
@@ -268,7 +301,14 @@
               "result": "pass",
               "environment": "development",
               "reason": "exit 0"
-            }
+            },
+            "readings": [
+              {
+                "action": "accept-1",
+                "says": "met",
+                "reason": "The handler refuses a request with no signature before reading its body."
+              }
+            ]
           },
           {
             "id": "check://example/architecture/widget:widget-signed-only",
@@ -295,6 +335,43 @@
                 "component://example/orchestrator"
               ]
             }
+          },
+          {
+            "id": "requirement://example/architecture/widget:widget-logs-refusals",
+            "digest": "sha256:c1c82b8bf3afbecc0f0134645bb6f162924f3ef77f8c93923362e91f5580e162",
+            "class": "E",
+            "class_by": "rule 5: evidence, a record that must follow an act",
+            "settled_by": "unsettled",
+            "unsettled": {
+              "why": "untestable",
+              "reported_by": {
+                "run": "0192f3a47b1c7d2e8f3a4b5c6d7e8f00",
+                "action": "translate-3"
+              },
+              "finding": "WL-CORPUS-FINDING {\"kind\":\"untestable\",\"first\":\"Every refusal is logged.\",\"second\":\"widget-logs-refusals\",\"why\":\"It would have to name the log line, its level and its fields for a test to read one.\"}"
+            },
+            "reach": {
+              "component": true
+            },
+            "verdict": {
+              "result": "not-run",
+              "environment": "development",
+              "reason": "the translate step reported the criterion untestable"
+            },
+            "gap": {
+              "result": "unsettled",
+              "reason": "no test or check counts for it: reported untestable",
+              "reaches": [
+                "component://example/widget"
+              ]
+            },
+            "readings": [
+              {
+                "action": "accept-1",
+                "says": "met",
+                "reason": "Every refusal is logged at warn."
+              }
+            ]
           }
         ]
       },
@@ -320,6 +397,12 @@
           "name": "provenance/transcripts/0192f3a47b1c7d2e8f3a4b5c6d7e8f90/generate-1.json",
           "digest": {
             "sha256": "ed98d7f748be45384744293de3f8e406e17b7c6935303f0fc20c2772291964df"
+          }
+        },
+        {
+          "name": "provenance/transcripts/0192f3a47b1c7d2e8f3a4b5c6d7e8f90/accept-1.json",
+          "digest": {
+            "sha256": "a8d63f5125f601380e7d7a7b20dae3428ab57058bc7b7fac12c56bb9c4e7e874"
           }
         }
       ]

@@ -99,8 +99,15 @@ def broken(s):
             if not tests or c.get("check"): b.add("criterion-settled")
         elif sb in ("declared", "vector"):
             if tests or not c.get("check"): b.add("criterion-settled")
+        elif sb == "unsettled":
+            why = (c.get("unsettled") or {}).get("why")
+            if tests or c.get("check") or why not in ("untestable", "model-finding", "unresolved-cite", "no-check"): b.add("criterion-settled")
+            if (c.get("verdict") or {}).get("result") != "not-run" or (c.get("gap") or {}).get("result") != "unsettled": b.add("unsettled-not-passed")
         else:
             b.add("criterion-settled")
+        for r in c.get("readings") or []:
+            k = index.get(r.get("action"))
+            if k is None or acts[k].get("kind") != "model" or acts[k].get("step") != "accept" or r.get("says") not in ("met", "unmet", "unsure"): b.add("reading-action")
         for t in tests:
             tb = t.get("translated_by") or {}
             if tb.get("run") == run:
