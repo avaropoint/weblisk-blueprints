@@ -578,8 +578,14 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 
 Decided by the owner on 2026-11-03.
 
-1. **The engine has its own repository**, `weblisk-engine`, and both front
-   ends import it.
+1. **The engine is its own Go module inside the CLI repository**, which is to be
+   renamed `weblisk-tools`, and Studio imports that module. Decided as a
+   separate repository first, then changed the same day to keep three
+   repositories with one job each: the corpus (all behaviour and every
+   document of it), the tools (the engine and the terminal front end), and
+   Studio (the browser front end). The engine stays out of the corpus, because
+   the corpus is a build input every tenant clones and fingerprints, and it
+   stays language-neutral.
 2. **The corpus fixes packages and boundary names.** The model's split of a
    package into files is recorded and reused, never re-asked.
 3. **Settling S and J.** A translated test may settle a security or contract
