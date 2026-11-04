@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 2.0.3
-requires: [protocol/types, architecture/agent, patterns/logging]
+version: 2.1.0
+requires: [protocol/types, patterns/logging]
 platform: any
 tier: free
 -->
@@ -53,17 +53,8 @@ requires:
           fields_used: [ready]
         - name: LeaseRenewal
           fields_used: [ready, checks, timestamp]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentState
-          fields_used: [state]
+        - name: ServiceEntry
+          fields_used: [lease_state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

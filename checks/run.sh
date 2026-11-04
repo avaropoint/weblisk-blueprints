@@ -671,6 +671,36 @@ else
 	fails=$((fails + 1))
 fi
 
+# No pattern requires the framework, beyond the known list, which can only
+# shrink; a list missing command's requirement of architecture/agent must
+# report exactly it, and one still naming retry's, removed, exactly that.
+expect 0 "layering: every pattern that requires the framework is known, none new" python3 checks/layering.py
+python3 - "$tmp" <<'PY'
+import json, sys
+k = json.load(open("checks/layering.json", encoding="utf-8"))
+k["known"].pop("patterns/command")
+json.dump(k, open(sys.argv[1] + "/lay-new.json", "w"))
+k = json.load(open("checks/layering.json", encoding="utf-8"))
+k["known"]["patterns/retry"] = ["architecture/agent"]
+json.dump(k, open(sys.argv[1] + "/lay-gone.json", "w"))
+PY
+expect 1 "layering control: a requirement not in the list fails" python3 checks/layering.py --known "$tmp/lay-new.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/command requires architecture/agent" "$tmp/out"; then
+	echo "ok   layering control: exactly one finding, patterns/command"
+else
+	echo "FAIL layering control: want exactly one finding, patterns/command"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "layering control: a removed requirement still listed fails" python3 checks/layering.py --known "$tmp/lay-gone.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/retry no longer requires architecture/agent" "$tmp/out"; then
+	echo "ok   layering control: exactly one finding, patterns/retry"
+else
+	echo "FAIL layering control: want exactly one finding, patterns/retry"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # Every standard's applies_in names a code of the shipped ISO 3166 list; a
 # copy of the standards where one names ZZ must be reported with exactly it.
 expect 0 "places: every applies_in names an ISO 3166 code of the shipped list" python3 checks/places.py

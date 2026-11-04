@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: retry
-version: 2.0.2
-requires: [protocol/types, architecture/agent, patterns/rate-limiting]
+version: 2.1.0
+requires: [protocol/types, patterns/rate-limiting]
 platform: any
 tier: free
 -->
@@ -43,16 +43,6 @@ requires:
       types:
         - name: ErrorResponse
           fields_used: [code, error, retryable, retry_after, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentConfig
-          fields_used: [name, retry, circuit_breaker]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -148,6 +138,74 @@ contracts:
     - topic: system.circuit_breaker_state_change
       description: Emitted when a circuit breaker transitions between states
       payload: {target, from_state, to_state, failure_count, last_error, timestamp}
+```
+
+---
+
+## Types
+
+The two configurations this pattern declares. A component's own
+configuration carries them: [`architecture/agent`](../architecture/agent.md)'s
+`AgentConfig` binds both, and this pattern binds nothing of any component's.
+
+```yaml
+types:
+  RetryConfig:
+    description: How a failed request is retried (retry-with-backoff)
+    fields:
+      max_attempts:
+        type: int
+        required: true
+        description: Total attempts including the original request (protocol/conventions:max-attempts); at least 1
+      backoff:
+        type: enum
+        values: [exponential]
+        required: true
+        description: The one backoff, protocol/conventions:backoff
+      base_delay:
+        type: duration
+        required: true
+        description: The backoff's base (protocol/conventions:backoff); default 1s
+      max_delay:
+        type: duration
+        required: false
+        description: The backoff's cap (protocol/conventions:backoff); default 30s, at least base_delay
+      jitter:
+        type: bool
+        required: false
+        description: Full jitter, which protocol/conventions:backoff always applies; false is refused
+      retryable_errors:
+        type: "[]string"
+        required: false
+        description: Error codes that trigger a retry; default every transient code (Default Retry Configuration)
+      non_retryable_errors:
+        type: "[]string"
+        required: false
+        description: Error codes that fail at once, without a retry
+
+  CircuitBreakerConfig:
+    description: When a target's circuit opens and closes again (circuit-breaker)
+    fields:
+      enabled:
+        type: bool
+        required: false
+        description: Whether calls to a target pass through a circuit; default true
+      failure_threshold:
+        type: int
+        required: true
+        description: Consecutive failures before the circuit opens; at least 1
+      recovery_timeout:
+        type: int
+        required: true
+        description: Milliseconds before an open circuit becomes HALF_OPEN; greater than 0
+      success_threshold:
+        type: int
+        required: true
+        description: Consecutive successful probes that close a HALF_OPEN circuit
+      monitored_errors:
+        type: "[]string"
+        required: false
+        description: Error codes counted as failures
 ```
 
 ---

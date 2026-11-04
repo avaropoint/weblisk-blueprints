@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 3.0.2
+version: 3.0.3
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
@@ -122,11 +122,11 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/rate-limiting
-    version: ">=1.0.0 <2.0.0"
+    version: ">=1.2.0 <2.0.0"
     bindings:
       patterns:
-        - behavior: rate-enforcement
-          parameters: [per_ip, per_session, endpoint_limits]
+        - behavior: rate-limit-enforcement
+          parameters: [algorithm, key_type, requests, window]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

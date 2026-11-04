@@ -123,6 +123,17 @@ one it adopted would be the tool's guess.
 - `name`: Must be `[a-z][a-z0-9-]*`. Max 64 characters. Must match the filename.
 - `version`: Must be valid semver (`X.Y.Z`). No pre-release tags in published blueprints.
 - `requires`: Each entry must resolve to an existing blueprint in the repository.
+- `requires` follows the layers (decided by the owner, 2026-11-04): **the
+  framework requires the patterns, and a pattern never requires the
+  framework.** The framework is every blueprint under `architecture/`,
+  `agents/` and `domains/`. A pattern may require `protocol/*`, `schemas/*`
+  and other patterns; where it needs a framework type, it declares the type
+  itself, or binds one `protocol/types` declares, and the framework blueprint
+  binds the pattern. So `architecture/agent`'s `AgentConfig` binds
+  `patterns/retry`'s `RetryConfig`, and `patterns/retry` binds nothing of the
+  agent's. The patterns that still require the framework are
+  [`checks/layering.json`](../checks/layering.json)'s `known`, which
+  [`checks/layering.py`](../checks/layering.py) holds to shrink only.
 - `extends`: Each entry must be a pattern (`patterns/*`). The pattern must exist.
 - `port`: Integer in range 9700–9999. Must not conflict with other assigned ports.
 - `tier`: Only `free` or `pro`. Defaults to `free` if omitted (but SHOULD be explicit).
