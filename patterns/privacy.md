@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: privacy
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, patterns/scope, patterns/policy, patterns/contract]
 platform: any
 tier: free
@@ -1426,18 +1426,18 @@ lineage:
 
 ## Verification Checklist
 
-- [ ] ConsentRecord validation requires every field [ConsentRecord](#consentrecord) marks required, and `expires_at` at every level [Consent Rules](#consent-rules) requires expiry
-- [ ] Consent is evaluated before subject data is processed at every scope level that requires it — missing or expired consent produces deny — [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix), [Consent Rules](#consent-rules), [Required for Scope >= Confidential](#required-for-scope--confidential)
-- [ ] Masking activates at each scope level as [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix) gives
-- [ ] MaskingStrategy parameters are validated against the parameters [MaskingStrategy](#maskingstrategy) declares for each strategy, its required ones and its defaults
-- [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain — [Cascade Flow](#cascade-flow)
-- [ ] ErasureResult accounts for every agent notified, as confirmed, pending, or an exception for an agent that could not erase — [ErasureResult](#erasureresult), [ErasureException](#erasureexception)
-- [ ] Data under a legal hold is excluded from erasure, and the result records an exception whose reason is `legal_hold` — [Legal Holds](#legal-holds), [ErasureException](#erasureexception)
-- [ ] LineageEntry records are immutable (append-only) and survive data erasure — [Lineage Retention Rules](#lineage-retention-rules), [Lineage Graph Storage](#lineage-graph-storage)
-- [ ] Lineage tracking cannot be disabled for scope >= confidential — [Contracts](#contracts), [Required for Scope >= Confidential](#required-for-scope--confidential)
-- [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries — [Contracts](#contracts), [MinimizationRule](#minimizationrule)
-- [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline — [Contracts](#contracts), [Required for All Agents](#required-for-all-agents)
-- [ ] `privacy.erasure_completed` carries the payload [Contracts](#contracts) declares for it
-- [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked — [Consent Rules](#consent-rules)
-- [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another — [Required for All Agents](#required-for-all-agents), [Design Principles](#design-principles)
-- [ ] All privacy events follow the standard event envelope — [`protocol/types`](../protocol/types.md#eventenvelope)
+- [ ] ConsentRecord validation requires every field [ConsentRecord](#consentrecord) marks required, and `expires_at` at every level [Consent Rules](#consent-rules) requires expiry <!-- wl:check consentrecord-validation-requires-field -->
+- [ ] Consent is evaluated before subject data is processed at every scope level that requires it — missing or expired consent produces deny — [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix), [Consent Rules](#consent-rules), [Required for Scope >= Confidential](#required-for-scope--confidential) <!-- wl:check consent-evaluated-before-subject-data-processed -->
+- [ ] Masking activates at each scope level as [Scope-Privacy Activation Matrix](#scope-privacy-activation-matrix) gives <!-- wl:check masking-activates-scope-level-scope-privacy -->
+- [ ] MaskingStrategy parameters are validated against the parameters [MaskingStrategy](#maskingstrategy) declares for each strategy, its required ones and its defaults <!-- wl:check maskingstrategy-parameters-validated-against -->
+- [ ] Erasure cascades propagate to all stores holding subject data — no orphaned records remain — [Cascade Flow](#cascade-flow) <!-- wl:check erasure-cascades-propagate-stores-holding -->
+- [ ] ErasureResult accounts for every agent notified, as confirmed, pending, or an exception for an agent that could not erase — [ErasureResult](#erasureresult), [ErasureException](#erasureexception) <!-- wl:check erasureresult-accounts-agent-notified-confirmed -->
+- [ ] Data under a legal hold is excluded from erasure, and the result records an exception whose reason is `legal_hold` — [Legal Holds](#legal-holds), [ErasureException](#erasureexception) <!-- wl:check data-under-legal-hold-excluded-erasure -->
+- [ ] LineageEntry records are immutable (append-only) and survive data erasure — [Lineage Retention Rules](#lineage-retention-rules), [Lineage Graph Storage](#lineage-graph-storage) <!-- wl:check lineageentry-records-immutable-append-survive -->
+- [ ] Lineage tracking cannot be disabled for scope >= confidential — [Contracts](#contracts), [Required for Scope >= Confidential](#required-for-scope--confidential) <!-- wl:check lineage-tracking-cannot-disabled-scope -->
+- [ ] MinimizationRule strips undeclared fields before data crosses contract boundaries — [Contracts](#contracts), [MinimizationRule](#minimizationrule) <!-- wl:check minimizationrule-strips-undeclared-fields -->
+- [ ] `privacy.consent_revoked` event triggers downstream cleanup within the configured deadline — [Contracts](#contracts), [Required for All Agents](#required-for-all-agents) <!-- wl:check privacy-consent-revoked-event-triggers -->
+- [ ] `privacy.erasure_completed` carries the payload [Contracts](#contracts) declares for it <!-- wl:check privacy-erasure-completed-carries-payload -->
+- [ ] Consent record expiry is enforced — expired consent is functionally equivalent to revoked — [Consent Rules](#consent-rules) <!-- wl:check consent-record-expiry-enforced-expired-consent -->
+- [ ] Data purpose restriction is enforced — data accessed under one purpose cannot be used for another — [Required for All Agents](#required-for-all-agents), [Design Principles](#design-principles) <!-- wl:check data-purpose-restriction-enforced-data-accessed -->
+- [ ] All privacy events follow the standard event envelope — [`protocol/types`](../protocol/types.md#eventenvelope) <!-- wl:check privacy-events-follow-standard-event-envelope -->

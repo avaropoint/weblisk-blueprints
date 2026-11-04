@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.6.0
+version: 6.6.1
 requires: []
 platform: any
 tier: free
@@ -4965,46 +4965,46 @@ security:
 
 ## Verification Checklist
 
-- [ ] Every ID, span id and timestamp is the form [Conventions](#conventions), [TraceContext](#tracecontext) and [`protocol/conventions`](conventions.md#instant) give it
-- [ ] Signatures and public keys serialize as base64url ML-DSA-65 of the lengths [Conventions](#conventions) gives
-- [ ] ErrorResponse carries the fields [ErrorResponse](#errorresponse) declares under its exact JSON keys, `error` required
-- [ ] Error categories are only those [ErrorResponse](#errorresponse) lists, and each standard error code answers with the HTTP status [Error Handling](#error-handling) gives it
-- [ ] Unknown JSON fields are ignored on deserialization; an optional field that holds no value is omitted and a required field is always written, its zero value included, as [Conventions](#conventions) says
-- [ ] AgentManifest requires the fields [AgentManifest](#agentmanifest) marks required, and carries `publishes` and `subscriptions` for the event system
-- [ ] EventEnvelope requires every field [EventEnvelope](#eventenvelope) marks required
-- [ ] Subscription requires `pattern`, and `scope` and `group` take the defaults [Subscription](#subscription) gives them
-- [ ] RouteEntry requires every field [RouteEntry](#routeentry) marks required
-- [ ] ServiceDirectory carries every field [ServiceDirectory](#servicedirectory) marks required
-- [ ] WorkflowPhase `on_error` takes only the values [WorkflowPhase](#workflowphase) lists, and `max_attempts` applies only when `on_error` is `"retry"` ([`patterns/workflow`](../patterns/workflow.md#declaration-fields))
-- [ ] WorkflowExecution `status` takes only the states, and moves only by the transitions, of [`patterns/workflow`](../patterns/workflow.md#workflow-state-machine); PhaseResult `status` adds `skipped` ([PhaseResult](#phaseresult))
-- [ ] TaskRequest requires every field [TaskRequest](#taskrequest) marks required, and TaskResult `status` is one of the values [TaskResult](#taskresult) lists
-- [ ] AgentMessage `signature` covers what [AgentMessage](#agentmessage) says it covers, canonicalized per RFC 8785
-- [ ] Finding carries every field [Finding](#finding) marks required
-- [ ] RegisterResponse carries every field [RegisterResponse](#registerresponse) marks required, `protocol_version` the negotiated one
-- [ ] ServiceEntry carries `lease_state` and `lease_expires_at`, and `lease_state` is one of the values [LeaseState](#leasestate) gives ([ServiceEntry](#serviceentry))
-- [ ] A lease past its `expires_at` reads `unknown`, never `ready` ([LeaseState](#leasestate))
-- [ ] Lease and LeaseRenewal carry every field [Lease](#lease) and [LeaseRenewal](#leaserenewal) mark required, and a renewal's `checks` are never served at `/readyz`
-- [ ] `GET /livez` answers as [Liveness](#liveness) says: without authentication, no other member, and depending on no other component
-- [ ] `GET /readyz` answers as [Readiness](#readiness) says: without authentication and no other member
-- [ ] ChannelGrant carries every field [ChannelGrant](#channelgrant) marks required, `channel_token` scoped
-- [ ] Every protocol path, its prefix, method and auth, is as the [Protocol Paths](#protocol-paths) table gives it
-- [ ] DeadLetterEntry carries every field [DeadLetterEntry](#deadletterentry) marks required
-- [ ] PolicyDecision requires every field [PolicyDecision](#policydecision) marks required, and `decision` is a [DecisionResult](#decisionresult)
-- [ ] OperationIntent requires every field [OperationIntent](#operationintent) marks required, and `operation` takes every class it lists, `list` and `query` among them
-- [ ] IntentDecision requires every field [IntentDecision](#intentdecision) marks required, and `decision` is a [DecisionResult](#decisionresult)
-- [ ] EnforcementDecision requires every field [EnforcementDecision](#enforcementdecision) marks required, and `boundary` takes every value it lists, `response` among them
-- [ ] DecisionResult takes only the values [DecisionResult](#decisionresult) gives, compared by ordinal
-- [ ] Severity takes only the values [Severity](#severity) gives, used alike by enforcement, security and safety
-- [ ] Policy, safety and enforcement decisions resolve to a DecisionResult by the [Decision Mapping](#decision-mapping) table, most restrictive winning ([Decision Taxonomy](#decision-taxonomy))
-- [ ] Every protocol-level error code is registered centrally and agent-local codes do not collide with it, as [Error Code Conventions](#error-code-conventions) says
-- [ ] Every code a `TokenExchangeResponse` may carry in `code` ([TokenExchangeResponse](#tokenexchangeresponse)) is registered here with its HTTP status ([Errors](#errors), [Error Handling](#error-handling)), so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one
-- [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401 ([Errors](#errors)), and `token:exchange` is in the [Capability](#capability) list
+- [ ] Every ID, span id and timestamp is the form [Conventions](#conventions), [TraceContext](#tracecontext) and [`protocol/conventions`](conventions.md#instant) give it <!-- wl:check id-span-id-timestamp-form-conventions -->
+- [ ] Signatures and public keys serialize as base64url ML-DSA-65 of the lengths [Conventions](#conventions) gives <!-- wl:check signatures-public-keys-serialize-base64url-ml -->
+- [ ] ErrorResponse carries the fields [ErrorResponse](#errorresponse) declares under its exact JSON keys, `error` required <!-- wl:check errorresponse-carries-fields-errorresponse -->
+- [ ] Error categories are only those [ErrorResponse](#errorresponse) lists, and each standard error code answers with the HTTP status [Error Handling](#error-handling) gives it <!-- wl:check error-categories-errorresponse-lists-standard -->
+- [ ] Unknown JSON fields are ignored on deserialization; an optional field that holds no value is omitted and a required field is always written, its zero value included, as [Conventions](#conventions) says <!-- wl:check unknown-json-fields-ignored-deserialization -->
+- [ ] AgentManifest requires the fields [AgentManifest](#agentmanifest) marks required, and carries `publishes` and `subscriptions` for the event system <!-- wl:check agentmanifest-requires-fields-agentmanifest -->
+- [ ] EventEnvelope requires every field [EventEnvelope](#eventenvelope) marks required <!-- wl:check eventenvelope-requires-field-eventenvelope-marks -->
+- [ ] Subscription requires `pattern`, and `scope` and `group` take the defaults [Subscription](#subscription) gives them <!-- wl:check subscription-requires-pattern-scope-group-take -->
+- [ ] RouteEntry requires every field [RouteEntry](#routeentry) marks required <!-- wl:check routeentry-requires-field-routeentry-marks -->
+- [ ] ServiceDirectory carries every field [ServiceDirectory](#servicedirectory) marks required <!-- wl:check servicedirectory-carries-field-servicedirectory -->
+- [ ] WorkflowPhase `on_error` takes only the values [WorkflowPhase](#workflowphase) lists, and `max_attempts` applies only when `on_error` is `"retry"` ([`patterns/workflow`](../patterns/workflow.md#declaration-fields)) <!-- wl:check workflowphase-error-takes-values-workflowphase -->
+- [ ] WorkflowExecution `status` takes only the states, and moves only by the transitions, of [`patterns/workflow`](../patterns/workflow.md#workflow-state-machine); PhaseResult `status` adds `skipped` ([PhaseResult](#phaseresult)) <!-- wl:check workflowexecution-status-takes-states-moves -->
+- [ ] TaskRequest requires every field [TaskRequest](#taskrequest) marks required, and TaskResult `status` is one of the values [TaskResult](#taskresult) lists <!-- wl:check taskrequest-requires-field-taskrequest-marks -->
+- [ ] AgentMessage `signature` covers what [AgentMessage](#agentmessage) says it covers, canonicalized per RFC 8785 <!-- wl:check agentmessage-signature-covers-what-agentmessage -->
+- [ ] Finding carries every field [Finding](#finding) marks required <!-- wl:check finding-carries-field-finding-marks-required -->
+- [ ] RegisterResponse carries every field [RegisterResponse](#registerresponse) marks required, `protocol_version` the negotiated one <!-- wl:check registerresponse-carries-field-registerresponse -->
+- [ ] ServiceEntry carries `lease_state` and `lease_expires_at`, and `lease_state` is one of the values [LeaseState](#leasestate) gives ([ServiceEntry](#serviceentry)) <!-- wl:check serviceentry-carries-lease-state-lease-expires -->
+- [ ] A lease past its `expires_at` reads `unknown`, never `ready` ([LeaseState](#leasestate)) <!-- wl:check lease-past-expires-reads-unknown-never -->
+- [ ] Lease and LeaseRenewal carry every field [Lease](#lease) and [LeaseRenewal](#leaserenewal) mark required, and a renewal's `checks` are never served at `/readyz` <!-- wl:check lease-leaserenewal-carry-field-lease -->
+- [ ] `GET /livez` answers as [Liveness](#liveness) says: without authentication, no other member, and depending on no other component <!-- wl:check get-livez-answers-liveness-says -->
+- [ ] `GET /readyz` answers as [Readiness](#readiness) says: without authentication and no other member <!-- wl:check get-readyz-answers-readiness-says -->
+- [ ] ChannelGrant carries every field [ChannelGrant](#channelgrant) marks required, `channel_token` scoped <!-- wl:check channelgrant-carries-field-channelgrant-marks -->
+- [ ] Every protocol path, its prefix, method and auth, is as the [Protocol Paths](#protocol-paths) table gives it <!-- wl:check protocol-path-prefix-method-auth-protocol -->
+- [ ] DeadLetterEntry carries every field [DeadLetterEntry](#deadletterentry) marks required <!-- wl:check deadletterentry-carries-field-deadletterentry -->
+- [ ] PolicyDecision requires every field [PolicyDecision](#policydecision) marks required, and `decision` is a [DecisionResult](#decisionresult) <!-- wl:check policydecision-requires-field-policydecision -->
+- [ ] OperationIntent requires every field [OperationIntent](#operationintent) marks required, and `operation` takes every class it lists, `list` and `query` among them <!-- wl:check operationintent-requires-field-operationintent -->
+- [ ] IntentDecision requires every field [IntentDecision](#intentdecision) marks required, and `decision` is a [DecisionResult](#decisionresult) <!-- wl:check intentdecision-requires-field-intentdecision -->
+- [ ] EnforcementDecision requires every field [EnforcementDecision](#enforcementdecision) marks required, and `boundary` takes every value it lists, `response` among them <!-- wl:check enforcementdecision-requires-field -->
+- [ ] DecisionResult takes only the values [DecisionResult](#decisionresult) gives, compared by ordinal <!-- wl:check decisionresult-takes-values-decisionresult-gives -->
+- [ ] Severity takes only the values [Severity](#severity) gives, used alike by enforcement, security and safety <!-- wl:check severity-takes-values-severity-gives-used -->
+- [ ] Policy, safety and enforcement decisions resolve to a DecisionResult by the [Decision Mapping](#decision-mapping) table, most restrictive winning ([Decision Taxonomy](#decision-taxonomy)) <!-- wl:check policy-safety-enforcement-decisions-resolve -->
+- [ ] Every protocol-level error code is registered centrally and agent-local codes do not collide with it, as [Error Code Conventions](#error-code-conventions) says <!-- wl:check protocol-level-error-code-registered-centrally -->
+- [ ] Every code a `TokenExchangeResponse` may carry in `code` ([TokenExchangeResponse](#tokenexchangeresponse)) is registered here with its HTTP status ([Errors](#errors), [Error Handling](#error-handling)), so the admin gateway, refusing a request whose token the exchange refused, answers with that status and never a guessed one <!-- wl:check code-tokenexchangeresponse-carry-code -->
+- [ ] `PASS_REQUIRED` and `PASS_AUDIENCE_MISMATCH` are registered with status 401 ([Errors](#errors)), and `token:exchange` is in the [Capability](#capability) list <!-- wl:check pass-required-pass-audience-mismatch-registered -->
 - [ ] `STEP_UP_REQUIRED` is registered with status 401 in the error table ([Errors](#errors)) and in [Error Handling](#error-handling), and every component that serves a destructive act answers it <!-- wl:check step-up-code-registered covers step-up-required-registered -->
-- [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT` ([Error Handling](#error-handling))
+- [ ] `ADDRESS_CONFLICT` is registered with status 409, beside `NAMESPACE_CONFLICT` ([Error Handling](#error-handling)) <!-- wl:check address-conflict-registered-status-409-beside -->
 - [ ] `token:exchange` is marked *admin gateway only* ([Capability](#capability)), and `CAPABILITY_GATEWAY_ONLY` is registered with status 403 in [Error Handling](#error-handling) <!-- wl:check gateway-only-registered covers gateway-only-capability -->
-- [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY` ([Capability](#capability))
-- [ ] Administrative authority is expressed as `admin:` capabilities in the standard list, not as a separate role model, and `admin:*` denotes the whole family ([Capability](#capability))
-- [ ] Every capability bullet in [Capability](#capability) names exactly one owner in brackets, and no capability name is listed twice
-- [ ] Each capability [Capability](#capability) marks *person only* is person only and no other is, `programme:switch`, `integration:manage`, `action:invoke` and `scope:admit` among the first
-- [ ] The capabilities [Capability](#capability) places outside the `admin` family, `telemetry:read`, `action:invoke` and `scope:admit` among them, are carried by no `admin:*`
-- [ ] `content:connect` binds an integration to an outside destination and creates no credential ([Capability](#capability))
+- [ ] `content:declassify` is in the Content capabilities and marked *person only*, so a registration whose manifest declares it is refused with `CAPABILITY_PERSON_ONLY` ([Capability](#capability)) <!-- wl:check content-declassify-content-capabilities-marked -->
+- [ ] Administrative authority is expressed as `admin:` capabilities in the standard list, not as a separate role model, and `admin:*` denotes the whole family ([Capability](#capability)) <!-- wl:check administrative-authority-expressed-admin -->
+- [ ] Every capability bullet in [Capability](#capability) names exactly one owner in brackets, and no capability name is listed twice <!-- wl:check capability-bullet-capability-names-exactly-owner -->
+- [ ] Each capability [Capability](#capability) marks *person only* is person only and no other is, `programme:switch`, `integration:manage`, `action:invoke` and `scope:admit` among the first <!-- wl:check capability-capability-marks-person-person -->
+- [ ] The capabilities [Capability](#capability) places outside the `admin` family, `telemetry:read`, `action:invoke` and `scope:admit` among them, are carried by no `admin:*` <!-- wl:check capabilities-capability-places-outside-admin -->
+- [ ] `content:connect` binds an integration to an outside destination and creates no credential ([Capability](#capability)) <!-- wl:check content-connect-binds-integration-outside -->

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 3.0.1
+version: 3.0.2
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -1496,29 +1496,29 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse))
-- [ ] Alert events are received and correlated into incidents ([Alert Correlation](#alert-correlation), [process_alert](#process_alert))
-- [ ] Duplicate alerts within correlation window join existing incidents ([Correlation Window](#correlation-window), [process_alert](#process_alert) step 3)
-- [ ] Runbooks execute steps in sequence with correct timeout handling ([execute_runbook](#execute_runbook), [Runbook Structure](#runbook-structure))
-- [ ] Failed steps follow their on_failure path ([execute_runbook](#execute_runbook) step 3d, [Error Handling](#error-handling))
-- [ ] Approval-required steps pause and wait for operator ([Runbook Actions](#runbook-actions), [execute_runbook](#execute_runbook) step 3a)
-- [ ] Auto-resolved incidents confirm stability before closing ([State Machine](#state-machine), [Execute Workflow](#execute-workflow) Phase 4)
-- [ ] Post-incident reports generate for all resolved incidents ([Post-Incident Report](#post-incident-report), [resolve](#resolve) step 4)
-- [ ] The five `/v1/admin/runbooks` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the manifest declares none of them among its `pass_routes` ([Custom Runbooks](#custom-runbooks))
-- [ ] Incident timeline records all events chronologically ([Incident Timeline](#incident-timeline), [Implementation Notes](#implementation-notes))
-- [ ] Metrics emit for incidents, runbooks, and escalations ([Observability](#observability))
-- [ ] Graceful degradation when alerting agent or storage is unavailable ([Error Handling](#error-handling), [State Machine](#state-machine))
-- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
-- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
-- [ ] Shutdown drains active runbooks before exit ([Shutdown Sequence](#shutdown-sequence))
-- [ ] Scaling: inter-agent communication via message bus only ([Scaling](#scaling), [`architecture/change-management`](../architecture/change-management.md#inter-agent-communication))
-- [ ] Scaling: leader election prevents duplicate runbook execution ([Scaling](#scaling))
-- [ ] Scaling: consumer group ensures one-per-alert delivery ([Scaling](#scaling))
-- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
-- [ ] Constraints enforced — max_concurrent_runbooks, max_active_incidents ([Constraints](#constraints))
-- [ ] Security: all endpoints require valid token ([Security](#security))
-- [ ] Custom runbooks persist across restarts ([Implementation Notes](#implementation-notes), [Storage](#storage))
+- [ ] Agent registers with orchestrator and receives WLT token ([Startup Sequence](#startup-sequence) step 5, [`protocol/types`](../protocol/types.md#registerresponse)) <!-- wl:check agent-registers-orchestrator-receives-wlt-token -->
+- [ ] Alert events are received and correlated into incidents ([Alert Correlation](#alert-correlation), [process_alert](#process_alert)) <!-- wl:check alert-events-received-correlated-incidents -->
+- [ ] Duplicate alerts within correlation window join existing incidents ([Correlation Window](#correlation-window), [process_alert](#process_alert) step 3) <!-- wl:check duplicate-alerts-within-correlation-window-join -->
+- [ ] Runbooks execute steps in sequence with correct timeout handling ([execute_runbook](#execute_runbook), [Runbook Structure](#runbook-structure)) <!-- wl:check runbooks-execute-steps-sequence-correct-timeout -->
+- [ ] Failed steps follow their on_failure path ([execute_runbook](#execute_runbook) step 3d, [Error Handling](#error-handling)) <!-- wl:check failed-steps-follow-failure-path -->
+- [ ] Approval-required steps pause and wait for operator ([Runbook Actions](#runbook-actions), [execute_runbook](#execute_runbook) step 3a) <!-- wl:check approval-required-steps-pause-wait-operator -->
+- [ ] Auto-resolved incidents confirm stability before closing ([State Machine](#state-machine), [Execute Workflow](#execute-workflow) Phase 4) <!-- wl:check auto-resolved-incidents-confirm-stability -->
+- [ ] Post-incident reports generate for all resolved incidents ([Post-Incident Report](#post-incident-report), [resolve](#resolve) step 4) <!-- wl:check post-incident-reports-generate-resolved -->
+- [ ] The five `/v1/admin/runbooks` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the manifest declares none of them among its `pass_routes` ([Custom Runbooks](#custom-runbooks)) <!-- wl:check five-v1-admin-runbooks-routes-refuse -->
+- [ ] Incident timeline records all events chronologically ([Incident Timeline](#incident-timeline), [Implementation Notes](#implementation-notes)) <!-- wl:check incident-timeline-records-events-chronologically -->
+- [ ] Metrics emit for incidents, runbooks, and escalations ([Observability](#observability)) <!-- wl:check metrics-emit-incidents-runbooks-escalations -->
+- [ ] Graceful degradation when alerting agent or storage is unavailable ([Error Handling](#error-handling), [State Machine](#state-machine)) <!-- wl:check graceful-degradation-when-alerting-agent-storage -->
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check dependencies-declare-version-ranges-specific -->
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check change-rules-defined-dependencies -->
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine)) <!-- wl:check state-machine-transitions-validated-no-implicit -->
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence)) <!-- wl:check startup-sequence-validation-gates-step-validates -->
+- [ ] Shutdown drains active runbooks before exit ([Shutdown Sequence](#shutdown-sequence)) <!-- wl:check shutdown-drains-active-runbooks-before-exit -->
+- [ ] Scaling: inter-agent communication via message bus only ([Scaling](#scaling), [`architecture/change-management`](../architecture/change-management.md#inter-agent-communication)) <!-- wl:check scaling-inter-agent-communication-via-message -->
+- [ ] Scaling: leader election prevents duplicate runbook execution ([Scaling](#scaling)) <!-- wl:check scaling-leader-election-prevents-duplicate -->
+- [ ] Scaling: consumer group ensures one-per-alert delivery ([Scaling](#scaling)) <!-- wl:check scaling-consumer-group-ensures-per-alert -->
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names <!-- wl:check override-audit-records-fields-manual-overrides -->
+- [ ] Constraints enforced — max_concurrent_runbooks, max_active_incidents ([Constraints](#constraints)) <!-- wl:check constraints-enforced-max-concurrent-runbooks-max -->
+- [ ] Security: all endpoints require valid token ([Security](#security)) <!-- wl:check security-endpoints-require-valid-token -->
+- [ ] Custom runbooks persist across restarts ([Implementation Notes](#implementation-notes), [Storage](#storage)) <!-- wl:check custom-runbooks-persist-across-restarts -->
 
 Port: 9760

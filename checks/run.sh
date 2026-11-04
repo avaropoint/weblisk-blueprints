@@ -475,6 +475,52 @@ for id in $lost; do
 done
 [ -n "$lost" ] || { echo "FAIL requirement-ids control: the removed check covered nothing only it covers"; fails=$((fails + 1)); }
 
+# Criterion ids are frozen by checks/criterion-ids.json. A copy of
+# languages/go.md with its first item's id removed, one with that id renamed,
+# and the register with that id retired while the file still writes it, must
+# each be reported with exactly the faults that change makes.
+first=$(python3 -c '
+import re, sys
+t = open("languages/go.md", encoding="utf-8").read()
+print(re.search(r"^- \[ \] .*<!-- wl:check ([a-z0-9-]+) -->$", t, re.M).group(1))')
+python3 - "$tmp" "$first" <<'PY'
+import json, sys
+tmp, cid = sys.argv[1], sys.argv[2]
+t = open("languages/go.md", encoding="utf-8").read()
+mark = f" <!-- wl:check {cid} -->"
+assert t.count(mark) == 1
+open(tmp + "/go-noid.md", "w", encoding="utf-8").write(t.replace(mark, ""))
+open(tmp + "/go-renamed.md", "w", encoding="utf-8").write(t.replace(mark, f" <!-- wl:check {cid}-x -->"))
+r = json.load(open("checks/criterion-ids.json", encoding="utf-8"))
+r["files"]["languages/go.md"].remove(cid)
+r.setdefault("retired", {}).setdefault("languages/go.md", []).append(cid)
+json.dump(r, open(tmp + "/register-retired.json", "w", encoding="utf-8"))
+PY
+expect 1 "requirement-ids control: an item whose id was removed fails" python3 checks/requirement-ids.py --file "$tmp/go-noid.md" --as languages/go.md
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "a checklist item with no id" "$tmp/out" && grep -q "registered id '$first' is no longer written" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the item and its lost id"
+else
+	echo "FAIL requirement-ids control: want exactly the item with no id and its lost id"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "requirement-ids control: an id renamed in place fails" python3 checks/requirement-ids.py --file "$tmp/go-renamed.md" --as languages/go.md
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "registered id '$first' is no longer written" "$tmp/out" && grep -q "id '$first-x' is not in the register" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the old id lost and the new one unregistered"
+else
+	echo "FAIL requirement-ids control: want exactly the old id lost and the new one unregistered"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "requirement-ids control: a retired id written again fails" python3 checks/requirement-ids.py --file languages/go.md --as languages/go.md --register "$tmp/register-retired.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "id '$first' was retired and is never given again" "$tmp/out"; then
+	echo "ok   requirement-ids control: exactly the reused id"
+else
+	echo "FAIL requirement-ids control: want exactly the reused id"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

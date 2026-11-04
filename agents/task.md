@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: task
-version: 4.0.0
+version: 4.0.1
 port: 9781
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
@@ -1278,30 +1278,30 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Subscribes to task.submit (scope: self) and dispatches to target agents ([Subscribed](#subscribed), [HandleEvent: task.submit](#handleevent-tasksubmit))
-- [ ] Dispatches via POST /v1/execute with TaskRequest ([HandleEvent: task.submit](#handleevent-tasksubmit) step 5, [`protocol/spec`](../protocol/spec.md#post-v1execute))
-- [ ] Publishes task.completed on successful execution ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
-- [ ] Publishes task.failed on execution failure or unreachable agent ([HandleEvent: task.submit](#handleevent-tasksubmit) steps 2 and 6)
-- [ ] Publishes task.timeout when task exceeds timeout ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6)
-- [ ] Handles 429 from agents with re-queue and Retry-After ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6, [Implementation Notes](#implementation-notes))
-- [ ] Priority queue dispatches in the order [Priority Queue](#priority-queue) declares
-- [ ] Concurrency control respects agent max_concurrent ([Concurrency Control](#concurrency-control))
-- [ ] Queued tasks dispatch when capacity frees up ([Concurrency Control](#concurrency-control), [Execute Workflow](#execute-workflow) Phase 5)
-- [ ] task.cancel removes from queue or cancels in-flight ([HandleEvent: task.cancel](#handleevent-taskcancel))
-- [ ] Agent capacity updated from system.agent.registered events ([HandleEvent: system.agent.registered](#handleevent-systemagentregistered))
-- [ ] Agent deregistration fails all in-flight and queued tasks for that agent ([HandleEvent: system.agent.deregistered](#handleevent-systemagentderegistered))
-- [ ] Task records are persisted to the stores [Storage](#storage) declares and survive a restart
-- [ ] Dispatched tasks carry the trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Implementation Notes](#implementation-notes))
-- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema))
-- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine))
-- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence))
-- [ ] Shutdown drains in-flight tasks before exit ([Shutdown Sequence](#shutdown-sequence))
-- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready`
-- [ ] Scaling: inter-agent communication via message bus (except /v1/execute) ([Scaling](#scaling))
-- [ ] Scaling: leader election prevents duplicate dispatch ([Scaling](#scaling))
-- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling))
-- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names
-- [ ] Constraints enforced — max_queue_depth, max_concurrent ([Constraints](#constraints))
-- [ ] Security: all endpoints require valid token ([Security](#security))
-- [ ] Dead-letter tasks persisted for analysis ([Implementation Notes](#implementation-notes))
+- [ ] Subscribes to task.submit (scope: self) and dispatches to target agents ([Subscribed](#subscribed), [HandleEvent: task.submit](#handleevent-tasksubmit)) <!-- wl:check subscribes-task-submit-scope-self-dispatches -->
+- [ ] Dispatches via POST /v1/execute with TaskRequest ([HandleEvent: task.submit](#handleevent-tasksubmit) step 5, [`protocol/spec`](../protocol/spec.md#post-v1execute)) <!-- wl:check dispatches-via-post-v1-execute-taskrequest -->
+- [ ] Publishes task.completed on successful execution ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6) <!-- wl:check publishes-task-completed-successful-execution -->
+- [ ] Publishes task.failed on execution failure or unreachable agent ([HandleEvent: task.submit](#handleevent-tasksubmit) steps 2 and 6) <!-- wl:check publishes-task-failed-execution-failure -->
+- [ ] Publishes task.timeout when task exceeds timeout ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6) <!-- wl:check publishes-task-timeout-when-task-exceeds -->
+- [ ] Handles 429 from agents with re-queue and Retry-After ([HandleEvent: task.submit](#handleevent-tasksubmit) step 6, [Implementation Notes](#implementation-notes)) <!-- wl:check handles-429-agents-re-queue-retry -->
+- [ ] Priority queue dispatches in the order [Priority Queue](#priority-queue) declares <!-- wl:check priority-queue-dispatches-order-priority-queue -->
+- [ ] Concurrency control respects agent max_concurrent ([Concurrency Control](#concurrency-control)) <!-- wl:check concurrency-control-respects-agent-max -->
+- [ ] Queued tasks dispatch when capacity frees up ([Concurrency Control](#concurrency-control), [Execute Workflow](#execute-workflow) Phase 5) <!-- wl:check queued-tasks-dispatch-when-capacity-frees -->
+- [ ] task.cancel removes from queue or cancels in-flight ([HandleEvent: task.cancel](#handleevent-taskcancel)) <!-- wl:check task-cancel-removes-queue-cancels-flight -->
+- [ ] Agent capacity updated from system.agent.registered events ([HandleEvent: system.agent.registered](#handleevent-systemagentregistered)) <!-- wl:check agent-capacity-updated-system-agent-registered -->
+- [ ] Agent deregistration fails all in-flight and queued tasks for that agent ([HandleEvent: system.agent.deregistered](#handleevent-systemagentderegistered)) <!-- wl:check agent-deregistration-fails-flight-queued-tasks -->
+- [ ] Task records are persisted to the stores [Storage](#storage) declares and survive a restart <!-- wl:check task-records-persisted-stores-storage-declares -->
+- [ ] Dispatched tasks carry the trace as [`protocol/spec`](../protocol/spec.md#trace-propagation) says, and the correlation_id ([Implementation Notes](#implementation-notes)) <!-- wl:check dispatched-tasks-carry-trace-protocol-spec -->
+- [ ] Dependencies declare version ranges and specific bindings ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check dependencies-declare-version-ranges-specific -->
+- [ ] on_change rules defined for all dependencies ([Dependencies](#dependencies), [`architecture/change-management`](../architecture/change-management.md#contract-schema)) <!-- wl:check change-rules-defined-dependencies -->
+- [ ] State machine transitions validated — no implicit states ([State Machine](#state-machine)) <!-- wl:check state-machine-transitions-validated-no-implicit -->
+- [ ] Startup sequence validation gates — each step has validates/on-fail ([Startup Sequence](#startup-sequence)) <!-- wl:check startup-sequence-validation-gates-step-validates -->
+- [ ] Shutdown drains in-flight tasks before exit ([Shutdown Sequence](#shutdown-sequence)) <!-- wl:check shutdown-drains-flight-tasks-before-exit -->
+- [ ] `GET /livez` answers live or not live and nothing else ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz)), and every lease renewal carries the readiness declared under [Health](#health), with `checks` naming each subsystem `not_ready` <!-- wl:check get-livez-answers-live-not-live -->
+- [ ] Scaling: inter-agent communication via message bus (except /v1/execute) ([Scaling](#scaling)) <!-- wl:check scaling-inter-agent-communication-via-message -->
+- [ ] Scaling: leader election prevents duplicate dispatch ([Scaling](#scaling)) <!-- wl:check scaling-leader-election-prevents-duplicate -->
+- [ ] Scaling: consumer group ensures one-per-event delivery ([Scaling](#scaling)) <!-- wl:check scaling-consumer-group-ensures-per-event -->
+- [ ] Override audit records the fields [Manual Overrides](#manual-overrides) `override_audit` names <!-- wl:check override-audit-records-fields-manual-overrides -->
+- [ ] Constraints enforced — max_queue_depth, max_concurrent ([Constraints](#constraints)) <!-- wl:check constraints-enforced-max-queue-depth-max -->
+- [ ] Security: all endpoints require valid token ([Security](#security)) <!-- wl:check security-endpoints-require-valid-token -->
+- [ ] Dead-letter tasks persisted for analysis ([Implementation Notes](#implementation-notes)) <!-- wl:check dead-letter-tasks-persisted-analysis -->

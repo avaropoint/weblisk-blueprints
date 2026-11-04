@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: expression
-version: 2.0.0
+version: 2.0.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -397,14 +397,14 @@ types:
 
 ## Verification Checklist
 
-- [ ] All reserved words are case-sensitive, in the case [Reserved Words](#reserved-words) gives each
-- [ ] Operator precedence matches the table — parentheses override all precedence — [Grammar](#grammar), [Operator Precedence (highest to lowest)](#operator-precedence-highest-to-lowest)
-- [ ] Path resolution returns null for missing paths instead of erroring — [Design Principles](#design-principles), [Evaluation Rules](#evaluation-rules)
-- [ ] Type mismatches in comparisons evaluate to false with a warning, not an exception — [Type Coercion Rules](#type-coercion-rules), [Error Handling](#error-handling)
-- [ ] `MATCHES` uses a non-backtracking regex engine (RE2 or equivalent) — [Comparison Operators](#comparison-operators), [Evaluation Rules](#evaluation-rules)
-- [ ] Expression depth is bounded at the depth [Security](#security) gives; a deeper expression is rejected with `EXPR_DEPTH_EXCEEDED` — [Error Handling](#error-handling)
-- [ ] Array literals are bounded at the size [Security](#security) gives
-- [ ] Division by zero evaluates to false with a warning — [Error Handling](#error-handling)
-- [ ] Short-circuit evaluation: `false AND <error>` returns false without evaluating right side — [Logical Operators](#logical-operators), [Evaluation Rules](#evaluation-rules)
-- [ ] Parse errors are caught at blueprint load time, not at runtime — [Error Handling](#error-handling)
-- [ ] Expressions cannot access state outside the provided context object — [Security](#security)
+- [ ] All reserved words are case-sensitive, in the case [Reserved Words](#reserved-words) gives each <!-- wl:check reserved-words-case-sensitive-case-reserved -->
+- [ ] Operator precedence matches the table — parentheses override all precedence — [Grammar](#grammar), [Operator Precedence (highest to lowest)](#operator-precedence-highest-to-lowest) <!-- wl:check operator-precedence-matches-table-parentheses -->
+- [ ] Path resolution returns null for missing paths instead of erroring — [Design Principles](#design-principles), [Evaluation Rules](#evaluation-rules) <!-- wl:check path-resolution-returns-null-missing-paths -->
+- [ ] Type mismatches in comparisons evaluate to false with a warning, not an exception — [Type Coercion Rules](#type-coercion-rules), [Error Handling](#error-handling) <!-- wl:check type-mismatches-comparisons-evaluate-false -->
+- [ ] `MATCHES` uses a non-backtracking regex engine (RE2 or equivalent) — [Comparison Operators](#comparison-operators), [Evaluation Rules](#evaluation-rules) <!-- wl:check matches-uses-non-backtracking-regex-engine -->
+- [ ] Expression depth is bounded at the depth [Security](#security) gives; a deeper expression is rejected with `EXPR_DEPTH_EXCEEDED` — [Error Handling](#error-handling) <!-- wl:check expression-depth-bounded-depth-security-gives -->
+- [ ] Array literals are bounded at the size [Security](#security) gives <!-- wl:check array-literals-bounded-size-security-gives -->
+- [ ] Division by zero evaluates to false with a warning — [Error Handling](#error-handling) <!-- wl:check division-zero-evaluates-false-warning-error -->
+- [ ] Short-circuit evaluation: `false AND <error>` returns false without evaluating right side — [Logical Operators](#logical-operators), [Evaluation Rules](#evaluation-rules) <!-- wl:check short-circuit-evaluation-false-error-returns -->
+- [ ] Parse errors are caught at blueprint load time, not at runtime — [Error Handling](#error-handling) <!-- wl:check parse-errors-caught-blueprint-load-time -->
+- [ ] Expressions cannot access state outside the provided context object — [Security](#security) <!-- wl:check expressions-cannot-access-state-outside-provided -->

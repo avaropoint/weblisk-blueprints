@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: observability
-version: 2.0.2
+version: 2.0.3
 requires: [protocol/types, architecture/agent, patterns/logging]
 platform: any
 tier: free
@@ -344,10 +344,10 @@ unauthenticated answer; none of that is health here.
 
 ## Verification Checklist
 
-- [ ] Agent serves `GET /livez` and `GET /readyz` without authentication, each answering with `live` or `ready` alone — [`protocol/types`](../protocol/types.md#liveness), [Readiness](../protocol/types.md#readiness)
-- [ ] `GET /livez` stays 200 while a store or a peer the agent depends on is down, and `GET /readyz` answers 503 — [`protocol/types`](../protocol/types.md#liveness), [Readiness](../protocol/types.md#readiness)
-- [ ] Agent renews its lease at `POST /v1/lease` within a third of its `duration`, with `checks` naming what it is short of when `ready` is false — [`protocol/types`](../protocol/types.md#leaserenewal)
-- [ ] Agent renews with `ready: false` while draining, then deregisters — [`protocol/types`](../protocol/types.md#leaserenewal)
-- [ ] Base metrics (requests, duration, errors, readiness) are emitted — [Agent Metrics](#agent-metrics)
-- [ ] Metrics exposed at GET /v1/metrics in structured format — [Metrics Endpoint](#metrics-endpoint)
-- [ ] No component sends a request to another to learn its health, and none emits a health state-change event — [Alert Integration](#alert-integration), [`protocol/types`](../protocol/types.md#health)
+- [ ] Agent serves `GET /livez` and `GET /readyz` without authentication, each answering with `live` or `ready` alone — [`protocol/types`](../protocol/types.md#liveness), [Readiness](../protocol/types.md#readiness) <!-- wl:check agent-serves-get-livez-get-readyz -->
+- [ ] `GET /livez` stays 200 while a store or a peer the agent depends on is down, and `GET /readyz` answers 503 — [`protocol/types`](../protocol/types.md#liveness), [Readiness](../protocol/types.md#readiness) <!-- wl:check get-livez-stays-200-while-store -->
+- [ ] Agent renews its lease at `POST /v1/lease` within a third of its `duration`, with `checks` naming what it is short of when `ready` is false — [`protocol/types`](../protocol/types.md#leaserenewal) <!-- wl:check agent-renews-lease-post-v1-lease -->
+- [ ] Agent renews with `ready: false` while draining, then deregisters — [`protocol/types`](../protocol/types.md#leaserenewal) <!-- wl:check agent-renews-ready-false-while-draining -->
+- [ ] Base metrics (requests, duration, errors, readiness) are emitted — [Agent Metrics](#agent-metrics) <!-- wl:check base-metrics-requests-duration-errors-readiness -->
+- [ ] Metrics exposed at GET /v1/metrics in structured format — [Metrics Endpoint](#metrics-endpoint) <!-- wl:check metrics-exposed-get-v1-metrics-structured -->
+- [ ] No component sends a request to another to learn its health, and none emits a health state-change event — [Alert Integration](#alert-integration), [`protocol/types`](../protocol/types.md#health) <!-- wl:check no-component-sends-request-another-learn -->

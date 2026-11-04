@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: state-machine
-version: 1.0.4
+version: 1.0.5
 requires: [protocol/types, patterns/storage, patterns/logging, patterns/expression]
 platform: any
 tier: free
@@ -513,14 +513,14 @@ Implementations SHOULD auto-generate Mermaid from the YAML declaration.
 
 ## Verification Checklist
 
-- [ ] All states declared with descriptions — [States](#states)
-- [ ] initial_state references a valid state — [Validation Rules](#validation-rules)
-- [ ] Terminal states have no outbound transitions — [Terminal States](#terminal-states), [Validation Rules](#validation-rules)
-- [ ] All non-terminal states have at least one outbound transition — [Validation Rules](#validation-rules)
-- [ ] All states reachable from initial_state — [Validation Rules](#validation-rules)
-- [ ] Guards reference valid entity fields — [Guards](#guards), [Validation Rules](#validation-rules)
-- [ ] Effects declared for all referenced effect names — [Validation Rules](#validation-rules)
-- [ ] Timeout states auto-transition after duration — [Timeout States](#timeout-states)
-- [ ] State transitions are atomic (optimistic locking) — [Implementation Notes](#implementation-notes)
-- [ ] State changes persisted before effects execute — [Effects](#effects), [Implementation Notes](#implementation-notes)
-- [ ] Transition audit trail logged — [Implementation Notes](#implementation-notes)
+- [ ] All states declared with descriptions — [States](#states) <!-- wl:check states-declared-descriptions-states -->
+- [ ] initial_state references a valid state — [Validation Rules](#validation-rules) <!-- wl:check initial-state-references-valid-state-validation -->
+- [ ] Terminal states have no outbound transitions — [Terminal States](#terminal-states), [Validation Rules](#validation-rules) <!-- wl:check terminal-states-no-outbound-transitions-terminal -->
+- [ ] All non-terminal states have at least one outbound transition — [Validation Rules](#validation-rules) <!-- wl:check non-terminal-states-least-outbound-transition -->
+- [ ] All states reachable from initial_state — [Validation Rules](#validation-rules) <!-- wl:check states-reachable-initial-state-validation-rules -->
+- [ ] Guards reference valid entity fields — [Guards](#guards), [Validation Rules](#validation-rules) <!-- wl:check guards-reference-valid-entity-fields-guards -->
+- [ ] Effects declared for all referenced effect names — [Validation Rules](#validation-rules) <!-- wl:check effects-declared-referenced-effect-names -->
+- [ ] Timeout states auto-transition after duration — [Timeout States](#timeout-states) <!-- wl:check timeout-states-auto-transition-after-duration -->
+- [ ] State transitions are atomic (optimistic locking) — [Implementation Notes](#implementation-notes) <!-- wl:check state-transitions-atomic-optimistic-locking -->
+- [ ] State changes persisted before effects execute — [Effects](#effects), [Implementation Notes](#implementation-notes) <!-- wl:check state-changes-persisted-before-effects-execute -->
+- [ ] Transition audit trail logged — [Implementation Notes](#implementation-notes) <!-- wl:check transition-audit-trail-logged-implementation -->

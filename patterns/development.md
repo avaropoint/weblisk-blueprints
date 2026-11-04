@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: development
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, patterns/security, patterns/observability]
 platform: any
 tier: free
@@ -494,24 +494,24 @@ It starts a trace for each request it serves. Its custom log types:
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Serve static files from the configured public directory — [Static File Serving](#static-file-serving)
-- [ ] Inject live-reload `<script>` tag into HTML responses before `</body>` — [Static File Serving](#static-file-serving)
-- [ ] Set every header [All Responses](#all-responses) lists on every response
-- [ ] Set CSP header on HTML responses only — [HTML Responses Only](#html-responses-only)
-- [ ] Block dotfile access — paths containing `/.` return 404 (not 403) — [Static File Serving](#static-file-serving)
-- [ ] Block path traversal — paths containing `..` return 404 — [Static File Serving](#static-file-serving)
-- [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation — [Blueprint API](#blueprint-api)
-- [ ] Validate blueprint paths against allowed prefixes and extensions — [Blueprint API](#blueprint-api), [Validation Rules](#validation-rules)
-- [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body — [Validation Rules](#validation-rules), [Error Codes](#error-codes)
-- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else — [Liveness](#liveness)
-- [ ] Implement SSE-based live reload at `/__livereload` — [Live Reload](#live-reload)
-- [ ] Watch configured directories and extensions for file changes — [Live Reload](#live-reload)
-- [ ] Send `data: reload\n\n` SSE event on file change — [Live Reload](#live-reload)
-- [ ] Support configurable port via environment or CLI flag — [Configuration Properties](#configuration-properties), [Configuration Precedence](#configuration-precedence)
-- [ ] Support `--port` CLI flag that overrides environment variable — [CLI Interface](#cli-interface), [Configuration Precedence](#configuration-precedence)
-- [ ] Listen on localhost only by default (not `0.0.0.0`) — [Configuration Properties](#configuration-properties), [Implementation Notes](#implementation-notes)
-- [ ] Set `Cache-Control: no-cache` on all responses — [Static File Serving](#static-file-serving)
-- [ ] Log all requests with structured JSON logging — [Observability](#observability)
-- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level — [Observability](#observability)
-- [ ] Use native language/framework HTTP server (no cross-platform shims) — [Design Principles](#design-principles)
-- [ ] Work without any external tooling (no Docker, no platform CLI) — [Design Principles](#design-principles)
+- [ ] Serve static files from the configured public directory — [Static File Serving](#static-file-serving) <!-- wl:check serve-static-files-configured-public-directory -->
+- [ ] Inject live-reload `<script>` tag into HTML responses before `</body>` — [Static File Serving](#static-file-serving) <!-- wl:check inject-live-reload-script-tag-html -->
+- [ ] Set every header [All Responses](#all-responses) lists on every response <!-- wl:check set-header-responses-lists-response -->
+- [ ] Set CSP header on HTML responses only — [HTML Responses Only](#html-responses-only) <!-- wl:check set-csp-header-html-responses-html -->
+- [ ] Block dotfile access — paths containing `/.` return 404 (not 403) — [Static File Serving](#static-file-serving) <!-- wl:check block-dotfile-access-paths-containing-return -->
+- [ ] Block path traversal — paths containing `..` return 404 — [Static File Serving](#static-file-serving) <!-- wl:check block-path-traversal-paths-containing-return -->
+- [ ] Serve blueprint YAML files via `/api/blueprint/{path}` with path validation — [Blueprint API](#blueprint-api) <!-- wl:check serve-blueprint-yaml-files-via-api -->
+- [ ] Validate blueprint paths against allowed prefixes and extensions — [Blueprint API](#blueprint-api), [Validation Rules](#validation-rules) <!-- wl:check validate-blueprint-paths-against-allowed -->
+- [ ] Return 400 (not 404) for invalid blueprint paths with ErrorResponse body — [Validation Rules](#validation-rules), [Error Codes](#error-codes) <!-- wl:check return-400-not-404-invalid-blueprint -->
+- [ ] Serve `GET /livez` answering `{"live": true}` and nothing else — [Liveness](#liveness) <!-- wl:check serve-get-livez-answering-live-true -->
+- [ ] Implement SSE-based live reload at `/__livereload` — [Live Reload](#live-reload) <!-- wl:check implement-sse-based-live-reload-livereload -->
+- [ ] Watch configured directories and extensions for file changes — [Live Reload](#live-reload) <!-- wl:check watch-configured-directories-extensions-file -->
+- [ ] Send `data: reload\n\n` SSE event on file change — [Live Reload](#live-reload) <!-- wl:check send-data-reload-n-n-sse -->
+- [ ] Support configurable port via environment or CLI flag — [Configuration Properties](#configuration-properties), [Configuration Precedence](#configuration-precedence) <!-- wl:check support-configurable-port-via-environment-cli -->
+- [ ] Support `--port` CLI flag that overrides environment variable — [CLI Interface](#cli-interface), [Configuration Precedence](#configuration-precedence) <!-- wl:check support-port-cli-flag-overrides-environment -->
+- [ ] Listen on localhost only by default (not `0.0.0.0`) — [Configuration Properties](#configuration-properties), [Implementation Notes](#implementation-notes) <!-- wl:check listen-localhost-default-not-0-0 -->
+- [ ] Set `Cache-Control: no-cache` on all responses — [Static File Serving](#static-file-serving) <!-- wl:check set-cache-control-no-cache-responses -->
+- [ ] Log all requests with structured JSON logging — [Observability](#observability) <!-- wl:check log-requests-structured-json-logging -->
+- [ ] Log a refused dotfile or traversal request as `dev-server.request.refused` at warn level — [Observability](#observability) <!-- wl:check log-refused-dotfile-traversal-request-dev -->
+- [ ] Use native language/framework HTTP server (no cross-platform shims) — [Design Principles](#design-principles) <!-- wl:check use-native-language-framework-http-server -->
+- [ ] Work without any external tooling (no Docker, no platform CLI) — [Design Principles](#design-principles) <!-- wl:check work-without-external-tooling-no-docker -->

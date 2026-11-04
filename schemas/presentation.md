@@ -219,11 +219,11 @@ no identity a filing could name.
 
 ## Verification Checklist
 
-- [ ] A client reads a theme, a layout or a filing from the organisation's repositories, and a project's file at the same path applies to that project alone ([Where each file lives](#where-each-file-lives))
-- [ ] Where one path is held by two repositories at one `scope_path`, a client reports both and applies neither ([Where each file lives](#where-each-file-lives))
-- [ ] A token or a layout key the client does not declare, and a value it refuses, is reported by name and not applied, and the client does not remove it from the file ([The theme](#the-theme), [Export layouts](#export-layouts))
-- [ ] A project's theme is applied token by token over its organisation's, and a project's layout with an organisation's `<id>` replaces it whole ([The theme](#the-theme), [Export layouts](#export-layouts))
-- [ ] A filing names each repository by `scope_path` and `id`, never by a path or a locator ([Filing](#filing))
-- [ ] A capability the client does not implement grants nothing and is reported, and an unfiled repository is given no category and no capability ([Filing](#filing))
-- [ ] No client writes a presentation file except on a person's act, and none is written when a client connects or finds none ([Who changes them, and how a client reads them](#who-changes-them-and-how-a-client-reads-them))
-- [ ] No entry's bytes are changed to present it ([Why it is content](#why-it-is-content))
+- [ ] A client reads a theme, a layout or a filing from the organisation's repositories, and a project's file at the same path applies to that project alone ([Where each file lives](#where-each-file-lives)) <!-- wl:check client-reads-theme-layout-filing-organisations -->
+- [ ] Where one path is held by two repositories at one `scope_path`, a client reports both and applies neither ([Where each file lives](#where-each-file-lives)) <!-- wl:check where-path-held-two-repositories-scope -->
+- [ ] A token or a layout key the client does not declare, and a value it refuses, is reported by name and not applied, and the client does not remove it from the file ([The theme](#the-theme), [Export layouts](#export-layouts)) <!-- wl:check token-layout-key-client-not-declare -->
+- [ ] A project's theme is applied token by token over its organisation's, and a project's layout with an organisation's `<id>` replaces it whole ([The theme](#the-theme), [Export layouts](#export-layouts)) <!-- wl:check projects-theme-applied-token-token-over -->
+- [ ] A filing names each repository by `scope_path` and `id`, never by a path or a locator ([Filing](#filing)) <!-- wl:check filing-names-repository-scope-path-id -->
+- [ ] A capability the client does not implement grants nothing and is reported, and an unfiled repository is given no category and no capability ([Filing](#filing)) <!-- wl:check capability-client-not-implement-grants-nothing -->
+- [ ] No client writes a presentation file except on a person's act, and none is written when a client connects or finds none ([Who changes them, and how a client reads them](#who-changes-them-and-how-a-client-reads-them)) <!-- wl:check no-client-writes-presentation-file-except -->
+- [ ] No entry's bytes are changed to present it ([Why it is content](#why-it-is-content)) <!-- wl:check no-entrys-bytes-changed-present -->

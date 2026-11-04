@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-token
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, protocol/identity, architecture/gateway]
 platform: any
 tier: free
@@ -457,14 +457,14 @@ types:
 
 ## Verification Checklist
 
-- [ ] Token endpoint returns JWT + refresh token on valid credentials — [Token Exchange (POST /auth/token)](#token-exchange-post-authtoken)
-- [ ] JWT carries every claim [JWT Claims](#jwt-claims) lists
-- [ ] JWT signature is verified on every protected request — [Authentication Flow](#authentication-flow)
-- [ ] Expired JWTs are rejected — [Authentication Flow](#authentication-flow), [Implementation Notes](#implementation-notes)
-- [ ] Refresh endpoint issues new token pair and invalidates the old refresh token — [Token Refresh (POST /auth/refresh)](#token-refresh-post-authrefresh)
-- [ ] Revoked refresh tokens cannot be used — [Token Revocation (DELETE /auth/token)](#token-revocation-delete-authtoken), [RefreshToken (server-side)](#refreshtoken-server-side)
-- [ ] API keys authenticate via the same Authorization header — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey), [Authentication Flow](#authentication-flow)
-- [ ] Scope enforcement returns 403 for insufficient permissions — [Scope Enforcement](#scope-enforcement)
-- [ ] Refresh tokens are stored as hashes, not plaintext — [Implementation Notes](#implementation-notes)
-- [ ] API keys are returned in full only on creation — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey)
-- [ ] Token endpoint is rate-limited — [Implementation Notes](#implementation-notes)
+- [ ] Token endpoint returns JWT + refresh token on valid credentials — [Token Exchange (POST /auth/token)](#token-exchange-post-authtoken) <!-- wl:check token-endpoint-returns-jwt-refresh-token -->
+- [ ] JWT carries every claim [JWT Claims](#jwt-claims) lists <!-- wl:check jwt-carries-claim-jwt-claims-lists -->
+- [ ] JWT signature is verified on every protected request — [Authentication Flow](#authentication-flow) <!-- wl:check jwt-signature-verified-protected-request -->
+- [ ] Expired JWTs are rejected — [Authentication Flow](#authentication-flow), [Implementation Notes](#implementation-notes) <!-- wl:check expired-jwts-rejected-authentication-flow -->
+- [ ] Refresh endpoint issues new token pair and invalidates the old refresh token — [Token Refresh (POST /auth/refresh)](#token-refresh-post-authrefresh) <!-- wl:check refresh-endpoint-issues-new-token-pair -->
+- [ ] Revoked refresh tokens cannot be used — [Token Revocation (DELETE /auth/token)](#token-revocation-delete-authtoken), [RefreshToken (server-side)](#refreshtoken-server-side) <!-- wl:check revoked-refresh-tokens-cannot-used-token -->
+- [ ] API keys authenticate via the same Authorization header — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey), [Authentication Flow](#authentication-flow) <!-- wl:check api-keys-authenticate-via-authorization-header -->
+- [ ] Scope enforcement returns 403 for insufficient permissions — [Scope Enforcement](#scope-enforcement) <!-- wl:check scope-enforcement-returns-403-insufficient -->
+- [ ] Refresh tokens are stored as hashes, not plaintext — [Implementation Notes](#implementation-notes) <!-- wl:check refresh-tokens-stored-hashes-not-plaintext -->
+- [ ] API keys are returned in full only on creation — [API Keys (POST /auth/apikey)](#api-keys-post-authapikey) <!-- wl:check api-keys-returned-full-creation-api -->
+- [ ] Token endpoint is rate-limited — [Implementation Notes](#implementation-notes) <!-- wl:check token-endpoint-rate-limited-implementation-notes -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.3.0
+version: 1.3.1
 requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage]
 platform: any
 tier: free
@@ -1142,29 +1142,29 @@ there). Rule 4 is this blueprint's, and nothing outside it enforces it yet.
 
 ## Verification Checklist
 
-- [ ] Every route in [Endpoints](#endpoints) but `NotifyByPosition`, `Services`, `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes`, with the one capability its row gives ([Endpoints](#endpoints))
-- [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling))
-- [ ] `NotifyByPosition` on a pass is refused with `FORBIDDEN`, and tells nobody ([Who May Do What](#who-may-do-what) rule 3, [Error Handling](#error-handling))
-- [ ] `NotifyByPosition` on a registration token whose `identity_id` is not the named authorisation's `owner` is refused with `FORBIDDEN`; on a work pass whose `cid` is that authorisation and whose `identity_id` is its owner, it is admitted ([Who May Do What](#who-may-do-what) rule 3)
-- [ ] A request naming as `notice` a programme's `due-sweep` operation, under that operation's authorisation, for an occurrence is admitted and told exactly as a notice is, with no field the request shape does not declare ([Notifying](#notifying))
-- [ ] A request naming as `notice` an `agent:` item, under that item's authorisation, with `fact.event` `instruction`, is admitted and told exactly as a notice is ([Notifying](#notifying))
-- [ ] An authorisation that is revoked, past its `not_after`, or does not list this service among its `actors` answers `200` with outcome `not_authorised`, and no request is made of content ([Notifying](#notifying), [Outcomes](#outcomes))
-- [ ] Every request this service makes of content is on a work pass minted under the request's authorisation, a new one for each retry, and none is on its own registration token ([Who May Do What](#who-may-do-what) rule 4, [Retrying](#retrying))
-- [ ] Where no named position has a holder, the answer's outcome is `reached_nobody`, `unheld` names every position, and `notification.unreached` is published ([Outcomes](#outcomes))
-- [ ] Where one of two named positions has holders, the outcome is `partly_reached` and `unheld` names the other ([Outcomes](#outcomes))
-- [ ] A register read that fails after its retries gives `holders_unreadable`, never `reached_nobody` ([Resolving holders](#resolving-holders), [Outcomes](#outcomes))
-- [ ] A holder holding two named positions receives one in_app message and one delivery per channel, each naming both positions ([Deduplication](#deduplication))
-- [ ] A second `NotifyByPosition` with the same owner, authorisation and `run` and the same body answers the first notification and creates no delivery; with a different body it is refused with `INVALID_REQUEST` ([Deduplication](#deduplication), [Error Handling](#error-handling))
-- [ ] Every holder has an in_app delivery `delivered` before the answer is sent, whatever their preference ([Outcomes](#outcomes), [Notifying](#notifying))
-- [ ] An email inside the holder's quiet hours is `deferred` and sent when they end; the in_app message is not deferred ([Notifying](#notifying), [Outcomes](#outcomes))
-- [ ] A `send_raw` that times out after it was sent is recorded `unknown` and not sent again ([Retrying](#retrying))
-- [ ] Holders are resolved on the date of the fact's `occurred_at` ([Resolving holders](#resolving-holders), [Implementation Notes](#implementation-notes))
-- [ ] `GET /v1/notification/preference` answers the pass's own preference, and no route answers or sets another person's ([Who May Do What](#who-may-do-what) rule 2)
-- [ ] `PUT /v1/notification/preference` naming a channel other than `email` is refused with `INVALID_REQUEST` ([Error Handling](#error-handling), [Known Gaps](#known-gaps))
-- [ ] After `DELETE /v1/notification/preference`, the person's addresses are gone and they are told in_app only ([Setting a preference](#setting-a-preference))
-- [ ] No `Delivery`, event, log line or `AuditEntry` carries an address or a register row ([Personal Data](#personal-data), [Events it publishes](#events-it-publishes))
-- [ ] The message's text is worded only from `says`, `why` and the fact's `event`, `obligation`, `subject` and `due_at` ([Personal Data](#personal-data))
-- [ ] An erasure request erases the person's preference and held messages and reports each delivery naming them as an `ErasureException` ([Personal Data](#personal-data))
-- [ ] A notification, its deliveries and its held messages are removed `retention` after it was made ([Configuration](#configuration), [Personal Data](#personal-data))
-- [ ] The manifest declares `notification:send`, `notification:read`, `content:describe`, `content:read`, `work:exchange` and `agent:message`, and never `notification:receive` ([Endpoints](#endpoints))
-- [ ] `GET /v1/admin/records/notification/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back))
+- [ ] Every route in [Endpoints](#endpoints) but `NotifyByPosition`, `Services`, `GET /livez` and `GET /readyz` is declared among the manifest's `pass_routes`, with the one capability its row gives ([Endpoints](#endpoints)) <!-- wl:check route-endpoints-notifybyposition-services-get -->
+- [ ] An operator token on any route is refused with `PASS_REQUIRED` ([Who May Do What](#who-may-do-what) rule 1, [Error Handling](#error-handling)) <!-- wl:check operator-token-route-refused-pass-required -->
+- [ ] `NotifyByPosition` on a pass is refused with `FORBIDDEN`, and tells nobody ([Who May Do What](#who-may-do-what) rule 3, [Error Handling](#error-handling)) <!-- wl:check notifybyposition-pass-refused-forbidden-tells -->
+- [ ] `NotifyByPosition` on a registration token whose `identity_id` is not the named authorisation's `owner` is refused with `FORBIDDEN`; on a work pass whose `cid` is that authorisation and whose `identity_id` is its owner, it is admitted ([Who May Do What](#who-may-do-what) rule 3) <!-- wl:check notifybyposition-registration-token-identity-id -->
+- [ ] A request naming as `notice` a programme's `due-sweep` operation, under that operation's authorisation, for an occurrence is admitted and told exactly as a notice is, with no field the request shape does not declare ([Notifying](#notifying)) <!-- wl:check request-naming-notice-programmes-due-sweep -->
+- [ ] A request naming as `notice` an `agent:` item, under that item's authorisation, with `fact.event` `instruction`, is admitted and told exactly as a notice is ([Notifying](#notifying)) <!-- wl:check request-naming-notice-agent-item-under -->
+- [ ] An authorisation that is revoked, past its `not_after`, or does not list this service among its `actors` answers `200` with outcome `not_authorised`, and no request is made of content ([Notifying](#notifying), [Outcomes](#outcomes)) <!-- wl:check authorisation-revoked-past -->
+- [ ] Every request this service makes of content is on a work pass minted under the request's authorisation, a new one for each retry, and none is on its own registration token ([Who May Do What](#who-may-do-what) rule 4, [Retrying](#retrying)) <!-- wl:check request-service-makes-content-work-pass -->
+- [ ] Where no named position has a holder, the answer's outcome is `reached_nobody`, `unheld` names every position, and `notification.unreached` is published ([Outcomes](#outcomes)) <!-- wl:check where-no-named-position-holder-answers -->
+- [ ] Where one of two named positions has holders, the outcome is `partly_reached` and `unheld` names the other ([Outcomes](#outcomes)) <!-- wl:check where-two-named-positions-holders-outcome -->
+- [ ] A register read that fails after its retries gives `holders_unreadable`, never `reached_nobody` ([Resolving holders](#resolving-holders), [Outcomes](#outcomes)) <!-- wl:check register-read-fails-after-retries-gives -->
+- [ ] A holder holding two named positions receives one in_app message and one delivery per channel, each naming both positions ([Deduplication](#deduplication)) <!-- wl:check holder-holding-two-named-positions-receives -->
+- [ ] A second `NotifyByPosition` with the same owner, authorisation and `run` and the same body answers the first notification and creates no delivery; with a different body it is refused with `INVALID_REQUEST` ([Deduplication](#deduplication), [Error Handling](#error-handling)) <!-- wl:check second-notifybyposition-owner-authorisation-run -->
+- [ ] Every holder has an in_app delivery `delivered` before the answer is sent, whatever their preference ([Outcomes](#outcomes), [Notifying](#notifying)) <!-- wl:check holder-app-delivery-delivered-before-answer -->
+- [ ] An email inside the holder's quiet hours is `deferred` and sent when they end; the in_app message is not deferred ([Notifying](#notifying), [Outcomes](#outcomes)) <!-- wl:check email-inside-holders-quiet-hours-deferred -->
+- [ ] A `send_raw` that times out after it was sent is recorded `unknown` and not sent again ([Retrying](#retrying)) <!-- wl:check send-raw-times-out-after-sent -->
+- [ ] Holders are resolved on the date of the fact's `occurred_at` ([Resolving holders](#resolving-holders), [Implementation Notes](#implementation-notes)) <!-- wl:check holders-resolved-date-facts-occurred -->
+- [ ] `GET /v1/notification/preference` answers the pass's own preference, and no route answers or sets another person's ([Who May Do What](#who-may-do-what) rule 2) <!-- wl:check get-v1-notification-preference-answers-passs -->
+- [ ] `PUT /v1/notification/preference` naming a channel other than `email` is refused with `INVALID_REQUEST` ([Error Handling](#error-handling), [Known Gaps](#known-gaps)) <!-- wl:check put-v1-notification-preference-naming-channel -->
+- [ ] After `DELETE /v1/notification/preference`, the person's addresses are gone and they are told in_app only ([Setting a preference](#setting-a-preference)) <!-- wl:check after-delete-v1-notification-preference-persons -->
+- [ ] No `Delivery`, event, log line or `AuditEntry` carries an address or a register row ([Personal Data](#personal-data), [Events it publishes](#events-it-publishes)) <!-- wl:check no-delivery-event-log-line-auditentry -->
+- [ ] The message's text is worded only from `says`, `why` and the fact's `event`, `obligation`, `subject` and `due_at` ([Personal Data](#personal-data)) <!-- wl:check messages-text-worded-says-why-facts -->
+- [ ] An erasure request erases the person's preference and held messages and reports each delivery naming them as an `ErasureException` ([Personal Data](#personal-data)) <!-- wl:check erasure-request-erases-persons-preference-held -->
+- [ ] A notification, its deliveries and its held messages are removed `retention` after it was made ([Configuration](#configuration), [Personal Data](#personal-data)) <!-- wl:check notification-deliveries-held-messages-removed -->
+- [ ] The manifest declares `notification:send`, `notification:read`, `content:describe`, `content:read`, `work:exchange` and `agent:message`, and never `notification:receive` ([Endpoints](#endpoints)) <!-- wl:check manifest-declares-notification-send-notification -->
+- [ ] `GET /v1/admin/records/notification/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back)) <!-- wl:check get-v1-admin-records-notification-snapshot -->

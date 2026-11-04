@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: api-rest
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -371,15 +371,15 @@ types:
 
 ## Verification Checklist
 
-- [ ] Every endpoint of [Generated Endpoints (per model)](#generated-endpoints-per-model) is generated for each model
-- [ ] List endpoint supports `limit` and `cursor` pagination — [Pagination](#pagination)
-- [ ] List endpoint supports field-level filtering — [Filtering](#filtering)
-- [ ] List endpoint supports `sort` parameter with asc/desc — [Sorting](#sorting)
-- [ ] Create endpoint returns 201 with the created resource — [Request/Response Shapes](#requestresponse-shapes)
-- [ ] Create validates required fields and constraints — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes)
-- [ ] Read returns 404 for unknown IDs — [Error Responses](#error-responses)
-- [ ] Update replaces the full resource (not partial) — [Request/Response Shapes](#requestresponse-shapes)
-- [ ] Delete returns 204 with empty body — [Request/Response Shapes](#requestresponse-shapes)
-- [ ] Error responses follow the standard shape — [Error Responses](#error-responses), [ErrorResponse (API Pattern)](#errorresponse-api-pattern)
-- [ ] Auto fields (uuid, timestamp) are set server-side — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes)
-- [ ] Unknown filter/sort keys are handled gracefully — [Filtering](#filtering), [Sorting](#sorting)
+- [ ] Every endpoint of [Generated Endpoints (per model)](#generated-endpoints-per-model) is generated for each model <!-- wl:check endpoint-generated-endpoints-per-model-generated -->
+- [ ] List endpoint supports `limit` and `cursor` pagination — [Pagination](#pagination) <!-- wl:check list-endpoint-supports-limit-cursor-pagination -->
+- [ ] List endpoint supports field-level filtering — [Filtering](#filtering) <!-- wl:check list-endpoint-supports-field-level-filtering -->
+- [ ] List endpoint supports `sort` parameter with asc/desc — [Sorting](#sorting) <!-- wl:check list-endpoint-supports-sort-parameter-asc -->
+- [ ] Create endpoint returns 201 with the created resource — [Request/Response Shapes](#requestresponse-shapes) <!-- wl:check create-endpoint-returns-201-created-resource -->
+- [ ] Create validates required fields and constraints — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes) <!-- wl:check create-validates-required-fields-constraints -->
+- [ ] Read returns 404 for unknown IDs — [Error Responses](#error-responses) <!-- wl:check read-returns-404-unknown-ids-error -->
+- [ ] Update replaces the full resource (not partial) — [Request/Response Shapes](#requestresponse-shapes) <!-- wl:check update-replaces-full-resource-not-partial -->
+- [ ] Delete returns 204 with empty body — [Request/Response Shapes](#requestresponse-shapes) <!-- wl:check delete-returns-204-empty-body-request -->
+- [ ] Error responses follow the standard shape — [Error Responses](#error-responses), [ErrorResponse (API Pattern)](#errorresponse-api-pattern) <!-- wl:check error-responses-follow-standard-shape-error -->
+- [ ] Auto fields (uuid, timestamp) are set server-side — [Field Modifiers](#field-modifiers), [Implementation Notes](#implementation-notes) <!-- wl:check auto-fields-uuid-timestamp-set-server -->
+- [ ] Unknown filter/sort keys are handled gracefully — [Filtering](#filtering), [Sorting](#sorting) <!-- wl:check unknown-filter-sort-keys-handled-gracefully -->

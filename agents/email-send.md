@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 3.0.1
+version: 3.0.2
 port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
@@ -1375,14 +1375,14 @@ scaling:
 
 ## Verification Checklist
 
-- [ ] Emails can be queued via the send action ([send](#send-1))
-- [ ] Templates are rendered with variable substitution ([Template System](#template-system))
-- [ ] SMTP delivery works with TLS ([Execute Workflow](#execute-workflow) Phase 3, [Implementation Notes](#implementation-notes))
-- [ ] At least one API provider is supported ([Configuration](#configuration), [Execute Workflow](#execute-workflow) Phase 3)
-- [ ] Failed deliveries are retried with backoff ([Execute Workflow](#execute-workflow) Phase 4, [Implementation Notes](#implementation-notes))
-- [ ] Max retries is enforced ([Configuration](#configuration) `max_attempts`, [EmailConfig](#emailconfig))
-- [ ] Queue is processed in batches ([Execute Workflow](#execute-workflow) Phase 5)
-- [ ] Rate limit is respected ([Execute Workflow](#execute-workflow) Phase 5, [Implementation Notes](#implementation-notes))
-- [ ] Delivery status is tracked and queryable ([status](#status-1))
-- [ ] Credentials are read from environment variables ([Implementation Notes](#implementation-notes), [Security](#security))
-- [ ] Templates are versioned and stored persistently ([Template System](#template-system), [register_template](#register_template-1))
+- [ ] Emails can be queued via the send action ([send](#send-1)) <!-- wl:check emails-queued-via-send-action -->
+- [ ] Templates are rendered with variable substitution ([Template System](#template-system)) <!-- wl:check templates-rendered-variable-substitution -->
+- [ ] SMTP delivery works with TLS ([Execute Workflow](#execute-workflow) Phase 3, [Implementation Notes](#implementation-notes)) <!-- wl:check smtp-delivery-works-tls -->
+- [ ] At least one API provider is supported ([Configuration](#configuration), [Execute Workflow](#execute-workflow) Phase 3) <!-- wl:check least-api-provider-supported -->
+- [ ] Failed deliveries are retried with backoff ([Execute Workflow](#execute-workflow) Phase 4, [Implementation Notes](#implementation-notes)) <!-- wl:check failed-deliveries-retried-backoff -->
+- [ ] Max retries is enforced ([Configuration](#configuration) `max_attempts`, [EmailConfig](#emailconfig)) <!-- wl:check max-retries-enforced -->
+- [ ] Queue is processed in batches ([Execute Workflow](#execute-workflow) Phase 5) <!-- wl:check queue-processed-batches -->
+- [ ] Rate limit is respected ([Execute Workflow](#execute-workflow) Phase 5, [Implementation Notes](#implementation-notes)) <!-- wl:check rate-limit-respected -->
+- [ ] Delivery status is tracked and queryable ([status](#status-1)) <!-- wl:check delivery-status-tracked-queryable -->
+- [ ] Credentials are read from environment variables ([Implementation Notes](#implementation-notes), [Security](#security)) <!-- wl:check credentials-read-environment-variables -->
+- [ ] Templates are versioned and stored persistently ([Template System](#template-system), [register_template](#register_template-1)) <!-- wl:check templates-versioned-stored-persistently -->

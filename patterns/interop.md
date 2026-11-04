@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: interop
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -346,15 +346,15 @@ The adapter requires the following configuration parameters:
 
 ## Verification Checklist
 
-- [ ] Adapter exposes every protocol endpoint [Adapter Contract](#adapter-contract) lists
-- [ ] Registration with orchestrator succeeds — [Adapter Contract](#adapter-contract), [`protocol/spec`](../protocol/spec.md#post-v1register)
-- [ ] ML-DSA-65 signing works on all outbound messages — [Adapter Contract](#adapter-contract), [Design Principles](#design-principles)
-- [ ] TaskRequest is correctly translated to framework input — [TaskRequest → Framework Input](#taskrequest--framework-input)
-- [ ] Framework output is correctly translated to TaskResult — [Framework Output → TaskResult](#framework-output--taskresult)
-- [ ] `/readyz` and the lease answer ready only while both the adapter and the framework can take work — [Health Mapping](#health-mapping)
-- [ ] Framework errors produce valid Weblisk error responses — [Error Handling](#error-handling)
-- [ ] No framework stack traces leak in error responses — [Error Handling](#error-handling)
-- [ ] Event delivery works (if framework supports events) — [Event Translation](#event-translation)
-- [ ] Adapter handles framework crash gracefully: `/readyz` answers not ready, and `/livez` stays live while the adapter itself can recover the framework — [Health Mapping](#health-mapping), [Error Handling](#error-handling)
-- [ ] Sidecar mode correctly proxies to target URL — [Type 2: Sidecar Adapter](#type-2-sidecar-adapter)
-- [ ] Subprocess mode correctly manages child process lifecycle — [Type 3: Subprocess Adapter](#type-3-subprocess-adapter)
+- [ ] Adapter exposes every protocol endpoint [Adapter Contract](#adapter-contract) lists <!-- wl:check adapter-exposes-protocol-endpoint-adapter -->
+- [ ] Registration with orchestrator succeeds — [Adapter Contract](#adapter-contract), [`protocol/spec`](../protocol/spec.md#post-v1register) <!-- wl:check registration-orchestrator-succeeds-adapter -->
+- [ ] ML-DSA-65 signing works on all outbound messages — [Adapter Contract](#adapter-contract), [Design Principles](#design-principles) <!-- wl:check ml-dsa-65-signing-works-outbound -->
+- [ ] TaskRequest is correctly translated to framework input — [TaskRequest → Framework Input](#taskrequest--framework-input) <!-- wl:check taskrequest-correctly-translated-framework-input -->
+- [ ] Framework output is correctly translated to TaskResult — [Framework Output → TaskResult](#framework-output--taskresult) <!-- wl:check framework-output-correctly-translated-taskresult -->
+- [ ] `/readyz` and the lease answer ready only while both the adapter and the framework can take work — [Health Mapping](#health-mapping) <!-- wl:check readyz-lease-answer-ready-while-adapter -->
+- [ ] Framework errors produce valid Weblisk error responses — [Error Handling](#error-handling) <!-- wl:check framework-errors-produce-valid-weblisk-error -->
+- [ ] No framework stack traces leak in error responses — [Error Handling](#error-handling) <!-- wl:check no-framework-stack-traces-leak-error -->
+- [ ] Event delivery works (if framework supports events) — [Event Translation](#event-translation) <!-- wl:check event-delivery-works-framework-supports-events -->
+- [ ] Adapter handles framework crash gracefully: `/readyz` answers not ready, and `/livez` stays live while the adapter itself can recover the framework — [Health Mapping](#health-mapping), [Error Handling](#error-handling) <!-- wl:check adapter-handles-framework-crash-gracefully -->
+- [ ] Sidecar mode correctly proxies to target URL — [Type 2: Sidecar Adapter](#type-2-sidecar-adapter) <!-- wl:check sidecar-mode-correctly-proxies-target-url -->
+- [ ] Subprocess mode correctly manages child process lifecycle — [Type 3: Subprocess Adapter](#type-3-subprocess-adapter) <!-- wl:check subprocess-mode-correctly-manages-child-process -->

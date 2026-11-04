@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: model-service
-version: 1.1.2
+version: 1.1.3
 requires: [protocol/types, protocol/identity, architecture/orchestrator, patterns/scope]
 platform: any
 tier: free
@@ -763,16 +763,16 @@ alternatives, recorded for the owner:
 
 ## Verification Checklist
 
-- [ ] `POST /v1/model/complete` with a registration token whose `cap` names `llm:chat` and a valid `ServiceCompletionRequest` answers `200` with a `ServiceCompletionResponse` naming the backend the tenant's `ModelConfig` names ([Asking the model unattended](#asking-the-model-unattended))
-- [ ] A registration token whose `cap` does not name `llm:chat` is refused with `FORBIDDEN`, and nothing is sent to the backend ([Who may ask](#who-may-ask) rule 2, [Error Handling](#error-handling))
-- [ ] An operator token and a channel token are each refused with `FORBIDDEN`, and a pass with `PASS_AUDIENCE_MISMATCH` ([Who may ask](#who-may-ask) rule 1, [Error Handling](#error-handling))
-- [ ] A `request` naming `provider` or `model` is refused with `INVALID_REQUEST`, and no backend is asked ([Error Handling](#error-handling), [Security](#security))
-- [ ] A `request` with no `scope` is refused with `SCOPE_MISSING`, and one whose `scope` is `restricted` with `SCOPE_CEILING_EXCEEDED`, each carrying a `DestinationRefusal` and sending nothing ([Error Handling](#error-handling), [Asking the model unattended](#asking-the-model-unattended) step 5)
-- [ ] Every completion on the service route appends exactly two `model_complete` entries through `POST /v1/model/audit`, the first before the gate, and the answer is sent only after the second ([Asking the model unattended](#asking-the-model-unattended))
-- [ ] A completion whose first or second entry cannot be appended answers `MODEL_UNRECORDED` and discloses no answer ([Asking the model unattended](#asking-the-model-unattended) step 9, [Error Handling](#error-handling))
-- [ ] Every completion on either route appends one `Completion` to `.weblisk/model-completions.jsonl`, naming its two audit entries, and none carries a prompt or an answer ([The Completion record](#the-completion-record), [A person's completion](#a-persons-completion))
-- [ ] `usage.prompt_tokens`, `usage.completion_tokens`, `usage.total_tokens` and `usage.cost` are each absent where the backend's answer reported none, and are never `0` in its place ([Usage and cost](#usage-and-cost))
-- [ ] A backend refusing under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported a reset, and no other backend is run ([Limits](#limits), [Error Handling](#error-handling))
-- [ ] `response.model` is the model the backend's answer says ran, and is absent where it says none ([Asking the model unattended](#asking-the-model-unattended), [Types](#types))
-- [ ] The `run` and `phase` a caller states are recorded on its first audit entry and on its `Completion`, under the caller's `identity_id` ([Asking the model unattended](#asking-the-model-unattended) step 2, [Design Principles](#design-principles) 4)
-- [ ] A caller that closes the request leaves a second `model_complete` entry `failed` and a `Completion` whose `ended` is `cancelled` ([A caller closes the request](#a-caller-closes-the-request))
+- [ ] `POST /v1/model/complete` with a registration token whose `cap` names `llm:chat` and a valid `ServiceCompletionRequest` answers `200` with a `ServiceCompletionResponse` naming the backend the tenant's `ModelConfig` names ([Asking the model unattended](#asking-the-model-unattended)) <!-- wl:check post-v1-model-complete-registration-token -->
+- [ ] A registration token whose `cap` does not name `llm:chat` is refused with `FORBIDDEN`, and nothing is sent to the backend ([Who may ask](#who-may-ask) rule 2, [Error Handling](#error-handling)) <!-- wl:check registration-token-cap-not-name-llm -->
+- [ ] An operator token and a channel token are each refused with `FORBIDDEN`, and a pass with `PASS_AUDIENCE_MISMATCH` ([Who may ask](#who-may-ask) rule 1, [Error Handling](#error-handling)) <!-- wl:check operator-token-channel-token-refused-forbidden -->
+- [ ] A `request` naming `provider` or `model` is refused with `INVALID_REQUEST`, and no backend is asked ([Error Handling](#error-handling), [Security](#security)) <!-- wl:check request-naming-provider-model-refused-invalid -->
+- [ ] A `request` with no `scope` is refused with `SCOPE_MISSING`, and one whose `scope` is `restricted` with `SCOPE_CEILING_EXCEEDED`, each carrying a `DestinationRefusal` and sending nothing ([Error Handling](#error-handling), [Asking the model unattended](#asking-the-model-unattended) step 5) <!-- wl:check request-no-scope-refused-scope-missing -->
+- [ ] Every completion on the service route appends exactly two `model_complete` entries through `POST /v1/model/audit`, the first before the gate, and the answer is sent only after the second ([Asking the model unattended](#asking-the-model-unattended)) <!-- wl:check completion-service-route-appends-exactly-two -->
+- [ ] A completion whose first or second entry cannot be appended answers `MODEL_UNRECORDED` and discloses no answer ([Asking the model unattended](#asking-the-model-unattended) step 9, [Error Handling](#error-handling)) <!-- wl:check completion-first-second-entry-cannot-appended -->
+- [ ] Every completion on either route appends one `Completion` to `.weblisk/model-completions.jsonl`, naming its two audit entries, and none carries a prompt or an answer ([The Completion record](#the-completion-record), [A person's completion](#a-persons-completion)) <!-- wl:check completion-route-appends-completion-weblisk -->
+- [ ] `usage.prompt_tokens`, `usage.completion_tokens`, `usage.total_tokens` and `usage.cost` are each absent where the backend's answer reported none, and are never `0` in its place ([Usage and cost](#usage-and-cost)) <!-- wl:check usage-prompt-tokens-usage-completion-tokens -->
+- [ ] A backend refusing under its own limit is answered `MODEL_BACKEND_LIMITED`, with `retry_after` only where the backend reported a reset, and no other backend is run ([Limits](#limits), [Error Handling](#error-handling)) <!-- wl:check backend-refusing-under-own-limit-answered -->
+- [ ] `response.model` is the model the backend's answer says ran, and is absent where it says none ([Asking the model unattended](#asking-the-model-unattended), [Types](#types)) <!-- wl:check response-model-model-backends-answer-says -->
+- [ ] The `run` and `phase` a caller states are recorded on its first audit entry and on its `Completion`, under the caller's `identity_id` ([Asking the model unattended](#asking-the-model-unattended) step 2, [Design Principles](#design-principles) 4) <!-- wl:check run-phase-caller-states-recorded-first -->
+- [ ] A caller that closes the request leaves a second `model_complete` entry `failed` and a `Completion` whose `ended` is `cancelled` ([A caller closes the request](#a-caller-closes-the-request)) <!-- wl:check caller-closes-request-leaves-second-model -->

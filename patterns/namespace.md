@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: namespace
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, protocol/identity, patterns/principal-identity]
 related: [architecture/storage, architecture/hub, architecture/tenancy]
 platform: any
@@ -528,13 +528,13 @@ registry, and every verifier of a release, is bound by both.
 
 ## Verification Checklist
 
-- [ ] Every vector for the four prefixes verifies with OpenSSL, circl and noble, and in each of the three every vector fails with one byte of its message changed ([`checks/statements.py`](../checks/statements.py), [`checks/ml-dsa`](../checks/ml-dsa/main.go)) — [Test Vectors](#test-vectors)
-- [ ] Every step of every registry vector gets its stated verdict, and every sequence leaves its stated state ([`checks/namespace-registry.py`](../checks/namespace-registry.py)) — [Test Vectors](#test-vectors)
-- [ ] A second claim of a held name, a reserved or confusable name, a one-sided transfer and a claim of a retired name are each refused with their code — [Deciding a statement](#deciding-a-statement)
-- [ ] A rotation keeps the claim and its grants; a transfer ends the grants; a rotation to another identity's key is refused with `NAMESPACE_ROTATION_OTHER_IDENTITY` — [Transfer](#transfer), [Deciding a statement](#deciding-a-statement)
-- [ ] A grant, transfer, rotation and retirement signed by a holder whose identity the hub revoked are each refused with `NAMESPACE_IDENTITY_UNKNOWN`, and a reassignment then hands the namespace on — [Deciding a statement](#deciding-a-statement), [What the log holds](#what-the-log-holds)
-- [ ] A reassignment of a frozen namespace changes its holder and leaves it frozen — [What the log holds](#what-the-log-holds)
-- [ ] A statement made at one registry is refused at every other — [Deciding a statement](#deciding-a-statement)
-- [ ] Nothing is appended for a refused statement, and an accepted one is in the log before the answer — [Deciding a statement](#deciding-a-statement)
-- [ ] A release is decided at the registry's clock and counts once its log records it: after a rotation, a transfer, a withdrawn grant or a revocation the old key's release is refused, dated back or not, and a verifier refuses it as `NAMESPACE_RELEASE_UNRECORDED`; a release the log recorded before the change still verifies after it — [Catalog release](#catalog-release), [Verifying a release](#verifying-a-release)
-- [ ] A release whose index drops a ref, revives a retired one, skips a number, reuses a recorded number, or names another `previous` is refused with `NAMESPACE_RELEASE_BROKEN` — [Deciding a statement](#deciding-a-statement)
+- [ ] Every vector for the four prefixes verifies with OpenSSL, circl and noble, and in each of the three every vector fails with one byte of its message changed ([`checks/statements.py`](../checks/statements.py), [`checks/ml-dsa`](../checks/ml-dsa/main.go)) — [Test Vectors](#test-vectors) <!-- wl:check vector-four-prefixes-verifies-openssl-circl -->
+- [ ] Every step of every registry vector gets its stated verdict, and every sequence leaves its stated state ([`checks/namespace-registry.py`](../checks/namespace-registry.py)) — [Test Vectors](#test-vectors) <!-- wl:check step-registry-vector-gets-stated-verdict -->
+- [ ] A second claim of a held name, a reserved or confusable name, a one-sided transfer and a claim of a retired name are each refused with their code — [Deciding a statement](#deciding-a-statement) <!-- wl:check second-claim-held-name-reserved-confusable -->
+- [ ] A rotation keeps the claim and its grants; a transfer ends the grants; a rotation to another identity's key is refused with `NAMESPACE_ROTATION_OTHER_IDENTITY` — [Transfer](#transfer), [Deciding a statement](#deciding-a-statement) <!-- wl:check rotation-keeps-claim-grants-transfer-ends -->
+- [ ] A grant, transfer, rotation and retirement signed by a holder whose identity the hub revoked are each refused with `NAMESPACE_IDENTITY_UNKNOWN`, and a reassignment then hands the namespace on — [Deciding a statement](#deciding-a-statement), [What the log holds](#what-the-log-holds) <!-- wl:check grant-transfer-rotation-retirement-signed-holder -->
+- [ ] A reassignment of a frozen namespace changes its holder and leaves it frozen — [What the log holds](#what-the-log-holds) <!-- wl:check reassignment-frozen-namespace-changes-holder -->
+- [ ] A statement made at one registry is refused at every other — [Deciding a statement](#deciding-a-statement) <!-- wl:check statement-made-registry-refused-other-deciding -->
+- [ ] Nothing is appended for a refused statement, and an accepted one is in the log before the answer — [Deciding a statement](#deciding-a-statement) <!-- wl:check nothing-appended-refused-statement-accepted-log -->
+- [ ] A release is decided at the registry's clock and counts once its log records it: after a rotation, a transfer, a withdrawn grant or a revocation the old key's release is refused, dated back or not, and a verifier refuses it as `NAMESPACE_RELEASE_UNRECORDED`; a release the log recorded before the change still verifies after it — [Catalog release](#catalog-release), [Verifying a release](#verifying-a-release) <!-- wl:check release-decided-registrys-clock-counts-once -->
+- [ ] A release whose index drops a ref, revives a retired one, skips a number, reuses a recorded number, or names another `previous` is refused with `NAMESPACE_RELEASE_BROKEN` — [Deciding a statement](#deciding-a-statement) <!-- wl:check release-index-drops-ref-revives-retired -->

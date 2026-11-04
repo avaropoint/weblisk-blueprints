@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: alerting
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/messaging, patterns/notification]
 platform: any
 tier: free
@@ -739,18 +739,18 @@ config:
 
 ## Verification Checklist
 
-- [ ] Alert rules are declared in YAML and evaluated by the rule engine without hardcoded logic — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] Severity classification uses the `AlertSeverity` enum of [Types](#types) — no custom levels
-- [ ] Routing rules are evaluated in the declared order, with a guaranteed fallback target — [Contracts](#contracts), [Types](#types)
-- [ ] Deduplication suppresses repeated alerts within the configured window using fingerprint matching — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
-- [ ] Suppressed alerts increment the suppressed count and do not trigger notifications — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
-- [ ] Flapping detection enters flapping state after threshold transitions and suppresses until stable — [Implementation Notes](#implementation-notes)
-- [ ] A summary notification is emitted when flapping resolves — [Implementation Notes](#implementation-notes)
-- [ ] Unacknowledged alerts escalate through the configured chain after the timeout expires — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] Escalation state survives agent restart (durable storage, not in-memory timers) — [Implementation Notes](#implementation-notes)
-- [ ] Suppression windows prevent notification delivery for matched alerts during the window — [Implementation Notes](#implementation-notes)
-- [ ] Critical alerts bypass suppression windows unless `critical_override: true` is set — [Implementation Notes](#implementation-notes), [Types](#types)
-- [ ] Alert grouping combines related alerts into a single notification within the group window — [Implementation Notes](#implementation-notes)
-- [ ] Group severity is the highest severity among grouped alerts — [Implementation Notes](#implementation-notes), [Types](#types)
-- [ ] All alert lifecycle events declared in [Contracts](#contracts) `events` are emitted on the messaging bus
-- [ ] Alerting never references channel adapters directly — delivery is delegated to `patterns/notification` — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
+- [ ] Alert rules are declared in YAML and evaluated by the rule engine without hardcoded logic — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check alert-rules-declared-yaml-evaluated-rule -->
+- [ ] Severity classification uses the `AlertSeverity` enum of [Types](#types) — no custom levels <!-- wl:check severity-classification-uses-alertseverity-enum -->
+- [ ] Routing rules are evaluated in the declared order, with a guaranteed fallback target — [Contracts](#contracts), [Types](#types) <!-- wl:check routing-rules-evaluated-declared-order -->
+- [ ] Deduplication suppresses repeated alerts within the configured window using fingerprint matching — [Contracts](#contracts), [Implementation Notes](#implementation-notes) <!-- wl:check deduplication-suppresses-repeated-alerts-within -->
+- [ ] Suppressed alerts increment the suppressed count and do not trigger notifications — [Contracts](#contracts), [Implementation Notes](#implementation-notes) <!-- wl:check suppressed-alerts-increment-suppressed-count -->
+- [ ] Flapping detection enters flapping state after threshold transitions and suppresses until stable — [Implementation Notes](#implementation-notes) <!-- wl:check flapping-detection-enters-flapping-state -->
+- [ ] A summary notification is emitted when flapping resolves — [Implementation Notes](#implementation-notes) <!-- wl:check summary-notification-emitted-when-flapping -->
+- [ ] Unacknowledged alerts escalate through the configured chain after the timeout expires — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check unacknowledged-alerts-escalate-through -->
+- [ ] Escalation state survives agent restart (durable storage, not in-memory timers) — [Implementation Notes](#implementation-notes) <!-- wl:check escalation-state-survives-agent-restart-durable -->
+- [ ] Suppression windows prevent notification delivery for matched alerts during the window — [Implementation Notes](#implementation-notes) <!-- wl:check suppression-windows-prevent-notification -->
+- [ ] Critical alerts bypass suppression windows unless `critical_override: true` is set — [Implementation Notes](#implementation-notes), [Types](#types) <!-- wl:check critical-alerts-bypass-suppression-windows -->
+- [ ] Alert grouping combines related alerts into a single notification within the group window — [Implementation Notes](#implementation-notes) <!-- wl:check alert-grouping-combines-related-alerts-single -->
+- [ ] Group severity is the highest severity among grouped alerts — [Implementation Notes](#implementation-notes), [Types](#types) <!-- wl:check group-severity-highest-severity-among-grouped -->
+- [ ] All alert lifecycle events declared in [Contracts](#contracts) `events` are emitted on the messaging bus <!-- wl:check alert-lifecycle-events-declared-contracts-events -->
+- [ ] Alerting never references channel adapters directly — delivery is delegated to `patterns/notification` — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes) <!-- wl:check alerting-never-references-channel-adapters -->

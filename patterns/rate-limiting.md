@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.7
+version: 1.1.8
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
 platform: any
 tier: free
@@ -453,15 +453,15 @@ each `ADMIN_GROUP_UNAVAILABLE`
 
 ## Verification Checklist
 
-- [ ] Gateway rejects requests exceeding per-IP limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
-- [ ] Gateway rejects requests exceeding per-user limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
-- [ ] Gateway rejects requests exceeding per-route limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests)
-- [ ] `X-RateLimit-*` headers present on all responses — [Response Headers](#response-headers)
-- [ ] `Retry-After` header present on 429 responses — [Response Headers](#response-headers)
-- [ ] Token bucket allows burst up to capacity — [Token Bucket (Default)](#token-bucket-default)
-- [ ] Sliding window correctly weights previous window — [Sliding Window](#sliding-window)
-- [ ] Per-route limits are checked alongside the global ones, and the most restrictive limit wins — [Priority Order](#priority-order)
-- [ ] Rate limit configuration hot-reloads without restart — [Admin Operations](#admin-operations), [Implementation Notes](#implementation-notes)
-- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes` — [Admin Operations](#admin-operations)
-- [ ] Metrics emit for allowed and rejected requests — [Observability](#observability)
-- [ ] Auth endpoints have stricter limits than general routes — [Gateway Rate Limit Configuration](#gateway-rate-limit-configuration)
+- [ ] Gateway rejects requests exceeding per-IP limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests) <!-- wl:check gateway-rejects-requests-exceeding-per-ip -->
+- [ ] Gateway rejects requests exceeding per-user limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests) <!-- wl:check gateway-rejects-requests-exceeding-per-user -->
+- [ ] Gateway rejects requests exceeding per-route limits with 429 — [Priority Order](#priority-order), [429 Too Many Requests](#429-too-many-requests) <!-- wl:check gateway-rejects-requests-exceeding-per-route -->
+- [ ] `X-RateLimit-*` headers present on all responses — [Response Headers](#response-headers) <!-- wl:check x-ratelimit-headers-present-responses-response -->
+- [ ] `Retry-After` header present on 429 responses — [Response Headers](#response-headers) <!-- wl:check retry-after-header-present-429-responses -->
+- [ ] Token bucket allows burst up to capacity — [Token Bucket (Default)](#token-bucket-default) <!-- wl:check token-bucket-allows-burst-up-capacity -->
+- [ ] Sliding window correctly weights previous window — [Sliding Window](#sliding-window) <!-- wl:check sliding-window-correctly-weights-previous-window -->
+- [ ] Per-route limits are checked alongside the global ones, and the most restrictive limit wins — [Priority Order](#priority-order) <!-- wl:check per-route-limits-checked-alongside-global -->
+- [ ] Rate limit configuration hot-reloads without restart — [Admin Operations](#admin-operations), [Implementation Notes](#implementation-notes) <!-- wl:check rate-limit-configuration-hot-reloads -->
+- [ ] The four `/v1/admin/rate-limits` routes refuse a person's operator token with `PASS_REQUIRED` and log a security event, reading and changing nothing, while the implementing component's manifest declares none of them among its `pass_routes` — [Admin Operations](#admin-operations) <!-- wl:check four-v1-admin-rate-limits-routes -->
+- [ ] Metrics emit for allowed and rejected requests — [Observability](#observability) <!-- wl:check metrics-emit-allowed-rejected-requests -->
+- [ ] Auth endpoints have stricter limits than general routes — [Gateway Rate Limit Configuration](#gateway-rate-limit-configuration) <!-- wl:check auth-endpoints-stricter-limits-general-routes -->

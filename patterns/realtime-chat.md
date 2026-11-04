@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: realtime-chat
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, architecture/gateway]
 platform: any
 tier: free
@@ -367,13 +367,13 @@ types:
 
 ## Verification Checklist
 
-- [ ] WebSocket endpoint accepts connections with channel parameter — [WebSocket Endpoint](#websocket-endpoint)
-- [ ] Connected frame includes member list and recent history — [WebSocket Frame Types](#websocket-frame-types), [Connection Lifecycle](#connection-lifecycle)
-- [ ] Messages are broadcast to all channel members — [Connection Lifecycle](#connection-lifecycle)
-- [ ] Presence join/leave events are broadcast correctly — [Presence](#presence)
-- [ ] History endpoint returns paginated messages — [History](#history)
-- [ ] Channel auth modes (none, token) are enforced — [Channel Auth Modes](#channel-auth-modes)
-- [ ] Rate limiting prevents message flooding — [Rate Limiting](#rate-limiting)
-- [ ] Disconnected clients are cleaned up from presence — [Connection Lifecycle](#connection-lifecycle)
-- [ ] Messages are persisted up to history_limit — [Implementation Notes](#implementation-notes)
-- [ ] Invalid frames return error frames (not disconnection)
+- [ ] WebSocket endpoint accepts connections with channel parameter — [WebSocket Endpoint](#websocket-endpoint) <!-- wl:check websocket-endpoint-accepts-connections-channel -->
+- [ ] Connected frame includes member list and recent history — [WebSocket Frame Types](#websocket-frame-types), [Connection Lifecycle](#connection-lifecycle) <!-- wl:check connected-frame-includes-member-list-recent -->
+- [ ] Messages are broadcast to all channel members — [Connection Lifecycle](#connection-lifecycle) <!-- wl:check messages-broadcast-channel-members-connection -->
+- [ ] Presence join/leave events are broadcast correctly — [Presence](#presence) <!-- wl:check presence-join-leave-events-broadcast-correctly -->
+- [ ] History endpoint returns paginated messages — [History](#history) <!-- wl:check history-endpoint-returns-paginated-messages -->
+- [ ] Channel auth modes (none, token) are enforced — [Channel Auth Modes](#channel-auth-modes) <!-- wl:check channel-auth-modes-none-token-enforced -->
+- [ ] Rate limiting prevents message flooding — [Rate Limiting](#rate-limiting) <!-- wl:check rate-limiting-prevents-message-flooding-rate -->
+- [ ] Disconnected clients are cleaned up from presence — [Connection Lifecycle](#connection-lifecycle) <!-- wl:check disconnected-clients-cleaned-up-presence -->
+- [ ] Messages are persisted up to history_limit — [Implementation Notes](#implementation-notes) <!-- wl:check messages-persisted-up-history-limit -->
+- [ ] Invalid frames return error frames (not disconnection) <!-- wl:check invalid-frames-return-error-frames -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: domain
-version: 3.1.1
+version: 3.1.2
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/orchestrator, patterns/messaging, patterns/workflow]
 platform: any
 tier: free
@@ -940,15 +940,15 @@ security:
 
 ## Verification Checklist
 
-- [ ] Domain registers with `type: "domain"` and `publishes` namespace in manifest ([Domain Manifest](#domain-manifest), [Domain-Specific Manifest Fields](#domain-specific-manifest-fields))
-- [ ] A domain reads each required agent's `lease_state` in the directory and renews its own lease ready only when all read ready, its checks naming each that does not; the orchestrator holds no domain status of its own ([Registration and Dependency Verification](#registration-and-dependency-verification))
-- [ ] Domain publishes `workflow.trigger` event for matched task actions ([Workflow Execution Flow](#workflow-execution-flow))
-- [ ] Domain subscribes to `workflow.completed` and `workflow.failed` (scope: self) ([Domain Manifest](#domain-manifest))
-- [ ] Domain responds to `get_workflow` with a specific workflow definition ([get_workflow](#get_workflow))
-- [ ] Domain responds to `get_workflows` with all available workflows ([get_workflows](#get_workflows))
-- [ ] Domain responds to `get_status` with agent availability ([get_status](#get_status))
-- [ ] Domain applies post-processing validation to workflow results ([Workflow Execution Flow](#workflow-execution-flow) phase 5, [Result Aggregation](#result-aggregation))
-- [ ] Domain publishes domain-specific result events when appropriate ([Data Flow](#data-flow), [Workflow Execution Flow](#workflow-execution-flow))
-- [ ] Entity context grounded in business reality via EntityContext ([Domain Context](#domain-context))
-- [ ] Domain configuration accessible via `$config.<key>` references ([Domain Configuration](#domain-configuration))
-- [ ] HandleEvent processes workflow.completed and workflow.failed events ([Domain Manifest](#domain-manifest), [Workflow Execution Flow](#workflow-execution-flow) phase 4)
+- [ ] Domain registers with `type: "domain"` and `publishes` namespace in manifest ([Domain Manifest](#domain-manifest), [Domain-Specific Manifest Fields](#domain-specific-manifest-fields)) <!-- wl:check domain-registers-type-domain-publishes-namespace -->
+- [ ] A domain reads each required agent's `lease_state` in the directory and renews its own lease ready only when all read ready, its checks naming each that does not; the orchestrator holds no domain status of its own ([Registration and Dependency Verification](#registration-and-dependency-verification)) <!-- wl:check domain-reads-required-agents-lease-state -->
+- [ ] Domain publishes `workflow.trigger` event for matched task actions ([Workflow Execution Flow](#workflow-execution-flow)) <!-- wl:check domain-publishes-workflow-trigger-event-matched -->
+- [ ] Domain subscribes to `workflow.completed` and `workflow.failed` (scope: self) ([Domain Manifest](#domain-manifest)) <!-- wl:check domain-subscribes-workflow-completed-workflow -->
+- [ ] Domain responds to `get_workflow` with a specific workflow definition ([get_workflow](#get_workflow)) <!-- wl:check domain-responds-get-workflow-specific-workflow -->
+- [ ] Domain responds to `get_workflows` with all available workflows ([get_workflows](#get_workflows)) <!-- wl:check domain-responds-get-workflows-available -->
+- [ ] Domain responds to `get_status` with agent availability ([get_status](#get_status)) <!-- wl:check domain-responds-get-status-agent-availability -->
+- [ ] Domain applies post-processing validation to workflow results ([Workflow Execution Flow](#workflow-execution-flow) phase 5, [Result Aggregation](#result-aggregation)) <!-- wl:check domain-applies-post-processing-validation -->
+- [ ] Domain publishes domain-specific result events when appropriate ([Data Flow](#data-flow), [Workflow Execution Flow](#workflow-execution-flow)) <!-- wl:check domain-publishes-domain-specific-result-events -->
+- [ ] Entity context grounded in business reality via EntityContext ([Domain Context](#domain-context)) <!-- wl:check entity-context-grounded-business-reality-via -->
+- [ ] Domain configuration accessible via `$config.<key>` references ([Domain Configuration](#domain-configuration)) <!-- wl:check domain-configuration-accessible-via-config-key -->
+- [ ] HandleEvent processes workflow.completed and workflow.failed events ([Domain Manifest](#domain-manifest), [Workflow Execution Flow](#workflow-execution-flow) phase 4) <!-- wl:check handleevent-processes-workflow-completed -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-session
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -410,15 +410,15 @@ types:
 
 ## Verification Checklist
 
-- [ ] Registration creates user with hashed password — [Password Storage](#password-storage), [`patterns/user-management`](user-management.md#password-requirements)
-- [ ] Registration rejects duplicate emails — [Registration (POST /auth/register)](#registration-post-authregister)
-- [ ] Login sets the session cookie with the flags [Login (POST /auth/login)](#login-post-authlogin) lists
-- [ ] Login returns CSRF token in response body — [Login (POST /auth/login)](#login-post-authlogin), [CSRF Protection](#csrf-protection)
-- [ ] Logout destroys session and clears cookie — [Logout (POST /auth/logout)](#logout-post-authlogout)
-- [ ] GET /auth/me returns user for valid session, 401 otherwise — [Get Current User (GET /auth/me)](#get-current-user-get-authme)
-- [ ] A CSRF token is required on every state-changing endpoint that [CSRF Protection](#csrf-protection) does not exempt
-- [ ] Invalid CSRF token returns 403 — [CSRF Protection](#csrf-protection)
-- [ ] Expired sessions are rejected — [Session Storage](#session-storage)
-- [ ] Passwords are never returned in any API response — [User](#user), [Design Principles](#design-principles)
-- [ ] Failed login does not reveal whether email exists — [Login (POST /auth/login)](#login-post-authlogin), [Implementation Notes](#implementation-notes)
-- [ ] Session IDs have the entropy [Implementation Notes](#implementation-notes) sets
+- [ ] Registration creates user with hashed password — [Password Storage](#password-storage), [`patterns/user-management`](user-management.md#password-requirements) <!-- wl:check registration-creates-user-hashed-password -->
+- [ ] Registration rejects duplicate emails — [Registration (POST /auth/register)](#registration-post-authregister) <!-- wl:check registration-rejects-duplicate-emails -->
+- [ ] Login sets the session cookie with the flags [Login (POST /auth/login)](#login-post-authlogin) lists <!-- wl:check login-sets-session-cookie-flags-login -->
+- [ ] Login returns CSRF token in response body — [Login (POST /auth/login)](#login-post-authlogin), [CSRF Protection](#csrf-protection) <!-- wl:check login-returns-csrf-token-response-body -->
+- [ ] Logout destroys session and clears cookie — [Logout (POST /auth/logout)](#logout-post-authlogout) <!-- wl:check logout-destroys-session-clears-cookie-logout -->
+- [ ] GET /auth/me returns user for valid session, 401 otherwise — [Get Current User (GET /auth/me)](#get-current-user-get-authme) <!-- wl:check get-auth-me-returns-user-valid -->
+- [ ] A CSRF token is required on every state-changing endpoint that [CSRF Protection](#csrf-protection) does not exempt <!-- wl:check csrf-token-required-state-changing-endpoint -->
+- [ ] Invalid CSRF token returns 403 — [CSRF Protection](#csrf-protection) <!-- wl:check invalid-csrf-token-returns-403-csrf -->
+- [ ] Expired sessions are rejected — [Session Storage](#session-storage) <!-- wl:check expired-sessions-rejected-session-storage -->
+- [ ] Passwords are never returned in any API response — [User](#user), [Design Principles](#design-principles) <!-- wl:check passwords-never-returned-api-response-user -->
+- [ ] Failed login does not reveal whether email exists — [Login (POST /auth/login)](#login-post-authlogin), [Implementation Notes](#implementation-notes) <!-- wl:check failed-login-not-reveal-whether-email -->
+- [ ] Session IDs have the entropy [Implementation Notes](#implementation-notes) sets <!-- wl:check session-ids-entropy-implementation-notes-sets -->

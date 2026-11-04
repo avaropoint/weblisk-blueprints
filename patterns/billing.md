@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: billing
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, patterns/scope, patterns/governance]
 platform: any
 tier: free
@@ -535,20 +535,20 @@ config:
 
 ## Verification Checklist
 
-- [ ] A repeated notification carrying the same identifier MUST NOT be applied twice — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
-- [ ] A notification older than the state it would overwrite MUST be discarded — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] Reconciliation MUST correct local state without any notification having been received — [Contracts](#contracts), [Implementation Notes](#implementation-notes)
-- [ ] Entitlement MUST be derived from current subscription state at the moment of use — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] A subject whose payment succeeded MUST be entitled without waiting for a notification — [Implementation Notes](#implementation-notes)
-- [ ] A lapsed subscription MUST suspend rather than delete — [Design Principles](#design-principles), [Configuration](#configuration)
-- [ ] A metering failure MUST NOT change whether an operation proceeds — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] A quota refusal MUST name the measure exceeded and when it resets — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] A quota refusal MUST be distinguishable by the caller from a transient fault — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] A subject MUST be able to retrieve the usage records they are charged from — [Design Principles](#design-principles), [Types](#types)
-- [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged — [Contracts](#contracts), [Types](#types)
-- [ ] A budget MUST be evaluated before the operation it bounds runs — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] A budget declared above its parent scope's remaining allowance MUST be refused — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] Where several budgets apply, the narrowest MUST decide, and the decision MUST name it — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes)
-- [ ] Reaching a budget MUST emit an event even where the behaviour is to degrade — [Contracts](#contracts)
-- [ ] An operation whose cost is not knowable in advance MUST be checked against an estimate and metered on its actual consumption — [Implementation Notes](#implementation-notes)
-- [ ] A budget bounding one agent MUST NOT stop another agent in the same tenant — [Design Principles](#design-principles)
+- [ ] A repeated notification carrying the same identifier MUST NOT be applied twice — [Contracts](#contracts), [Implementation Notes](#implementation-notes) <!-- wl:check repeated-notification-carrying-identifier -->
+- [ ] A notification older than the state it would overwrite MUST be discarded — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check notification-older-state-overwrite-discarded -->
+- [ ] Reconciliation MUST correct local state without any notification having been received — [Contracts](#contracts), [Implementation Notes](#implementation-notes) <!-- wl:check reconciliation-correct-local-state -->
+- [ ] Entitlement MUST be derived from current subscription state at the moment of use — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check entitlement-derived-current-subscription-state -->
+- [ ] A subject whose payment succeeded MUST be entitled without waiting for a notification — [Implementation Notes](#implementation-notes) <!-- wl:check subject-payment-succeeded-entitled -->
+- [ ] A lapsed subscription MUST suspend rather than delete — [Design Principles](#design-principles), [Configuration](#configuration) <!-- wl:check lapsed-subscription-suspend-rather-delete-design -->
+- [ ] A metering failure MUST NOT change whether an operation proceeds — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check metering-failure-not-change-whether-operation -->
+- [ ] A quota refusal MUST name the measure exceeded and when it resets — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check quota-refusal-name-measure-exceeded -->
+- [ ] A quota refusal MUST be distinguishable by the caller from a transient fault — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check quota-refusal-distinguishable-caller-transient -->
+- [ ] A subject MUST be able to retrieve the usage records they are charged from — [Design Principles](#design-principles), [Types](#types) <!-- wl:check subject-able-retrieve-usage-records-they -->
+- [ ] Every usage record MUST name the actor that consumed the measure, not only the subject charged — [Contracts](#contracts), [Types](#types) <!-- wl:check usage-record-name-actor-consumed-measure -->
+- [ ] A budget MUST be evaluated before the operation it bounds runs — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check budget-evaluated-before-operation-bounds-runs -->
+- [ ] A budget declared above its parent scope's remaining allowance MUST be refused — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check budget-declared-above-parent-scopes-remaining -->
+- [ ] Where several budgets apply, the narrowest MUST decide, and the decision MUST name it — [Design Principles](#design-principles), [Implementation Notes](#implementation-notes) <!-- wl:check where-several-budgets-apply-narrowest-decide -->
+- [ ] Reaching a budget MUST emit an event even where the behaviour is to degrade — [Contracts](#contracts) <!-- wl:check reaching-budget-emit-event-even -->
+- [ ] An operation whose cost is not knowable in advance MUST be checked against an estimate and metered on its actual consumption — [Implementation Notes](#implementation-notes) <!-- wl:check operation-cost-not-knowable-advance-checked -->
+- [ ] A budget bounding one agent MUST NOT stop another agent in the same tenant — [Design Principles](#design-principles) <!-- wl:check budget-bounding-agent-not-stop-another -->

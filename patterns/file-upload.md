@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: file-upload
-version: 3.0.0
+version: 3.0.1
 requires: [protocol/types, patterns/auth-token]
 platform: any
 tier: free
@@ -543,17 +543,17 @@ types:
 
 ## Verification Checklist
 
-- [ ] MIME type is verified from magic bytes as [MIME Type Verification](#mime-type-verification) states, not just the Content-Type header; mismatches return 415
-- [ ] Content-Length is checked against `max_file_size` before reading the body; streaming enforces the limit and aborts with 413 if exceeded — [Size Limits](#size-limits)
-- [ ] Filenames are sanitized as [Filename Sanitization](#filename-sanitization) states
-- [ ] EXIF metadata is stripped from all images before the original or any variant is stored; orientation is applied to pixel data before stripping — [EXIF Stripping](#exif-stripping), [Implementation Notes](#implementation-notes)
-- [ ] Animated GIFs are preserved as GIF and not converted to static webp — [Format Conversion](#format-conversion)
-- [ ] Thumbnails are generated per configured dimensions and fit mode (cover, inside, fill) and stored alongside the original — [Thumbnail Generation](#thumbnail-generation), [Single File Upload (POST /files/upload)](#single-file-upload-post-filesupload)
-- [ ] Batch upload accepts at most the files [Batch Upload (POST /files/upload/batch)](#batch-upload-post-filesuploadbatch) allows and returns partial-success responses (per-file status with `uploaded`/`rejected` counts)
-- [ ] Signed URL generation verifies requester permission, creates a provider-specific presigned URL, and includes an expiry timestamp — [Signed URLs](#signed-urls)
-- [ ] Local signed URLs use HMAC-SHA256 with a secret over path + expiry, and the server validates `expires` and `sig` on each request — [Signed URLs](#signed-urls)
-- [ ] Public files are served with the `Cache-Control` of [Cache Headers](#cache-headers) when CDN is enabled
-- [ ] File upload uses streaming — the entire file is NOT buffered in memory before writing to storage — [Implementation Notes](#implementation-notes)
-- [ ] Storage `base_path` is not inside the source tree; uploaded files are not executable and are served with `X-Content-Type-Options: nosniff` — [Local Storage](#local-storage), [Implementation Notes](#implementation-notes)
-- [ ] Per-user upload rate limits are enforced (e.g., 100 uploads per hour) — [Implementation Notes](#implementation-notes)
-- [ ] Deletion is soft (sets `deleted_at`); a background cleanup job purges storage after the retention period — [Implementation Notes](#implementation-notes), [Database Schema](#database-schema)
+- [ ] MIME type is verified from magic bytes as [MIME Type Verification](#mime-type-verification) states, not just the Content-Type header; mismatches return 415 <!-- wl:check mime-type-verified-magic-bytes-mime -->
+- [ ] Content-Length is checked against `max_file_size` before reading the body; streaming enforces the limit and aborts with 413 if exceeded — [Size Limits](#size-limits) <!-- wl:check content-length-checked-against-max-file -->
+- [ ] Filenames are sanitized as [Filename Sanitization](#filename-sanitization) states <!-- wl:check filenames-sanitized-filename-sanitization-states -->
+- [ ] EXIF metadata is stripped from all images before the original or any variant is stored; orientation is applied to pixel data before stripping — [EXIF Stripping](#exif-stripping), [Implementation Notes](#implementation-notes) <!-- wl:check exif-metadata-stripped-images-before-original -->
+- [ ] Animated GIFs are preserved as GIF and not converted to static webp — [Format Conversion](#format-conversion) <!-- wl:check animated-gifs-preserved-gif-not-converted -->
+- [ ] Thumbnails are generated per configured dimensions and fit mode (cover, inside, fill) and stored alongside the original — [Thumbnail Generation](#thumbnail-generation), [Single File Upload (POST /files/upload)](#single-file-upload-post-filesupload) <!-- wl:check thumbnails-generated-per-configured-dimensions -->
+- [ ] Batch upload accepts at most the files [Batch Upload (POST /files/upload/batch)](#batch-upload-post-filesuploadbatch) allows and returns partial-success responses (per-file status with `uploaded`/`rejected` counts) <!-- wl:check batch-upload-accepts-most-files-batch -->
+- [ ] Signed URL generation verifies requester permission, creates a provider-specific presigned URL, and includes an expiry timestamp — [Signed URLs](#signed-urls) <!-- wl:check signed-url-generation-verifies-requester -->
+- [ ] Local signed URLs use HMAC-SHA256 with a secret over path + expiry, and the server validates `expires` and `sig` on each request — [Signed URLs](#signed-urls) <!-- wl:check local-signed-urls-use-hmac-sha256 -->
+- [ ] Public files are served with the `Cache-Control` of [Cache Headers](#cache-headers) when CDN is enabled <!-- wl:check public-files-served-cache-control-cache -->
+- [ ] File upload uses streaming — the entire file is NOT buffered in memory before writing to storage — [Implementation Notes](#implementation-notes) <!-- wl:check file-upload-uses-streaming-entire-file -->
+- [ ] Storage `base_path` is not inside the source tree; uploaded files are not executable and are served with `X-Content-Type-Options: nosniff` — [Local Storage](#local-storage), [Implementation Notes](#implementation-notes) <!-- wl:check storage-base-path-not-inside-source -->
+- [ ] Per-user upload rate limits are enforced (e.g., 100 uploads per hour) — [Implementation Notes](#implementation-notes) <!-- wl:check per-user-upload-rate-limits-enforced -->
+- [ ] Deletion is soft (sets `deleted_at`); a background cleanup job purges storage after the retention period — [Implementation Notes](#implementation-notes), [Database Schema](#database-schema) <!-- wl:check deletion-soft-sets-deleted-background-cleanup -->

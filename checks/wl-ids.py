@@ -5,8 +5,10 @@ today's parsers skip and the migration to verifies blocks keeps.
 Usage: wl-ids.py [--require FILE:CHECK]... [FILE...]
 
 A requirement is marked <!-- wl:id <id> -->, and a check
-<!-- wl:check <id> covers <id>... -->. In each file: no id is marked twice,
-every check covers at least one id, every id a check covers is marked in that
+<!-- wl:check <id> covers <id>... -->, or <!-- wl:check <id> --> for a
+checklist item that is its own criterion and verifies no marked requirement
+(checks/requirement-ids.py). In each file: no id is marked twice, a check that
+says covers covers at least one id, every id a check covers is marked in that
 file, and every marked id is covered by some check. --require fails unless
 FILE marks a check CHECK. With no FILE, every .md file in the corpus is read.
 """
@@ -39,7 +41,7 @@ for path in files:
             if len(rest) < 1 or not re.fullmatch(ID, rest[0]) or (len(rest) > 1 and rest[1] != "covers") or not all(re.fullmatch(ID, c) for c in rest[2:]):
                 found.append(f"{rel}:{line}: unreadable wl:check {m.group(0)}"); continue
             if rest[0] in checks: found.append(f"{rel}:{line}: wl:check {rest[0]} is also marked at line {checks[rest[0]][0]}")
-            if len(rest) < 3: found.append(f"{rel}:{line}: wl:check {rest[0]} covers nothing")
+            if len(rest) == 2: found.append(f"{rel}:{line}: wl:check {rest[0]} covers nothing")
             checks.setdefault(rest[0], (line, rest[2:]))
     total += len(ids) + len(checks)
     covered = set()

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.1.0
+version: 4.1.1
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -1351,62 +1351,62 @@ security:
 ---
 
 ## Verification Checklist
-- [ ] A subscription scope is a delivery scope and never a ScopeLevel ([Two words that mean two things](#two-words-that-mean-two-things))
-- [ ] `protocol_version` is compared for equality with the wire version, not parsed as semver ([Two words that mean two things](#two-words-that-mean-two-things))
-- [ ] A client composes requests as origin + absolute path; no endpoint constant omits its `/v1` prefix ([Endpoint paths are absolute](#endpoint-paths-are-absolute))
-- [ ] A manifest carrying a field the verifier's own type does not define still verifies — canonicalization preserves it ([Signing input](#signing-input))
-- [ ] A signed payload is canonicalized as received, never re-serialized from a local type before verification ([Signing input](#signing-input))
+- [ ] A subscription scope is a delivery scope and never a ScopeLevel ([Two words that mean two things](#two-words-that-mean-two-things)) <!-- wl:check subscription-scope-delivery-scope-never -->
+- [ ] `protocol_version` is compared for equality with the wire version, not parsed as semver ([Two words that mean two things](#two-words-that-mean-two-things)) <!-- wl:check protocol-version-compared-equality-wire-version -->
+- [ ] A client composes requests as origin + absolute path; no endpoint constant omits its `/v1` prefix ([Endpoint paths are absolute](#endpoint-paths-are-absolute)) <!-- wl:check client-composes-requests-origin-absolute-path -->
+- [ ] A manifest carrying a field the verifier's own type does not define still verifies — canonicalization preserves it ([Signing input](#signing-input)) <!-- wl:check manifest-carrying-field-verifiers-own-type -->
+- [ ] A signed payload is canonicalized as received, never re-serialized from a local type before verification ([Signing input](#signing-input)) <!-- wl:check signed-payload-canonicalized-received-never-re -->
 
 ### Agent Protocol
-- [ ] Agent responds to `POST /v1/describe` with a valid `AgentManifest` including `publishes` and `subscriptions` ([POST /v1/describe](#post-v1describe), [`AgentManifest`](types.md#agentmanifest))
-- [ ] Every component serves `GET /livez` and `GET /readyz` without authentication, each answering as [GET /livez and GET /readyz](#get-livez-and-get-readyz) gives and nothing else
-- [ ] A registered component renews its lease at `POST /v1/lease` on the cadence [`LeaseRenewal`](types.md#leaserenewal) sets, carrying `ready` ([POST /v1/lease](#post-v1lease))
-- [ ] Agent accepts `POST /v1/services` and updates its internal directory and routing table ([POST /v1/services](#post-v1services))
+- [ ] Agent responds to `POST /v1/describe` with a valid `AgentManifest` including `publishes` and `subscriptions` ([POST /v1/describe](#post-v1describe), [`AgentManifest`](types.md#agentmanifest)) <!-- wl:check agent-responds-post-v1-describe-valid -->
+- [ ] Every component serves `GET /livez` and `GET /readyz` without authentication, each answering as [GET /livez and GET /readyz](#get-livez-and-get-readyz) gives and nothing else <!-- wl:check component-serves-get-livez-get-readyz -->
+- [ ] A registered component renews its lease at `POST /v1/lease` on the cadence [`LeaseRenewal`](types.md#leaserenewal) sets, carrying `ready` ([POST /v1/lease](#post-v1lease)) <!-- wl:check registered-component-renews-lease-post-v1 -->
+- [ ] Agent accepts `POST /v1/services` and updates its internal directory and routing table ([POST /v1/services](#post-v1services)) <!-- wl:check agent-accepts-post-v1-services-updates -->
 - [ ] An agent that takes a pushed body as its directory refuses an unsigned push: `POST /v1/services` with a body carrying no `signature` answers 401 `INVALID_SIGNATURE` and leaves the agent's directory as it was ([POST /v1/services](#post-v1services)) <!-- wl:check unsigned-push-refused covers directory-push-refuse-unsigned -->
 - [ ] At an agent that takes a pushed body as its directory, a push whose body differs by one byte from the directory the orchestrator signed answers 401 `INVALID_SIGNATURE` and changes nothing, and so does a push signed by any key but the orchestrator's ([POST /v1/services](#post-v1services)) <!-- wl:check wrongly-signed-push-refused covers directory-push-refuse-unsigned -->
 - [ ] At an agent that takes a pushed body as its directory, a verified push older than the directory the agent holds answers 409 `DIRECTORY_STALE` and changes nothing; the same directory again answers 200 ([POST /v1/services](#post-v1services)) <!-- wl:check stale-push-refused covers directory-push-refuse-stale -->
 - [ ] An agent that takes a pushed body as its directory and holds none yet takes nothing from a signed push, reads `GET /v1/services` at its anchor, and holds what that read answered ([POST /v1/services](#post-v1services)) <!-- wl:check unseeded-push-reads-anchor covers directory-push-seeded -->
-- [ ] Agent handles `POST /v1/message` with signature verification ([POST /v1/message](#post-v1message))
-- [ ] Agent returns signed `TaskResult` from `POST /v1/execute` ([POST /v1/execute](#post-v1execute))
-- [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers ([POST /v1/event](#post-v1event))
-- [ ] Agent returns 200 OK immediately on event receipt (processing is async) ([POST /v1/event](#post-v1event))
-- [ ] Agent returns 429 with `Retry-After` when at event processing capacity ([POST /v1/event](#post-v1event))
-- [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity ([Concurrency Control](#concurrency-control), [Error Handling](#error-handling))
-- [ ] Agent deduplicates events by `event_id` ([POST /v1/event](#post-v1event))
+- [ ] Agent handles `POST /v1/message` with signature verification ([POST /v1/message](#post-v1message)) <!-- wl:check agent-handles-post-v1-message-signature -->
+- [ ] Agent returns signed `TaskResult` from `POST /v1/execute` ([POST /v1/execute](#post-v1execute)) <!-- wl:check agent-returns-signed-taskresult-post-v1 -->
+- [ ] Agent accepts `POST /v1/event` and dispatches to matching handlers ([POST /v1/event](#post-v1event)) <!-- wl:check agent-accepts-post-v1-event-dispatches -->
+- [ ] Agent returns 200 OK immediately on event receipt (processing is async) ([POST /v1/event](#post-v1event)) <!-- wl:check agent-returns-200-ok-immediately-event -->
+- [ ] Agent returns 429 with `Retry-After` when at event processing capacity ([POST /v1/event](#post-v1event)) <!-- wl:check agent-returns-429-retry -->
+- [ ] Agent returns 429 with `RATE_LIMITED` when at max_concurrent capacity ([Concurrency Control](#concurrency-control), [Error Handling](#error-handling)) <!-- wl:check agent-returns-429-rate-limited -->
+- [ ] Agent deduplicates events by `event_id` ([POST /v1/event](#post-v1event)) <!-- wl:check agent-deduplicates-events-event-id -->
 
 ### Event Publishing
-- [ ] Framework validates topic namespace ownership before publishing ([Namespace Rules](#namespace-rules))
-- [ ] Framework resolves subscribers from local routing table ([Event Publishing](#event-publishing-framework-behavior))
-- [ ] Framework applies scope filtering during subscriber resolution ([Scope Resolution at Delivery](#scope-resolution-at-delivery))
-- [ ] Framework selects one subscriber per consumer group, as [`patterns/messaging`](../patterns/messaging.md#consumer-groups) balances them ([Event Publishing](#event-publishing-framework-behavior))
-- [ ] Framework retries failed deliveries as [Event Publishing](#event-publishing-framework-behavior) says
-- [ ] Framework dead-letters events after retry exhaustion ([Dead-Letter Handling](#dead-letter-handling))
-- [ ] Every envelope the framework builds carries the fields [Event Publishing](#event-publishing-framework-behavior) builds it with
+- [ ] Framework validates topic namespace ownership before publishing ([Namespace Rules](#namespace-rules)) <!-- wl:check framework-validates-topic-namespace-ownership -->
+- [ ] Framework resolves subscribers from local routing table ([Event Publishing](#event-publishing-framework-behavior)) <!-- wl:check framework-resolves-subscribers-local-routing -->
+- [ ] Framework applies scope filtering during subscriber resolution ([Scope Resolution at Delivery](#scope-resolution-at-delivery)) <!-- wl:check framework-applies-scope-filtering-during -->
+- [ ] Framework selects one subscriber per consumer group, as [`patterns/messaging`](../patterns/messaging.md#consumer-groups) balances them ([Event Publishing](#event-publishing-framework-behavior)) <!-- wl:check framework-selects-subscriber-per-consumer-group -->
+- [ ] Framework retries failed deliveries as [Event Publishing](#event-publishing-framework-behavior) says <!-- wl:check framework-retries-failed-deliveries-event -->
+- [ ] Framework dead-letters events after retry exhaustion ([Dead-Letter Handling](#dead-letter-handling)) <!-- wl:check framework-dead-letters-events-after-retry -->
+- [ ] Every envelope the framework builds carries the fields [Event Publishing](#event-publishing-framework-behavior) builds it with <!-- wl:check envelope-framework-builds-carries-fields-event -->
 
 ### Orchestrator Protocol
-- [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict) ([POST /v1/register](#post-v1register))
-- [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized) ([POST /v1/register](#post-v1register))
-- [ ] Orchestrator `POST /v1/register` enforces replay protection over the window [POST /v1/register](#post-v1register) gives
-- [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403) ([POST /v1/register](#post-v1register), [Namespace Rules](#namespace-rules))
-- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability [`protocol/types`](types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY` ([Error Handling](types.md#error-handling)), and issues no token
-- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names a capability [`protocol/types`](types.md#capability) marks admin gateway only, from a key whose fingerprint is not the one the tenant declared as its admin gateway's, with 403 `CAPABILITY_GATEWAY_ONLY` ([Error Handling](types.md#error-handling)), and records and issues nothing; it admits the same manifest from the declared key
-- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request ([POST /v1/register](#post-v1register))
-- [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key` ([POST /v1/register](#post-v1register))
-- [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries ([DELETE /v1/register](#delete-v1register))
-- [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map ([GET /v1/services](#get-v1services))
-- [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability ([POST /v1/channel](#post-v1channel))
-- [ ] Orchestrator `POST /v1/lease` moves `expires_at` on by `duration`, restores a lapsed lease, and answers 404 `NOT_FOUND` for an unregistered caller ([POST /v1/lease](#post-v1lease))
-- [ ] Orchestrator reads a lease past its `expires_at` as `unknown` and probes no component to learn more ([POST /v1/lease](#post-v1lease))
-- [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination ([GET /v1/audit](#get-v1audit))
-- [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent ([Authentication](#authentication))
-- [ ] Orchestrator broadcasts updated service directory on registration changes ([POST /v1/register](#post-v1register), [DELETE /v1/register](#delete-v1register))
+- [ ] Orchestrator `POST /v1/register` validates namespace ownership (409 on conflict) ([POST /v1/register](#post-v1register)) <!-- wl:check orchestrator-post-v1-register-validates -->
+- [ ] Orchestrator `POST /v1/register` validates subscription scopes (403 on unauthorized) ([POST /v1/register](#post-v1register)) <!-- wl:check orchestrator-post-v1-register-validates-2 -->
+- [ ] Orchestrator `POST /v1/register` enforces replay protection over the window [POST /v1/register](#post-v1register) gives <!-- wl:check orchestrator-post-v1-register-enforces-replay -->
+- [ ] Orchestrator `POST /v1/register` rejects `system.*` namespace claims (403) ([POST /v1/register](#post-v1register), [Namespace Rules](#namespace-rules)) <!-- wl:check orchestrator-post-v1-register-rejects-system -->
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names any capability [`protocol/types`](types.md#capability) marks person only, whichever it is, read from that list rather than from a copy of it, with 403 `CAPABILITY_PERSON_ONLY` ([Error Handling](types.md#error-handling)), and issues no token <!-- wl:check orchestrator-post-v1-register-refuses-manifest -->
+- [ ] Orchestrator `POST /v1/register` refuses a manifest whose `capabilities` names a capability [`protocol/types`](types.md#capability) marks admin gateway only, from a key whose fingerprint is not the one the tenant declared as its admin gateway's, with 403 `CAPABILITY_GATEWAY_ONLY` ([Error Handling](types.md#error-handling)), and records and issues nothing; it admits the same manifest from the declared key <!-- wl:check orchestrator-post-v1-register-refuses-manifest-2 -->
+- [ ] Orchestrator `POST /v1/register` refuses with 400 `INVALID_REQUEST`, recording nothing, a manifest naming a capability `protocol/types` does not list, in `capabilities` or in a pass route, and one two of whose pass routes can match one request ([POST /v1/register](#post-v1register)) <!-- wl:check orchestrator-post-v1-register-refuses-400 -->
+- [ ] The token `POST /v1/register` issues carries `identity_id`, the fingerprint of `manifest.public_key` ([POST /v1/register](#post-v1register)) <!-- wl:check token-post-v1-register-issues-carries -->
+- [ ] Orchestrator `DELETE /v1/register` releases namespaces and routing entries ([DELETE /v1/register](#delete-v1register)) <!-- wl:check orchestrator-delete-v1-register-releases -->
+- [ ] Orchestrator `GET /v1/services` returns service directory with routing table and namespace map ([GET /v1/services](#get-v1services)) <!-- wl:check orchestrator-get-v1-services-returns-service -->
+- [ ] Orchestrator `POST /v1/channel` verifies `agent:message` capability ([POST /v1/channel](#post-v1channel)) <!-- wl:check orchestrator-post-v1-channel-verifies-agent -->
+- [ ] Orchestrator `POST /v1/lease` moves `expires_at` on by `duration`, restores a lapsed lease, and answers 404 `NOT_FOUND` for an unregistered caller ([POST /v1/lease](#post-v1lease)) <!-- wl:check orchestrator-post-v1-lease-moves-expires -->
+- [ ] Orchestrator reads a lease past its `expires_at` as `unknown` and probes no component to learn more ([POST /v1/lease](#post-v1lease)) <!-- wl:check orchestrator-reads-lease-past-expires-unknown -->
+- [ ] Orchestrator `GET /v1/audit` returns audit entries with pagination ([GET /v1/audit](#get-v1audit)) <!-- wl:check orchestrator-get-v1-audit-returns-audit -->
+- [ ] Orchestrator `GET /v1/audit` and `DELETE /v1/register` refuse a person's operator token and a channel token, so neither reads the audit log or deregisters an agent ([Authentication](#authentication)) <!-- wl:check orchestrator-get-v1-audit-delete-v1 -->
+- [ ] Orchestrator broadcasts updated service directory on registration changes ([POST /v1/register](#post-v1register), [DELETE /v1/register](#delete-v1register)) <!-- wl:check orchestrator-broadcasts-updated-service -->
 - [ ] Every directory the orchestrator pushes or answers `GET /v1/services` with is signed, and ordered by its `updated_at`, as [POST /v1/services](#post-v1services) says, the first it signs after a restart with its clock set back included <!-- wl:check orchestrator-signs-directory covers directory-push-signed -->
-- [ ] Orchestrator rejects an unsupported `protocol_version` with `UNSUPPORTED_VERSION`, as [`protocol/types`](types.md#orchestratorinfo)'s version negotiation says
-- [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease` ([POST /v1/register](#post-v1register), [`RegisterResponse`](types.md#registerresponse))
+- [ ] Orchestrator rejects an unsupported `protocol_version` with `UNSUPPORTED_VERSION`, as [`protocol/types`](types.md#orchestratorinfo)'s version negotiation says <!-- wl:check orchestrator-rejects-unsupported-protocol -->
+- [ ] RegisterResponse includes negotiated `protocol_version`, routing table and `lease` ([POST /v1/register](#post-v1register), [`RegisterResponse`](types.md#registerresponse)) <!-- wl:check registerresponse-includes-negotiated-protocol -->
 
 ### Cross-Cutting
-- [ ] All error responses use `ErrorResponse` format with `error` field ([Error Handling](#error-handling))
-- [ ] Error responses include `code` and `category` when available ([Error Handling](#error-handling))
-- [ ] Every request between components, and every task, message and event, carries its trace as [Trace Propagation](#trace-propagation) says, and a receiver records the arriving span as its own span's `parent_span_id`
-- [ ] `correlation_id` links all events in a single execution chain ([Correlation ID Propagation](#correlation-id-propagation))
-- [ ] All protected endpoints reject requests without valid tokens ([Authentication](#authentication))
+- [ ] All error responses use `ErrorResponse` format with `error` field ([Error Handling](#error-handling)) <!-- wl:check error-responses-use-errorresponse-format-error -->
+- [ ] Error responses include `code` and `category` when available ([Error Handling](#error-handling)) <!-- wl:check error-responses-include-code-category -->
+- [ ] Every request between components, and every task, message and event, carries its trace as [Trace Propagation](#trace-propagation) says, and a receiver records the arriving span as its own span's `parent_span_id` <!-- wl:check request-between-components-task-message-event -->
+- [ ] `correlation_id` links all events in a single execution chain ([Correlation ID Propagation](#correlation-id-propagation)) <!-- wl:check correlation-id-links-events-single-execution -->
+- [ ] All protected endpoints reject requests without valid tokens ([Authentication](#authentication)) <!-- wl:check protected-endpoints-reject-requests -->

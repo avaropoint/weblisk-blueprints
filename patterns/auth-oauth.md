@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: auth-oauth
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/auth-token, patterns/principal-identity, patterns/scope]
 platform: any
 tier: free
@@ -336,13 +336,13 @@ config:
 
 ## Verification Checklist
 
-- [ ] An unauthenticated request to a protected surface MUST return a challenge naming where to authorize — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] Published resource metadata MUST be readable without a credential — [Implementation Notes](#implementation-notes)
-- [ ] A credential naming a different resource MUST be refused — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] A refusal for a credential naming another resource MUST disclose nothing about that resource — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling)
-- [ ] The credential exchange MUST be bound to a secret the client holds and does not transmit in the authorization request — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] An expired credential MUST be refused at use, not merely at issue — [Design Principles](#design-principles), [Error Handling](#error-handling)
-- [ ] A revoked grant MUST be refused at the next use — [Design Principles](#design-principles), [Contracts](#contracts)
-- [ ] An insufficient-scope refusal MUST name every scope the attempted operation requires — [Contracts](#contracts), [Error Handling](#error-handling)
-- [ ] A resolved credential MUST yield a principal, a client, a resource and a scope — [Types](#types)
-- [ ] The resource identifier advertised in metadata MUST be the one credentials are validated against — [Contracts](#contracts)
+- [ ] An unauthenticated request to a protected surface MUST return a challenge naming where to authorize — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check unauthenticated-request-protected-surface-return -->
+- [ ] Published resource metadata MUST be readable without a credential — [Implementation Notes](#implementation-notes) <!-- wl:check published-resource-metadata-readable -->
+- [ ] A credential naming a different resource MUST be refused — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check credential-naming-different-resource-refused -->
+- [ ] A refusal for a credential naming another resource MUST disclose nothing about that resource — [Implementation Notes](#implementation-notes), [Error Handling](#error-handling) <!-- wl:check refusal-credential-naming-another-resource -->
+- [ ] The credential exchange MUST be bound to a secret the client holds and does not transmit in the authorization request — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check credential-exchange-bound-secret-client-holds -->
+- [ ] An expired credential MUST be refused at use, not merely at issue — [Design Principles](#design-principles), [Error Handling](#error-handling) <!-- wl:check expired-credential-refused-use-not-merely -->
+- [ ] A revoked grant MUST be refused at the next use — [Design Principles](#design-principles), [Contracts](#contracts) <!-- wl:check revoked-grant-refused-next-use-design -->
+- [ ] An insufficient-scope refusal MUST name every scope the attempted operation requires — [Contracts](#contracts), [Error Handling](#error-handling) <!-- wl:check insufficient-scope-refusal-name-scope-attempted -->
+- [ ] A resolved credential MUST yield a principal, a client, a resource and a scope — [Types](#types) <!-- wl:check resolved-credential-yield-principal-client -->
+- [ ] The resource identifier advertised in metadata MUST be the one credentials are validated against — [Contracts](#contracts) <!-- wl:check resource-identifier-advertised-metadata -->

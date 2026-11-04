@@ -813,6 +813,30 @@ Written without the prefix, such an assertion fails every implementation that
 made a different — and permitted — choice. The `IF` is what lets a tool tell "this
 does not apply" from "this is unmet".
 
+### Every item has a frozen id
+
+Each item is a **criterion**: the unit a test is translated from, a verdict is
+recorded against, and a gap is named by. So each carries a permanent id, in an
+HTML comment at the end of the item's last line: `wl:check` and the id, then,
+where the item verifies requirements marked with a `wl:id` comment, `covers`
+and their ids. A renderer shows none of it, and a plain editor keeps it.
+
+That comment is today's spelling of a `verifies` entry
+([`schemas/blocks`](blocks.md#definitions)): its `id`, its `covers`, and its
+assertion, which is the item's text. An item with no `covers` covers what its
+line cites ([A line cites the rule it checks](#a-line-cites-the-rule-it-checks)).
+Its `check` is `translated` unless a `verifies` entry with the same id
+declares a kind.
+
+An id is kebab-case and unique within its file, and the item's ref is the
+file's ref and the id. It is **minted once** (`checks/mint-criterion-ids.py`),
+from the item's text at the time, and then frozen: editing the item's words
+keeps its id, and an id is never changed, never derived again and never given
+to another item. Removing an item retires its id. `checks/criterion-ids.json`
+is the register of every id each file has been given, and
+`checks/requirement-ids.py` refuses an id that changed, vanished without being
+retired, or came back.
+
 ### Rules
 
 1. Every item must be a checkbox (`- [ ]`)
@@ -824,6 +848,8 @@ does not apply" from "this is unmet".
 7. A `###` group addressed to one component MUST begin with that component's name;
    an assertion belonging to no single component MUST NOT sit in such a group
 8. An assertion conditional on a choice MUST be written `IF <premise>: <obligation>`
+9. Every item MUST carry exactly one `wl:check` id, minted once and never changed
+   or reused ([Every item has a frozen id](#every-item-has-a-frozen-id))
 
 ---
 

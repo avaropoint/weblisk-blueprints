@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: logging
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, architecture/agent]
 platform: any
 tier: free
@@ -364,14 +364,14 @@ whose records must be redacted points here.
 
 ## Verification Checklist
 
-- [ ] Every log line is one JSON object on standard output carrying every required field of `LogEntry` — [Log Envelope](#log-envelope), [Contracts](#contracts), [`protocol/types`](../protocol/types.md#logentry)
-- [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as [OpenTelemetry Log Data Model](#opentelemetry-log-data-model) says
-- [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time — [Trace Correlation](#trace-correlation)
-- [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`) — [Process Events](#process-events)
-- [ ] Standard action log types emit for every action (received, completed, failed) — [Action Events](#action-events)
-- [ ] No standard log type's first segment is an event namespace a component owns — [Standard Log Types](#standard-log-types)
-- [ ] Error logs include error code and message — [Fields](#fields)
-- [ ] Log level filtering works (debug disabled by default) — [Level Configuration](#level-configuration), [`schemas/config`](../schemas/config.md#observability)
-- [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`) — [Sensitive Data](#sensitive-data), [Contracts](#contracts)
-- [ ] Custom log types follow the naming convention — [Custom Log Types](#custom-log-types)
-- [ ] Log lines stay within the size [Implementation Notes](#implementation-notes) gives
+- [ ] Every log line is one JSON object on standard output carrying every required field of `LogEntry` — [Log Envelope](#log-envelope), [Contracts](#contracts), [`protocol/types`](../protocol/types.md#logentry) <!-- wl:check log-line-json-object-standard-output -->
+- [ ] Where telemetry is deployed, every record is also pushed as an OpenTelemetry log record mapped as [OpenTelemetry Log Data Model](#opentelemetry-log-data-model) says <!-- wl:check where-telemetry-deployed-record-pushed -->
+- [ ] Every log line written while a request is served carries its `trace_id` and the `span_id` open at the time — [Trace Correlation](#trace-correlation) <!-- wl:check log-line-written-while-request-served -->
+- [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`) — [Process Events](#process-events) <!-- wl:check standard-process-log-types-emit-correct -->
+- [ ] Standard action log types emit for every action (received, completed, failed) — [Action Events](#action-events) <!-- wl:check standard-action-log-types-emit-action -->
+- [ ] No standard log type's first segment is an event namespace a component owns — [Standard Log Types](#standard-log-types) <!-- wl:check no-standard-log-types-first-segment -->
+- [ ] Error logs include error code and message — [Fields](#fields) <!-- wl:check error-logs-include-error-code-message -->
+- [ ] Log level filtering works (debug disabled by default) — [Level Configuration](#level-configuration), [`schemas/config`](../schemas/config.md#observability) <!-- wl:check log-level-filtering-works-debug-disabled -->
+- [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`) — [Sensitive Data](#sensitive-data), [Contracts](#contracts) <!-- wl:check sensitive-data-tokens-keys-pii-never -->
+- [ ] Custom log types follow the naming convention — [Custom Log Types](#custom-log-types) <!-- wl:check custom-log-types-follow-naming-convention -->
+- [ ] Log lines stay within the size [Implementation Notes](#implementation-notes) gives <!-- wl:check log-lines-stay-within-size-implementation -->

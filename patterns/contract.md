@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: contract
-version: 2.0.1
+version: 2.0.2
 requires: [protocol/types, patterns/scope, patterns/policy]
 platform: any
 tier: free
@@ -1029,23 +1029,23 @@ data contract:
 
 ## Verification Checklist
 
-- [ ] Component declares input/output contracts with version, scope, description, schema — [Contract Declaration](#contract-declaration)
-- [ ] Schema fields have type, required flag, scope, description; constraints validate correctly — [Contract Declaration](#contract-declaration), [Constraint Syntax](#constraint-syntax)
-- [ ] Per-field scope declared for fields above contract base scope — [Per-Field Scope](#per-field-scope)
-- [ ] Permissions declared per contract; terms declared with TTL, retention, forwarding — [Permissions](#permissions), [Terms Fields](#terms-fields)
-- [ ] Policy bindings reference existing policies in registry — [Policy Binding Rules](#policy-binding-rules)
-- [ ] Envelope includes contract, version, scope, payload; effective scope computed correctly — [Message Envelope](#message-envelope), [Scope in Envelope](#scope-in-envelope)
-- [ ] Every code of [Standard Error Codes](#standard-error-codes) is enforced where the rule that names it fails
-- [ ] Error responses include specific validation failure details — [Standard Error Codes](#standard-error-codes)
-- [ ] Contracts discoverable via describe endpoint — [Runtime Discovery](#runtime-discovery)
-- [ ] Static contract testing validates deployment compatibility — [Static Validation](#static-validation)
-- [ ] Permission propagation narrows across contract chains — [Permission Propagation](#permission-propagation)
-- [ ] Scope propagation never downgrades across contract chains — [Propagation Rules](#propagation-rules)
-- [ ] Legacy agents without contracts function (scope < confidential) — [Operational Data Contract Rules](#operational-data-contract-rules), [Implementation Notes](#implementation-notes)
-- [ ] Negotiation follows monotonic restriction rules — [Negotiation Rules](#negotiation-rules)
-- [ ] Deprecated contracts include migration paths; retired contracts reject all exchanges — [Lifecycle States](#lifecycle-states), [Deprecation and Migration](#deprecation-and-migration)
-- [ ] Violation tracking emits contract.violated; critical violations suspend contract — [Violation Tracking](#violation-tracking)
-- [ ] Federation contracts extend general contracts with boundary metadata — [Federation Compatibility](#federation-compatibility)
-- [ ] Agents accessing scope >= confidential data declare operational data contracts with specific resources — [Operational Data Contract Rules](#operational-data-contract-rules)
-- [ ] Enforcement storage proxy verifies storage operations against declared operational data contracts — [Enforcement](#enforcement)
-- [ ] Undeclared resource access by agents with operational data contracts triggers ENFORCEMENT_DATA_CONTRACT_VIOLATION — [Enforcement](#enforcement)
+- [ ] Component declares input/output contracts with version, scope, description, schema — [Contract Declaration](#contract-declaration) <!-- wl:check component-declares-input-output-contracts -->
+- [ ] Schema fields have type, required flag, scope, description; constraints validate correctly — [Contract Declaration](#contract-declaration), [Constraint Syntax](#constraint-syntax) <!-- wl:check schema-fields-type-required-flag-scope -->
+- [ ] Per-field scope declared for fields above contract base scope — [Per-Field Scope](#per-field-scope) <!-- wl:check per-field-scope-declared-fields-above -->
+- [ ] Permissions declared per contract; terms declared with TTL, retention, forwarding — [Permissions](#permissions), [Terms Fields](#terms-fields) <!-- wl:check permissions-declared-per-contract-terms-declared -->
+- [ ] Policy bindings reference existing policies in registry — [Policy Binding Rules](#policy-binding-rules) <!-- wl:check policy-bindings-reference-existing-policies -->
+- [ ] Envelope includes contract, version, scope, payload; effective scope computed correctly — [Message Envelope](#message-envelope), [Scope in Envelope](#scope-in-envelope) <!-- wl:check envelope-includes-contract-version-scope-payload -->
+- [ ] Every code of [Standard Error Codes](#standard-error-codes) is enforced where the rule that names it fails <!-- wl:check code-standard-error-codes-enforced -->
+- [ ] Error responses include specific validation failure details — [Standard Error Codes](#standard-error-codes) <!-- wl:check error-responses-include-specific-validation -->
+- [ ] Contracts discoverable via describe endpoint — [Runtime Discovery](#runtime-discovery) <!-- wl:check contracts-discoverable-via-describe-endpoint -->
+- [ ] Static contract testing validates deployment compatibility — [Static Validation](#static-validation) <!-- wl:check static-contract-testing-validates-deployment -->
+- [ ] Permission propagation narrows across contract chains — [Permission Propagation](#permission-propagation) <!-- wl:check permission-propagation-narrows-across-contract -->
+- [ ] Scope propagation never downgrades across contract chains — [Propagation Rules](#propagation-rules) <!-- wl:check scope-propagation-never-downgrades-across -->
+- [ ] Legacy agents without contracts function (scope < confidential) — [Operational Data Contract Rules](#operational-data-contract-rules), [Implementation Notes](#implementation-notes) <!-- wl:check legacy-agents-without-contracts-function-scope -->
+- [ ] Negotiation follows monotonic restriction rules — [Negotiation Rules](#negotiation-rules) <!-- wl:check negotiation-follows-monotonic-restriction-rules -->
+- [ ] Deprecated contracts include migration paths; retired contracts reject all exchanges — [Lifecycle States](#lifecycle-states), [Deprecation and Migration](#deprecation-and-migration) <!-- wl:check deprecated-contracts-include-migration-paths -->
+- [ ] Violation tracking emits contract.violated; critical violations suspend contract — [Violation Tracking](#violation-tracking) <!-- wl:check violation-tracking-emits-contract-violated -->
+- [ ] Federation contracts extend general contracts with boundary metadata — [Federation Compatibility](#federation-compatibility) <!-- wl:check federation-contracts-extend-general-contracts -->
+- [ ] Agents accessing scope >= confidential data declare operational data contracts with specific resources — [Operational Data Contract Rules](#operational-data-contract-rules) <!-- wl:check agents-accessing-scope-confidential-data-declare -->
+- [ ] Enforcement storage proxy verifies storage operations against declared operational data contracts — [Enforcement](#enforcement) <!-- wl:check enforcement-storage-proxy-verifies-storage -->
+- [ ] Undeclared resource access by agents with operational data contracts triggers ENFORCEMENT_DATA_CONTRACT_VIOLATION — [Enforcement](#enforcement) <!-- wl:check undeclared-resource-access-agents-operational -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 4.0.0
+version: 4.0.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -887,19 +887,19 @@ opt-level = 3
 
 ## Verification Checklist
 
-- [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members ([Workspace Layout](#workspace-layout), [Workspace Cargo.toml](#workspace-cargotoml))
-- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface))
-- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface))
-- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys))
-- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface))
-- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResult`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates ([Protocol Type Definitions](#protocol-type-definitions), [Workspace Layout](#workspace-layout))
-- [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request
-- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes))
-- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits))
-- [ ] IF SQLite was chosen: `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements](#sqlite-requirements), [Storage Mapping (Rust)](#storage-mapping-rust))
-- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode))
-- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling))
-- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency))
-- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables))
-- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism))
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI ([CI](#ci))
+- [ ] Cargo workspace contains `weblisk-core` library crate, `server` binary crate, and one or more `agents/<name>` binary crates — all listed in root `Cargo.toml` `[workspace]` members ([Workspace Layout](#workspace-layout), [Workspace Cargo.toml](#workspace-cargotoml)) <!-- wl:check cargo-workspace-contains-weblisk-core-library -->
+- [ ] Every routed path is a `pub const PATH_<OPERATION>` in `weblisk-core`; no path literal appears at a registration site, in a client, or in a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-pub-const-path-operation -->
+- [ ] Each component declares its routes as one table and builds its router from it in one function; no module registers routes beside its handlers ([The HTTP Surface](#the-http-surface)) <!-- wl:check component-declares-routes-table-builds-router -->
+- [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` with a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check wrong-method-answers-405-allow-header -->
+- [ ] Path parameters are read through one helper; no handler splits `uri.path()` itself ([The HTTP Surface](#the-http-surface)) <!-- wl:check path-parameters-read-through-helper -->
+- [ ] All protocol types (`AgentManifest`, `TaskRequest`, `TaskResult`, `Liveness`, `Readiness`, `LeaseRenewal`, `ErrorResponse`) are defined in `weblisk-core` with `#[derive(Serialize, Deserialize)]` and shared across all binary crates ([Protocol Type Definitions](#protocol-type-definitions), [Workspace Layout](#workspace-layout)) <!-- wl:check protocol-types-agentmanifest-taskrequest -->
+- [ ] `http_body_util::Limited` is applied on all request body reads, at the limit [IO Safety](#io-safety) gives each kind of request <!-- wl:check http-body-util-limited-applied-request -->
+- [ ] All shared state is wrapped in `Arc<tokio::sync::RwLock<T>>` or `Arc<tokio::sync::Mutex<T>>` — no raw `Mutex` or unprotected shared mutable state ([Concurrency](#concurrency), [Implementation Notes](#implementation-notes)) <!-- wl:check shared-state-wrapped-arc-tokio-sync -->
+- [ ] Concurrency limiter uses `tokio::sync::Semaphore` and returns 429 with `Retry-After` header and structured `ErrorResponse` when agent is at capacity ([Agent Concurrency Limiter](#agent-concurrency-limiter), [`architecture/agent`](../architecture/agent.md#agent-side-limits)) <!-- wl:check concurrency-limiter-uses-tokio-sync-semaphore -->
+- [ ] IF SQLite was chosen: `rusqlite` uses `WAL` journal mode and `user_version` pragma for schema migrations; tables created with `CREATE TABLE IF NOT EXISTS` ([SQLite Requirements](#sqlite-requirements), [Storage Mapping (Rust)](#storage-mapping-rust)) <!-- wl:check sqlite-chosen-rusqlite-uses-wal-journal -->
+- [ ] When `WL_DEV=1`, storage falls back to in-memory `HashMap` and prints warning: `"[dev] using in-memory storage — data will not survive restart"` ([Development Mode](#development-mode)) <!-- wl:check when-wl-dev-1-storage-falls -->
+- [ ] All fallible functions return `Result<T, E>` — no `unwrap()` or `expect()` in production code paths; HTTP handlers convert errors to JSON `ErrorResponse` ([Error Handling](#error-handling)) <!-- wl:check fallible-functions-return-result-t-e -->
+- [ ] No `unsafe` blocks in any application code — all memory safety enforced by the borrow checker ([Memory Safety](#memory-safety), [Concurrency](#concurrency)) <!-- wl:check no-unsafe-blocks-application-code-memory -->
+- [ ] Configuration loads from the environment variables this document lists and the component's blueprint declares, and from command-line flags (`--port`, `--orch`); nothing reads a `.env` file, and no model provider, model name or key is read from the environment ([Configuration](#configuration), [Environment Variables](#environment-variables)) <!-- wl:check configuration-loads-environment-variables -->
+- [ ] Domain controllers use `tokio::task::JoinSet` for parallel phase execution and a per-agent `Semaphore` respecting `max_concurrent` ([Domain Dispatch Parallelism](#domain-dispatch-parallelism)) <!-- wl:check domain-controllers-use-tokio-task-joinset -->
+- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo audit` pass in CI ([CI](#ci)) <!-- wl:check cargo-fmt-check-cargo-clippy-d -->

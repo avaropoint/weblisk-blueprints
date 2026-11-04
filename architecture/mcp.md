@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: mcp
-version: 1.4.7
+version: 1.4.8
 requires: [protocol/types, protocol/identity, protocol/spec, architecture/agent, architecture/gateway, patterns/scope, patterns/safety, patterns/auth-oauth]
 platform: any
 tier: free
@@ -476,19 +476,19 @@ security:
 
 ## Verification Checklist
 
-- [ ] A tool's `input_contract` MUST NOT declare a tenant, organisation, project or principal identifier ([Design Principles](#design-principles) 2, [Security](#security))
-- [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored ([Data Flow](#data-flow) step 4, [Design Principles](#design-principles) 3)
-- [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals ([Data Flow](#data-flow) step 3, [Design Principles](#design-principles) 5)
-- [ ] A caller presenting a person's operator token, whatever its `cap`, is refused with `PASS_REQUIRED` before any tool is resolved, a security event is logged, and nothing is performed ([Data Flow](#data-flow) step 2, [`protocol/identity`](../protocol/identity.md#the-pass))
-- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries a capability [`protocol/types`](../protocol/types.md#capability) marks person only, invokes no tool whose operation needs one: the call is refused as an unknown name is, and nothing is performed ([Data Flow](#data-flow) steps 2 and 3)
-- [ ] Discovery without credentials MUST return only declarations marked discoverable ([Endpoints](#endpoints))
-- [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope ([Interfaces](#interfaces), [Security](#security))
-- [ ] A tool with `mutates: true` MUST be refused without an idempotency key ([Types](#types), [Security](#security))
-- [ ] A repeated invocation carrying the same idempotency key MUST return the first outcome without acting again ([Types](#types), [Security](#security))
-- [ ] Every invocation MUST pass the safety gate before execution ([Data Flow](#data-flow) step 5, [Security](#security))
-- [ ] Every invocation MUST produce an audit entry naming the person and the client its credential names, the tool, outcome and time ([Data Flow](#data-flow) step 8)
-- [ ] An error response MUST NOT contain an internal identifier, query, or stack detail ([Security](#security))
-- [ ] A read tool whose result carries a row of a `restricted` register is refused with `SCOPE_CEILING_EXCEEDED`, carrying a `DestinationRefusal` with ceiling `internal`, and returns no row of it, whatever the caller's credential may read ([The destination gate](#the-destination-gate))
-- [ ] A tool result that carries an entry whose scope the action did not report is refused with `SCOPE_MISSING`, and nothing of it is returned ([The destination gate](#the-destination-gate))
-- [ ] A tool result at `confidential` is refused although the tenant has recorded an agreement at `confidential` for its own model backend ([The destination gate](#the-destination-gate))
-- [ ] A mutating tool whose result is refused still records its action and its outcome in the audit, and returns nothing of the result ([The destination gate](#the-destination-gate))
+- [ ] A tool's `input_contract` MUST NOT declare a tenant, organisation, project or principal identifier ([Design Principles](#design-principles) 2, [Security](#security)) <!-- wl:check tools-input-contract-not-declare-tenant -->
+- [ ] An argument not declared in `input_contract` MUST be rejected rather than ignored ([Data Flow](#data-flow) step 4, [Design Principles](#design-principles) 3) <!-- wl:check argument-not-declared-input-contract-rejected -->
+- [ ] An unknown tool name and a tool outside the caller's scope MUST produce identical refusals ([Data Flow](#data-flow) step 3, [Design Principles](#design-principles) 5) <!-- wl:check unknown-tool-name-tool-outside-callers -->
+- [ ] A caller presenting a person's operator token, whatever its `cap`, is refused with `PASS_REQUIRED` before any tool is resolved, a security event is logged, and nothing is performed ([Data Flow](#data-flow) step 2, [`protocol/identity`](../protocol/identity.md#the-pass)) <!-- wl:check caller-presenting-persons-operator-token -->
+- [ ] A caller whose credential `patterns/auth-oauth` issued for this surface, for a person whose role carries a capability [`protocol/types`](../protocol/types.md#capability) marks person only, invokes no tool whose operation needs one: the call is refused as an unknown name is, and nothing is performed ([Data Flow](#data-flow) steps 2 and 3) <!-- wl:check caller-credential-patterns-auth-oauth-issued -->
+- [ ] Discovery without credentials MUST return only declarations marked discoverable ([Endpoints](#endpoints)) <!-- wl:check discovery-without-credentials-return -->
+- [ ] An authenticated caller's discovery MUST return nothing outside its resolved scope ([Interfaces](#interfaces), [Security](#security)) <!-- wl:check authenticated-callers-discovery-return-nothing -->
+- [ ] A tool with `mutates: true` MUST be refused without an idempotency key ([Types](#types), [Security](#security)) <!-- wl:check tool-mutates-true-refused-without-idempotency -->
+- [ ] A repeated invocation carrying the same idempotency key MUST return the first outcome without acting again ([Types](#types), [Security](#security)) <!-- wl:check repeated-invocation-carrying-idempotency-key -->
+- [ ] Every invocation MUST pass the safety gate before execution ([Data Flow](#data-flow) step 5, [Security](#security)) <!-- wl:check invocation-pass-safety-gate-before-execution -->
+- [ ] Every invocation MUST produce an audit entry naming the person and the client its credential names, the tool, outcome and time ([Data Flow](#data-flow) step 8) <!-- wl:check invocation-produce-audit-entry-naming-person -->
+- [ ] An error response MUST NOT contain an internal identifier, query, or stack detail ([Security](#security)) <!-- wl:check error-response-not-contain-internal-identifier -->
+- [ ] A read tool whose result carries a row of a `restricted` register is refused with `SCOPE_CEILING_EXCEEDED`, carrying a `DestinationRefusal` with ceiling `internal`, and returns no row of it, whatever the caller's credential may read ([The destination gate](#the-destination-gate)) <!-- wl:check read-tool-result-carries-row-restricted -->
+- [ ] A tool result that carries an entry whose scope the action did not report is refused with `SCOPE_MISSING`, and nothing of it is returned ([The destination gate](#the-destination-gate)) <!-- wl:check tool-result-carries-entry-scope-action -->
+- [ ] A tool result at `confidential` is refused although the tenant has recorded an agreement at `confidential` for its own model backend ([The destination gate](#the-destination-gate)) <!-- wl:check tool-result-confidential-refused-although-tenant -->
+- [ ] A mutating tool whose result is refused still records its action and its outcome in the audit, and returns nothing of the result ([The destination gate](#the-destination-gate)) <!-- wl:check mutating-tool-result-refused-still-records -->

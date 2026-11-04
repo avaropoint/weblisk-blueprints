@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 3.1.1
+version: 3.1.2
 requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free
@@ -585,22 +585,22 @@ types:
 
 ## Verification Checklist
 
-- [ ] Agents declare required secrets in their blueprint — [Secret Declaration](#secret-declaration)
-- [ ] Agent startup fails if a required secret is missing — [Declaration Rules](#declaration-rules), [Access During Startup](#access-during-startup)
-- [ ] Agent startup succeeds with optional secrets missing — [Access During Startup](#access-during-startup)
-- [ ] Agents can only access their own declared secrets — [Access Rules](#access-rules), [Per-Agent Isolation](#per-agent-isolation)
-- [ ] Cross-agent secret access is rejected with a `secrets.denied` log — [Access Rules](#access-rules), [Audit Trail](#audit-trail)
-- [ ] Secret values never appear in logs (any level) — [Audit Trail](#audit-trail)
-- [ ] Secret values never appear in event payloads — [Design Principles](#design-principles)
-- [ ] Secret values never appear in API responses — [Design Principles](#design-principles)
-- [ ] Manual rotation updates the value without agent restart — [Manual Rotation](#manual-rotation), [Design Principles](#design-principles)
-- [ ] Scheduled rotation executes on cron schedule — [Scheduled Rotation](#scheduled-rotation)
-- [ ] Automatic rotation triggers on auth failure — [Automatic Rotation](#automatic-rotation)
-- [ ] Every secret access is audit-logged — [Access Rules](#access-rules), [Audit Trail](#audit-trail)
-- [ ] File-based store uses 0600 permissions — [Default: File-Based Store](#default-file-based-store)
-- [ ] Secret metadata tracks creation, rotation, and expiry — [Secret Metadata](#secret-metadata)
-- [ ] Shared secrets are accessible only to declaring agents — [Shared Secrets](#shared-secrets)
-- [ ] CI/CD pipelines inject secrets from platform secret stores, never from repo files — [Environment Injection (PaaS)](#environment-injection-paas)
-- [ ] Secret values never appear in CI/CD logs (log masking enforced) — [Environment Injection (PaaS)](#environment-injection-paas)
-- [ ] Secrets are scoped per-environment (dev/staging/prod use different values) — [What MUST NOT Be in CI/CD Pipelines](#what-must-not-be-in-cicd-pipelines)
-- [ ] `weblisk secret set` uses interactive prompt or --stdin, never CLI arguments — [Direct Provision (File Store)](#direct-provision-file-store), [What MUST NOT Be in CI/CD Pipelines](#what-must-not-be-in-cicd-pipelines)
+- [ ] Agents declare required secrets in their blueprint — [Secret Declaration](#secret-declaration) <!-- wl:check agents-declare-required-secrets-blueprint-secret -->
+- [ ] Agent startup fails if a required secret is missing — [Declaration Rules](#declaration-rules), [Access During Startup](#access-during-startup) <!-- wl:check agent-startup-fails-required-secret-missing -->
+- [ ] Agent startup succeeds with optional secrets missing — [Access During Startup](#access-during-startup) <!-- wl:check agent-startup-succeeds-optional-secrets-missing -->
+- [ ] Agents can only access their own declared secrets — [Access Rules](#access-rules), [Per-Agent Isolation](#per-agent-isolation) <!-- wl:check agents-access-own-declared-secrets-access -->
+- [ ] Cross-agent secret access is rejected with a `secrets.denied` log — [Access Rules](#access-rules), [Audit Trail](#audit-trail) <!-- wl:check cross-agent-secret-access-rejected-secrets -->
+- [ ] Secret values never appear in logs (any level) — [Audit Trail](#audit-trail) <!-- wl:check secret-values-never-appear-logs-level -->
+- [ ] Secret values never appear in event payloads — [Design Principles](#design-principles) <!-- wl:check secret-values-never-appear-event-payloads -->
+- [ ] Secret values never appear in API responses — [Design Principles](#design-principles) <!-- wl:check secret-values-never-appear-api-responses -->
+- [ ] Manual rotation updates the value without agent restart — [Manual Rotation](#manual-rotation), [Design Principles](#design-principles) <!-- wl:check manual-rotation-updates-value-without-agent -->
+- [ ] Scheduled rotation executes on cron schedule — [Scheduled Rotation](#scheduled-rotation) <!-- wl:check scheduled-rotation-executes-cron-schedule -->
+- [ ] Automatic rotation triggers on auth failure — [Automatic Rotation](#automatic-rotation) <!-- wl:check automatic-rotation-triggers-auth-failure -->
+- [ ] Every secret access is audit-logged — [Access Rules](#access-rules), [Audit Trail](#audit-trail) <!-- wl:check secret-access-audit-logged-access-rules -->
+- [ ] File-based store uses 0600 permissions — [Default: File-Based Store](#default-file-based-store) <!-- wl:check file-based-store-uses-0600-permissions -->
+- [ ] Secret metadata tracks creation, rotation, and expiry — [Secret Metadata](#secret-metadata) <!-- wl:check secret-metadata-tracks-creation-rotation-expiry -->
+- [ ] Shared secrets are accessible only to declaring agents — [Shared Secrets](#shared-secrets) <!-- wl:check shared-secrets-accessible-declaring-agents -->
+- [ ] CI/CD pipelines inject secrets from platform secret stores, never from repo files — [Environment Injection (PaaS)](#environment-injection-paas) <!-- wl:check ci-cd-pipelines-inject-secrets-platform -->
+- [ ] Secret values never appear in CI/CD logs (log masking enforced) — [Environment Injection (PaaS)](#environment-injection-paas) <!-- wl:check secret-values-never-appear-ci-cd -->
+- [ ] Secrets are scoped per-environment (dev/staging/prod use different values) — [What MUST NOT Be in CI/CD Pipelines](#what-must-not-be-in-cicd-pipelines) <!-- wl:check secrets-scoped-per-environment-dev-staging -->
+- [ ] `weblisk secret set` uses interactive prompt or --stdin, never CLI arguments — [Direct Provision (File Store)](#direct-provision-file-store), [What MUST NOT Be in CI/CD Pipelines](#what-must-not-be-in-cicd-pipelines) <!-- wl:check weblisk-secret-set-uses-interactive-prompt -->

@@ -188,13 +188,13 @@ families are exactly the declared ones.
 
 ## Verification Checklist
 
-- [ ] Every ref in [`vectors/ids.json`](../vectors/ids.json)'s `valid` set parses to exactly its listed fields, and every ref in its `invalid` set is refused ([`checks/ids.py`](../checks/ids.py)) ([The grammar](#the-grammar))
-- [ ] Every valid ref reads back as the same string from YAML as a block-list item, a flow-list item and a mapping value ([The grammar](#the-grammar) rule 1)
-- [ ] Every invalid ref marked `yaml_unsafe` does not read back as the same string, so the rule that refuses it answers a real fault ([The grammar](#the-grammar))
-- [ ] An accept-everything parser is reported on every invalid vector, so the check reaches what it claims to
-- [ ] The vectors' `families` are exactly the kinds of `schemas/kinds` and the families declared above ([Families](#families), [Declaration](#declaration))
-- [ ] No file in this repository names a namespace that is neither reserved nor this repository's own, and a fixture naming another is reported ([`checks/names.py`](../checks/names.py)) ([Namespaces](#namespaces), [Where a namespace may appear](#where-a-namespace-may-appear))
-- [ ] A leading word is a family only when it is declared; nothing infers one from shape ([The grammar](#the-grammar) rule 2)
-- [ ] Nothing records a `#` anchor as an identity ([Three separators, three meanings](#three-separators-three-meanings))
-- [ ] A node whose kind is named in a namespace is recorded by its full ref with its anchor and version removed, a short ref is completed with its writer's namespace first, and a ref into a namespace nothing in scope declares is reported and never recorded ([Three written forms](#three-written-forms))
-- [ ] A namespace is read only from a `catalog.yaml` at a repository's root, never from one found by a reader rooted inside the repository ([Namespaces](#namespaces))
+- [ ] Every ref in [`vectors/ids.json`](../vectors/ids.json)'s `valid` set parses to exactly its listed fields, and every ref in its `invalid` set is refused ([`checks/ids.py`](../checks/ids.py)) ([The grammar](#the-grammar)) <!-- wl:check ref-vectors-ids-json-s-valid -->
+- [ ] Every valid ref reads back as the same string from YAML as a block-list item, a flow-list item and a mapping value ([The grammar](#the-grammar) rule 1) <!-- wl:check valid-ref-reads-back-string-yaml -->
+- [ ] Every invalid ref marked `yaml_unsafe` does not read back as the same string, so the rule that refuses it answers a real fault ([The grammar](#the-grammar)) <!-- wl:check invalid-ref-marked-yaml-unsafe -->
+- [ ] An accept-everything parser is reported on every invalid vector, so the check reaches what it claims to <!-- wl:check accept-everything-parser-reported-invalid-vector -->
+- [ ] The vectors' `families` are exactly the kinds of `schemas/kinds` and the families declared above ([Families](#families), [Declaration](#declaration)) <!-- wl:check vectors-families-exactly-kinds-schemas-kinds -->
+- [ ] No file in this repository names a namespace that is neither reserved nor this repository's own, and a fixture naming another is reported ([`checks/names.py`](../checks/names.py)) ([Namespaces](#namespaces), [Where a namespace may appear](#where-a-namespace-may-appear)) <!-- wl:check no-file-repository-names-namespace-reserved -->
+- [ ] A leading word is a family only when it is declared; nothing infers one from shape ([The grammar](#the-grammar) rule 2) <!-- wl:check leading-word-family-when-declared-nothing -->
+- [ ] Nothing records a `#` anchor as an identity ([Three separators, three meanings](#three-separators-three-meanings)) <!-- wl:check nothing-records-anchor-identity -->
+- [ ] A node whose kind is named in a namespace is recorded by its full ref with its anchor and version removed, a short ref is completed with its writer's namespace first, and a ref into a namespace nothing in scope declares is reported and never recorded ([Three written forms](#three-written-forms)) <!-- wl:check node-kind-named-namespace-recorded-full -->
+- [ ] A namespace is read only from a `catalog.yaml` at a repository's root, never from one found by a reader rooted inside the repository ([Namespaces](#namespaces)) <!-- wl:check namespace-read-catalog-yaml-repositorys-root -->

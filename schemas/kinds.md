@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.5.0
+version: 1.5.1
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -654,14 +654,14 @@ not, the answer is a new relation in the table above, not a spelling.
 
 ## Verification Checklist
 
-- [ ] Every declared kind's `specializes` names a declared kind or is empty ([Data facets](#data-facets))
-- [ ] Every capability a kind declares is one this schema declares ([Capabilities](#capabilities), [Rules](#rules) 3)
-- [ ] No specialisation removes a capability its parent declares ([Rules](#rules) 4)
-- [ ] A kind without `chain-member` contributes nothing to an evidence chain and is placed at no layer ([Evidence chain layers](#evidence-chain-layers), [Rules](#rules) 6)
-- [ ] A kind without `counts-as-coverage` never raises a coverage figure ([Capabilities](#capabilities), [Rules](#rules) 6)
-- [ ] A kind without `opens-gap` never produces a finding by its absence ([Capabilities](#capabilities), [Rules](#rules) 6)
-- [ ] An undeclared kind is reported as undeclared and is granted no capability ([Rules](#rules) 2)
-- [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites ([Declared kinds](#declared-kinds), [What the table says, in words](#what-the-table-says-in-words))
-- [ ] No implementation switches on a kind name; capability is the only question asked ([Rules](#rules) 1)
-- [ ] A relation asserted between kinds this file does not pair is reported as a producer fault ([Relations](#relations))
-- [ ] Two references to one artifact from different subsystems resolve to the same kind ([One implementation](#one-implementation), [Rules](#rules) 7)
+- [ ] Every declared kind's `specializes` names a declared kind or is empty ([Data facets](#data-facets)) <!-- wl:check declared-kinds-specializes-names-declared-kind -->
+- [ ] Every capability a kind declares is one this schema declares ([Capabilities](#capabilities), [Rules](#rules) 3) <!-- wl:check capability-kind-declares-schema-declares -->
+- [ ] No specialisation removes a capability its parent declares ([Rules](#rules) 4) <!-- wl:check no-specialisation-removes-capability-parent -->
+- [ ] A kind without `chain-member` contributes nothing to an evidence chain and is placed at no layer ([Evidence chain layers](#evidence-chain-layers), [Rules](#rules) 6) <!-- wl:check kind-without-chain-member-contributes-nothing -->
+- [ ] A kind without `counts-as-coverage` never raises a coverage figure ([Capabilities](#capabilities), [Rules](#rules) 6) <!-- wl:check kind-without-counts-coverage-never-raises -->
+- [ ] A kind without `opens-gap` never produces a finding by its absence ([Capabilities](#capabilities), [Rules](#rules) 6) <!-- wl:check kind-without-opens-gap-never-produces -->
+- [ ] An undeclared kind is reported as undeclared and is granted no capability ([Rules](#rules) 2) <!-- wl:check undeclared-kind-reported-undeclared-granted -->
+- [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites ([Declared kinds](#declared-kinds), [What the table says, in words](#what-the-table-says-in-words)) <!-- wl:check control-declares-criterion-nothing-versions -->
+- [ ] No implementation switches on a kind name; capability is the only question asked ([Rules](#rules) 1) <!-- wl:check no-implementation-switches-kind-name-capability -->
+- [ ] A relation asserted between kinds this file does not pair is reported as a producer fault ([Relations](#relations)) <!-- wl:check relation-asserted-between-kinds-file -->
+- [ ] Two references to one artifact from different subsystems resolve to the same kind ([One implementation](#one-implementation), [Rules](#rules) 7) <!-- wl:check two-references-artifact-different-subsystems -->

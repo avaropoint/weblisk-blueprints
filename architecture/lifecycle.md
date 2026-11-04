@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: lifecycle
-version: 1.2.1
+version: 1.2.2
 requires: [protocol/types, architecture/domain, architecture/agent, patterns/messaging]
 platform: any
 tier: free
@@ -733,17 +733,17 @@ security:
 
 ## Verification Checklist
 
-- [ ] Strategies can be created via POST /v1/message to Lifecycle Agent ([Interfaces](#interfaces))
-- [ ] Lifecycle Agent maps strategies to domains and publishes workflow.trigger ([Phase 1 — Strategize](#phase-1--strategize))
-- [ ] Observations are captured from workflow.completed events (scope: "*") ([Phase 2 — Observe](#phase-2--observe))
-- [ ] Recommendations have priority, impact, and status ([Phase 3 — Recommend](#phase-3--recommend))
-- [ ] Approval workflow transitions: pending → accepted/rejected → applied ([Phase 3 — Recommend](#phase-3--recommend), [Phase 4 — Execute](#phase-4--execute))
-- [ ] Lifecycle Agent publishes lifecycle.recommendation.* events ([Interfaces](#interfaces), [Phase 3 — Recommend](#phase-3--recommend))
-- [ ] Feedback is collected after applying changes ([Phase 5 — Measure](#phase-5--measure))
-- [ ] Feedback signal correctly reflects metric change direction ([Phase 5 — Measure](#phase-5--measure))
-- [ ] AgentMetrics are updated after each feedback entry ([Agent Metrics Update](#agent-metrics-update))
-- [ ] Strategy progress is recalculated from latest observations ([Strategy Progress Update](#strategy-progress-update))
-- [ ] Completed strategies transition to "completed" status ([Strategy Progress Update](#strategy-progress-update))
-- [ ] Multiple lifecycle cycles can run concurrently ([Timing and Triggers](#timing-and-triggers))
-- [ ] Full audit trail exists for every state transition ([Implementation Notes](#implementation-notes))
-- [ ] Lifecycle Agent does NOT require orchestrator endpoints for data storage ([Continuous Optimization Lifecycle](#continuous-optimization-lifecycle))
+- [ ] Strategies can be created via POST /v1/message to Lifecycle Agent ([Interfaces](#interfaces)) <!-- wl:check strategies-created-via-post-v1-message -->
+- [ ] Lifecycle Agent maps strategies to domains and publishes workflow.trigger ([Phase 1 — Strategize](#phase-1--strategize)) <!-- wl:check lifecycle-agent-maps-strategies-domains -->
+- [ ] Observations are captured from workflow.completed events (scope: "*") ([Phase 2 — Observe](#phase-2--observe)) <!-- wl:check observations-captured-workflow-completed-events -->
+- [ ] Recommendations have priority, impact, and status ([Phase 3 — Recommend](#phase-3--recommend)) <!-- wl:check recommendations-priority-impact-status -->
+- [ ] Approval workflow transitions: pending → accepted/rejected → applied ([Phase 3 — Recommend](#phase-3--recommend), [Phase 4 — Execute](#phase-4--execute)) <!-- wl:check approval-workflow-transitions-pending-accepted -->
+- [ ] Lifecycle Agent publishes lifecycle.recommendation.* events ([Interfaces](#interfaces), [Phase 3 — Recommend](#phase-3--recommend)) <!-- wl:check lifecycle-agent-publishes-lifecycle -->
+- [ ] Feedback is collected after applying changes ([Phase 5 — Measure](#phase-5--measure)) <!-- wl:check feedback-collected-after-applying-changes -->
+- [ ] Feedback signal correctly reflects metric change direction ([Phase 5 — Measure](#phase-5--measure)) <!-- wl:check feedback-signal-correctly-reflects-metric-change -->
+- [ ] AgentMetrics are updated after each feedback entry ([Agent Metrics Update](#agent-metrics-update)) <!-- wl:check agentmetrics-updated-after-feedback-entry -->
+- [ ] Strategy progress is recalculated from latest observations ([Strategy Progress Update](#strategy-progress-update)) <!-- wl:check strategy-progress-recalculated-latest -->
+- [ ] Completed strategies transition to "completed" status ([Strategy Progress Update](#strategy-progress-update)) <!-- wl:check completed-strategies-transition-completed-status -->
+- [ ] Multiple lifecycle cycles can run concurrently ([Timing and Triggers](#timing-and-triggers)) <!-- wl:check multiple-lifecycle-cycles-run-concurrently -->
+- [ ] Full audit trail exists for every state transition ([Implementation Notes](#implementation-notes)) <!-- wl:check full-audit-trail-exists-state-transition -->
+- [ ] Lifecycle Agent does NOT require orchestrator endpoints for data storage ([Continuous Optimization Lifecycle](#continuous-optimization-lifecycle)) <!-- wl:check lifecycle-agent-not-require-orchestrator -->
