@@ -666,7 +666,7 @@ The digest is the SHA-256 of the RFC 8785 bytes of this object, written
 criterion_digest_input:
   text: <the criterion's text, its id marker removed, each run of whitespace one space, trimmed>
   cites:                           # sorted by ref; empty when it cites nothing
-    - ref: <full ref of the cited definition: a type, an error, an operation, a check's data>
+    - ref: '<full ref of the cited definition: a type, an error, an operation, a check''s data>'
       digest: <that definition's digest, over its value, as schemas/family digests a block entry>
 ```
 

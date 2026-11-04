@@ -696,7 +696,8 @@
    "until-tenant-runs-change-service-change",
    "change-apply-unapproved-change-refused",
    "change-apply-reads-corpus-changes-pins",
-   "change-plan-upgrade-refreshes-clone-tenant"
+   "change-plan-upgrade-refreshes-clone-tenant",
+   "cli-status-hub-identity"
   ],
   "architecture/client.md": [
    "browser-session-token-uses-wls-type",
