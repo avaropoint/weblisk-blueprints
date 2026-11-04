@@ -206,6 +206,11 @@ event:
   body: {}                         # the type's fields, below
 ```
 
+An event MUST carry exactly the envelope's six fields, under the names above
+and no others: the instant is `at`, never `instant` or `time`, so that two
+front ends' streams compare without a mapping between them (owner's decision,
+2026-11-04). <!-- wl:id envelope-names-fixed -->
+
 Each event MUST be one JSON object in the RFC 8785 canonical form. Under
 `--json` the CLI writes one per line, and Studio's stream route carries the
 same objects, so the two streams of one invocation are equal byte for byte
@@ -932,7 +937,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] The manifest names each vocabulary's declaring file and version, and a corpus whose declaring file is a later major is refused, naming the file and both versions ([Closed vocabularies](#closed-vocabularies)) <!-- wl:check vocabulary-versions-refused covers vocabularies-versioned -->
 - [ ] Studio, asked for a `cli-in-tenant` operation on a tenant, asks the tenant's engine through `tenant-api` and runs nothing on its own host ([Three hosts](#three-hosts)) <!-- wl:check client-asks-tenant covers cli-in-tenant-through-tenant -->
 - [ ] An operation acting on a tenant calls the tenant's model through the tenant, and Studio calls no model of its own ([Three hosts](#three-hosts)) <!-- wl:check tenant-model-for-tenant-acts covers model-is-the-acts-owner -->
-- [ ] Every operation in the manifest returns one event stream opened by one `started` and closed by one `finished`, with `seq` rising by one from 1 ([Events](#events)) <!-- wl:check streams-bracketed covers one-command-one-stream stream-bracketed -->
+- [ ] Every operation in the manifest returns one event stream opened by one `started` and closed by one `finished`, with `seq` rising by one from 1, and every event carries exactly `operation`, `invocation`, `seq`, `at`, `type` and `body` ([Events](#events)) <!-- wl:check streams-bracketed covers one-command-one-stream stream-bracketed envelope-names-fixed -->
 - [ ] The manifest lists exactly the catalogue's operations with their executors and events, and each front end exposes it unchanged ([The manifest](#the-manifest), [The operation catalogue](#the-operation-catalogue)) <!-- wl:check manifest-equals-catalogue covers manifest-is-the-catalogue front-ends-render-manifest front-end-parity -->
 - [ ] Each front end offers the manifest's operations and `version`, `help` and `commands` and nothing else; the three read only the manifest and the front end's own build; and neither front end offers `doctor`, `update`, `app *`, `marketplace *`, `deps audit` or `gateway policy *` ([Front-end-only commands](#front-end-only-commands)) <!-- wl:check front-end-own-commands covers front-end-only-three undriven-commands-absent -->
 - [ ] Driving one operation through the CLI under `--json` and through Studio's stream route, with the same scripted answers, gives streams equal byte for byte once `invocation` and `at` are normalised ([Events](#events)) <!-- wl:check streams-equal covers streams-byte-equal front-end-parity -->

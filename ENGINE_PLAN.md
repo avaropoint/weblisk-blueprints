@@ -89,6 +89,10 @@ operation types, the `question` event, and the operation catalogue
 events, records and driving documents of each operation. What remains here is
 migration: which of today's commands fold into which operation.
 
+**The envelope's instant is `at`.** The CLI's first streams wrote it as
+`instant`; [`architecture/engine`](architecture/engine.md#events) keeps `at`
+as normative (owner's decision, 2026-11-04), and the CLI changes to it.
+
 **Folded or deleted**
 
 | Today | Becomes |
