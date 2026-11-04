@@ -455,7 +455,7 @@ defs:
         minItems: 1
         items: {enum: [listens, no-exit, registered, listed, lease-current, lease-renewed, readyz-agrees]}
         description: "listens: it binds its port; no-exit: it does not exit; registered: it holds an agent_id and a token; listed: the orchestrator's directory lists it; lease-current: its lease_state is ready, or not_ready where its blueprint allows, never unknown; lease-renewed: it renews within a third of its duration; readyz-agrees: its /readyz answers as its last renewal did."
-      within: {oneOf: [{$ref: "#/$defs/duration-literal"}, {const: lease}], description: "How long each observation may take; lease is one lease duration."}
+      within: {oneOf: [{$ref: "#/$defs/duration-literal"}, {const: lease}], description: "How long each observation may take; lease is one lease duration: the orchestrator.lease_duration the started orchestrator's configuration sets, else the default schemas/config's config block declares."}
       steps: {type: array, items: {$ref: "#/$defs/exchange-step"}, description: "Sent once joined."}
   check-record:
     type: object

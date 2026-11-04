@@ -183,10 +183,26 @@ D25 rule 3 permits self-approval on, that a change records as
 | `storage` | enum | no | `memory` | Backing store for registry, audit log, event history |
 | `storage_path` | string | no | `.weblisk/data/orchestrator.db` | File path when storage is `sqlite` |
 | `token_ttl` | duration | no | `24h` | WLT token lifetime. Agents must re-register before expiry. |
-| `lease_duration` | duration | no | `30s` | How long a registered component's lease lasts from each renewal; components renew on the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets. Past it, the component's directory entry reads `unknown` ([`protocol/types`](../protocol/types.md#presence)). The orchestrator probes no component, so nothing here sets an interval, a timeout or a failure count |
+| `lease_duration` | duration | no | `30s`, declared as data below | How long a registered component's lease lasts from each renewal; components renew on the cadence [`protocol/types`](../protocol/types.md#leaserenewal) sets. Past it, the component's directory entry reads `unknown` ([`protocol/types`](../protocol/types.md#presence)). The orchestrator probes no component, so nothing here sets an interval, a timeout or a failure count |
 | `admin_addresses` | list | yes | — | The origins at which this hub's admin gateway is reached, each in the ASCII serialisation of RFC 6454 section 6.2 (`https://admin.example.org`, with a port only where it is not the scheme's default). The orchestrator signs a hub proof for these and no other ([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)), and rule 20 requires at least one: a hub that listed none would prove its `hub_id` at no address, and once `weblisk/hub-proof/v1` has test vectors no client would record it at a new address. Wherever an admin gateway runs, every origin it is reached at MUST be listed here. `weblisk tenant create` writes the origin of the gateway it stands up ([`architecture/admin`](../architecture/admin.md#addresses)). |
 | `admin_gateway_from` | list | no | `[]` | The IP addresses the admin gateway's requests reach the orchestrator from. The orchestrator trusts `X-Forwarded-For` from these and no other, to count a request the gateway forwards to a route served without a token by the client's address rather than the gateway's ([`architecture/admin`](../architecture/admin.md#contracts), `auth-route-rate-limit`). Empty, it counts every such request by its connection's address, so the clients of a gateway share one count, and one client sending a route the five requests a minute the gateway lets it send uses up that route's count for every other person until the minute passes. Wherever an admin gateway admits clients from other hosts, every address its requests reach the orchestrator from MUST be listed here. An address other callers share, such as loopback on one host, lets each of them name its own source, so a gateway that admits only its own host's loopback addresses, as one `weblisk tenant create` stands up does, leaves it empty ([`architecture/admin`](../architecture/admin.md#addresses)) |
 | `admin_gateway_identity` | string | yes | — | The fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the key the admin gateway registers with. The orchestrator admits `token:exchange` for the registration with this identity id alone, and for none where the key is absent ([`protocol/types`](../protocol/types.md#capability)). `weblisk tenant create` makes the key and writes it ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity)) |
+
+The defaults a tool reads, rather than restates. A field here is
+`orchestrator.<field>`; its `default` is the value an orchestrator uses where
+the configuration sets none, and the engine reads it from this block wherever
+it needs the value, as a `join` check's `within: lease` does
+([`schemas/blocks`](blocks.md#definitions), `check-join`). The table above
+describes the field, and this block is the one home of its default.
+
+```yaml
+config:
+  orchestrator.lease_duration:
+    type: duration
+    required: false
+    default: 30s
+    description: How long a registered component's lease lasts from each renewal
+```
 
 ### admin_gateway
 
