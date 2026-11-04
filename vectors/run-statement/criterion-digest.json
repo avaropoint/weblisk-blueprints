@@ -1,0 +1,63 @@
+{
+  "format": "Worked criterion digests (architecture/engine.md, The unit is a criterion; schemas/run-statement.md, Criteria): the SHA-256 of the RFC 8785 bytes of {text, cites}, where text is the criterion's text with its id marker removed and each run of whitespace one space, trimmed, and cites lists each definition it cites by full ref and digest, sorted by ref. Each case gives the text and the cites as an author's tool might hold them (the cites unsorted where it matters), and the digest. equal names cases whose digests must agree; differ names cases whose digests must not. The definitions' digests here are shapes, not the digests of real blueprint parts.",
+  "cases": [
+    {
+      "name": "plain",
+      "text": "A registration whose signature does not verify is refused with 401 `SIGNATURE_INVALID`.",
+      "cites": [],
+      "digest": "sha256:8a55f1a47f678c2a9b57f2009b2ae61cf3efffe432e48140b0afe572f11f20fe"
+    },
+    {
+      "name": "marked-and-wrapped",
+      "text": "A registration whose signature\n  does not verify is refused with 401 `SIGNATURE_INVALID`. <!-- wl:check reg-sig covers reg-signed -->",
+      "cites": [],
+      "digest": "sha256:8a55f1a47f678c2a9b57f2009b2ae61cf3efffe432e48140b0afe572f11f20fe"
+    },
+    {
+      "name": "cites",
+      "text": "A registration whose signature does not verify is refused with 401 `SIGNATURE_INVALID`.",
+      "cites": [
+        {
+          "ref": "type://weblisk/protocol/types:ErrorResponse",
+          "digest": "sha256:f3634ff7adb71b8f9aabc41d062f6fc3f3bc06ca192743d4f66aef07c3702737"
+        },
+        {
+          "ref": "operation://weblisk/architecture/orchestrator:register",
+          "digest": "sha256:ba8d1365c5b3e49328a7c4a62ab5bf9d8331fe8d451de4251a5d399a6e7fbe0f"
+        }
+      ],
+      "digest": "sha256:f25cac32158cd517bb445345762d9ee849407a10efa2427b6ac9304bf3991f22"
+    },
+    {
+      "name": "cited-definition-moved",
+      "text": "A registration whose signature does not verify is refused with 401 `SIGNATURE_INVALID`.",
+      "cites": [
+        {
+          "ref": "type://weblisk/protocol/types:ErrorResponse",
+          "digest": "sha256:151418f08a07d70fbbdceb2b2269f2384abbc29262bf19bc29c3e1afdbe5a4b3"
+        },
+        {
+          "ref": "operation://weblisk/architecture/orchestrator:register",
+          "digest": "sha256:ba8d1365c5b3e49328a7c4a62ab5bf9d8331fe8d451de4251a5d399a6e7fbe0f"
+        }
+      ],
+      "digest": "sha256:1e1d5519d792d69969b4261bec2920e715647dbcbc87e63725ab461f62f3c34a"
+    }
+  ],
+  "equal": [
+    [
+      "plain",
+      "marked-and-wrapped"
+    ]
+  ],
+  "differ": [
+    [
+      "plain",
+      "cites"
+    ],
+    [
+      "cites",
+      "cited-definition-moved"
+    ]
+  ]
+}

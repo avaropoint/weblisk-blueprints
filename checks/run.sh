@@ -862,6 +862,41 @@ else
 	fails=$((fails + 1))
 fi
 
+# The run statement's actions and criteria against vectors/run-statement/,
+# under the rules schemas/run-statement.md declares and the steps
+# architecture/engine.md declares, and the worked criterion digests. A rule
+# added with no fixture, a fixture that breaks test-counts listed as valid,
+# and digests computed without sorting the cites are each reported, alone.
+expect 0 "run-statement-vectors: every fixture breaks exactly its rule, and every criterion digest agrees" python3 checks/run-statement-vectors.py
+mkdir -p "$tmp/rsv/architecture" "$tmp/rsv/vectors" && cp -R schemas "$tmp/rsv/" && cp architecture/engine.md "$tmp/rsv/architecture/" && cp -R vectors/ids.json vectors/run-statement "$tmp/rsv/vectors/"
+sed 's/^  - id: verdict-result$/  - id: action-unvectored\n    rule: a rule no fixture breaks\n  - id: verdict-result/' schemas/run-statement.md >"$tmp/rsv/schemas/run-statement.md"
+expect 1 "run-statement-vectors control: a rule with no fixture fails" python3 checks/run-statement-vectors.py --root "$tmp/rsv"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^rule action-unvectored: no fixture breaks it$' "$tmp/out"; then
+	echo "ok   run-statement-vectors control: exactly one finding, the unvectored rule"
+else
+	echo "FAIL run-statement-vectors control: want exactly one finding, the unvectored rule"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+cp schemas/run-statement.md "$tmp/rsv/schemas/run-statement.md"
+python3 -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); [f.update({"valid": True, "breaks": None}) or f.pop("breaks") for f in d["fixtures"] if f["file"]=="invalid-test-counts.json"]; json.dump(d,open(p,"w"))' "$tmp/rsv/vectors/run-statement/expected.json"
+expect 1 "run-statement-vectors control: a fixture breaking test-counts listed as valid fails" python3 checks/run-statement-vectors.py --root "$tmp/rsv"
+if grep -q "^invalid-test-counts.json: breaks \['test-counts'\]; expected nothing$" "$tmp/out" && grep -q '^rule test-counts: no fixture breaks it$' "$tmp/out" && [ "$(wc -l <"$tmp/out")" -eq 2 ]; then
+	echo "ok   run-statement-vectors control: exactly the mislabelled fixture, and its rule left unexercised"
+else
+	echo "FAIL run-statement-vectors control: want exactly the mislabelled fixture and its rule"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "run-statement-vectors control: criterion digests without sorted cites fail" python3 checks/run-statement-vectors.py --unsorted
+if [ "$(grep -c '^criterion-digest ' "$tmp/out")" -eq 2 ] && grep -q '^criterion-digest cites: ' "$tmp/out" && grep -q '^criterion-digest cited-definition-moved: ' "$tmp/out" && [ "$(wc -l <"$tmp/out")" -eq 2 ]; then
+	echo "ok   run-statement-vectors control: exactly the two cases that cite"
+else
+	echo "FAIL run-statement-vectors control: want exactly the two cases that cite"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # Every change to a versioned file's bytes moves its version (schemas/common.md,
 # Versioning), against the base version-bump.py names. With no base to read
 # (a shallow or new clone) it says NOT RUN, never ok, and

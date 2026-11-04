@@ -1,0 +1,328 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "predicateType": "https://slsa.dev/provenance/v1",
+  "subject": [
+    {
+      "name": "internal/widget/widget.go",
+      "digest": {
+        "sha256": "5694d08a2e53ffcae0c3103e5ad6f6076abd960eb1f8a56577040bc1028f702b"
+      }
+    }
+  ],
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "type://weblisk/schemas/run-statement:RunStatement",
+      "externalParameters": {
+        "component": "widget",
+        "roots": [
+          "blueprint://example/architecture/widget"
+        ],
+        "plan_digest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525"
+      },
+      "internalParameters": {
+        "tool": {
+          "name": "weblisk",
+          "version": "0.0.0"
+        },
+        "backend": "example-backend",
+        "model": "example-model-1",
+        "result": "complete",
+        "actions": [
+          {
+            "id": "resolve-1",
+            "step": "resolve",
+            "kind": "deterministic",
+            "inputs": [
+              {
+                "name": "request",
+                "digest": "sha256:1f58b9145b24d108d7ac38887338b3ea3229833b9c1e418250343f907bfd1047"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "build-set",
+                "digest": "sha256:e53fe20e4dc066f30599d175986728fa9755e73ea8114bc335a327d886e002dd"
+              }
+            ],
+            "result": "done",
+            "started": "2026-11-04T10:00:00.000Z",
+            "finished": "2026-11-04T10:01:00.000Z"
+          },
+          {
+            "id": "plan-1",
+            "step": "plan",
+            "kind": "model",
+            "instructions": [
+              {
+                "ref": "instruction://weblisk/instructions/plan",
+                "version": "1.0.0",
+                "digest": "sha256:266bac565c441f73029032f4f3a55b497de5ade7f9ec138ac2c104b8e996c237"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/plan-names",
+                "version": "1.0.0",
+                "digest": "sha256:bb359710b7a4e307a688fc8202d22c30781d5eeb9f561c922bc4cd8e4153491b"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/ties",
+                "version": "1.1.0",
+                "digest": "sha256:9f133f7ce001dd8bb431f9e3eea5310d43ba1fae40f8c47335edc31556cf86bf"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/corpus-finding",
+                "version": "1.1.0",
+                "digest": "sha256:664c191bc47d1378a1b1b28053e1576e88dbbfa0d7e3c0fed014264e3027066f"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "requirements",
+                "digest": "sha256:10762e1094dbeeaba59c58cec8a91b71b99f2063f7f1f20e5c0e3e635f42b2df"
+              },
+              {
+                "name": "package-plan",
+                "digest": "sha256:cd1e1eb018c912b1eef934e351b16a2a61149851c466b5691e4bdb646c0ea3a9"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "plan",
+                "digest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525"
+              }
+            ],
+            "model": "example-model-1",
+            "reused_from": {
+              "run": "0192f3a47b1c7d2e8f3a4b5c6d7e8f00",
+              "action": "plan-1"
+            },
+            "result": "done",
+            "started": "2026-11-04T10:02:00.000Z",
+            "finished": "2026-11-04T10:02:00.000Z"
+          },
+          {
+            "id": "translate-1",
+            "step": "translate",
+            "kind": "model",
+            "instructions": [
+              {
+                "ref": "instruction://weblisk/instructions/translate",
+                "version": "1.0.0",
+                "digest": "sha256:b67e6f833dc9d67b24e361add3e51186f797cbdde5ddba2e4252370b42691b37"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/ties",
+                "version": "1.1.0",
+                "digest": "sha256:9f133f7ce001dd8bb431f9e3eea5310d43ba1fae40f8c47335edc31556cf86bf"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/corpus-finding",
+                "version": "1.1.0",
+                "digest": "sha256:664c191bc47d1378a1b1b28053e1576e88dbbfa0d7e3c0fed014264e3027066f"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "criterion",
+                "digest": "sha256:5f435b82e7e9e75e9819dcd54055941f2fabdc9356b034f6507ac9f70e447f5b"
+              },
+              {
+                "name": "contract",
+                "digest": "sha256:cc8321d6375c494d043fdd0260f21bc0ec51dacc9f6abb7f909cdcd3041b78bf"
+              },
+              {
+                "name": "plan-names",
+                "digest": "sha256:64879f7d6b960a01909762d911a32d4582c20010c5641ee90278b644a9e3b525"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "internal/widget/widget_signed_only_test.go",
+                "digest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+              }
+            ],
+            "criterion": "requirement://example/architecture/widget:widget-refuses-unsigned",
+            "model": "example-model-1",
+            "transcript": "sha256:62a9b9cd57ace568e57141a8d7d6a72f16744329157cc9bb8671e7ce9e7eda0d",
+            "result": "done",
+            "started": "2026-11-04T10:03:00.000Z",
+            "finished": "2026-11-04T10:04:00.000Z"
+          },
+          {
+            "id": "generate-1",
+            "step": "generate",
+            "kind": "model",
+            "instructions": [
+              {
+                "ref": "instruction://weblisk/instructions/generate",
+                "version": "1.0.0",
+                "digest": "sha256:9e982b04b5983544f321cdb7968d47a32a4b2c549674ce138893c778c91595ec"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/file-names",
+                "version": "1.0.0",
+                "digest": "sha256:eaf230443893b5adf68864e35ba1d85a04d18f5d09158afbb82a5364dc369f14"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/scope",
+                "version": "1.0.0",
+                "digest": "sha256:8dae74619000fba5f829579d7458d681f4d5e8a66f7334a24c06976dbd9499f2"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/ties",
+                "version": "1.1.0",
+                "digest": "sha256:9f133f7ce001dd8bb431f9e3eea5310d43ba1fae40f8c47335edc31556cf86bf"
+              },
+              {
+                "ref": "instruction://weblisk/instructions/corpus-finding",
+                "version": "1.1.0",
+                "digest": "sha256:664c191bc47d1378a1b1b28053e1576e88dbbfa0d7e3c0fed014264e3027066f"
+              }
+            ],
+            "inputs": [
+              {
+                "name": "plan-entry",
+                "digest": "sha256:923fe53966c6cd9343e11af776cd4b05be315ea4b200b02e4d5dfb0f929b73bf"
+              },
+              {
+                "name": "tests",
+                "digest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "internal/widget/widget.go",
+                "digest": "sha256:5694d08a2e53ffcae0c3103e5ad6f6076abd960eb1f8a56577040bc1028f702b"
+              }
+            ],
+            "model": "example-model-1",
+            "transcript": "sha256:ed98d7f748be45384744293de3f8e406e17b7c6935303f0fc20c2772291964df",
+            "result": "done",
+            "started": "2026-11-04T10:05:00.000Z",
+            "finished": "2026-11-04T10:06:00.000Z"
+          },
+          {
+            "id": "build-1",
+            "step": "build",
+            "kind": "deterministic",
+            "inputs": [
+              {
+                "name": "tree",
+                "digest": "sha256:dc9c5edb8b2d479e697b4b0b8ab874f32b325138598ce9e7b759eb8292110622"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "suite-results",
+                "digest": "sha256:c099142bc3186ded72786ba27e9ea6d2da240fb9fd3fe79b479ecf8e734b2850"
+              }
+            ],
+            "result": "done",
+            "started": "2026-11-04T10:07:00.000Z",
+            "finished": "2026-11-04T10:08:00.000Z"
+          },
+          {
+            "id": "record-1",
+            "step": "record",
+            "kind": "deterministic",
+            "inputs": [
+              {
+                "name": "suite-results",
+                "digest": "sha256:c099142bc3186ded72786ba27e9ea6d2da240fb9fd3fe79b479ecf8e734b2850"
+              }
+            ],
+            "outputs": [
+              {
+                "name": "provenance/runs/0192f3a47b1c7d2e8f3a4b5c6d7e8f90.json",
+                "digest": "sha256:b111c6e1d318f203063e5c16bab43c108326af0aa2f7b65760c95547a43dbe52"
+              }
+            ],
+            "result": "done",
+            "started": "2026-11-04T10:09:00.000Z",
+            "finished": "2026-11-04T10:09:00.000Z"
+          }
+        ],
+        "criteria": [
+          {
+            "id": "requirement://example/architecture/widget:widget-refuses-unsigned",
+            "digest": "sha256:5f435b82e7e9e75e9819dcd54055941f2fabdc9356b034f6507ac9f70e447f5b",
+            "class": "S",
+            "class_by": "rule 2: refuses at 401, protocol/types",
+            "settled_by": "translated",
+            "tests": [
+              {
+                "path": "internal/widget/widget_signed_only_test.go",
+                "digest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+                "translated_by": {
+                  "run": "0192f3a47b1c7d2e8f3a4b5c6d7e8f90",
+                  "action": "translate-1"
+                },
+                "criterion_digest": "sha256:5f435b82e7e9e75e9819dcd54055941f2fabdc9356b034f6507ac9f70e447f5b",
+                "instruction_current": true,
+                "stub": "failed"
+              }
+            ],
+            "reach": {
+              "component": true
+            },
+            "verdict": {
+              "result": "pass",
+              "environment": "development",
+              "reason": "exit 0"
+            }
+          },
+          {
+            "id": "requirement://example/architecture/widget:widget-refuses-unsigned",
+            "digest": "sha256:20f65c28671b40937c5bf23acc7c6f37e5a5ec0622e347b57685725df5ba9e50",
+            "class": "J",
+            "class_by": "rule 3: registration slot",
+            "settled_by": "declared",
+            "check": "check://example/architecture/widget:widget-joins",
+            "reach": {
+              "operations": [
+                "operation://example/architecture/widget:register"
+              ]
+            },
+            "verdict": {
+              "result": "fail",
+              "environment": "development",
+              "reason": "registration refused 403",
+              "carried_from": "0192f3a47b1c7d2e8f3a4b5c6d7e8f00"
+            },
+            "gap": {
+              "result": "failed",
+              "reason": "registration refused 403",
+              "reaches": [
+                "component://example/orchestrator"
+              ]
+            }
+          }
+        ]
+      },
+      "resolvedDependencies": []
+    },
+    "runDetails": {
+      "builder": {
+        "id": "component://example/generation"
+      },
+      "metadata": {
+        "invocationId": "0192f3a47b1c7d2e8f3a4b5c6d7e8f90",
+        "startedOn": "2026-11-04T10:00:00.000Z",
+        "finishedOn": "2026-11-04T10:09:00.000Z"
+      },
+      "byproducts": [
+        {
+          "name": "provenance/transcripts/0192f3a47b1c7d2e8f3a4b5c6d7e8f90/translate-1.json",
+          "digest": {
+            "sha256": "62a9b9cd57ace568e57141a8d7d6a72f16744329157cc9bb8671e7ce9e7eda0d"
+          }
+        },
+        {
+          "name": "provenance/transcripts/0192f3a47b1c7d2e8f3a4b5c6d7e8f90/generate-1.json",
+          "digest": {
+            "sha256": "ed98d7f748be45384744293de3f8e406e17b7c6935303f0fc20c2772291964df"
+          }
+        }
+      ]
+    }
+  }
+}

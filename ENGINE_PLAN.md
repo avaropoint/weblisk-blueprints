@@ -3,12 +3,19 @@
 > **Status: adopted by the owner on 2026-11-03, with the decisions recorded in
 > [Decisions](#decisions), including the reversals in
 > [Text already adopted that this proposal would change](#text-already-adopted-that-this-proposal-would-change).**
-> It is the plan of work, not yet normative. It stays
-> at the corpus root as a plan, because a file under `architecture/` is a
-> blueprint and its MUST lines are read as requirements. Each part becomes
-> normative only when it lands in the document
-> [What changes where](#what-changes-where) names for it, and from then on that
-> document, not this plan, is the authority.
+> It is the plan of work. It stays at the corpus root as a plan, because a
+> file under `architecture/` is a blueprint and its MUST lines are read as
+> requirements. Each part becomes normative only when it lands in the
+> document [What changes where](#what-changes-where) names for it, and from
+> then on that document, not this plan, is the authority.
+>
+> **Landed in phase C0** (each section below says where): the engine itself
+> in [`architecture/engine.md`](architecture/engine.md) (sections 1 to 5 and
+> 7), the instruction family in [`schemas/instruction`](schemas/instruction.md)
+> and [`instructions/`](instructions/README.md) (section 4), and the record's
+> fields in [`schemas/run-statement`](schemas/run-statement.md) and
+> [`schemas/change`](schemas/change.md) (section 6). What remains here is the
+> measurement, the gaps still open, the migration and the decisions.
 >
 > Written 2026-11-03 against corpus `42ccc8d`, from the owner's decisions of
 > that date, [`ACCEPTANCE_PLAN.md`](ACCEPTANCE_PLAN.md) (adopted the same day),
@@ -179,52 +186,18 @@ after its replacement runs ([§8](#8-migration)).
 
 ## 6. The record
 
-### Its home
-
-The record lives in the tenant, in its repository, and is written by the
-tenant's change service. Until a tenant runs a change service, the CLI on the
-tenant's host writes it in the same shape. It is an answer about the customer's
-system, so under Studio's CLAUDE.md's rule no client
-holds it. Front ends read it through `/v1/admin/build` and its sub-routes.
-
-It is not a second ledger. It extends the run statement
-(`provenance/runs/<run id>.json`, one immutable file per run), which is
-already the fabric's outbox. Any index over it is a cache, rebuilt from the
-statements.
-
-### Its shape
-
-The run statement gains two lists. What is in it today stays.
-
-| | Holds |
-|---|---|
-| **actions** | One per thing a step did: id, step, the declared instruction ref and its digest (for a model action), the input digests, the output digests, the model the backend reported, the result, and when |
-| **criteria** | One per criterion the run owed: id, text digest, class and the rule that gave it; its tests (path, digest, the action that translated it, and whether it is promoted); its reach (files, symbols, operations); its verdict in this run, with environment and reason; and its gap, if it has one, as `ACCEPTANCE_PLAN` gives the fields |
-
-The per-file rebuild record that run statements already hold is unchanged.
-
-### How it makes builds incremental
-
-1. **An action is reused when its inputs are.** Before the engine runs any
-   action, deterministic or model, it looks for a completed action with the
-   same step, instruction digest and input digests. If one exists, the engine
-   reuses its outputs. A model is never asked the same question twice. That
-   also removes most of the plan variance measured above, because a plan made
-   from the same inputs is the same plan.
-2. **A test is regenerated only when its criterion's digest moves.** A change
-   to the instruction or the language only marks the test "translated under an
-   older instruction", and re-translating it is a change someone makes on
-   purpose.
-3. **A file is rebuilt only when the rebuild table says so**, now read through
-   the criteria it is answerable for.
-4. **A verdict is carried forward** while its test's digest and the digest of
-   everything the test reaches are unchanged. A black-box test reaches the
-   whole component, so it runs again whenever the component is rebuilt. Tests
-   are cheap, and the record says which verdicts were carried and from which
-   run.
-5. **A build never starts from scratch.** The first build starts from an empty
-   record. Every later one starts from the record of the one before.
-   `tenant rebuild` starts from the exported record.
+**Landed.** Where the record lives, that a client never holds it, transcripts
+kept in the tenant (decision 10), and the five rules that make a build
+incremental, action reuse among them, are
+[`architecture/engine.md`](architecture/engine.md#the-record)'s. The fields are
+[`schemas/run-statement`](schemas/run-statement.md#actions)'s `actions` (each
+with its instruction refs and digests, input and output digests, transcript
+and reuse) and [`criteria`](schemas/run-statement.md#criteria) (each with its
+digest over its text and cited definitions, its tests and the four
+conditions, its reach, verdict and gap), with their rules and vectors in
+[`vectors/run-statement/`](vectors/run-statement/README.md). A translated
+test's place in a change's plan, and the verdicts `translate` and `review`
+because `older-instruction`, are [`schemas/change`](schemas/change.md#verdicts)'s.
 
 ---
 

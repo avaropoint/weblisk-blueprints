@@ -8,6 +8,11 @@
       "valid": true
     },
     {
+      "file": "valid-adopt-translate.json",
+      "schema": "change",
+      "valid": true
+    },
+    {
       "file": "valid-approved.json",
       "schema": "change",
       "valid": true
