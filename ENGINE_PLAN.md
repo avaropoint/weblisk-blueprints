@@ -323,15 +323,13 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 
 ## Text already adopted that this proposal would change
 
-| Text | Says | Would say |
-|---|---|---|
-| [`architecture/generation`](architecture/generation.md#the-plan) | "A generator MUST NOT impose a file structure. It asks the model for one" | The corpus fixes the structure wherever it can |
-| [`architecture/generation`](architecture/generation.md#does-not-own) | Does not own prompt wording | The corpus owns every instruction's text |
-| [`architecture/generation`](architecture/generation.md#the-run-statement) | A test named by the covering check's id is written by the generator | Tests are translated before generation, and never by the generator |
-| `ACCEPTANCE_PLAN` "What counts" | A test the generator wrote does not count | That stays true; a test translated under the four conditions counts |
-| Studio's MISSION.md | Studio's standards, adoption and evidence work needs no CLI equivalent | Every operation is reachable from both front ends |
-
----
+| Text | Says | Would say | Where it stands |
+|---|---|---|---|
+| [`architecture/generation`](architecture/generation.md#the-plan) | "A generator MUST NOT impose a file structure. It asks the model for one" | The corpus fixes the structure wherever it can | Reversed: packages from the layout in 2.0.0, and the model's division recorded and reused in 3.0.0 ([What the model still decides](architecture/generation.md#what-the-model-still-decides)) |
+| [`architecture/generation`](architecture/generation.md#does-not-own) | Does not own prompt wording | The corpus owns every instruction's text | Reversed in 3.0.0: every sentence is an instruction in [`instructions/`](instructions/README.md) |
+| [`architecture/generation`](architecture/generation.md#the-run-statement) | A test named by the covering check's id is written by the generator | Tests are translated before generation, and never by the generator | Reversed in 3.0.0, and in [`schemas/run-statement`](schemas/run-statement.md#rules) rule 3 |
+| `ACCEPTANCE_PLAN` "What counts" | A test the generator wrote does not count | That stays true; a test translated under the four conditions counts | Open: the row is ACCEPTANCE_PLAN's to amend; the four conditions are [`architecture/engine`](architecture/engine.md#what-makes-a-translated-test-count)'s |
+| Studio's MISSION.md | Studio's standards, adoption and evidence work needs no CLI equivalent | Every operation is reachable from both front ends | Open: Studio's to amend |
 
 ## Decisions
 
@@ -367,4 +365,5 @@ Decided by the owner on 2026-11-03.
     how each action was done.
 11. **Model instructions are a new `instructions/` family.**
 
-The adopted texts listed above are reversed as this plan's parts land.
+The adopted texts listed above are reversed as this plan's parts land; the
+table says where each stands.

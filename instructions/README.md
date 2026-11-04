@@ -20,6 +20,7 @@ engine gives a model nothing else of its own.
 | [`generate`](generate.md) | generate | answer with exactly one file, and read the tests without writing them |
 | [`repair`](repair.md) | repair | edit the given files as they stand, and nothing else |
 | [`advise`](advise.md) | accept | read the tree as advice, never as a verdict |
+| [`reading`](reading.md) | plan, translate, generate, repair | read a blueprint by its forms: what binds, and what only illustrates |
 | [`plan-names`](plan-names.md) | plan | spell every declared name as its blueprint does, and list a missing one as a gap |
 | [`file-names`](file-names.md) | generate, repair | spell every declared name as the plan does, and report a missing one |
 | [`scope`](scope.md) | generate, repair | write only what the plan entry declares and serves |

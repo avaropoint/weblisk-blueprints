@@ -135,9 +135,10 @@ types:
 3. **`implements` is per planned file**, copied from the plan entry that
    produced it ([`architecture/generation`](../architecture/generation.md#what-a-plan-declares)).
    No marker is written into the generated code. Verification confirms each
-   claim through a test named by the check id that covers the requirement, which
-   the language's symbol extractor finds; where no extractor exists the
-   confirmation is file-level and says so.
+   claim through the requirement's criterion, settled by its declared check or
+   its translated test ([Criteria](#criteria)), never by a test the generator
+   wrote; where the language has no symbol extractor the confirmation is
+   file-level and says so.
 4. **Every digest is written as `patterns/content-identity` spells it**:
    `sha256:<hex>` as one string, `{sha256: <hex>}` where in-toto's digest set is
    the field.

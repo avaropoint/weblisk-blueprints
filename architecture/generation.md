@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 2.1.0
+version: 3.0.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -105,9 +105,9 @@ requires:
 
 ```
   blueprints ──▶ requirements ──▶ model plans ──▶ plan validated
-                (types,             (its own       (all requirements
-                 endpoints,          file set       placed?)
-                 assertions)         and order)          │
+                (types,             (files in      (all requirements
+                 endpoints,          layout's       placed?)
+                 assertions)         packages)           │
                                           ▲              │ accepted
                                           └── rejected ──┤
                                                          ▼
@@ -147,7 +147,8 @@ order](#what-a-repair-round-reads-and-in-what-order).
 - What to build. `protocol/spec.md` defines the wire contract and the types; a
   platform blueprint gives language direction
 - How to verify behaviour. `architecture/testing.md` owns conformance
-- Prompt wording, except the instructions [Instructions given as written](#instructions-given-as-written) states, which a generator passes verbatim
+- Prompt wording. Every sentence a model is given is an instruction in [`instructions/`](../instructions/README.md), passed verbatim, and a generator words nothing itself ([`architecture/engine`](engine.md#instructions)); which instruction each prompt carries is [Instructions given as written](#instructions-given-as-written)
+- The order of the build steps, and what a model may do in each ([`architecture/engine`](engine.md#the-build-steps)); this blueprint specifies the plan, generate and repair steps and the gate they run
 - Model selection. Any model that satisfies the contract is acceptable
 
 ---
@@ -249,6 +250,13 @@ divide a package's work differently, and a file whose declarations moved is
 rebuilt; that is why a plan is kept, resumed and repaired from rather than
 asked for again
 ([A rebuild input MUST NOT be something the build changes](#a-rebuild-input-must-not-be-something-the-build-changes)).
+**The plan is the corpus's wherever the corpus can fix it, and the model's
+division of a package into files is recorded and reused, never asked again**:
+it is an action of the plan step, and an action whose instruction and input
+digests are unchanged is reused, not run
+([`architecture/engine`](engine.md#how-the-record-makes-builds-incremental)).
+A package, a boundary name or an entry point is never the model's to choose
+([`architecture/engine`](engine.md#the-build-steps)).
 
 ### What a plan declares
 
@@ -285,8 +293,9 @@ from an omission, and rejecting on one has ended a run over correct code.
 
 A method MUST be named in receiver notation, `(Type).Method`, so that identity is
 unambiguous both when checking the file and when detecting collisions between
-files. A generator MUST state these rules when asking for a plan; a planner told
-only "symbols this file will define" will reasonably list fields.
+files. A generator MUST state these rules when asking for a plan, by passing
+instruction `plan`; a planner told only "symbols this file will define" will
+reasonably list fields.
 
 ### Validating a plan
 
@@ -706,10 +715,13 @@ What the generator puts in it, and why each is its job:
   each file's own.
 - **`implements` per planned file**, copied from the plan entry. A plan entry's
   `implements` names requirements by ref; a file that claims one is answerable
-  for it at verification, where a test named by the covering check's id must
-  exist and pass. A missing one is a repair, not a pass. Where the language has
-  no symbol extractor the confirmation is file-level and says so. No marker is
-  written into generated code.
+  for it at verification, where the criterion is settled by its declared check
+  or by the test translated from it before any code was generated
+  ([`architecture/engine`](engine.md#the-one-conformance-suite)). A generator
+  writes no test: a test it wrote, even one named by a check id, does not
+  count. An unsettled or failing criterion is a repair, not a pass. Where the
+  language has no symbol extractor the confirmation is file-level and says so.
+  No marker is written into generated code.
 - **Per output, the rebuild record.** The plan entry that produced it
   (`path`, `purpose`, `declares`, `serves`), its digest as written, each
   blueprint it was generated from at the digest the run read, and the bindings
@@ -945,10 +957,13 @@ exercised, never as passed
 
 ## The prompt contract
 
-A generator MUST convey all of the following. Where
-[Instructions given as written](#instructions-given-as-written) gives an
-element's instruction, that text is passed to the model verbatim; elsewhere
-wording is the implementation's choice, and content is not.
+A generator MUST convey all of the following. An element is conveyed by an
+instruction, passed verbatim as
+[Instructions given as written](#instructions-given-as-written) says, or as a
+declared input, labelled with its name; no element's wording is the
+implementation's choice ([`architecture/engine`](engine.md#instructions)).
+Element 1 is instruction `generate`, with `corpus-finding`; element 7 is
+`scope`; element 10 is `reading`; every other element is an input.
 
 | # | Element | Why it is required |
 |---|---------|--------------------|
@@ -968,7 +983,7 @@ wording is the implementation's choice, and content is not.
 A blueprint is not prose with some structure in it. Every section has a
 **form**, declared by the schema that governs its type — see
 [`schemas/common`](../schemas/common.md#section-form) — and a generator MUST
-convey what each form means:
+convey what each form means, by instruction `reading`:
 
 | Form | What it is | How it binds |
 |---|---|---|
@@ -1061,8 +1076,12 @@ contradictions in generated code where nobody would read them.
 | [`plan-names`](../instructions/plan-names.md) | plan | a missing name is listed under `gaps` ([What a plan declares](#what-a-plan-declares)) |
 | [`file-names`](../instructions/file-names.md) | generate, repair | a missing name is a corpus finding of kind gap ([A name MUST come from the blueprint that declares it](#a-name-must-come-from-the-blueprint-that-declares-it)) |
 | [`scope`](../instructions/scope.md) | generate, repair | element 7 ([Scope discipline](#scope-discipline)) |
-| [`ties`](../instructions/ties.md) | plan, generate, repair | a tie is reported, never settled ([How a blueprint is read](#how-a-blueprint-is-read)) |
-| [`corpus-finding`](../instructions/corpus-finding.md) | plan, generate, repair | the one form of a corpus finding (element 1) |
+| [`ties`](../instructions/ties.md) | plan, translate, generate, repair | a tie is reported, never settled ([How a blueprint is read](#how-a-blueprint-is-read)) |
+| [`corpus-finding`](../instructions/corpus-finding.md) | plan, translate, generate, repair | the one form of a corpus finding (element 1) |
+| [`plan`](../instructions/plan.md) | plan | the plan inside the package plan, with `declares` holding top-level symbols in receiver notation ([What a plan declares](#what-a-plan-declares)) |
+| [`generate`](../instructions/generate.md) | generate | the output contract (element 1), and tests read and never written |
+| [`repair`](../instructions/repair.md) | repair | edits to the files as they stand ([A repair is an edit to the file as it stands](#a-repair-is-an-edit-to-the-file-as-it-stands)) |
+| [`reading`](../instructions/reading.md) | plan, translate, generate, repair | how a blueprint is read (element 10) |
 
 **What a generator does with a finding.** A finding is not a file. The
 generator accepts it only where each quoted passage appears, whitespace aside,
