@@ -1010,7 +1010,8 @@
    "live-checks",
    "record-held-by-tenant",
    "actions-reused",
-   "incremental-from-record"
+   "incremental-from-record",
+   "component-owes"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.0
+version: 1.4.0
 noun: block
 ---
 # Schema: Blocks
@@ -237,8 +237,11 @@ Three fields every component check may carry:
 - **`applies_to`** names the components it is run against: a component kind,
   or a selector, from the `component_kinds` block of
   [`schemas/kinds`](kinds.md#component-kinds). Absent, the check runs against
-  every component that owes what it covers. A check addressed to an agent is
-  never a failure of an orchestrator.
+  every component that owes what it covers; present, it runs against exactly
+  the components it names, which then owe it even where their blueprint does
+  not require its file. Who owes what is
+  [`architecture/engine`](../architecture/engine.md#what-a-component-owes)'s.
+  A check addressed to an agent is never a failure of an orchestrator.
 - **`live`** is `safe` where the check may run against a running tenant, and
   `sealed-only`, the default, where it changes state or needs fixtures only a
   build's sealed run has.
@@ -312,7 +315,7 @@ defs:
       covers: {type: array, minItems: 1, items: {$ref: "#/$defs/ref"}}
       check: {type: string, description: "The kind of check that proves it: a value of check-kind; translated when absent."}
       assertion: {type: string, minLength: 1}
-      applies_to: {type: array, minItems: 1, items: {type: string, pattern: "^[a-z][a-z0-9-]*$"}, description: "The components it is run against: a component kind schemas/kinds declares, or a selector its component_kinds block declares. Every component the requirement is owed by, when absent."}
+      applies_to: {type: array, minItems: 1, items: {type: string, pattern: "^[a-z][a-z0-9-]*$"}, description: "The components it is run against: a component kind schemas/kinds declares, or a selector its component_kinds block declares. Every component the requirement is owed by, when absent (architecture/engine, What a component owes); present, exactly the components it names, who then owe it."}
       live: {enum: [safe, sealed-only], default: sealed-only, description: "Whether it may run against a running tenant (safe) or only in a build's sealed run."}
       exchange: {$ref: "#/$defs/check-exchange"}
       vector: {$ref: "#/$defs/check-vector"}

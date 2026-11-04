@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.0.0
+version: 1.1.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -678,6 +678,41 @@ entry ([`schemas/blocks`](../schemas/blocks.md#definitions)): id, `covers`,
 the corpus, or by a **translated test**, which is the default and is written
 `translated`.
 
+### What a component owes
+
+A component is built from one blueprint: the one the services table of
+[`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)
+gives its kind, or, for a kind whose components are `named`
+([`schemas/kinds`](../schemas/kinds.md#component-kinds)), the agent's or the
+domain's own. That is its **own blueprint**. Every other blueprint some
+component kind is built from is **another component's**. A blueprint no
+component kind is built from (a protocol, a pattern, a schema, a library
+architecture such as `architecture/agent` or `architecture/storage`, a
+language or a platform) is a **library blueprint**.
+
+A component MUST be held to the criteria of its own blueprint and of the
+library blueprints that blueprint requires, followed through `requires`
+from library to library but never into another component's blueprint, and to
+no other criterion except one whose check's `applies_to` names its kind or a
+selector its kind meets. So the orchestrator, whose blueprint requires
+`architecture/admin`, does not owe `architecture/admin`'s criteria: that is
+the admin gateway's blueprint. <!-- wl:id component-owes-own-and-libraries -->
+
+`applies_to` works in both directions. On a check in a library blueprint it
+narrows: an agent-only check of `protocol/spec` is not owed by the
+orchestrator. On a check anywhere it reaches: `architecture/testing`'s L4
+checks are owed by every component that registers, whether its blueprint
+requires `architecture/testing` or not, and a criterion of another
+component's blueprint that a component must meet, such as an administrative
+route the orchestrator serves and `architecture/admin` specifies, is owed by
+it only through a check whose `applies_to` names it. A component kind that
+`runs_with` another is still its own component and owes its own blueprint's
+criteria, checked in its host's process.
+
+The language and platform blueprints a component is generated for are
+library blueprints it requires, so a Go component owes `languages/go`'s
+criteria and a Rust component does not.
+
 ### How the suite is derived
 
 | Layer | Written by | Lives | Runs |
@@ -887,6 +922,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] Every sentence of every model prompt is an instruction file's folded text or a labelled declared input, and the action records each instruction's ref, version and digest ([Instructions](#instructions)) <!-- wl:check prompts-are-corpus-text covers no-engine-sentences instruction-revision-recorded -->
 - [ ] Conformance runs only the declared checks, the translated tests and the published vectors, and no tool holds a test, check or verdict rule of its own ([The one conformance suite](#the-one-conformance-suite)) <!-- wl:check suite-is-derived covers one-suite -->
 - [ ] A criterion keeps its id when its text changes; its digest moves when its text or any definition it cites changes, and not otherwise ([The unit is a criterion](#the-unit-is-a-criterion)) <!-- wl:check criterion-id-and-digest covers criterion-id-frozen criterion-digest-covers-citations -->
+- [ ] The suite holds a component to its own blueprint's criteria and those of the library blueprints it requires, never through another component's blueprint, and to another criterion only through a check whose `applies_to` names its kind: the orchestrator is not held to `architecture/admin`'s, and every registering component is held to `architecture/testing`'s L4 checks ([What a component owes](#what-a-component-owes)) <!-- wl:check component-owes covers component-owes-own-and-libraries -->
 - [ ] A translated test counts only with all four conditions shown on the record: the translate action precedes every generate action and was given no implementation, the test failed against the stub, no generate or repair action wrote it, and its verdict is the test command's ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check translated-test-conditions covers translated-test-counts translated-apart fails-on-nothing tests-frozen verdict-is-the-runs -->
 - [ ] In production, an S or J criterion settled only by a translated test is unsettled ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check production-needs-declared covers production-s-j-declared -->
 - [ ] A check with no `live` declaration is not run against a live tenant; a live S check failing after acceptance withholds the affected operations, and a live J check failing marks the acceptance contradicted ([Build time and run time](#build-time-and-run-time)) <!-- wl:check live-checks covers live-only-safe live-failure-after-acceptance -->
