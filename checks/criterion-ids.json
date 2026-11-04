@@ -697,7 +697,9 @@
    "change-apply-unapproved-change-refused",
    "change-apply-reads-corpus-changes-pins",
    "change-plan-upgrade-refreshes-clone-tenant",
-   "cli-status-hub-identity"
+   "cli-status-hub-identity",
+   "status-reads-hub-pub",
+   "start-writes-hub-pub"
   ],
   "architecture/client.md": [
    "browser-session-token-uses-wls-type",
@@ -2661,7 +2663,8 @@
    "production-deployments-minimum-number-registered",
    "backup-operator-remove-compromised-operator",
    "bootstrap-reset-keys-lost-requires-orchestrator",
-   "no-identity-token-attestation-signed-record"
+   "no-identity-token-attestation-signed-record",
+   "hub-pub-declared"
   ],
   "protocol/secret-source.md": [
    "caller-resolves-source-registry-weblisk-secret",

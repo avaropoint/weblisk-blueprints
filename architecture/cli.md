@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.12.0
+version: 4.13.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1821,8 +1821,10 @@ only way it learns that without reading the directory itself.
 
 | `hub` field | Present | What it is |
 |---|---|---|
-| `hub_id` | where it can be read | The fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the public half of `.weblisk/keys/hub.key`, the key the orchestrator was first created with, whose fingerprint is the hub's `hub_id` ([`architecture/orchestrator`](orchestrator.md#startup-sequence) step 1). The same value a registration answer names and [`weblisk tenant export`](#weblisk-tenant-export) records |
-| `hub_id_unavailable` | where `hub_id` is not | Why not: `no-hub-key` where the directory holds no hub key (the orchestrator has never started), `hub-key-encrypted` where the key is a `weblisk-key-v1` envelope with `kdf = argon2id`, `hub-key-unreadable` where it cannot be read or is not a `weblisk-key-v1` `ml-dsa-65` key |
+| `hub_id` | where it can be read | The fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the public half of `.weblisk/keys/hub.key`, the key the orchestrator was first created with, whose fingerprint is the hub's `hub_id` ([`architecture/orchestrator`](orchestrator.md#startup-sequence) step 1). The same value a registration answer names and [`weblisk tenant export`](#weblisk-tenant-export) records. Read from the key where its `kdf` is `none`, and otherwise from `.weblisk/keys/hub.pub` ([The hub public key file](#the-hub-public-key-file)) |
+| `hub_id_from` | with `hub_id` | `key` where it was derived from `hub.key`, `pub` where it was read from `hub.pub`. A `pub` reading is what the directory says of itself as of the last start that held the key open, never a proof that the hub at an address is this one |
+| `hub_pub_mismatch` | where `hub_id_from` is `key` and `hub.pub` is present | `true` where `hub.pub` does not hold the public half of `hub.key`: it is stale or was put there by somebody else, and the next `server start` replaces it |
+| `hub_id_unavailable` | where `hub_id` is not | Why not: `no-hub-key` where the directory holds no hub key (the orchestrator has never started); `hub-key-encrypted` where the key is a `weblisk-key-v1` envelope with `kdf = argon2id` and there is no `hub.pub`; `hub-pub-stale` where the key is encrypted and `hub.pub` was last written before `hub.key` was; `hub-pub-unreadable` where the key is encrypted and `hub.pub` is not one base64url ML-DSA-65 public key; `hub-key-unreadable` where the key cannot be read or is not a `weblisk-key-v1` `ml-dsa-65` key |
 | `hub_name` | always | The configuration's `hub.name`, or, where it names none, the directory's base name |
 | `hub_name_from_directory` | always | `true` where `hub_name` is the directory's base name. That is a name a directory happens to have, not an identity, and a client MUST NOT treat it as one: two directories of one name hold two hubs |
 | `admin_addresses` | where the configuration lists them | `orchestrator.admin_addresses`, as the configuration lists them ([`schemas/config`](../schemas/config.md#orchestrator)) |
@@ -1840,11 +1842,43 @@ It is read-only:
   derived and fingerprinted, and the private half cleared; nothing of either
   half is printed, written or returned, and the fingerprint is all that is.
   <!-- wl:id status-no-key-material -->
-- **It asks for nothing.** An encrypted hub key is reported
-  `hub-key-encrypted`, never opened: status asks no person for a passphrase
-  and no secret source for one, because either may prompt or reach the
-  network, and a status that can do either is not one a client can run to
-  ask a question. <!-- wl:id status-asks-nothing -->
+- **It asks for nothing.** An encrypted hub key is never opened: its
+  `hub_id` is read from `hub.pub`, or reported unavailable. Status asks no
+  person for a passphrase and no secret source for one, because either may
+  prompt or reach the network, and a status that can do either is not one a
+  client can run to ask a question. <!-- wl:id status-asks-nothing -->
+- **It writes nothing.** Status does not write `hub.pub`, even where it opened
+  a `kdf = none` key and found `hub.pub` missing or stale; it reports
+  `hub_pub_mismatch`, and the next `server start` corrects it.
+
+### The hub public key file
+
+`.weblisk/keys/hub.pub` is the public half of the hub key
+([`protocol/identity`](../protocol/identity.md#key-files)). It exists so that
+an encrypted hub key no longer leaves `hub_id` unreadable: before it, a hub
+whose key was `kdf = argon2id`, as production requires, reported
+`hub-key-encrypted` to every client that asked which hub a directory holds.
+
+The CLI writes it wherever it holds the hub key open, and nowhere else. <!-- wl:id cli-writes-hub-pub -->
+
+- **`weblisk server start`.** Before it starts the orchestrator, it opens
+  `hub.key` with the passphrase it already fetched for the orchestrator's
+  `key_passphrase` ([`weblisk server start`](#weblisk-server-start)), or
+  directly where the key's `kdf` is `none`, derives the public half, writes
+  `hub.pub`, and clears the private half. A directory with no `hub.key` yet is
+  written to after the orchestrator's first start has made it and answers
+  ready.
+- **`weblisk tenant create`.** In `provision`, once the orchestrator it
+  started first answers ready, and so has made `hub.key`.
+- **A rotation of the orchestrator's key.** It leaves `hub.key` as it is, so
+  it rewrites `hub.pub` with the same public key; a rotation never leaves
+  `hub.pub` naming the token-signing key.
+
+Each write compares what it derived with the `hub.pub` already there, and
+where they differ or the file is unreadable, replaces it and warns, naming the
+fingerprint it found and the one it wrote. A command that holds no passphrase
+for an encrypted hub key does not ask for one in order to write `hub.pub`; it
+leaves the file as it is. <!-- wl:id hub-pub-corrected-at-start -->
 
 ### `weblisk server verify`
 
@@ -4168,7 +4202,9 @@ security:
 - [ ] `weblisk secret rotate` triggers the rotation handler or prompts for new value ([`weblisk secret`](#weblisk-secret)) <!-- wl:check weblisk-secret-rotate-triggers-rotation-handler -->
 
 ### Server & Code Generation
-- [ ] `weblisk server status --json` carries `hub` with `hub_id`, the fingerprint of `.weblisk/keys/hub.key`'s public half where its `kdf` is `none` and otherwise `hub_id_unavailable` with its reason, `hub_name` with `hub_name_from_directory` set where the name is only the directory's, and `admin_addresses` and `tls_pin` where the configuration declares them; it opens no connection, asks for no passphrase, and prints no key material ([`weblisk server status`](#weblisk-server-status)) <!-- wl:check cli-status-hub-identity covers status-sends-nothing status-no-key-material status-asks-nothing -->
+- [ ] `weblisk server status --json` carries `hub` with `hub_id`, the fingerprint of `.weblisk/keys/hub.key`'s public half, derived from the key where its `kdf` is `none` and otherwise read from `hub.pub`, with `hub_id_from` saying which, and otherwise `hub_id_unavailable` with its reason, `hub_name` with `hub_name_from_directory` set where the name is only the directory's, and `admin_addresses` and `tls_pin` where the configuration declares them; it opens no connection, asks for no passphrase, and prints no key material ([`weblisk server status`](#weblisk-server-status)) <!-- wl:check cli-status-hub-identity covers status-sends-nothing status-no-key-material status-asks-nothing -->
+- [ ] With `hub.key` encrypted and `hub.pub` written by the last `server start`, `weblisk server status --json` reports `hub_id` from `hub.pub` with `hub_id_from` `pub`; with `hub.pub` absent it reports `hub-key-encrypted`, with `hub.pub` older than `hub.key` `hub-pub-stale`, and with `hub.pub` holding anything but one base64url public key `hub-pub-unreadable`; with a `kdf = none` key and a `hub.pub` of another key it reports `hub_pub_mismatch` and writes nothing ([`weblisk server status`](#weblisk-server-status), [The hub public key file](#the-hub-public-key-file)) <!-- wl:check status-reads-hub-pub covers status-asks-nothing -->
+- [ ] `weblisk server start` and `weblisk tenant create` write `.weblisk/keys/hub.pub` from the hub key they hold open, replace one that names another key and warn with both fingerprints, and a start with no passphrase for an encrypted hub key leaves it as it is ([The hub public key file](#the-hub-public-key-file)) <!-- wl:check start-writes-hub-pub covers cli-writes-hub-pub hub-pub-corrected-at-start -->
 - [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`weblisk server provision`](#weblisk-server-provision)) <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
 - [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`architecture/admin`](admin.md#registration-lease-and-identity)) <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
 - [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address ([`weblisk server provision`](#weblisk-server-provision), [Configuration](#configuration)) <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
