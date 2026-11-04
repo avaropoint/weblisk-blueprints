@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 2.0.0
+version: 2.1.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -1043,66 +1043,26 @@ enlarges the attack surface of the component holding the tenant's keys.
 ### Instructions given as written
 
 The instructions below are passed to the model verbatim, each in every prompt
-its `in` names. A generator MAY add to a prompt and MUST NOT reword, shorten
-or leave out one of these. Each was written because a generator's own wording
-of the rule said the opposite: told to *"name them from the nearest declared
-vocabulary"*, a planner filled in names the corpus did not declare; a file
-prompt with the scope prohibition removed left element 7 unconveyed; told to
-say a tie *"in a comment rather than choosing"*, a model settled corpus
+its `in` names. Each is a file of the family
+[`schemas/instruction`](../schemas/instruction.md), in
+[`instructions/`](../instructions/README.md), and that file is the one home of
+its words; `in` names build steps of
+[`architecture/engine`](engine.md#the-build-steps), where the file prompt is
+the `generate` step's. A generator MAY add to a prompt and MUST NOT reword,
+shorten or leave out one of these. Each was written because a generator's own
+wording of the rule said the opposite: told to *"name them from the nearest
+declared vocabulary"*, a planner filled in names the corpus did not declare; a
+file prompt with the scope prohibition removed left element 7 unconveyed; told
+to say a tie *"in a comment rather than choosing"*, a model settled corpus
 contradictions in generated code where nobody would read them.
 
-```yaml
-instructions:
-  - id: plan-names
-    in: [plan]
-    text: >-
-      Spell every type, path constant, handler, request type, response type,
-      store operation, event topic and error code exactly as the blueprint
-      that declares it spells it, through the language's mapping. If the plan
-      needs one of these that no blueprint declares, do not make one up and do
-      not use the closest declared name: leave it out of every file and list
-      it under gaps, with its kind and the sentence of the requirement that
-      needs it, quoted exactly. Anything else you declare, such as an
-      unexported helper, a receiver or a local constant, you name yourself.
-  - id: file-names
-    in: [file, repair]
-    text: >-
-      Spell every type, path constant, handler, request type, response type,
-      store operation, event topic and error code exactly as the plan and the
-      declarations you are given spell it. If this file needs one of these
-      that neither gives you and no blueprint declares, do not make one up and
-      do not use the closest declared name: answer with a corpus finding of
-      kind gap instead of the file.
-  - id: scope
-    in: [file, repair]
-    text: >-
-      Write only what this file's plan entry declares and serves. Do not add
-      an endpoint, route or handler the entry does not name; configuration, a
-      metric, a dashboard, a health page or an admin surface no blueprint
-      specifies; a dependency the language blueprint does not admit; or
-      anything else nobody asked for, however helpful it looks. If you believe
-      the file needs more than its entry gives it, write the file without it.
-  - id: ties
-    in: [plan, file, repair]
-    text: >-
-      Where two statements in the blueprints cannot both hold, follow the more
-      specific: a component's own blueprint over a pattern it adopts, a
-      pattern over a schema's example. If neither is more specific, do not
-      choose between them, and do not write a comment about it: answer with a
-      corpus finding of kind conflict instead of the file, or, in a plan,
-      instead of the plan.
-  - id: corpus-finding
-    in: [plan, file, repair]
-    text: >-
-      A corpus finding is your whole answer, on one line: WL-CORPUS-FINDING
-      followed by a space and a JSON object with the keys kind, first, second
-      and why. kind is conflict or gap. For a conflict, first and second are
-      the two statements, each quoted exactly from the blueprints you were
-      given. For a gap, first is the sentence of the requirement that needs
-      the name, quoted exactly, second is the kind of name, and why says what
-      the name is for. Give a finding only for a conflict or a gap; for
-      anything else, answer with the file.
-```
+| Instruction | In | What this blueprint needs it for |
+|---|---|---|
+| [`plan-names`](../instructions/plan-names.md) | plan | a missing name is listed under `gaps` ([What a plan declares](#what-a-plan-declares)) |
+| [`file-names`](../instructions/file-names.md) | generate, repair | a missing name is a corpus finding of kind gap ([A name MUST come from the blueprint that declares it](#a-name-must-come-from-the-blueprint-that-declares-it)) |
+| [`scope`](../instructions/scope.md) | generate, repair | element 7 ([Scope discipline](#scope-discipline)) |
+| [`ties`](../instructions/ties.md) | plan, generate, repair | a tie is reported, never settled ([How a blueprint is read](#how-a-blueprint-is-read)) |
+| [`corpus-finding`](../instructions/corpus-finding.md) | plan, generate, repair | the one form of a corpus finding (element 1) |
 
 **What a generator does with a finding.** A finding is not a file. The
 generator accepts it only where each quoted passage appears, whitespace aside,

@@ -307,7 +307,7 @@ docs="documents/families/policy documents/families/procedure documents/families/
 expect 0 "families: every spec's structure is a document family" python3 checks/families.py schemas/programme-spec --resolve structure documents/families
 expect 0 "families: every form's structure is a document family" python3 checks/families.py schemas/programme-template --resolve frontmatter.structure documents/families
 expect 0 "families: every family's template walks against it" python3 checks/families.py --distinct --templates $progs $docs \
-	schemas/protocol schemas/pattern schemas/agent schemas/domain schemas/position schemas/policy-domain
+	schemas/protocol schemas/pattern schemas/agent schemas/domain schemas/position schemas/policy-domain schemas/instruction
 [ -s "$tmp/out" ] && { echo "FAIL families: a template walks with a finding, and each must walk with none"; sed 's/^/     /' "$tmp/out"; fails=$((fails + 1)); }
 # A document's header is the organisation's own: a policy carrying uid:, the
 # keys a client reads from a header, and a key no family types walks with
@@ -332,9 +332,14 @@ grep -q "the heading 'Scope' opens both purpose and scope" "$tmp/out" || { echo 
 # as a position is refused, so that rule is what these walks rest on. An empty
 # --file list is a fault, never a walk of nothing.
 expect 0 "families: every declaration walks against schemas/family" python3 checks/families.py --declarations
-for fam in position policy-domain language platform framework; do
+for fam in position policy-domain language platform framework instruction; do
 	expect 0 "families: today's files walk against schemas/$fam by its match" python3 checks/families.py schemas/$fam
 done
+# An instruction is written to a strict family from its first file: one
+# carrying a key the header does not declare is refused, once.
+sed 's/^in: \[plan\]$/in: [plan]\nid: plan-names/' instructions/plan-names.md >"$tmp/instruction-id.md"
+expect 1 "families control: an instruction stating its own id is refused" python3 checks/families.py schemas/instruction --file "$tmp/instruction-id.md"
+[ "$(grep -c ' refuse ' "$tmp/out")" -eq 1 ] && grep -q ': header-schema refuse /id$' "$tmp/out" || { echo "FAIL families control: want exactly one refusal, of /id"; fails=$((fails + 1)); }
 expect 1 "families control: positions/README.md walked as a position is refused" python3 checks/families.py schemas/position --file positions/README.md
 expect 1 "families control: an empty --file list fails" python3 checks/families.py schemas/position --file
 
