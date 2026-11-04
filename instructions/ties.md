@@ -1,7 +1,7 @@
 ---
 family: schemas/instruction@1
-version: 1.0.0
-in: [plan, generate, repair]
+version: 1.1.0
+in: [plan, translate, generate, repair]
 ---
 # Ties
 

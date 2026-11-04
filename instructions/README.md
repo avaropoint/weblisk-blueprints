@@ -15,8 +15,13 @@ engine gives a model nothing else of its own.
 
 | Instruction | In | What it makes the model do |
 |---|---|---|
+| [`plan`](plan.md) | plan | write a plan inside the fixed packages, with top-level symbols in `declares` |
+| [`translate`](translate.md) | translate | write one test from one criterion and the contract alone, or report the criterion untestable |
+| [`generate`](generate.md) | generate | answer with exactly one file, and read the tests without writing them |
+| [`repair`](repair.md) | repair | edit the given files as they stand, and nothing else |
+| [`advise`](advise.md) | accept | read the tree as advice, never as a verdict |
 | [`plan-names`](plan-names.md) | plan | spell every declared name as its blueprint does, and list a missing one as a gap |
 | [`file-names`](file-names.md) | generate, repair | spell every declared name as the plan does, and report a missing one |
 | [`scope`](scope.md) | generate, repair | write only what the plan entry declares and serves |
-| [`ties`](ties.md) | plan, generate, repair | follow the more specific of two statements, or report the conflict |
-| [`corpus-finding`](corpus-finding.md) | plan, generate, repair | the one form a corpus finding takes |
+| [`ties`](ties.md) | plan, translate, generate, repair | follow the more specific of two statements, or report the conflict |
+| [`corpus-finding`](corpus-finding.md) | plan, translate, generate, repair | the one form a corpus finding takes: a conflict, a gap, or an untestable criterion |

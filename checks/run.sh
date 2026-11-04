@@ -343,6 +343,32 @@ expect 1 "families control: an instruction stating its own id is refused" python
 expect 1 "families control: positions/README.md walked as a position is refused" python3 checks/families.py schemas/position --file positions/README.md
 expect 1 "families control: an empty --file list fails" python3 checks/families.py schemas/position --file
 
+# Every instruction against schemas/instruction.md's requirements, with the
+# build steps read from architecture/engine.md (checks/instructions.py). A
+# copy with a placeholder its header does not declare, and an engine whose
+# accept step calls a model no instruction names, are each reported once.
+expect 0 "instructions: every instruction is declared, placed and in a model step" python3 checks/instructions.py
+mkdir -p "$tmp/in/architecture" && cp -R instructions "$tmp/in/" && cp architecture/engine.md "$tmp/in/architecture/"
+sed 's/^The contract: {{contract}}$/The contract: {{contract}} {{implementation}}/' instructions/translate.md >"$tmp/in/instructions/translate.md"
+expect 1 "instructions control: an undeclared placeholder fails" python3 checks/instructions.py --root "$tmp/in"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^instructions/translate.md: instruction-slots-placed: {{implementation}} is written and not declared$' "$tmp/out"; then
+	echo "ok   instructions control: exactly one finding, the undeclared placeholder"
+else
+	echo "FAIL instructions control: want exactly one finding, {{implementation}}"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+cp instructions/translate.md "$tmp/in/instructions/translate.md" && rm "$tmp/in/instructions/advise.md"
+expect 1 "instructions control: a model step no instruction names fails" python3 checks/instructions.py --root "$tmp/in"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q '^architecture/engine.md: instruction-every-step: step accept calls a model, and no instruction names it$' "$tmp/out"; then
+	echo "ok   instructions control: exactly one finding, the accept step"
+else
+	echo "FAIL instructions control: want exactly one finding, the accept step"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+
 # The fabric's reach depth has one home (D23); a copy of architecture/ in which
 # change-management states its own depth again must report exactly two places.
 expect 0 "reach-depth: one home, every citation resolves" python3 checks/reach-depth.py
@@ -875,24 +901,114 @@ else
 fi
 expect 3 "version-bump control: a base that cannot be read is NOT RUN, never ok" python3 checks/version-bump.py --root "$vb" --base no-such-base
 
-# cli.md's Command Surface against the commands CLI 7a75d54 builds
-# (checks/cli-verbs.json): the drift is exactly the measured list. A copy of
-# cli.md without one row must report exactly one more, and a row with an
-# executor schemas/change.md does not declare must be reported.
-expect 0 "command-surface: the drift against the CLI is the measured list" python3 checks/command-surface.py
-mkdir -p "$tmp/cs/architecture" && cp -R schemas "$tmp/cs/"
+# The engine's operation catalogue and today's CLI (checks/front-end-parity.py,
+# which replaces command-surface.py). The catalogue in architecture/engine.md
+# is well formed, and cli.md's Command Surface against the commands CLI
+# 7a75d54 builds (checks/cli-verbs.json) drifts by exactly the measured list.
+# A copy of cli.md without one row must report exactly one more drift, a row
+# with an executor schemas/change.md does not declare must be reported, and a
+# catalogue row repeating an operation or naming an undeclared event type must
+# be reported.
+expect 0 "front-end-parity: the catalogue is well formed and the CLI's drift is the measured list" python3 checks/front-end-parity.py
+mkdir -p "$tmp/cs" && cp -R schemas architecture patterns protocol documents RETIRED.md ACCEPTANCE_PLAN.md "$tmp/cs/"
 grep -v '^  - {noun: secret, verb: list, executor: local}$' architecture/cli.md >"$tmp/cs/architecture/cli.md"
-expect 1 "command-surface control: a row deleted fails" python3 checks/command-surface.py --root "$tmp/cs"
+expect 1 "front-end-parity control: a Command Surface row deleted fails" python3 checks/front-end-parity.py --root "$tmp/cs"
 if [ "$(grep -c '^unexpected drift\|^expected drift' "$tmp/out")" -eq 1 ] && grep -q '^unexpected drift: built, not specified: secret list$' "$tmp/out"; then
-	echo "ok   command-surface control: exactly one more, the deleted row"
+	echo "ok   front-end-parity control: exactly one more, the deleted row"
 else
-	echo "FAIL command-surface control: want exactly one more drift, secret list"
+	echo "FAIL front-end-parity control: want exactly one more drift, secret list"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
 sed 's/^  - {noun: doctor, verb: "", executor: local}$/  - {noun: doctor, verb: "", executor: studio}/' architecture/cli.md >"$tmp/cs/architecture/cli.md"
-expect 1 "command-surface control: an undeclared executor fails" python3 checks/command-surface.py --root "$tmp/cs"
-grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL command-surface control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
+expect 1 "front-end-parity control: an undeclared executor fails" python3 checks/front-end-parity.py --root "$tmp/cs"
+grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL front-end-parity control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
+cp architecture/cli.md "$tmp/cs/architecture/cli.md"
+sed 's/^  - ops: \[run status\]$/  - ops: [run status, audit]/; s/^    events: \[check, verdict\]$/    events: [check, verdict, ruling]/' architecture/engine.md >"$tmp/cs/architecture/engine.md"
+expect 1 "front-end-parity control: a repeated operation and an undeclared event type fail" python3 checks/front-end-parity.py --root "$tmp/cs"
+if [ "$(grep -c 'more than once in the catalogue\|is not one architecture/engine.md declares' "$tmp/out")" -eq 2 ] && grep -q '^audit: listed more than once in the catalogue$' "$tmp/out" && grep -q "^change verify: event type 'ruling' is not one architecture/engine.md declares$" "$tmp/out"; then
+	echo "ok   front-end-parity control: exactly the repeated audit and the event type ruling"
+else
+	echo "FAIL front-end-parity control: want the repeated audit and the event type ruling, and nothing else"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+# Parity between the front ends' manifests. No front end publishes one yet,
+# so the leg says NOT RUN, never ok, and REQUIRE_ALL_VERIFIERS=1 makes that a
+# failure. Its control: two manifests of the catalogue agree, and one missing
+# an operation and holding one of its own is reported, both ways.
+python3 checks/front-end-parity.py --parity >"$tmp/out" 2>&1
+got=$?
+if [ "$got" -eq 3 ]; then
+	echo "NOT RUN $(head -1 "$tmp/out")"
+	notrun=$((notrun + 1))
+	[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
+elif [ "$got" -eq 0 ]; then
+	echo "ok   front-end-parity: the front ends' manifests agree"
+else
+	echo "FAIL front-end-parity --parity (exit $got, want 0)"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+python3 - "$tmp/cli.json" "$tmp/studio.json" <<'MANIFESTS'
+import json, re, sys, yaml
+text = open("architecture/engine.md", encoding="utf-8").read()
+block = [b for b in re.findall(r"^```yaml\n(.*?)^```", text, re.M | re.S) if b.startswith("operations:")][0]
+ops = [o for r in yaml.safe_load(block)["operations"] for o in r["ops"] if "<" not in o] + ["policy validate"]
+json.dump({"operations": [{"operation": o} for o in ops]}, open(sys.argv[1], "w"))
+ops = [o for o in ops if o != "audit"] + ["posture threshold set"]
+json.dump({"operations": [{"operation": o} for o in ops]}, open(sys.argv[2], "w"))
+MANIFESTS
+cp "$tmp/cli.json" "$tmp/cli2.json"
+expect 0 "front-end-parity control: two manifests of the catalogue agree" python3 checks/front-end-parity.py --parity --manifests "$tmp/cli.json" "$tmp/cli2.json"
+expect 1 "front-end-parity control: a front end missing one operation and holding its own fails" python3 checks/front-end-parity.py --parity --manifests "$tmp/cli.json" "$tmp/studio.json"
+if [ "$(wc -l <"$tmp/out")" -eq 4 ] && grep -q '^studio.json: posture threshold set is not an operation of the catalogue$' "$tmp/out" && grep -q "^studio.json: the catalogue's audit is missing$" "$tmp/out" \
+	&& grep -q '^cli.json has audit, which studio.json lacks$' "$tmp/out" && grep -q '^studio.json has posture threshold set, which cli.json lacks$' "$tmp/out"; then
+	echo "ok   front-end-parity control: exactly the missing audit and the extra posture threshold set"
+else
+	echo "FAIL front-end-parity control: want exactly the missing audit and the extra posture threshold set"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# The engine holds no corpus knowledge (checks/engine-neutrality.py): the
+# literals in the tools' source at the pinned commit that equal a name the
+# corpus declares are exactly the known list. Without the tools' repository
+# it says NOT RUN, never ok. Its controls run on plain directories: a source
+# naming nothing passes; one with a declared route and a sentence of an
+# instruction added reports exactly those two; a known entry that finds
+# nothing is reported.
+python3 checks/engine-neutrality.py >"$tmp/out" 2>&1
+got=$?
+if [ "$got" -eq 3 ]; then
+	echo "NOT RUN $(head -1 "$tmp/out")"
+	notrun=$((notrun + 1))
+	[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
+elif [ "$got" -eq 0 ]; then
+	echo "ok   engine-neutrality: the tools' corpus names are exactly the known list"
+else
+	echo "FAIL engine-neutrality (exit $got, want 0)"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/en/internal"
+printf 'package internal\n\n// A literal that names nothing the corpus declares.\nvar greeting = "hello"\n' >"$tmp/en/internal/clean.go"
+expect 0 "engine-neutrality control: a source naming nothing passes" python3 checks/engine-neutrality.py --dir "$tmp/en" --known "$tmp/none.json"
+sentence=$(python3 -c 'import re; t=open("instructions/scope.md").read(); print(" ".join(re.search(r"```text\n(.*?)```", t, re.S).group(1).split()).split(". ")[0] + ".")')
+printf 'package internal\n\nconst route = "/v1/register"\nconst prompt = "%s"\n' "$sentence" >"$tmp/en/internal/leak.go"
+expect 1 "engine-neutrality control: a declared route and an instruction sentence added fail" python3 checks/engine-neutrality.py --dir "$tmp/en" --known "$tmp/none.json"
+if [ "$(grep -c '^new: ' "$tmp/out")" -eq 2 ] && grep -q '^new: internal/leak.go: route /v1/register$' "$tmp/out" && grep -q '^new: internal/leak.go: instruction ' "$tmp/out"; then
+	echo "ok   engine-neutrality control: exactly the route and the instruction sentence"
+else
+	echo "FAIL engine-neutrality control: want exactly the route and the instruction sentence"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+rm "$tmp/en/internal/leak.go"
+printf '{"known": [{"finding": "internal/clean.go: route /v1/register", "audit": "control"}]}\n' >"$tmp/en-known.json"
+expect 1 "engine-neutrality control: a known entry that finds nothing fails" python3 checks/engine-neutrality.py --dir "$tmp/en" --known "$tmp/en-known.json"
+grep -q '^known finding gone: internal/clean.go: route /v1/register' "$tmp/out" || { echo "FAIL engine-neutrality control: the stale entry was not what was reported"; fails=$((fails + 1)); }
+expect 3 "engine-neutrality control: no tools repository is NOT RUN, never ok" python3 checks/engine-neutrality.py --tools "$tmp/no-such-tools"
 
 # Every checklist line against the rule it cites, or, citing nothing, against
 # the registries and its own file; the findings are the measured list. Three

@@ -35,6 +35,7 @@ The whole chain, standard to rebuild, is mapped in the
 
 | Blueprint | Purpose |
 |-----------|---------|
+| [engine.md](engine.md) | The engine — the one implementation that executes the corpus: one command, one event stream; the build steps and what a model may do in each; the one conformance suite; the record that makes builds incremental; neutrality and front-end parity |
 | [cli.md](cli.md) | CLI specification — scaffolding, code generation, operations |
 | [admin.md](admin.md) | Platform admin — operator identity, roles, and the admin gateway, a component of every tenant (kind `admin`) |
 | [observability.md](observability.md) | Structured logging, distributed tracing, metrics |
