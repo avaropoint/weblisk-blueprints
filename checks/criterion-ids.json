@@ -2759,7 +2759,8 @@
    "request-between-components-task-message-event",
    "correlation-id-links-events-single-execution",
    "protected-endpoints-reject-requests",
-   "component-emits-event-pattern-defines-publishes"
+   "component-emits-event-pattern-defines-publishes",
+   "probes-from-data"
   ],
   "protocol/types.md": [
    "id-span-id-timestamp-form-conventions",

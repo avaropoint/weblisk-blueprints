@@ -70,6 +70,7 @@ and versions, the way capabilities are closed in code and kinds are open data
 | Block types | [`schemas/blocks`](../schemas/blocks.md#blocks) |
 | Check kinds, the `check` of a `verifies` entry | [`schemas/blocks`](../schemas/blocks.md#definitions) |
 | Endpoint auth, the `auth` of a served endpoint, and so which endpoints are protected | [`schemas/blocks`](../schemas/blocks.md#which-endpoints-are-protected) |
+| Probe roles, `live` and `ready`, and each one's route and answer | [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz), its `probes` block |
 | `use` and `send` | [`schemas/family`](../schemas/family.md#the-grammar-keywords) |
 | Capabilities | [`schemas/kinds`](../schemas/kinds.md#capabilities) |
 | Executors | [`schemas/change`](../schemas/change.md#executors) |
@@ -594,7 +595,8 @@ steps:
     declares: >-
       The build, run and test commands per language; the diagnostic grammar,
       load-failure and dependency-fault markers per language; the sealed
-      environment; ports; which routes are essential
+      environment; ports; which routes are essential; the probes and their
+      answers (the probes block of protocol/spec)
   - id: repair
     does: Edits files until the suite passes, class by class
     model: called
