@@ -1,5 +1,5 @@
 {
-  "format": "The commands the CLI builds at the commit named, one per noun and verb, each with the file and line of the switch that dispatches it. A command with no verb has verb \"\". Aliases (blueprints, secrets, federation, describe as show or info) and help are not commands. expected_drift is the drift checks/command-surface.py measured between this list and architecture/cli.md's Command Surface when this file was written; a change to either side changes it, on purpose.",
+  "format": "The commands the CLI builds at the commit named, one per noun and verb, each with the file and line of the switch that dispatches it. A command with no verb has verb \"\". Aliases (blueprints, secrets, federation, describe as show or info) and help are not commands. expected_drift is the drift checks/command-surface.py (now the second leg of checks/front-end-parity.py) measured between this list and architecture/cli.md's Command Surface when this file was written; a change to either side changes it, on purpose.",
   "cli_commit": "7a75d54",
   "measured_against_corpus": "f2b61ba",
   "commands": [

@@ -197,7 +197,8 @@ below and nothing else.
 | `generate` | `absent`, `non-compliant` |
 | `regenerate` | `reached-by-change`, `incomplete` (the second for a component its latest run did not finish building: apply resumes that run, and every file it banked is reused) |
 | `repair` | `refuted`, `unverified` (a component whose latest run completed and whose verification refuted it, or reached no verdict on it: apply resumes its repair loop on the tree that run ended on) |
-| `review` | `reached-by-change`, `unmaintained` (the first for a node a person must look at, such as a document or a control; the second for a component an input reaches whose bytes moved and whose version did not) |
+| `translate` | `absent`, `criterion-moved` (a translated test: the first for a criterion with no test yet, the second for one whose criterion's digest moved since its test was translated) |
+| `review` | `reached-by-change`, `unmaintained`, `older-instruction` (the first for a node a person must look at, such as a document or a control; the second for a component an input reaches whose bytes moved and whose version did not; the third for a test, a plan or a file made under an instruction since revised, which is kept until somebody chooses to make it again) |
 | `redeploy` | `reached-by-change` |
 | `keep` | `unchanged` |
 | `assessed-unchanged` | `reached-by-change` (row five: the change touches nothing it is answerable for) |
@@ -245,6 +246,19 @@ it, apply writes one with the service's conventional port
 ([`schemas/config`](config.md#the-services-a-programme-runs-on)), and the
 change records each section it wrote in `config_written`; a section already
 present is left as it is and not recorded.
+
+**A translated test is a plan entry of its own.** Each criterion a change
+owes that is settled by a translated test
+([`architecture/engine`](../architecture/engine.md#the-unit-is-a-criterion))
+has an entry whose `output` is the test's path, in phase R, because the
+criteria and the paths the language declares fix it before any model is
+asked. Its verdict is `translate` when the test is absent or its criterion's
+digest moved, `keep` when neither, and `review`, because `older-instruction`,
+when only the translate instruction was revised since: a test is translated
+again only when its criterion moves
+([`architecture/engine`](../architecture/engine.md#how-the-record-makes-builds-incremental)).
+`implements` names the criterion. No generate or repair entry names a test's
+path.
 
 A component a dependency pulled in is marked by its `build_set` entry's
 `added_by`, never in a plan entry's `because`, which keeps its verdict's own

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.5.0
+version: 1.6.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -142,6 +142,7 @@ Not capabilities — values a kind declares.
 | `listing` | — | namespace + listing name | published | — | *(none)* |
 | `agent` | — | tenant + agent name | derived | runtime | versioned, chain-member |
 | `skill` | — | namespace + path | authored | — | versioned, has-custody |
+| `instruction` | — | namespace + path | authored | — | versioned, has-custody |
 | `workflow` | — | namespace + path | authored | — | versioned, has-custody |
 | `programme` | — | namespace + path | published | — | versioned |
 | `mapping` | — | **namespace + artifact + part id** | authored | — | versioned |

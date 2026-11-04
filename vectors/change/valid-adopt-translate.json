@@ -1,0 +1,74 @@
+{
+  "id": "1f2e3d4c5b6a79889807b6c5d4e3f2a1",
+  "kind": "adopt",
+  "request": [
+    "blueprint://weblisk/architecture/admin@4.1.1"
+  ],
+  "requested_by": "1111aaaa2222bbbb3333cccc4444dddd",
+  "requested_at": "2026-10-26T07:33:20.000Z",
+  "strict": true,
+  "state": "planned",
+  "base": {
+    "corpus": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3",
+    "lock": "sha256:abababababababababababababababababababababababababababababababab",
+    "fabric_tip": "unreported",
+    "pins": [
+      {
+        "kind": "core",
+        "origin": "https://git.example.com/weblisk-blueprints.git",
+        "revision": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3"
+      }
+    ]
+  },
+  "shown_roots": [
+    "blueprint://weblisk/architecture/admin"
+  ],
+  "resolution": {
+    "build_set": [
+      {
+        "component": "component://example/admin"
+      }
+    ],
+    "lock_diff": [
+      {
+        "ref": "blueprint://weblisk/architecture/admin",
+        "from": "absent",
+        "to": "4.1.1"
+      }
+    ],
+    "conflicts": {
+      "found": [],
+      "introduced": [],
+      "cleared": []
+    }
+  },
+  "plan": [
+    {
+      "output": "admin/main.go",
+      "phase": "F",
+      "verdict": "generate",
+      "because": "absent",
+      "implements": [
+        "requirement://weblisk/architecture/admin:listeners-disjoint"
+      ]
+    },
+    {
+      "output": "admin/listeners_disjoint_test.go",
+      "phase": "R",
+      "verdict": "translate",
+      "because": "absent",
+      "implements": [
+        "requirement://weblisk/architecture/admin:listeners-disjoint"
+      ]
+    },
+    {
+      "output": "admin/main_entry_test.go",
+      "phase": "R",
+      "verdict": "review",
+      "because": "older-instruction",
+      "implements": [
+        "check://weblisk/architecture/admin:admin-starts"
+      ]
+    }
+  ]
+}

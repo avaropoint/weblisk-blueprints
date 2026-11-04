@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.11.1
+version: 4.11.2
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -619,11 +619,13 @@ are first listed. The one exception is the four change verbs that run as
 `cli-in-tenant` [until a tenant runs a change service](#until-a-tenant-runs-a-change-service):
 they are rows, with that executor, because that is where they run today. A renamed command is a row under the name it has today
 ([Renamed commands](#renamed-commands)): `identity attest` is the row
-`operator attest`. `checks/command-surface.py`
+`operator attest`. `checks/front-end-parity.py`
 in the corpus holds this block against the commands the CLI builds, and reports
 each one specified and not built, and each built and not specified, so the
 drift between the two is a measured list rather than a surprise. The list is
-replaced by `weblisk commands --json` when that command is built.
+replaced by `weblisk commands --json` when that command is built, and the
+operations it must then list are the engine's catalogue
+([`architecture/engine`](engine.md#the-operation-catalogue)).
 
 ```yaml
 command_surface:

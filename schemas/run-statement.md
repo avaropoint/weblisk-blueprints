@@ -80,6 +80,8 @@ run_statement:
           unverifiable: <count>
           unanswered: <count>
           conflicts: <count>       # requirements read as contradicting the corpus
+        actions: [<action>]        # every thing a step did, in the order done; see Actions
+        criteria: [<criterion>]    # every criterion the run owed; see Criteria
       resolvedDependencies:        # every blueprint and mapping rule read
         - uri: <full ref>
           digest: {sha256: <hex>}
@@ -90,6 +92,9 @@ run_statement:
         invocationId: <run id>
         startedOn: <RFC 3339>
         finishedOn: <RFC 3339>
+      byproducts:                  # one per model action's transcript; see Actions
+        - name: provenance/transcripts/<run id>/<action id>.json
+          digest: {sha256: <hex>}
 ```
 
 ```yaml
@@ -130,9 +135,10 @@ types:
 3. **`implements` is per planned file**, copied from the plan entry that
    produced it ([`architecture/generation`](../architecture/generation.md#what-a-plan-declares)).
    No marker is written into the generated code. Verification confirms each
-   claim through a test named by the check id that covers the requirement, which
-   the language's symbol extractor finds; where no extractor exists the
-   confirmation is file-level and says so.
+   claim through the requirement's criterion, settled by its declared check or
+   its translated test ([Criteria](#criteria)), never by a test the generator
+   wrote; where the language has no symbol extractor the confirmation is
+   file-level and says so.
 4. **Every digest is written as `patterns/content-identity` spells it**:
    `sha256:<hex>` as one string, `{sha256: <hex>}` where in-toto's digest set is
    the field.
@@ -187,9 +193,10 @@ what its component was built from.**
   ([`schemas/change`](change.md#verdicts), `incomplete`). The model is never
   asked to plan a resume. The plan is made again only when a blueprint it was
   made from moved, was added or is no longer read, at the digests recorded, and
-  the run names which. The generator's own instructions are not among those
-  inputs: a release of the tool that words its prompts differently has not
-  changed what the tenant's blueprints require. A record from before plans were
+  the run names which. The instructions the model was given are not among
+  those inputs: an instruction revised since has not changed what the
+  tenant's blueprints require, and the plan is kept, marked made under an
+  older instruction ([`architecture/engine`](../architecture/engine.md#how-the-record-makes-builds-incremental)). A record from before plans were
   recorded is resumed from the banked plan whose entries match every file its
   run recorded, by path, purpose and declarations, and from the banked files
   whose digests it recorded; where none matches, the run says the plan is
@@ -259,3 +266,145 @@ wrote.
   edited output is refused for regeneration
   ([`architecture/generation`](../architecture/generation.md#deciding-whether-a-file-must-be-rebuilt)).
 - A statement is never rewritten to correct it. A correction is a new run.
+
+## Actions
+
+One entry per thing a step of [`architecture/engine`](../architecture/engine.md#the-build-steps)
+did, deterministic or model, in the order the run did them. An action is the
+unit the engine reuses: one whose step, instruction digests and input digests
+equal a completed action's is not run again
+([`architecture/engine`](../architecture/engine.md#how-the-record-makes-builds-incremental)).
+
+```yaml
+action:
+  id: <action id>                  # unique in the run: lowercase letters, digits and hyphens
+  step: <step id>                  # one architecture/engine declares
+  kind: deterministic | model
+  instructions:                    # model actions only, in the order the prompt carried them
+    - {ref: <full ref of instructions/<id>>, version: <its version>, digest: sha256:<hex>}
+  inputs:                          # every input the action read, by name
+    - {name: <input name>, digest: sha256:<hex>}
+  outputs:                         # every output it produced, by name or tenant path
+    - {name: <name or path>, digest: sha256:<hex>}
+  criterion: <criterion ref>       # a translate action: the criterion it translated
+  model: <the id the backend reported, or unreported>   # model actions only
+  transcript: sha256:<hex>         # a model action that called a model: its byproduct's digest
+  reused_from: {run: <run id>, action: <action id>}     # an action not run again
+  result: done | refused | failed
+  started: <timestamp>
+  finished: <timestamp>
+```
+
+- **An input's digest** is the SHA-256 of what the action was given under that
+  name: a file's bytes, a block's value as
+  [`schemas/family`](family.md#the-projection) digests it, or the RFC 8785
+  bytes of a structured input. Two actions given the same thing under the same
+  name record the same digest, which is what makes reuse a lookup.
+- **An instruction's digest** is the SHA-256 of the instruction file's bytes as
+  read, at the version recorded ([`schemas/instruction`](instruction.md#versions-and-digests)).
+- **The transcript** is the account of how a model action was done, kept in
+  the tenant (ENGINE_PLAN decision 10): a JSON file in the tenant repository
+  at `provenance/transcripts/<run id>/<action id>.json`, holding the prompt as
+  sent and the answer as received, each part labelled by the instruction or
+  input it came from, and the model the backend reported. It is a byproduct of
+  the run, so the run's `byproducts` name it with its digest, and the action
+  cites that digest. The answer to a `question` of kind `passphrase`,
+  `secret` or `signature` never appears in it
+  ([`architecture/engine`](../architecture/engine.md#questions)).
+- **A reused action** carries `reused_from`, naming the completed action whose
+  outputs it took, and the same step, instruction digests, input digests and
+  outputs. It made no model call, so it has no transcript of its own.
+
+## Criteria
+
+One entry per criterion the run owed: every checklist item and every
+uncovered requirement of the blueprints the run built from
+([`architecture/engine`](../architecture/engine.md#the-unit-is-a-criterion)).
+
+```yaml
+criterion:
+  id: <full ref of the requirement or check>
+  digest: sha256:<hex>             # over its text and the definitions it cites
+  class: S | J | B | E | F
+  class_by: <the rule, and the ref, that gave the class>
+  settled_by: declared | vector | translated
+  check: <full ref of the declared check or vector>      # declared and vector only
+  tests:                           # translated only
+    - path: <tenant path>
+      digest: sha256:<hex>
+      translated_by: {run: <run id>, action: <action id>}
+      criterion_digest: sha256:<hex>   # the criterion's digest the test was translated under
+      instruction_current: <bool>      # false: translated under an older instruction
+      stub: failed | passed | not-run  # its run against the stub of the plan's declarations
+      promoted: <full ref of the declared check that replaced it>
+  reach:                           # what the criterion's tests or check reach
+    files: [<tenant path>]
+    symbols: [<symbol>]
+    operations: [<operation ref>]
+    component: <bool>              # true: a black-box test, which reaches the whole component
+  verdict:
+    result: pass | fail | error | not-run
+    environment: <environment the result was reached in>
+    reason: <the test command's or the executor's own reason>
+    carried_from: <run id>         # a verdict carried forward, and the run it came from
+  gap:                             # present when the criterion is not met
+    result: unmet | unsettled | failed
+    reason: <text>
+    premise: <the premise, and the test that settles it, of an IF requirement>
+    reaches: [<component ref>]     # components in this tenant that bind what it governs
+    advice: <a model's reading, labelled as advice>
+```
+
+- **The digest** is [`architecture/engine`](../architecture/engine.md#the-unit-is-a-criterion)'s:
+  the SHA-256 of the RFC 8785 bytes of `{text, cites}`, where `text` is the
+  criterion's text with its id marker removed and each run of whitespace one
+  space, and `cites` lists each definition it cites by full ref and digest,
+  sorted by ref. Its worked values are
+  [`vectors/run-statement/criterion-digest.json`](../vectors/run-statement/criterion-digest.json).
+- **A test counts only when its record shows the four conditions**
+  ([`architecture/engine`](../architecture/engine.md#what-makes-a-translated-test-count)):
+  its `translated_by` is a translate action given no output of a generate or
+  repair action, and every translate action of the run comes before its first
+  generate action; its `stub` is `failed`; no generate or repair action wrote
+  its path; and its verdict is the test command's.
+- **A gap's fields** are the ones [`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#on-the-run-statement)
+  gives a gap. The check, class, covers, files and reach it lists are the
+  criterion's own fields above, so they are not repeated inside `gap`.
+
+## Rules for actions and criteria
+
+Each rule has an id; the [vectors](../vectors/run-statement/README.md) cite
+them, and [`checks/run-statement-vectors.py`](../checks/run-statement-vectors.py)
+reads this block and nothing else.
+
+```yaml
+rules:
+  - id: action-id
+    rule: every action has an id, unique in the run, of lowercase letters, digits and hyphens
+  - id: action-step
+    rule: every action's step is a step architecture/engine declares
+  - id: action-model
+    rule: an action of kind model is of a step whose model is called, and has instructions and model; one of kind deterministic has neither, nor a transcript
+  - id: action-digests
+    rule: every input, output and instruction digest is written sha256:<hex>, and every instruction names ref, version and digest
+  - id: action-transcript
+    rule: a model action that was not reused has a transcript, and its digest is the digest of one of the run's byproducts
+  - id: action-reuse
+    rule: an action with reused_from has no transcript; when reused_from names an action of the same run, that action is earlier and has the same step, instruction digests, input digests and outputs
+  - id: criterion-id
+    rule: every criterion has an id, unique in the run, and a digest written sha256:<hex>
+  - id: criterion-settled
+    rule: settled_by translated has tests and no check; declared and vector have a check and no tests
+  - id: test-translated-by
+    rule: every test's translated_by names a translate action, and when that action is of this run, its criterion is this criterion
+  - id: translate-first
+    rule: no translate action of the run comes after its first generate action
+  - id: translate-apart
+    rule: no translate action's inputs carry the digest of an output of a generate or repair action of the run
+  - id: test-not-written
+    rule: no generate or repair action's outputs name the path of a test
+  - id: test-counts
+    rule: a criterion settled by translated tests has verdict pass only when each of its tests has stub failed
+  - id: verdict-result
+    rule: every verdict's result is pass, fail, error or not-run; a gap's result is unmet, unsettled or failed
+```

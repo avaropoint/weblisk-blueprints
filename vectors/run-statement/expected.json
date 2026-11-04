@@ -1,0 +1,83 @@
+{
+  "format": "Each entry names a fixture in this directory, whether it is valid, and for an invalid one the one rule of schemas/run-statement.md's Rules for actions and criteria it breaks. Every other rule holds in every fixture. Each fixture is a run statement as decoded from its DSSE envelope.",
+  "fixtures": [
+    {
+      "file": "valid-translated-and-declared.json",
+      "valid": true
+    },
+    {
+      "file": "valid-reuse-in-run.json",
+      "valid": true
+    },
+    {
+      "file": "invalid-action-id.json",
+      "valid": false,
+      "breaks": "action-id"
+    },
+    {
+      "file": "invalid-action-step.json",
+      "valid": false,
+      "breaks": "action-step"
+    },
+    {
+      "file": "invalid-action-model.json",
+      "valid": false,
+      "breaks": "action-model"
+    },
+    {
+      "file": "invalid-action-digests.json",
+      "valid": false,
+      "breaks": "action-digests"
+    },
+    {
+      "file": "invalid-action-transcript.json",
+      "valid": false,
+      "breaks": "action-transcript"
+    },
+    {
+      "file": "invalid-action-reuse.json",
+      "valid": false,
+      "breaks": "action-reuse"
+    },
+    {
+      "file": "invalid-criterion-id.json",
+      "valid": false,
+      "breaks": "criterion-id"
+    },
+    {
+      "file": "invalid-criterion-settled.json",
+      "valid": false,
+      "breaks": "criterion-settled"
+    },
+    {
+      "file": "invalid-test-translated-by.json",
+      "valid": false,
+      "breaks": "test-translated-by"
+    },
+    {
+      "file": "invalid-translate-first.json",
+      "valid": false,
+      "breaks": "translate-first"
+    },
+    {
+      "file": "invalid-translate-apart.json",
+      "valid": false,
+      "breaks": "translate-apart"
+    },
+    {
+      "file": "invalid-test-not-written.json",
+      "valid": false,
+      "breaks": "test-not-written"
+    },
+    {
+      "file": "invalid-test-counts.json",
+      "valid": false,
+      "breaks": "test-counts"
+    },
+    {
+      "file": "invalid-verdict-result.json",
+      "valid": false,
+      "breaks": "verdict-result"
+    }
+  ]
+}

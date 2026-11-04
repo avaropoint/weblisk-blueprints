@@ -94,6 +94,7 @@ and six folders were absent altogether.
 | [`positions/`](positions/README.md) | The hand-written half of what can be said about a job somebody holds |
 | [`policy-domains/`](policy-domains/README.md) | What a subject area of governance covers, and what a programme claiming it must provide |
 | [`intl/`](intl/README.md) | Reserved for locale and spoken-language constructs |
+| [`instructions/`](instructions/README.md) | Every sentence a build gives a model, one file each, passed as written |
 | [`skills/`](skills/README.md) | Guides for a coding agent — not specifications |
 | [`vectors/`](vectors/README.md) | Test vectors: the exact bytes, keys and signatures every implementation of a [fixed-form statement](protocol/identity.md#fixed-form-statements) tests against, the id grammar's vectors, and the wire value of a timestamp. Data no blueprint requires, so no build's prompt carries it |
 | [`checks/`](checks/README.md) | The corpus's own small checks, each with the control that proves it reaches something. Run `checks/run.sh` |

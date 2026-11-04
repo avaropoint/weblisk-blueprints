@@ -1,0 +1,7 @@
+{
+  "format": "Each front end of the engine (architecture/engine.md, Parity), and the manifest it published at a pinned commit, as a file in checks/. A front end with no manifest makes checks/front-end-parity.py --parity NOT RUN, never ok. The CLI's manifest is `weblisk commands --json`, which is not built yet; Studio's is its operations route, which is not built yet. Today's CLI commands are measured instead in cli-verbs.json, against architecture/cli.md's Command Surface.",
+  "front_ends": {
+    "cli": {"repository": "weblisk-tools (today weblisk-cli)", "commit": null, "manifest": null},
+    "studio": {"repository": "weblisk-studio", "commit": null, "manifest": null}
+  }
+}

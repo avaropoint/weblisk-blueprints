@@ -194,6 +194,7 @@ a provider exactly as they do for generating a tenant.
 | **`programmes/`** | programme definitions: artifacts, obligations, registers, tiers — and, to be added, the agents, workflows, tasks and forms a programme needs | **moved out of Studio** |
 | **`positions/`** | the hand-written half of a role brief — the judgement a projection over `programmes/` cannot reach | new |
 | **`policy-domains/`** | the **domain catalogue** in `catalogue/` — which subject areas exist and the keywords that classify into them — and, beside it, what each one covers, where it stops, and what claiming it requires. **Not `domains/`**: that name is taken by domain *controllers* in `schemas/common.md` | new; catalogue **moved out of Studio** |
+| **`instructions/`** | every sentence a build gives a model, one file each, passed as written ([`schemas/instruction`](schemas/instruction.md)) | new; **moved out of `architecture/generation.md`**, and to replace the CLI's and Studio's prompt literals |
 | `intl/` | **reserved** — locale and spoken-language constructs | new, empty |
 
 `frameworks/weblisk` is Weblisk's own client framework, a peer to Astro and Next
