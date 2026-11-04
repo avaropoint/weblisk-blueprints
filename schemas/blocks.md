@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.2.0
+version: 1.3.0
 noun: block
 ---
 # Schema: Blocks
@@ -242,12 +242,21 @@ Three fields every component check may carry:
 - **`live`** is `safe` where the check may run against a running tenant, and
   `sealed-only`, the default, where it changes state or needs fixtures only a
   build's sealed run has.
-- **Placeholders.** A string in a request may hold `${name}`: a value an
-  earlier step captured, `${now}`, a fixture of
+- **Placeholders.** A string in a request or an expectation may hold
+  `${name}`: a value an earlier step captured; `${now}`; `${token}`, the token
+  the step's `token` gives; `${self/<pointer>}`, the manifest the component
+  under test describes itself with; a fixture of
   [`architecture/testing`](../architecture/testing.md#test-fixtures) as
-  `${fixture/<name>/<pointer>}`, or, in a `vector` check, the entry as
-  `${v/<pointer>}`. A value that resolves to nothing is a fault of the check,
-  reported as such, never sent empty.
+  `${fixture/<name>/<pointer>}`, an identity's `public_key` derived from its
+  seed; or, in a `vector` check, the entry as `${v/<pointer>}`. A string that
+  is one placeholder and nothing else is replaced by the value, whatever its
+  type. A value that resolves to nothing is a fault of the check, reported as
+  such, never sent empty.
+- **The orchestrator under test.** `start.orchestrator: mock` starts the mock
+  unless the component under test is of a kind that holds the directory
+  ([`schemas/kinds`](kinds.md#component-kinds): it does not register and runs
+  with nothing), which is instead started with the `test-orchestrator`
+  fixture's key, so that a token the harness mints verifies at either.
 
 A check whose executor cannot read what it must judge (a pattern it cannot
 resolve, a query the language does not declare, a component that will not
@@ -343,14 +352,16 @@ defs:
       env: {type: object, additionalProperties: {type: string}, description: "Variables added to the clean start environment."}
   exchange-request:
     type: object
-    required: [method]
     unevaluatedProperties: false
+    anyOf: [{required: [method]}, {required: [endpoint]}, {required: [replay]}]
     properties:
       method: {enum: [GET, HEAD, POST, PUT, PATCH, DELETE]}
+      endpoint: {const: each, description: "The method and path of each endpoint the check's for_each selects, its path parameters filled with conformance-probe."}
+      replay: {$ref: "#/$defs/part-id", description: "Send again the exact bytes an earlier step with this id sent."}
       path: {type: string, pattern: "^/", description: "The path as sent; a placeholder ${name} is filled from an earlier capture or a fixture."}
       operation: {$ref: "#/$defs/ref", description: "An operation a serves block or Endpoints table declares; its method and path, in place of path."}
       listener: {enum: [public, admin], default: public}
-      token: {enum: [none, own, expired, bad-signature, wrong-type, captured], default: none, description: "The bearer token: none; one the as identity holds; one past exp; one whose signature does not verify; one of a type the route does not take; the value captured as token."}
+      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, captured], default: none, description: "The bearer token. own: a token the harness mints for the as identity under the test-orchestrator fixture's key; expired: the same, past exp; bad-signature: the same, its signature broken; wrong-type: one of a type the route does not take; channel-self and channel-other: a channel token scoped to the component under test, or to another target; captured: the value an earlier step captured as token."}
       headers: {type: object, additionalProperties: {type: string}}
       body: {description: "Any JSON value; strings may hold placeholders."}
       body_bytes: {type: integer, minimum: 0, description: "A body of this many bytes, in place of body."}
@@ -361,7 +372,9 @@ defs:
         description: "Sign part of the body with the as identity's key, as protocol/identity signs: over the canonical form of the value at over, encoded as the field at into declares."
         properties:
           over: {$ref: "#/$defs/json-pointer"}
+          members: {type: array, minItems: 1, items: {type: string}, description: "Sign the object of only these members of the value at over."}
           into: {$ref: "#/$defs/json-pointer"}
+          encoding: {enum: [base64url, hex], default: base64url}
           with: {enum: [own, other-key, other-bytes], default: own, description: "own key over those bytes; another fixture's key; or the own key over other bytes."}
           timestamp: {$ref: "#/$defs/json-pointer", description: "Where the signing instant is written."}
           age: {$ref: "#/$defs/duration-literal", description: "How long before now the timestamp says; 0s when absent."}
@@ -397,7 +410,7 @@ defs:
     unevaluatedProperties: false
     properties:
       start: {$ref: "#/$defs/check-start"}
-      each: {type: array, items: {$ref: "#/$defs/exchange-request"}, description: "Steps' requests are sent once for each of these, in place of their own method and path; for each protected endpoint and the like."}
+      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint declares, or per one whose auth requires a token."}
       steps: {type: array, minItems: 1, items: {$ref: "#/$defs/exchange-step"}}
   check-vector:
     type: object

@@ -19,7 +19,8 @@ and selectors schemas/kinds.md declares. A check is refused when:
   wl:check, a requirement or a check);
 - a structure check names a query no language declares;
 - a vector check names a file that does not exist;
-- a step is made `as` an identity no fixture declares;
+- a step is made `as` an identity no fixture declares, or a placeholder names
+  a fixture architecture/testing.md's fixtures block does not declare;
 - `applies_to` names neither a component kind nor a selector.
 """
 import glob, json, os, re, sys
@@ -84,9 +85,10 @@ def queries():
 
 
 def fixtures():
-    t = text_of(os.path.join(CORPUS, "architecture/testing.md"))
-    sec = re.search(r"^### Identity Fixtures\n(.*?)^### ", t, re.S | re.M).group(1)
-    return set(re.findall(r'^\s+name: "([a-z0-9-]+)"', sec, re.M)) | {"anonymous"}
+    """(identities, every fixture name): from architecture/testing.md's fixtures block."""
+    b = yaml_blocks(os.path.join(CORPUS, "architecture/testing.md")).get("fixtures") or {}
+    ids = {k for k, v in b.items() if isinstance(v, dict) and "seed" in v}
+    return ids | {"anonymous"}, set(b)
 
 
 def component_selectors():
@@ -97,7 +99,8 @@ def component_selectors():
     return set((b.get("kinds") or {}).keys()) | set((b.get("selectors") or {}).keys())
 
 
-QUERIES, FIXTURES, SELECTORS = queries(), fixtures(), component_selectors()
+QUERIES, SELECTORS = queries(), component_selectors()
+FIXTURES, FIXTURE_NAMES = fixtures()
 
 
 def steps_of(entry):
@@ -151,6 +154,9 @@ def judge(rel, line, entry, own_parts):
     for st in steps_of(entry):
         if isinstance(st, dict) and "as" in st and st["as"] not in FIXTURES:
             out.append(f"{where}: a step made as {st['as']!r}, which no identity fixture declares")
+    for name in re.findall(r"\$\{fixture/([a-z0-9-]+)", json.dumps(entry)):
+        if name not in FIXTURE_NAMES:
+            out.append(f"{where}: names fixture {name!r}, which architecture/testing does not declare")
     if SELECTORS is not None:
         for a in entry.get("applies_to") or []:
             if a not in SELECTORS:
@@ -158,8 +164,21 @@ def judge(rel, line, entry, own_parts):
     return out
 
 
+def suite(rel, text):
+    """architecture/testing.md: every conformance test heading has its check."""
+    if rel != "architecture/testing.md":
+        return []
+    tests = re.findall(r"^#### (L[0-9]-[0-9]{2}):", text, re.M)
+    ids = {e.get("id", "") for _, es in verifies_blocks(text) for e in es or [] if isinstance(e, dict)}
+    out = [f"{rel}: conformance test {tid} has no check in the suite's data"
+           for tid in tests if not any(i.startswith(tid.lower() + "-") for i in ids)]
+    if not tests:
+        out.append(f"{rel}: no conformance test headings found")
+    return out
+
+
 def judge_file(rel, text):
-    out, n, kinds = [], 0, {}
+    out, n, kinds = suite(rel, text), 0, {}
     own = parts_of(text)
     for line, entries in verifies_blocks(text):
         for e in entries or []:

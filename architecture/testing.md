@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.0.2
+version: 2.1.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -235,6 +235,76 @@ generating random ones. This enables reproducible tests.
   "workflows": ["test-workflow"],
   "max_concurrent": 10
 }
+```
+
+### Fixtures as data
+
+The fixtures above, in the form a declared check reads them
+([`schemas/blocks`](../schemas/blocks.md#checks), `${fixture/<name>/<pointer>}`).
+An identity's `seed` is its ML-DSA-65 key-generation seed, and its
+`public_key` is derived from it, base64url-encoded, never written here. These
+are TEST KEYS ONLY.
+
+```yaml
+fixtures:
+  test-orchestrator:
+    seed: "0000000000000000000000000000000000000000000000000000000000000001"
+  test-agent:
+    seed: "0000000000000000000000000000000000000000000000000000000000000002"
+    manifest:
+      name: test-agent
+      type: agent
+      version: 1.0.0
+      protocol_version: "1"
+      description: Conformance test agent
+      url: http://localhost:9710
+      public_key: "${fixture/test-agent/public_key}"
+      capabilities:
+        - {name: "file:read", resources: ["**/*.html"]}
+        - {name: "agent:message", resources: []}
+      inputs: [{name: files, type: file_list, description: Files to process}]
+      outputs: [{name: report, type: json, description: Processing report}]
+      max_concurrent: 5
+  test-domain:
+    seed: "0000000000000000000000000000000000000000000000000000000000000003"
+    manifest:
+      name: test-domain
+      type: domain
+      version: 1.0.0
+      protocol_version: "1"
+      description: Conformance test domain
+      url: http://localhost:9700
+      public_key: "${fixture/test-domain/public_key}"
+      capabilities:
+        - {name: "agent:message", resources: []}
+        - {name: "workflow:execute", resources: []}
+      required_agents: [test-agent]
+      workflows: [test-workflow]
+      max_concurrent: 10
+  task:
+    id: conformance-task-1
+    from: user
+    action: execute
+    payload: {}
+    context:
+      workspace_root: "."
+      services: []
+      trace_id: 4bf92f3577b34da6a3ce929d0e0e4736
+      span_id: 00f067aa0ba902b7
+      task_id: conformance-task-1
+      agent_name: "${self/name}"
+    token: "${token}"
+    timestamp: "${now}"
+  message:
+    id: conformance-message-1
+    from: test-agent
+    to: "${self/name}"
+    type: request
+    action: conformance_probe
+    payload: {}
+    timestamp: "${now}"
+    trace_id: 4bf92f3577b34da6a3ce929d0e0e4736
+    span_id: 00f067aa0ba902b7
 ```
 
 ---
@@ -575,7 +645,8 @@ Applies to: every component that registers — **not** the orchestrator itself.
 ```
 1. Start a real orchestrator on an ephemeral port
 2. Start the component with that orchestrator's URL
-3. The component MUST reach a listening state and MUST NOT exit
+3. The component MUST reach a listening state and MUST NOT exit. An exit
+   here fails this test; it is never reported as inconclusive
 4. The orchestrator's directory (GET /v1/services, read under a registration
    the harness makes for itself) MUST list the component, and within one
    lease duration its lease_state MUST be current: `ready`, or `not_ready`
@@ -628,6 +699,350 @@ Applies to: every component that registers.
 
 A component that cannot verify a token MUST NOT accept one, and a component that
 cannot be started alone cannot be conformance-tested at all.
+
+### The suite as data
+
+The tests above are explanation. What runs is this block: each test written
+as a check of a kind [`schemas/blocks`](../schemas/blocks.md#checks) declares,
+addressed by `applies_to` to the components it applies to, and run by the
+engine's interpreter for its kind, in any language. It replaces both
+hand-written suites the CLI carried (`internal/dispatch`'s conformance and
+interop runs, and `weblisk test conformance`), whose ids contradicted each
+other and this document.
+
+Where the vocabulary cannot yet say what a test needs, the check is
+`translated`, and its assertion says what is missing: L1-09, whose directory
+push is signed as a fixed-form statement, and L3-01 to L3-05, which need the
+published workflow, task and lifecycle agents started beside a domain and an
+observation of the events they publish. Each is unsettled until the
+vocabulary grows or a translated test is promoted, never passed.
+
+An exit during startup fails L4-01: `no-exit` is observed, and a component
+that exits has failed it, not left it inconclusive.
+
+```yaml
+verifies:
+  - id: l1-01-probes
+    covers: ["protocol/spec:component-serves-get-livez-get-readyz", l1-01-refuses-probe-body-carrying, level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: GET /livez answers 200 with only live true, and GET /readyz answers 200 with ready true or 503 with ready false, each with no other member and no token.
+    applies_to: [any]
+    live: safe
+    exchange:
+      steps:
+        - request: {method: GET, path: /livez}
+          expect: {status: 200, json: true, only: [live], equals: {/live: true}}
+        - request: {method: GET, path: /readyz}
+          expect: {status: [200, 503], json: true, only: [ready]}
+
+  - id: l1-02-describe
+    covers: ["protocol/spec:agent-responds-post-v1-describe-valid", "architecture/agent:post-v1-describe-returns-agent-manifest", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: POST /v1/describe answers 200 with a manifest holding name, version, url, public_key and capabilities.
+    applies_to: [agent, domain]
+    live: safe
+    exchange:
+      steps:
+        - request: {method: POST, path: /v1/describe, body: {}}
+          expect: {status: 200, json: true, has: [/name, /version, /url, /public_key, /capabilities]}
+
+  - id: l1-03-registration
+    covers: ["architecture/orchestrator:post-v1-register-returns-registerresponse-agent", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: A registration signed over the manifest as sent is answered 200 with agent_id (32 lowercase hex), a token in three base64url parts, expires_at and services.
+    applies_to: [orchestrator]
+    exchange:
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body: {manifest: "${fixture/test-agent/manifest}"}
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+          expect:
+            status: 200
+            has: [/agent_id, /token, /expires_at, /services]
+            matches: {/agent_id: "^[0-9a-f]{32}$", /token: "^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$"}
+
+  - id: l1-04-bad-signature
+    covers: ["architecture/orchestrator:post-v1-register-verifies-ml-dsa", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: A registration whose signature is the right key's over other bytes is refused with 401 and an error member.
+    applies_to: [orchestrator]
+    exchange:
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body: {manifest: "${fixture/test-agent/manifest}"}
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp, with: other-bytes}
+          expect: {status: 401, json: true, has: [/error]}
+
+  - id: l1-05-stale-timestamp
+    covers: ["protocol/spec:orchestrator-post-v1-register-enforces-replay", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: A correctly signed registration whose timestamp is 600 seconds old is refused with 401, and its error names replay or the timestamp.
+    applies_to: [orchestrator]
+    exchange:
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body: {manifest: "${fixture/test-agent/manifest}"}
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp, age: 600s}
+          expect: {status: 401, mentions: [replay, timestamp, stale, expired]}
+
+  - id: l1-06-execute-task
+    covers: ["protocol/spec:agent-returns-signed-taskresult-post-v1", "architecture/agent:post-v1-execute-parses-taskrequest-calls", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: A TaskRequest carrying a valid token is answered 200 with a TaskResult whose task_id is the request's id and whose agent_name is the agent's name.
+    applies_to: [agent]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-orchestrator
+          request: {method: POST, path: /v1/execute, token: own, body: "${fixture/task}"}
+          expect: {status: 200, json: true, equals: {/task_id: conformance-task-1, /agent_name: "${self/name}"}}
+
+  - id: l1-07-protected-endpoints
+    covers: ["protocol/spec:protected-endpoints-reject-requests", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: Every protected endpoint refuses a request with no token and one with an expired token with 401, and does not answer 401 to a valid token.
+    applies_to: [any]
+    live: safe
+    exchange:
+      start: {orchestrator: mock}
+      for_each: protected-endpoint
+      steps:
+        - request: {endpoint: each, token: none}
+          expect: {status: 401}
+        - as: test-agent
+          request: {endpoint: each, token: expired}
+          expect: {status: 401}
+        - as: test-agent
+          request: {endpoint: each, token: own}
+          expect: {status_not: [401]}
+
+  - id: l1-08-message-handling
+    covers: ["protocol/spec:agent-handles-post-v1-message-signature", "architecture/agent:post-v1-message-builds-signed-response", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: A signed AgentMessage of type request is answered 200 with an AgentMessage of type response from the agent itself.
+    applies_to: [agent, domain]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/message
+            token: own
+            body: "${fixture/message}"
+            sign: {over: "", members: [from, to, action, payload], into: /signature}
+          expect: {status: 200, json: true, equals: {/type: response, /from: "${self/name}"}}
+
+  - id: l1-09-service-directory-update
+    covers: ["protocol/spec:agent-accepts-post-v1-services-updates", level-1-tests-pass-protocol-compliance]
+    assertion: A directory pushed to POST /v1/services, signed by the orchestrator as protocol/spec gives, is answered 200 and replaces the agent's internal service list. Translated, because the push is signed as a fixed-form statement, which the exchange vocabulary's sign (canonical JSON) does not yet express, and because the internal list is observable only through what the agent does next.
+    applies_to: [agent, domain]
+
+  - id: l1-10-error-response-format
+    covers: ["protocol/spec:error-responses-use-errorresponse-format-error", level-1-tests-pass-protocol-compliance]
+    check: exchange
+    assertion: Every 4xx answer, an unmatched path and a protected endpoint without a token, is JSON carrying a string error member.
+    applies_to: [any]
+    live: safe
+    exchange:
+      for_each: protected-endpoint
+      steps:
+        - request: {method: GET, path: /v1/conformance-probe/no-such-route}
+          expect: {status: 404, json: true, has: [/error], matches: {/error: "."}}
+        - request: {endpoint: each, token: none}
+          expect: {status: 401, json: true, has: [/error], matches: {/error: "."}}
+
+  - id: l2-01-message-signature
+    covers: ["architecture/agent:post-v1-message-verifies-senders-ml", level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: An AgentMessage signed by a key other than its sender's is refused with 401.
+    applies_to: [agent, domain]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/message
+            token: own
+            body: "${fixture/message}"
+            sign: {over: "", members: [from, to, action, payload], into: /signature, with: other-key}
+          expect: {status: 401}
+
+  - id: l2-02-token-expiry
+    covers: ["protocol/identity:check-token-expiry-verification", level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: A token whose exp has passed is refused with 401 at every protected endpoint.
+    applies_to: [any]
+    live: safe
+    exchange:
+      start: {orchestrator: mock}
+      for_each: protected-endpoint
+      steps:
+        - as: test-agent
+          request: {endpoint: each, token: expired}
+          expect: {status: 401}
+
+  - id: l2-03-channel-scoping
+    covers: [level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: A channel token scoped to this component is not refused at POST /v1/message, and one scoped to another target is refused with 401 or 403.
+    applies_to: [agent, domain]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-agent
+          request: {method: POST, path: /v1/message, token: channel-self, body: "${fixture/message}", sign: {over: "", members: [from, to, action, payload], into: /signature}}
+          expect: {status_not: [401, 403]}
+        - as: test-agent
+          request: {method: POST, path: /v1/message, token: channel-other, body: "${fixture/message}", sign: {over: "", members: [from, to, action, payload], into: /signature}}
+          expect: {status: [401, 403]}
+
+  - id: l2-04-body-limits-orchestrator
+    covers: [level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: A registration body larger than 1 MB is refused with 413 or 400.
+    applies_to: [orchestrator]
+    live: safe
+    exchange:
+      steps:
+        - request: {method: POST, path: /v1/register, body_bytes: 1048577}
+          expect: {status: [400, 413]}
+
+  - id: l2-04-body-limits-agent
+    covers: [level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: A task body larger than 10 MB and a message body larger than 1 MB are each refused with 413 or 400.
+    applies_to: [agent, domain]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-orchestrator
+          request: {method: POST, path: /v1/execute, token: own, body_bytes: 10485761}
+          expect: {status: [400, 413]}
+        - as: test-agent
+          request: {method: POST, path: /v1/message, token: own, body_bytes: 1048577}
+          expect: {status: [400, 413]}
+
+  - id: l2-05-replay
+    covers: ["protocol/identity:enforce-replay-protection-window-registration", level-2-tests-pass-security-compliance]
+    check: exchange
+    assertion: A registration accepted once is refused with 401 when its exact bytes are sent again, and a correctly signed one older than the window is refused with 401.
+    applies_to: [orchestrator]
+    exchange:
+      steps:
+        - id: first
+          as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body: {manifest: "${fixture/test-agent/manifest}"}
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+          expect: {status: 200}
+        - request: {replay: first}
+          expect: {status: 401}
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body: {manifest: "${fixture/test-agent/manifest}"}
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp, age: 301s}
+          expect: {status: 401}
+
+  - id: l3-01-full-audit-workflow
+    covers: [level-3-tests-pass-lifecycle-compliance]
+    assertion: The L3-01 workflow runs end to end and its audit log holds the registrations, the event and the approval. Translated, because it needs the workflow, task and lifecycle agents started beside the domain, and an observation of published events, which join and record do not yet express.
+    applies_to: [domain]
+
+  - id: l3-02-strategy-lifecycle
+    covers: ["agents/lifecycle:strategies-created-via-create-strategy-message", level-3-tests-pass-lifecycle-compliance]
+    assertion: A strategy created through the lifecycle agent is stored, triggers its workflow, and its progress follows feedback. Translated, for the reason l3-01-full-audit-workflow gives.
+    applies_to: [domain]
+
+  - id: l3-03-workflow-error-handling
+    covers: ["agents/workflow:error-strategies-applied-handleevent-task-failed", level-3-tests-pass-lifecycle-compliance]
+    assertion: A failed phase under on_error skip is skipped and recorded and its dependants proceed; under on_error fail the workflow fails and the TaskResult is failed. Translated, for the reason l3-01-full-audit-workflow gives; the mock agent's failing actions are already expressible as start.mock_agent.
+    applies_to: [domain]
+
+  - id: l3-04-concurrency
+    covers: ["protocol/spec:agent-returns-429-rate-limited", level-3-tests-pass-lifecycle-compliance]
+    assertion: With max_concurrent 2, of five concurrent execute requests two are accepted and three answered 429 with a valid ErrorResponse coded RATE_LIMITED. Translated, because the exchange vocabulary expects of each response alike and cannot yet say how many of a repeated request answer which way, nor set the component's own max_concurrent.
+    applies_to: [agent]
+
+  - id: l3-05-approval-gate
+    covers: ["agents/workflow:approval-gates-pause-execution-until-workflow", level-3-tests-pass-lifecycle-compliance]
+    assertion: A workflow whose recommendation requires approval pauses as pending_approval, and resumes and completes once approved. Translated, for the reason l3-01-full-audit-workflow gives.
+    applies_to: [domain]
+
+  - id: l4-01-registers-with-real-orchestrator
+    covers: [registering-component-passes-l4-01-listens, "protocol/spec:registered-component-renews-lease-post-v1"]
+    check: join
+    assertion: Started beside a real orchestrator, the component listens and does not exit, registers, is listed with a current lease within one lease duration, renews within a third of it, and its /readyz agrees with its last renewal. An exit during startup is a failure, never an inconclusive result.
+    applies_to: [registers]
+    join:
+      start: {orchestrator: built}
+      observe: [listens, no-exit, registered, listed, lease-current, lease-renewed, readyz-agrees]
+      within: lease
+
+  - id: l4-02-manifest-accepted
+    covers: ["protocol/spec:protocol-version-compared-equality-wire-version", "protocol/spec:subscription-scope-delivery-scope-never", level-1-tests-pass-protocol-compliance]
+    check: join
+    assertion: A real orchestrator accepts the component's own registration, so its capabilities, subscription scopes and protocol_version are what the orchestrator admits, and it is never refused INVALID_REQUEST. That the manifest carries no field outside AgentManifest is not settled here, since an orchestrator preserves such a field.
+    applies_to: [registers]
+    join:
+      start: {orchestrator: built}
+      observe: [registered, listed]
+      within: lease
+
+  - id: l4-03-foreign-verifier
+    covers: [manifest-carrying-extra-field-still-registers, "protocol/spec:manifest-carrying-field-verifiers-own-type"]
+    check: exchange
+    assertion: A manifest carrying one field AgentManifest does not define, signed over as sent, registers.
+    applies_to: [orchestrator]
+    exchange:
+      steps:
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/register
+            body:
+              manifest:
+                name: test-agent
+                type: agent
+                version: 1.0.0
+                protocol_version: "1"
+                url: http://localhost:9710
+                public_key: "${fixture/test-agent/public_key}"
+                capabilities: [{name: "agent:message", resources: []}]
+                x_unknown_to_the_verifier: true
+            sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+          expect: {status: 200, has: [/agent_id]}
+
+  - id: l4-04-standalone
+    covers: [registering-component-passes-l4-04-starts, "protocol/spec:protected-endpoints-reject-requests"]
+    check: exchange
+    assertion: Started with no orchestrator, the component answers live and not ready, does not exit, and refuses every protected endpoint with 401 and a structured ErrorResponse.
+    applies_to: [registers]
+    exchange:
+      start: {orchestrator: none}
+      for_each: protected-endpoint
+      steps:
+        - request: {method: GET, path: /livez}
+          expect: {status: 200, equals: {/live: true}}
+        - request: {method: GET, path: /readyz}
+          expect: {status: 503, equals: {/ready: false}}
+        - request: {endpoint: each, token: none}
+          expect: {status: 401, json: true, has: [/error]}
+```
 
 ---
 

@@ -59,3 +59,11 @@ cases:
   - id: bad-duration
     fault: does not satisfy the check definition at /join/within
     check: {id: x, covers: [example-refusal], check: join, assertion: a, join: {observe: [listens], within: soon}}
+  - id: undeclared-fixture
+    fault: "names fixture 'test-stranger', which architecture/testing does not declare"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: POST, path: /v1/register, body: "${fixture/test-stranger/manifest}"}, expect: {status: 200}}]}

@@ -550,6 +550,20 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+python3 - "$tmp/testing.md" <<'PY'
+import re, sys
+t = open("architecture/testing.md", encoding="utf-8").read()
+m = re.search(r"^  - id: l4-04-standalone\n.*?(?=^  - id: |^```)", t, re.S | re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "check-kinds control: a suite without L4-04's check fails" python3 checks/check-kinds.py --file "$tmp/testing.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "conformance test L4-04 has no check" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, L4-04"
+else
+	echo "FAIL check-kinds control: want exactly one finding, L4-04"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
 python3 - "$tmp/ck/valid.yaml" <<'PY'
 import sys, yaml
