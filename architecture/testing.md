@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -676,7 +676,8 @@ MUST be able to listen before it has registered.
 #### L4-03: Signature Survives A Foreign Verifier
 
 ```
-1. Sign a manifest that carries one field the verifier's type does not define
+1. Sign a manifest that carries every field AgentManifest requires, and one
+   field the verifier's type does not define
 2. Register against a real orchestrator
 3. Registration MUST succeed
 ```
@@ -1020,6 +1021,7 @@ verifies:
                 type: agent
                 version: 1.0.0
                 protocol_version: "1"
+                description: Conformance test agent carrying one field AgentManifest does not define
                 url: http://localhost:9710
                 public_key: "${fixture/test-agent/public_key}"
                 capabilities: [{name: "agent:message", resources: []}]
