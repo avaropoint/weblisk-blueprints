@@ -1631,7 +1631,9 @@
    "mock-orchestrator-start-accept-registrations",
    "mock-agent-respond-execute-message",
    "test-keys-deterministic-reproducible",
-   "tests-run-against-http-endpoints-black"
+   "tests-run-against-http-endpoints-black",
+   "test-tokens-minted",
+   "fixture-key-start"
   ],
   "architecture/threat-model.md": [
    "auth-endpoints-enforce-per-ip-rate",

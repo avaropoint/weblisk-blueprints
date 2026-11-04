@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: cron
-version: 4.0.1
+version: 4.0.2
 port: 9750
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/orchestrator, architecture/change-management]
 extends: [patterns/scheduling, patterns/messaging, patterns/logging, patterns/retry, patterns/versioning, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -644,7 +644,7 @@ Step 1 — Load Configuration
   Backout:     None (nothing to reverse — process never started)
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/cron/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/cron.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED

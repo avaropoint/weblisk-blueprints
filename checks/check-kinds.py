@@ -213,17 +213,42 @@ def judge(rel, line, entry, own_parts):
     return out
 
 
+def test_tokens(rel, text):
+    """architecture/testing.md: test_tokens declares exactly the minted values of exchange-request's token."""
+    want = set(DEFS["exchange-request"]["properties"]["token"]["enum"]) - {"none", "captured"}
+    b = None
+    for m in FENCE.finditer(text):
+        try:
+            v = yaml.load(m.group(1), Loader=Core)
+        except yaml.YAMLError:
+            continue
+        if isinstance(v, dict) and "test_tokens" in v:
+            b = v["test_tokens"]
+    if not isinstance(b, dict) or not isinstance(b.get("tokens"), dict):
+        return [f"{rel}: no test_tokens block declaring the tokens a step may name"]
+    got, out = set(b["tokens"]), []
+    if b.get("signed_by") not in FIXTURES:
+        out.append(f"{rel}: test_tokens are signed by {b.get('signed_by')!r}, which no identity fixture declares")
+    out += [f"{rel}: token {k!r} is a value of exchange-request's token and test_tokens does not declare it" for k in sorted(want - got)]
+    out += [f"{rel}: test_tokens declares {k!r}, which is no value of exchange-request's token" for k in sorted(got - want)]
+    for k, e in sorted(b["tokens"].items()):
+        if isinstance(e, dict) and e.get("from") is not None and e["from"] not in got:
+            out.append(f"{rel}: token {k!r} is from {e['from']!r}, which test_tokens does not declare")
+    return out
+
+
 def suite(rel, text):
-    """architecture/testing.md: every conformance test heading has its check."""
+    """architecture/testing.md: every conformance test heading has its check, and every minted token is declared."""
     if rel != "architecture/testing.md":
         return []
+    tokens = test_tokens(rel, text)
     tests = re.findall(r"^#### (L[0-9]-[0-9]{2}):", text, re.M)
     ids = {e.get("id", "") for _, es in verifies_blocks(text) for e in es or [] if isinstance(e, dict)}
     out = [f"{rel}: conformance test {tid} has no check in the suite's data"
            for tid in tests if not any(i.startswith(tid.lower() + "-") for i in ids)]
     if not tests:
         out.append(f"{rel}: no conformance test headings found")
-    return out
+    return out + tokens
 
 
 def judge_file(rel, text):

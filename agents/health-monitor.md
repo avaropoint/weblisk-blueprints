@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: health-monitor
-version: 2.2.1
+version: 2.2.2
 port: 9755
 requires: [protocol/spec, protocol/types, architecture/agent, agents/alerting]
 extends: [patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/security, patterns/governance]
@@ -435,7 +435,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/health-monitor/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/health-monitor.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: webhook
-version: 3.0.2
+version: 3.0.3
 port: 9753
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/webhook, patterns/observability, patterns/storage, patterns/state-machine, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/security, patterns/governance]
@@ -545,7 +545,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/webhook/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/webhook.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED

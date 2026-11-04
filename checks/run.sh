@@ -612,6 +612,22 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# Every token a step may name is declared in testing's test_tokens; a copy
+# without channel-other must be reported with exactly it.
+python3 - "$tmp/testing-tok.md" <<'PY'
+import re, sys
+t = open("architecture/testing.md", encoding="utf-8").read()
+m = re.search(r"^    channel-other:\n(?:      .*\n)+", t, re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "check-kinds control: test_tokens without channel-other fails" python3 checks/check-kinds.py --file "$tmp/testing-tok.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "token 'channel-other' is a value of exchange-request's token and test_tokens does not declare it" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, channel-other"
+else
+	echo "FAIL check-kinds control: want exactly one finding, channel-other"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
 python3 - "$tmp/ck/valid.yaml" <<'PY'
 import sys, yaml

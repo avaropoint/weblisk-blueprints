@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: alerting
-version: 3.2.0
+version: 3.2.1
 port: 9752
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/email-send]
 extends: [patterns/alerting, patterns/observability, patterns/storage, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -491,7 +491,7 @@ Step 1 — Load Configuration
   Backout:     None (process never started)
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/alerting/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/alerting.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
