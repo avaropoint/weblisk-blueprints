@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 3.1.0
+version: 3.1.1
 requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
 platform: any
 tier: free
@@ -578,8 +578,10 @@ types:
 - Secrets MUST be read synchronously during request processing, not
   pre-loaded into memory at startup (except for required validation).
   This ensures rotation takes effect immediately.
-- In multi-instance deployments, all instances read from the same
-  secret store. Rotation signals should be broadcast to all instances.
+- IF more than one instance of a component runs: every instance reads
+  from the same secret store, and a rotation signal reaches every
+  instance. `weblisk server start` refuses a second instance
+  ([`architecture/cli`](../architecture/cli.md#weblisk-server-start)).
 
 ## Verification Checklist
 

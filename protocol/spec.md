@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.0.1
+version: 4.1.0
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -822,6 +822,18 @@ never stand for each other. `system` is reserved in both senses.
    framework verifies the topic's event namespace matches one of the
    agent's declared `publishes` entries. Events to unowned event
    namespaces are rejected locally (never sent).
+6. **An event every adopter emits is published under each emitter's own
+   namespace.** A pattern that defines an event every component applying it
+   emits, such as [`patterns/scope`](../patterns/scope.md#contracts)'s
+   scope violation, defines only its `<entity>.<action>`, and claims no event
+   namespace by doing so. Each component publishes it as `<namespace>.<entity>.<action>`
+   under the event namespace it owns: the orchestrator `system.scope.violation`,
+   the content service `content.scope.violation`. The topic is in the
+   component's `publishes` like any other it sends, so rule 1 holds and rule 5
+   lets it through. A subscriber that wants every component's subscribes to
+   `*.<entity>.<action>`, at scope `"*"` with `event:observe`
+   ([Event Scoping](#event-scoping)); the envelope's `source` names the
+   component, as on any event.
 
 ### Standard Namespaces
 

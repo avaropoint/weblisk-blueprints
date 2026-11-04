@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.5.3
+version: 1.6.0
 requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
 platform: any
 tier: free
@@ -262,6 +262,20 @@ defines security contracts that other components implement:
 | Admin gateway separation, MFA and console credential custody | Admin Gateway + console | 4.1–4.9 |
 | Federation data contracts and trust tiers | Federation Protocol | 5.1–5.8 |
 
+**Every attack table names its controls by ref.** The Control column says in
+words what enforces a mitigation; the Control refs column says where the
+corpus specifies it, each as a ref ([`schemas/names`](../schemas/names.md#three-written-forms)):
+a whole blueprint (`architecture/enforcement`), a contract behaviour or a
+requirement id in one (`architecture/admin:destructive-action-step-up`), or a
+section (`architecture/client#csrf-protection`). A requirement the ref names,
+or one in the behaviour, section or blueprint it names, is a requirement of
+this model's controls, which is how a security-class requirement is derived
+from this document rather than listed by hand
+([`ACCEPTANCE_PLAN`](../ACCEPTANCE_PLAN.md#how-a-requirement-gets-its-class), rule 1).
+A cell holding `—` names no control the corpus specifies: the mitigation is
+an intention, which the rule *a mitigation is not credited until something
+enforces it* (Security, below) credits with nothing.
+
 ---
 
 ## Data Flow
@@ -311,76 +325,76 @@ client.
 
 #### Transport Layer
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.1 | **Eavesdropping** | Attacker intercepts HTTP traffic | TLS 1.2+ required; HSTS with includeSubDomains; preload list | Gateway TLS termination |
-| 1.2 | **TLS downgrade** | Force client to older TLS version | `min_version: "1.2"` in gateway config; no SSLv3/TLS1.0/1.1 cipher suites | Gateway TLS config |
-| 1.3 | **Certificate spoofing** | Fake certificate for MITM | Certificate Transparency logs; HSTS preload; CAA DNS records | DNS + CA policy |
-| 1.4 | **Protocol confusion** | HTTP/2 desync, request smuggling | Strict HTTP parsing; reject ambiguous requests; no connection reuse to backends | Gateway request parser |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.1 | **Eavesdropping** | Attacker intercepts HTTP traffic | TLS 1.2+ required; HSTS with includeSubDomains; preload list | Gateway TLS termination | `patterns/security#tls-requirements` |
+| 1.2 | **TLS downgrade** | Force client to older TLS version | `min_version: "1.2"` in gateway config; no SSLv3/TLS1.0/1.1 cipher suites | Gateway TLS config | `patterns/security#tls-requirements` |
+| 1.3 | **Certificate spoofing** | Fake certificate for MITM | Certificate Transparency logs; HSTS preload; CAA DNS records | DNS + CA policy | — |
+| 1.4 | **Protocol confusion** | HTTP/2 desync, request smuggling | Strict HTTP parsing; reject ambiguous requests; no connection reuse to backends | Gateway request parser | `architecture/gateway#request-mediation` |
 
 #### Authentication
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.5 | **Credential stuffing** | Automated login with leaked passwords | Rate limit auth endpoints (10/min/IP); account lockout after 5 failures; CAPTCHA after 3 failures | Gateway rate limiter |
-| 1.6 | **Brute force** | Exhaustive password guessing | Same as 1.5 + progressive delays (1s, 2s, 4s, 8s); minimum password complexity; bcrypt/argon2id with high cost | Gateway + auth pattern |
-| 1.7 | **Credential phishing** | Trick user into submitting credentials elsewhere | SameSite=Strict cookies; CSP prevents form action to external origins; FIDO2/WebAuthn as phishing-resistant MFA | Browser policy + MFA |
-| 1.8 | **Password spray** | Try common passwords across many accounts | Per-IP rate limiting (not per-account); global auth failure monitoring; alert on distributed patterns | Gateway rate limiter + alerting agent |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.5 | **Credential stuffing** | Automated login with leaked passwords | Rate limit auth endpoints (10/min/IP); account lockout after 5 failures; CAPTCHA after 3 failures | Gateway rate limiter | `patterns/rate-limiting:rate-limit-enforcement` |
+| 1.6 | **Brute force** | Exhaustive password guessing | Same as 1.5 + progressive delays (1s, 2s, 4s, 8s); minimum password complexity; bcrypt/argon2id with high cost | Gateway + auth pattern | `patterns/rate-limiting:rate-limit-enforcement`, `patterns/auth-session#password-storage` |
+| 1.7 | **Credential phishing** | Trick user into submitting credentials elsewhere | SameSite=Strict cookies; CSP prevents form action to external origins; FIDO2/WebAuthn as phishing-resistant MFA | Browser policy + MFA | `architecture/gateway#multi-factor-authentication` |
+| 1.8 | **Password spray** | Try common passwords across many accounts | Per-IP rate limiting (not per-account); global auth failure monitoring; alert on distributed patterns | Gateway rate limiter + alerting agent | `patterns/rate-limiting:rate-limit-enforcement` |
 
 #### Session Attacks
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.9 | **Session hijacking** | Steal session cookie via XSS or network interception | HttpOnly + Secure + SameSite=Strict cookie; ML-DSA-65-signed session token; client binding hash (UA + IP/24 + TLS) | Browser session spec |
-| 1.10 | **Session fixation** | Set a known session ID before victim authenticates | New session ID on every auth event (login, MFA, level upgrade); old session immediately invalidated | Browser session spec |
-| 1.11 | **Session replay** | Reuse a captured session token | Token binding to TLS channel; short renewal window (1 hour); blacklist old tokens after renewal | Browser session spec |
-| 1.12 | **Cookie theft via subdomain** | Attacker-controlled subdomain reads main domain cookies | `Domain` set to exact application domain; no wildcard domain cookies; separate domains for user content | Cookie policy |
-| 1.13 | **CSRF** | Trick authenticated user into making unintended requests | SameSite=Strict + Double Submit Cookie (HMAC-based); CSRF token in X-CSRF-Token header; Origin/Referer validation | Gateway CSRF engine |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.9 | **Session hijacking** | Steal session cookie via XSS or network interception | HttpOnly + Secure + SameSite=Strict cookie; ML-DSA-65-signed session token; client binding hash (UA + IP/24 + TLS) | Browser session spec | `architecture/client#browser-sessions-wls`, `architecture/client#client-binding` |
+| 1.10 | **Session fixation** | Set a known session ID before victim authenticates | New session ID on every auth event (login, MFA, level upgrade); old session immediately invalidated | Browser session spec | `architecture/client#session-fixation-prevention` |
+| 1.11 | **Session replay** | Reuse a captured session token | Token binding to TLS channel; short renewal window (1 hour); blacklist old tokens after renewal | Browser session spec | `architecture/client#token-replay-prevention` |
+| 1.12 | **Cookie theft via subdomain** | Attacker-controlled subdomain reads main domain cookies | `Domain` set to exact application domain; no wildcard domain cookies; separate domains for user content | Cookie policy | `architecture/client#browser-sessions-wls` |
+| 1.13 | **CSRF** | Trick authenticated user into making unintended requests | SameSite=Strict + Double Submit Cookie (HMAC-based); CSRF token in X-CSRF-Token header; Origin/Referer validation | Gateway CSRF engine | `architecture/client#csrf-protection` |
 
 #### Injection
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.14 | **XSS (reflected)** | Inject script via URL parameters reflected in response | Gateway sets `Content-Security-Policy` with strict `script-src`; response sanitization strips inline scripts; `X-Content-Type-Options: nosniff` | Gateway response headers |
-| 1.15 | **XSS (stored)** | Inject script via stored data rendered later | Input validation at gateway edge AND at agent; output encoding in responses; CSP prevents execution even if stored | Defense in depth |
-| 1.16 | **XSS (DOM-based)** | Client-side script manipulation | Weblisk islands use server-rendered data, NOT client-side template interpolation; CSP `script-src 'self'` prevents inline execution | Islands architecture |
-| 1.17 | **SQL injection** | Manipulate database queries via input | Gateway validates input structure; agents use parameterized queries only; no dynamic query construction from user input | Agent implementation |
-| 1.18 | **Command injection** | Execute system commands via input | No shell execution from user input; agent tasks are pre-defined actions, not arbitrary commands | Agent protocol |
-| 1.19 | **Path traversal** | Access files outside intended directory | Gateway validates URL paths (no `..`, no null bytes, no encoded traversal); file-serving routes use allowlists | Gateway request validation |
-| 1.20 | **Header injection** | Inject HTTP headers via user input | Gateway strips CRLF from all user-controlled values before forwarding; no user input in response headers | Gateway sanitization |
-| 1.21 | **JSON injection** | Malformed JSON payload manipulation | Strict JSON parser (reject duplicate keys, reject trailing commas); Content-Length validation; schema validation at agent | Gateway + agent validation |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.14 | **XSS (reflected)** | Inject script via URL parameters reflected in response | Gateway sets `Content-Security-Policy` with strict `script-src`; response sanitization strips inline scripts; `X-Content-Type-Options: nosniff` | Gateway response headers | `patterns/security#security-headers` |
+| 1.15 | **XSS (stored)** | Inject script via stored data rendered later | Input validation at gateway edge AND at agent; output encoding in responses; CSP prevents execution even if stored | Defense in depth | `patterns/security:input-validation`, `patterns/security:output-sanitization` |
+| 1.16 | **XSS (DOM-based)** | Client-side script manipulation | Weblisk islands use server-rendered data, NOT client-side template interpolation; CSP `script-src 'self'` prevents inline execution | Islands architecture | `architecture/client#islands-integration` |
+| 1.17 | **SQL injection** | Manipulate database queries via input | Gateway validates input structure; agents use parameterized queries only; no dynamic query construction from user input | Agent implementation | — |
+| 1.18 | **Command injection** | Execute system commands via input | No shell execution from user input; agent tasks are pre-defined actions, not arbitrary commands | Agent protocol | `protocol/spec#post-v1execute` |
+| 1.19 | **Path traversal** | Access files outside intended directory | Gateway validates URL paths (no `..`, no null bytes, no encoded traversal); file-serving routes use allowlists | Gateway request validation | `patterns/security:input-validation` |
+| 1.20 | **Header injection** | Inject HTTP headers via user input | Gateway strips CRLF from all user-controlled values before forwarding; no user input in response headers | Gateway sanitization | `patterns/security:input-validation` |
+| 1.21 | **JSON injection** | Malformed JSON payload manipulation | Strict JSON parser (reject duplicate keys, reject trailing commas); Content-Length validation; schema validation at agent | Gateway + agent validation | `patterns/security:input-validation` |
 
 #### Client-Side
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.22 | **Clickjacking** | Embed application in attacker's iframe | `X-Frame-Options: DENY`; `Content-Security-Policy: frame-ancestors 'none'` | Gateway response headers |
-| 1.23 | **Open redirect** | Redirect user to attacker's site after login | Redirect URLs validated against allowlist; no user-controlled redirect targets without validation | Gateway auth flow |
-| 1.24 | **MIME sniffing** | Browser interprets file as different type | `X-Content-Type-Options: nosniff` on every response | Gateway response headers |
-| 1.25 | **Content injection** | Inject content via user-controlled data in page | Server-side rendering with strict output encoding; no raw user data in HTML context | Islands architecture |
-| 1.26 | **Tabnabbing** | Opened link modifies opener page | `rel="noopener noreferrer"` on external links; `Cross-Origin-Opener-Policy: same-origin` | Gateway response headers |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.22 | **Clickjacking** | Embed application in attacker's iframe | `X-Frame-Options: DENY`; `Content-Security-Policy: frame-ancestors 'none'` | Gateway response headers | `patterns/security#security-headers` |
+| 1.23 | **Open redirect** | Redirect user to attacker's site after login | Redirect URLs validated against allowlist; no user-controlled redirect targets without validation | Gateway auth flow | — |
+| 1.24 | **MIME sniffing** | Browser interprets file as different type | `X-Content-Type-Options: nosniff` on every response | Gateway response headers | `patterns/security#security-headers` |
+| 1.25 | **Content injection** | Inject content via user-controlled data in page | Server-side rendering with strict output encoding; no raw user data in HTML context | Islands architecture | `architecture/client#islands-integration` |
+| 1.26 | **Tabnabbing** | Opened link modifies opener page | `rel="noopener noreferrer"` on external links; `Cross-Origin-Opener-Policy: same-origin` | Gateway response headers | `patterns/security#security-headers` |
 
 #### Denial of Service
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.27 | **HTTP flood** | Overwhelm server with requests | Per-IP rate limiting; global rate limiting; connection limits; request queuing with backpressure | Gateway rate limiter |
-| 1.28 | **Slowloris** | Hold connections open with slow headers | Connection timeout (30s for headers); minimum data rate enforcement; max concurrent connections per IP | Gateway connection management |
-| 1.29 | **Large payload** | Send huge request bodies | `Content-Length` limit per route (default 1MB, file uploads: configurable); reject before reading full body | Gateway request validation |
-| 1.30 | **Regex DoS (ReDoS)** | Craft input that causes catastrophic regex backtracking | No user input in regex evaluation; pre-compiled regex patterns; timeout on pattern matching (100ms) | Agent implementation |
-| 1.31 | **Hash collision DoS** | Exploit hash table collision behavior | Use hash-DoS-resistant hash functions (SipHash); limit query parameter count; limit JSON object depth | Gateway + runtime |
-| 1.32 | **Compression bomb** | Send compressed body that expands to huge size | Limit decompressed body size; decompress incrementally with size tracking; reject if decompressed > 10x compressed | Gateway decompression |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.27 | **HTTP flood** | Overwhelm server with requests | Per-IP rate limiting; global rate limiting; connection limits; request queuing with backpressure | Gateway rate limiter | `patterns/rate-limiting:rate-limit-enforcement` |
+| 1.28 | **Slowloris** | Hold connections open with slow headers | Connection timeout (30s for headers); minimum data rate enforcement; max concurrent connections per IP | Gateway connection management | — |
+| 1.29 | **Large payload** | Send huge request bodies | `Content-Length` limit per route (default 1MB, file uploads: configurable); reject before reading full body | Gateway request validation | `patterns/security:input-validation` |
+| 1.30 | **Regex DoS (ReDoS)** | Craft input that causes catastrophic regex backtracking | No user input in regex evaluation; pre-compiled regex patterns; timeout on pattern matching (100ms) | Agent implementation | — |
+| 1.31 | **Hash collision DoS** | Exploit hash table collision behavior | Use hash-DoS-resistant hash functions (SipHash); limit query parameter count; limit JSON object depth | Gateway + runtime | — |
+| 1.32 | **Compression bomb** | Send compressed body that expands to huge size | Limit decompressed body size; decompress incrementally with size tracking; reject if decompressed > 10x compressed | Gateway decompression | — |
 
 #### Information Disclosure
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 1.33 | **Error message leakage** | Stack traces, internal paths in error responses | Generic error messages to browser (500 with request_id only); full errors logged server-side | Gateway response sanitization |
-| 1.34 | **Server identification** | Server header reveals technology stack | Strip `Server`, `X-Powered-By`, `X-AspNet-Version` from all responses | Gateway response sanitization |
-| 1.35 | **Directory listing** | Access file listings via path guessing | Static file routes use explicit allowlists; no directory listing; 404 for unlisted paths | Gateway route table |
-| 1.36 | **Timing side-channel** | Infer valid usernames from login timing | Constant-time comparison for credentials; same response time for valid/invalid usernames; bcrypt always runs | Auth implementation |
-| 1.37 | **Version disclosure** | API version headers reveal deployment details | Version headers only in internal responses; stripped at gateway before reaching browser | Gateway response sanitization |
-| 1.38 | **Source map exposure** | JavaScript source maps reveal code structure | No source maps in production; CSP prevents source map fetching if accidentally deployed | Deployment config |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 1.33 | **Error message leakage** | Stack traces, internal paths in error responses | Generic error messages to browser (500 with request_id only); full errors logged server-side | Gateway response sanitization | `architecture/gateway#response-sanitization` |
+| 1.34 | **Server identification** | Server header reveals technology stack | Strip `Server`, `X-Powered-By`, `X-AspNet-Version` from all responses | Gateway response sanitization | `architecture/gateway#response-sanitization` |
+| 1.35 | **Directory listing** | Access file listings via path guessing | Static file routes use explicit allowlists; no directory listing; 404 for unlisted paths | Gateway route table | `architecture/gateway#route-table` |
+| 1.36 | **Timing side-channel** | Infer valid usernames from login timing | Constant-time comparison for credentials; same response time for valid/invalid usernames; bcrypt always runs | Auth implementation | `patterns/auth-session#implementation-notes` |
+| 1.37 | **Version disclosure** | API version headers reveal deployment details | Version headers only in internal responses; stripped at gateway before reaching browser | Gateway response sanitization | `architecture/gateway#response-sanitization` |
+| 1.38 | **Source map exposure** | JavaScript source maps reveal code structure | No source maps in production; CSP prevents source map fetching if accidentally deployed | Deployment config | — |
 
 ---
 
@@ -392,24 +406,24 @@ identity on every request.
 
 ### Attack Surface Map
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's ML-DSA-65 key; orchestrator validates gateway registration | Protocol identity |
-| 2.2 | **Header spoofing** | Attacker injects `X-Gateway-*` headers from non-gateway source | Agents ONLY accept `X-Gateway-*` headers from the registered gateway IP/identity; orchestrator strips these headers from non-gateway requests | Agent validation |
-| 2.3 | **Privilege escalation via header** | Gateway sends `X-Gateway-Roles: admin` for non-admin user | Gateway's role injection is validated against session state (server-side, not from browser); agents can verify via orchestrator callback for critical operations | Defense in depth |
-| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and on every lease renewal; behavioral fingerprinting detects drift | Protocol identity + lifecycle |
-| 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; ML-DSA-65-signed messages provide additional integrity | Network + protocol |
-| 2.6 | **SSRF via gateway** | Trick gateway into making requests to internal services | Route table uses allowlisted agent targets only; no user-controlled URLs in forwarding; gateway resolves targets from orchestrator registry, not from request input | Gateway route table |
-| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator routes elsewhere while the agent's lease is not ready | Gateway + orchestrator |
-| 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring |
-| 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec |
-| 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `traceparent`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec |
-| 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator publishes the entry, so it is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule |
-| 2.12 | **Content substitution via a foreign component** | The poisoned address answers as the tenant's content service and returns documents of its own | As 2.11. A response is attributable to the key the registry holds for that component, never to the address it arrived from. This is worse than an empty answer because it is plausible: a governance surface reports the attacker's documents as the tenant's policy, and an auditor reads a corpus nobody in the tenant wrote | Orchestrator address provenance + protocol identity |
-| 2.13 | **Silent write absorption** | As 2.12 with a write capability. The attacker cannot write the tenant's real store, but it can return success, so the tenant believes an edit landed | As 2.11. Detection afterwards rests on content identity and reconciliation — a later read of the real repository does not carry the identity the write was acknowledged with. That is a poor second to not having sent the write, and is why the address rule is preventive rather than detective | Orchestrator address provenance + content identity |
-| 2.14 | **Takeover of a declared address** | The tenant genuinely declared the address; the name now resolves somewhere else | `declared` is authorisation and proves nothing about who answers, which is why it is a separate rung from `verified`. TLS server-certificate validation at the declared name; `verified` where the orchestrator can obtain a signed round trip. Residual where it cannot — see the register | Transport + orchestrator address provenance |
-| 2.15 | **Credential spread across hosts** | A caller re-presents its anchor credential at every component address it finds, so one credential exists on every host the tenant runs | A credential is presented only at the address it is bound to. A foreign address takes a grant: one target, one address, the intersection of the two capability sets, and an expiry. The capability itself is unchanged by distance — narrowing its meaning would give one name two readings — so containment is what the grant provides | Reach rule + channel grant |
-| 2.16 | **Directory push forgery** | A party that can reach a component's listener, which any registrant can, pushes it a `ServiceDirectory` naming its own `url` for a real component, with `address_provenance` `declared`. Were the push not authenticated, a recipient that took the body as its directory would send what it would send that component to the attacker; the admin gateway would send a person's pass, which the attacker replays at the real component within its lifetime | The admin gateway reads the directory only by `GET /v1/services` at the orchestrator address it was configured with, and takes a push as a prompt to read it and nothing more ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`). Every other agent takes a pushed body only once its signature verifies under the orchestrator's key, and refuses an unsigned, wrongly signed or older one ([`protocol/spec`](../protocol/spec.md#post-v1services), the signed push); one that holds no directory yet reads it at its anchor before taking any push. A replay of a signed directory newer than the one an agent holds and older than the current one is residual, bounded by the agent's periodic read. A task's `context.services` is not signed: residual (the gap there) | Admin gateway directory read; signed push |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 2.1 | **Rogue gateway** | Attacker deploys fake gateway that claims to be legitimate | Agents verify `Authorization` header contains valid WLT signed by registered gateway's ML-DSA-65 key; orchestrator validates gateway registration | Protocol identity | `protocol/identity#token-verification` |
+| 2.2 | **Header spoofing** | Attacker injects `X-Gateway-*` headers from non-gateway source | Agents ONLY accept `X-Gateway-*` headers from the registered gateway IP/identity; orchestrator strips these headers from non-gateway requests | Agent validation | `architecture/data-security#internal-header-trust` |
+| 2.3 | **Privilege escalation via header** | Gateway sends `X-Gateway-Roles: admin` for non-admin user | Gateway's role injection is validated against session state (server-side, not from browser); agents can verify via orchestrator callback for critical operations | Defense in depth | `architecture/data-security#internal-header-trust` |
+| 2.4 | **Agent impersonation** | Attacker poses as a legitimate agent | Every agent has unique ML-DSA-65 key pair; orchestrator verifies agent identity on registration and on every lease renewal; behavioral fingerprinting detects drift | Protocol identity + lifecycle | `protocol/identity#registration-signature-flow`, `architecture/orchestrator#registration-flow-post-v1register` |
+| 2.5 | **Man-in-the-middle (internal)** | Intercept gateway-to-agent traffic | mTLS between gateway and agents (zero-trust mode); or TLS + trusted network isolation; ML-DSA-65-signed messages provide additional integrity | Network + protocol | `patterns/security#inter-agent-tls`, `protocol/identity#agent-to-agent-message-signing` |
+| 2.6 | **SSRF via gateway** | Trick gateway into making requests to internal services | Route table uses allowlisted agent targets only; no user-controlled URLs in forwarding; gateway resolves targets from orchestrator registry, not from request input | Gateway route table | `architecture/gateway#route-table` |
+| 2.7 | **Agent overload** | Route excessive traffic to a single agent | Per-agent rate limiting at gateway; circuit breaker (3 failures → open for 30s); orchestrator routes elsewhere while the agent's lease is not ready | Gateway + orchestrator | `patterns/rate-limiting:rate-limit-enforcement` |
+| 2.8 | **Data exfiltration via agent** | Compromised agent sends data to external endpoint | Enforcement external boundary intercepts all outbound calls; agents can only reach declared external endpoints; scope-based leakage prevention blocks restricted data from crossing boundaries; agent behavioral monitoring detects anomalous external call patterns | Enforcement external boundary + monitoring | `architecture/enforcement#external-proxy` |
+| 2.9 | **Deserialization attack** | Malicious payload in agent request/response | JSON-only protocol (no binary serialization); strict schema validation on all messages; no arbitrary object deserialization | Protocol spec | `protocol/spec#conventions` |
+| 2.10 | **Replay attack (internal)** | Replay a valid gateway-to-agent request | Request includes `X-Request-Id` (UUID) + `traceparent`; agents track recent request IDs; duplicate requests rejected within replay window (300 seconds) | Protocol spec | — |
+| 2.11 | **Directory address poisoning** | A registrant claims a `url` on a host the attacker controls. The orchestrator publishes the entry, so it is authentic; a caller follows the address carrying a live credential | `manifest.url` is a claim, and `ServiceEntry.address_provenance` says so. A caller presents a credential only at its anchor host or at an address a grant names, and an address the tenant never declared is `self-asserted` and refused. A registered `url` contradicting the declaration is `409 ADDRESS_CONFLICT` at registration, not a published contradiction | Orchestrator address provenance + reach rule | `architecture/orchestrator#what-the-directory-attests-and-what-it-does-not`, `architecture/orchestrator#presenting-a-credential-to-a-component` |
+| 2.12 | **Content substitution via a foreign component** | The poisoned address answers as the tenant's content service and returns documents of its own | As 2.11. A response is attributable to the key the registry holds for that component, never to the address it arrived from. This is worse than an empty answer because it is plausible: a governance surface reports the attacker's documents as the tenant's policy, and an auditor reads a corpus nobody in the tenant wrote | Orchestrator address provenance + protocol identity | `architecture/orchestrator#presenting-a-credential-to-a-component`, `protocol/identity#verify-signature` |
+| 2.13 | **Silent write absorption** | As 2.12 with a write capability. The attacker cannot write the tenant's real store, but it can return success, so the tenant believes an edit landed | As 2.11. Detection afterwards rests on content identity and reconciliation — a later read of the real repository does not carry the identity the write was acknowledged with. That is a poor second to not having sent the write, and is why the address rule is preventive rather than detective | Orchestrator address provenance + content identity | `architecture/orchestrator#presenting-a-credential-to-a-component`, `patterns/content-identity` |
+| 2.14 | **Takeover of a declared address** | The tenant genuinely declared the address; the name now resolves somewhere else | `declared` is authorisation and proves nothing about who answers, which is why it is a separate rung from `verified`. TLS server-certificate validation at the declared name; `verified` where the orchestrator can obtain a signed round trip. Residual where it cannot — see the register | Transport + orchestrator address provenance | `architecture/orchestrator#presenting-a-credential-to-a-component` |
+| 2.15 | **Credential spread across hosts** | A caller re-presents its anchor credential at every component address it finds, so one credential exists on every host the tenant runs | A credential is presented only at the address it is bound to. A foreign address takes a grant: one target, one address, the intersection of the two capability sets, and an expiry. The capability itself is unchanged by distance — narrowing its meaning would give one name two readings — so containment is what the grant provides | Reach rule + channel grant | `architecture/orchestrator#presenting-a-credential-to-a-component` |
+| 2.16 | **Directory push forgery** | A party that can reach a component's listener, which any registrant can, pushes it a `ServiceDirectory` naming its own `url` for a real component, with `address_provenance` `declared`. Were the push not authenticated, a recipient that took the body as its directory would send what it would send that component to the attacker; the admin gateway would send a person's pass, which the attacker replays at the real component within its lifetime | The admin gateway reads the directory only by `GET /v1/services` at the orchestrator address it was configured with, and takes a push as a prompt to read it and nothing more ([`architecture/admin`](admin.md#contracts), `admin-gateway-authorization`). Every other agent takes a pushed body only once its signature verifies under the orchestrator's key, and refuses an unsigned, wrongly signed or older one ([`protocol/spec`](../protocol/spec.md#post-v1services), the signed push); one that holds no directory yet reads it at its anchor before taking any push. A replay of a signed directory newer than the one an agent holds and older than the current one is residual, bounded by the agent's periodic read. A task's `context.services` is not signed: residual (the gap there) | Admin gateway directory read; signed push | `architecture/admin:admin-gateway-authorization`, `protocol/spec#post-v1services` |
 
 **Address provenance note.** Vectors 2.11–2.15 exist because a service directory the
 orchestrator serves proves that a tenant *said* a component is at an address; it never proves the
@@ -449,23 +463,23 @@ is not a distributed deployment, it is an unexplained address.
 
 ## Boundary 3: Agents ↔ Storage
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 3.1 | **SQL injection (agent-side)** | Agent constructs queries from task input | Parameterized queries only; no string concatenation for SQL; ORM or query builder with auto-parameterization | Agent implementation |
-| 3.2 | **Unencrypted storage** | Data at rest readable by filesystem access | AES-256-GCM encryption for stored data; agents responsible for encryption-at-rest of their own data; HKDF-derived keys from signing identity; encrypted backups | Agent implementation |
-| 3.3 | **Key compromise** | Encryption key stolen from agent process | Keys loaded into memory only at startup; not written to disk as plaintext; keys derived via HKDF from root key; root key in secure enclave or HSM where available | Key management |
-| 3.4 | **Backup exposure** | Unencrypted database backup accessed | Backups encrypted at same level as primary storage; backup access logged and restricted | Agent implementation |
-| 3.5 | **Connection string leakage** | Database credentials in logs or config files | Connection strings from environment variables only (never in config files); masked in logs; rotated on schedule | Observability + deployment |
-| 3.6 | **Excessive data access** | Agent reads more data than needed for task | Enforcement storage boundary validates all operations against data contracts; agents scoped to their own storage namespace; undeclared resource access blocked; scope-level enforcement prevents reading above agent's clearance | Enforcement storage boundary + data contracts |
-| 3.7 | **Data tampering** | Unauthorized modification of stored data | Enforcement storage boundary validates write operations against agent capabilities and data contracts; audit trail on all writes; integrity checksums on critical records; storage integrity verification for scope >= confidential (see architecture/data-security) | Enforcement storage boundary + audit + data-security |
-| 3.8 | **Log injection** | Malicious data written to logs that is later rendered or parsed | Structured JSON logging only (no string interpolation); log field values are escaped; log viewer treats all fields as data, not markup | Observability spec |
-| 3.9 | **Response-channel exfiltration** | Agent reads authorized data but smuggles additional fields into its response payload | Enforcement response boundary validates agent output against declared output contract; response fields MUST be a subset of declared output schema; response scope MUST NOT exceed agent operational scope (see architecture/enforcement response boundary) | Enforcement response boundary |
-| 3.10 | **Self-storage poisoning** | Compromised agent corrupts its own stored data to influence downstream consumers | Storage integrity verification detects anomalous modifications via record checksums, write provenance, and version chain integrity; enforcement audit trail cross-referenced against stored records to detect orphaned writes (see architecture/data-security storage integrity) | Data security + enforcement audit |
-| 3.11 | **Undeclared resource access** | Agent accesses storage resources outside its declared operational data contract | Enforcement storage proxy verifies every storage operation against agent's declared operational data contract; undeclared resource access denied with ENFORCEMENT_DATA_CONTRACT_VIOLATION (see patterns/contract operational data contracts) | Enforcement + contract |
-| 3.12 | **Backend permission exceeds contract** | The storage backend's own ACL grants access to principals the data contract never authorised, so content is reachable without passing enforcement | Custody classification at declaration; scope ceiling derived from what the backend can attest; content above the ceiling refused rather than downgraded | Content service + scope |
-| 3.13 | **Out-of-band write** | A second authority modifies content directly on the backend, bypassing every boundary | Digest reconciliation detects the change and records it as `external` provenance; the change is surfaced, not silently absorbed. Under shared custody this is expected behaviour, not an attack | Content service reconciler |
-| 3.14 | **Out-of-band read invisible to audit** | Content is read directly from the backend, so no access record exists and the audit trail implies nobody read it | Cannot be prevented where a second authority holds the bytes. Every access statement from a repository whose effective custody is shared or opaque — its store's, or any remote's — is marked `access_complete: false`; principals are enumerated where the backend attests them | Content service + audit honesty |
-| 3.15 | **Custody misdeclaration** | A repository is declared `exclusive` when a second authority in fact holds access, so the full integrity model is applied to storage that cannot support it | Attestations must be demonstrated, not asserted; an undemonstrated property is `false` and an undeclared repository is `opaque`; re-verification on a schedule lowers the ceiling and publishes `content.custody_degraded` | Content service registry |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 3.1 | **SQL injection (agent-side)** | Agent constructs queries from task input | Parameterized queries only; no string concatenation for SQL; ORM or query builder with auto-parameterization | Agent implementation | — |
+| 3.2 | **Unencrypted storage** | Data at rest readable by filesystem access | AES-256-GCM encryption for stored data; agents responsible for encryption-at-rest of their own data; HKDF-derived keys from signing identity; encrypted backups | Agent implementation | — |
+| 3.3 | **Key compromise** | Encryption key stolen from agent process | Keys loaded into memory only at startup; not written to disk as plaintext; keys derived via HKDF from root key; root key in secure enclave or HSM where available | Key management | `protocol/identity#service-key-protection` |
+| 3.4 | **Backup exposure** | Unencrypted database backup accessed | Backups encrypted at same level as primary storage; backup access logged and restricted | Agent implementation | — |
+| 3.5 | **Connection string leakage** | Database credentials in logs or config files | Connection strings from environment variables only (never in config files); masked in logs; rotated on schedule | Observability + deployment | `patterns/logging:redaction-at-emission` |
+| 3.6 | **Excessive data access** | Agent reads more data than needed for task | Enforcement storage boundary validates all operations against data contracts; agents scoped to their own storage namespace; undeclared resource access blocked; scope-level enforcement prevents reading above agent's clearance | Enforcement storage boundary + data contracts | `architecture/enforcement#storage-proxy`, `patterns/contract#operational-data-contracts` |
+| 3.7 | **Data tampering** | Unauthorized modification of stored data | Enforcement storage boundary validates write operations against agent capabilities and data contracts; audit trail on all writes; integrity checksums on critical records; storage integrity verification for scope >= confidential (see architecture/data-security) | Enforcement storage boundary + audit + data-security | `architecture/enforcement#storage-proxy`, `architecture/data-security#storage-integrity-verification` |
+| 3.8 | **Log injection** | Malicious data written to logs that is later rendered or parsed | Structured JSON logging only (no string interpolation); log field values are escaped; log viewer treats all fields as data, not markup | Observability spec | `patterns/logging:structured-logging` |
+| 3.9 | **Response-channel exfiltration** | Agent reads authorized data but smuggles additional fields into its response payload | Enforcement response boundary validates agent output against declared output contract; response fields MUST be a subset of declared output schema; response scope MUST NOT exceed agent operational scope (see architecture/enforcement response boundary) | Enforcement response boundary | `architecture/enforcement#response-proxy` |
+| 3.10 | **Self-storage poisoning** | Compromised agent corrupts its own stored data to influence downstream consumers | Storage integrity verification detects anomalous modifications via record checksums, write provenance, and version chain integrity; enforcement audit trail cross-referenced against stored records to detect orphaned writes (see architecture/data-security storage integrity) | Data security + enforcement audit | `architecture/data-security#storage-integrity-verification` |
+| 3.11 | **Undeclared resource access** | Agent accesses storage resources outside its declared operational data contract | Enforcement storage proxy verifies every storage operation against agent's declared operational data contract; undeclared resource access denied with ENFORCEMENT_DATA_CONTRACT_VIOLATION (see patterns/contract operational data contracts) | Enforcement + contract | `architecture/enforcement#storage-proxy`, `patterns/contract#operational-data-contracts` |
+| 3.12 | **Backend permission exceeds contract** | The storage backend's own ACL grants access to principals the data contract never authorised, so content is reachable without passing enforcement | Custody classification at declaration; scope ceiling derived from what the backend can attest; content above the ceiling refused rather than downgraded | Content service + scope | `architecture/content#derived-scope-ceiling` |
+| 3.13 | **Out-of-band write** | A second authority modifies content directly on the backend, bypassing every boundary | Digest reconciliation detects the change and records it as `external` provenance; the change is surfaced, not silently absorbed. Under shared custody this is expected behaviour, not an attack | Content service reconciler | `architecture/content#reconciliation-flow-shared-custody-only` |
+| 3.14 | **Out-of-band read invisible to audit** | Content is read directly from the backend, so no access record exists and the audit trail implies nobody read it | Cannot be prevented where a second authority holds the bytes. Every access statement from a repository whose effective custody is shared or opaque — its store's, or any remote's — is marked `access_complete: false`; principals are enumerated where the backend attests them | Content service + audit honesty | `architecture/content#what-shared-custody-changes` |
+| 3.15 | **Custody misdeclaration** | A repository is declared `exclusive` when a second authority in fact holds access, so the full integrity model is applied to storage that cannot support it | Attestations must be demonstrated, not asserted; an undemonstrated property is `false` and an undeclared repository is `opaque`; re-verification on a schedule lowers the ceiling and publishes `content.custody_degraded` | Content service registry | `architecture/content#attestation-properties`, `architecture/content#custody-re-verification-flow` |
 
 
 **Custody note.** Vectors 3.1–3.11 assume this system is the only writer to the
@@ -508,32 +522,32 @@ through the application gateway.
 
 ### Admin-Specific Threats
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 4.1 | **Operator key theft** | Attacker steals the operator's ML-DSA-65 identity private key | The key never rests unencrypted, so a copy signs nothing without its passphrase or the secret source that holds it; it signs only to register, to attest, to change the operator's identity key at a hub and to re-confirm its person for a destructive act (`weblisk/step-up/v1`, architecture/admin `destructive-action-step-up`), never to log in, so a thief who opens it can also make that operator's destructive acts, and each credential it attests is audited and listed at the hub; key revocation via another admin. A thief who opens it can change the identity key with no approval, which revokes every credential the operator holds at that hub and keeps its identity id and role for the thief. The change is audited with both keys' fingerprints and the operator learns of it only when its next request is refused with `CREDENTIAL_REVOKED`: no alert is specified. An admin who removes the operator ends it | Operator identity + attestation audit |
-| 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation |
-| 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware |
-| 4.4 | **Admin session hijacking** | Steal an operator token | The admin gateway admits only allowlisted addresses; tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; the credential that minted a token signs only after the person's own act. A token carries no address, so a stolen one works until then from any allowlisted address, and from any address that reaches the orchestrator's listener at its own `/v1/admin/*` routes, where it is judged as one the gateway forwarded and passes no allowlist (the residual risk register, a person's operator token presented at the orchestrator directly) | Admin session policy |
-| 4.5 | **Destructive action abuse** | Compromised admin deletes agents or federation peers | A destructive act is refused `STEP_UP_REQUIRED` unless its token carries a `step_up_at` recent enough for `destructive-action-step-up`, which only a re-confirmation the orchestrator verified sets, so a silently renewed token, or a stolen one without a recent `step_up_at`, cannot make one; a token stolen inside that window can, until the window closes; every act is in the immutable audit log before it takes effect. No second person is required; a tenant that wants one declares it ([`architecture/admin`](admin.md#contracts), `destructive-action-step-up`) <!-- wl:id threat-destructive-step-up --> | Serving component + audit |
-| 4.6 | **Audit log tampering** | Attacker covers tracks by modifying audit log | Append-only storage; hash chain integrity (each entry includes hash of previous); external audit log shipping (cannot tamper remote copy) | Audit architecture |
-| 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | The first registration is admitted only with the bootstrap secret the orchestrator emitted where only whoever started it can read it, and the window closes when it is claimed; operator registration event fires alert to all configured channels | Bootstrap flow |
-| 4.8 | **Internal network lateral movement** | Attacker who compromised app gateway reaches admin gateway | Admin gateway and app gateway share NO network path; admin gateway binds to separate interface/VLAN; firewall rules prevent cross-gateway traffic | Network segmentation |
-| 4.9 | **Console credential store theft** | Attacker copies a console's installation state, which holds the credential keys of many accounts at many hubs | Each key is encrypted under a master key from a keychain, `file:` or `fd:`, never kept beside the state it protects; the console mints with a person's credential only during that person's AAL2 session; each credential authenticates at one hub, is revoked there without touching the identity, and lapses at its `not_after` | Console credential custody |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 4.1 | **Operator key theft** | Attacker steals the operator's ML-DSA-65 identity private key | The key never rests unencrypted, so a copy signs nothing without its passphrase or the secret source that holds it; it signs only to register, to attest, to change the operator's identity key at a hub and to re-confirm its person for a destructive act (`weblisk/step-up/v1`, architecture/admin `destructive-action-step-up`), never to log in, so a thief who opens it can also make that operator's destructive acts, and each credential it attests is audited and listed at the hub; key revocation via another admin. A thief who opens it can change the identity key with no approval, which revokes every credential the operator holds at that hub and keeps its identity id and role for the thief. The change is audited with both keys' fingerprints and the operator learns of it only when its next request is refused with `CREDENTIAL_REVOKED`: no alert is specified. An admin who removes the operator ends it | Operator identity + attestation audit | `protocol/identity#key-categories`, `architecture/admin:credential-attestation`, `architecture/admin:operator-key-change` |
+| 4.2 | **Admin portal discovery** | Attacker finds admin URL and probes it | Admin gateway on separate domain/port; not linked from application; IP allowlist rejects unknown sources before any processing | Network isolation | `architecture/admin:admin-gateway-authorization` |
+| 4.3 | **Privilege escalation** | Lower-role operator gains admin access | Role hierarchy enforced server-side; role changes require admin approval + audit log entry; no client-side role checks | Admin auth middleware | `architecture/admin:operator-roles`, `architecture/orchestrator#auth-middleware` |
+| 4.4 | **Admin session hijacking** | Steal an operator token | The admin gateway admits only allowlisted addresses; tokens expire in one hour and are refused sooner once the operator or credential they rest on is withdrawn; the credential that minted a token signs only after the person's own act. A token carries no address, so a stolen one works until then from any allowlisted address, and from any address that reaches the orchestrator's listener at its own `/v1/admin/*` routes, where it is judged as one the gateway forwarded and passes no allowlist (the residual risk register, a person's operator token presented at the orchestrator directly) | Admin session policy | `architecture/admin:operator-token-issuance`, `architecture/admin:token-status-on-use` |
+| 4.5 | **Destructive action abuse** | Compromised admin deletes agents or federation peers | A destructive act is refused `STEP_UP_REQUIRED` unless its token carries a `step_up_at` recent enough for `destructive-action-step-up`, which only a re-confirmation the orchestrator verified sets, so a silently renewed token, or a stolen one without a recent `step_up_at`, cannot make one; a token stolen inside that window can, until the window closes; every act is in the immutable audit log before it takes effect. No second person is required; a tenant that wants one declares it ([`architecture/admin`](admin.md#contracts), `destructive-action-step-up`) <!-- wl:id threat-destructive-step-up --> | Serving component + audit | `architecture/admin:destructive-action-step-up` |
+| 4.6 | **Audit log tampering** | Attacker covers tracks by modifying audit log | Append-only storage; hash chain integrity (each entry includes hash of previous); external audit log shipping (cannot tamper remote copy) | Audit architecture | `architecture/storage#hash-chain-integrity`, `architecture/storage#sealing-a-chained-log` |
+| 4.7 | **Bootstrap attack** | Attacker registers as first operator before legitimate admin | The first registration is admitted only with the bootstrap secret the orchestrator emitted where only whoever started it can read it, and the window closes when it is claimed; operator registration event fires alert to all configured channels | Bootstrap flow | `architecture/admin:first-operator-claim` |
+| 4.8 | **Internal network lateral movement** | Attacker who compromised app gateway reaches admin gateway | Admin gateway and app gateway share NO network path; admin gateway binds to separate interface/VLAN; firewall rules prevent cross-gateway traffic | Network segmentation | `architecture/admin#admin-gateway-separation` |
+| 4.9 | **Console credential store theft** | Attacker copies a console's installation state, which holds the credential keys of many accounts at many hubs | Each key is encrypted under a master key from a keychain, `file:` or `fd:`, never kept beside the state it protects; the console mints with a person's credential only during that person's AAL2 session; each credential authenticates at one hub, is revoked there without touching the identity, and lapses at its `not_after` | Console credential custody | `architecture/admin:console-credential-use` |
 
 ---
 
 ## Boundary 5: Hub ↔ Hub (Federation)
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 5.1 | **Hub impersonation** | Fake hub claims to be a trusted peer | Mutual ML-DSA-65 authentication; hub identity verified against known public key from peering ceremony; manifest signature validation | Federation protocol |
-| 5.2 | **Data contract violation** | Peer sends forbidden fields or omits required fields | Receiving hub validates every response against data contract; violations logged + alert; trust tier downgrade on repeated violations | Federation data contracts |
-| 5.3 | **Key rotation race** | Attacker uses old key during rotation window | Grace period accepts both old and new key; old key has strict expiry; key rotation ceremony requires both sides to acknowledge | Federation key rotation |
-| 5.4 | **Cross-boundary data leak** | Sensitive data leaves jurisdiction | Federation data contracts control which fields cross boundaries; forbidden fields stripped by sending gateway; receiving hub independently validates | Federation data contracts |
-| 5.5 | **Federation amplification** | Peer sends task that triggers expensive computation | Per-peer rate limiting; task quotas per trust tier; circuit breaker on peer overuse | Orchestrator |
-| 5.6 | **Supply chain via federation** | Compromised peer sends poisoned data | All federated data treated as untrusted input; full validation + sanitization; data quarantine for first-time data types | Agent validation |
-| 5.7 | **Trust tier abuse** | Peer with partner-level access acts like private peer | Trust tier enforced per-request; capabilities scoped to tier; tier downgrade on violation | Federation protocol |
-| 5.8 | **Metadata leakage** | Hub topology/capabilities exposed to unauthorized peers | Capability discovery requires authenticated peering; public hubs expose only their published listing; internal topology never exposed | Hub protocol |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 5.1 | **Hub impersonation** | Fake hub claims to be a trusted peer | Mutual ML-DSA-65 authentication; hub identity verified against known public key from peering ceremony; manifest signature validation | Federation protocol | `protocol/federation#trust-establishment`, `protocol/federation#authentication` |
+| 5.2 | **Data contract violation** | Peer sends forbidden fields or omits required fields | Receiving hub validates every response against data contract; violations logged + alert; trust tier downgrade on repeated violations | Federation data contracts | `protocol/federation#data-boundary-contracts` |
+| 5.3 | **Key rotation race** | Attacker uses old key during rotation window | Grace period accepts both old and new key; old key has strict expiry; key rotation ceremony requires both sides to acknowledge | Federation key rotation | `protocol/federation#key-rotation` |
+| 5.4 | **Cross-boundary data leak** | Sensitive data leaves jurisdiction | Federation data contracts control which fields cross boundaries; forbidden fields stripped by sending gateway; receiving hub independently validates | Federation data contracts | `protocol/federation#data-boundary-contracts`, `protocol/federation#jurisdiction-enforcement` |
+| 5.5 | **Federation amplification** | Peer sends task that triggers expensive computation | Per-peer rate limiting; task quotas per trust tier; circuit breaker on peer overuse | Orchestrator | `protocol/federation#orchestrator-manifest-fields` |
+| 5.6 | **Supply chain via federation** | Compromised peer sends poisoned data | All federated data treated as untrusted input; full validation + sanitization; data quarantine for first-time data types | Agent validation | `patterns/security:input-validation` |
+| 5.7 | **Trust tier abuse** | Peer with partner-level access acts like private peer | Trust tier enforced per-request; capabilities scoped to tier; tier downgrade on violation | Federation protocol | `protocol/federation#trust-tiers` |
+| 5.8 | **Metadata leakage** | Hub topology/capabilities exposed to unauthorized peers | Capability discovery requires authenticated peering; public hubs expose only their published listing; internal topology never exposed | Hub protocol | `protocol/federation#trust-establishment` |
 
 ---
 
@@ -542,16 +556,16 @@ through the application gateway.
 The enforcement layer is the most privileged component — it makes
 all access decisions. Its compromise is a total-breach scenario.
 
-| # | Attack Vector | Description | Mitigation | Control |
-|---|--------------|-------------|------------|---------|
-| 6.1 | **Enforcement bypass** | Agent or component routes operations around enforcement boundaries | All four boundaries are non-bypassable by architecture — agents access storage/messaging/external only through enforcement proxies; no direct access paths exist | Architecture/enforcement |
-| 6.2 | **Decision cache poisoning** | Attacker injects false allow decisions into the decision cache | Decision cache keys are derived from policy version + operation parameters; cache invalidates on any policy change; cache entries are not externally writable | Enforcement cache |
-| 6.3 | **TOCTOU between check and execution** | Conditions change between enforcement decision and operation execution | Enforcement proxy performs check-then-execute atomically — the proxy both decides and forwards in a single operation; no window between decision and execution | Enforcement proxy |
-| 6.4 | **Policy evaluation denial of service** | Complex or recursive policies cause enforcement to hang | Policy evaluation has bounded complexity (most-restrictive-wins, no recursive rules); timeout on policy evaluation; fail-closed on timeout | Policy pattern |
-| 6.5 | **Baseline manipulation (boiling frog)** | Attacker gradually shifts behavioral baseline to normalize malicious patterns | Multi-window baselines (short-term, medium-term, long-term); immutable historical anchors; drift rate limits; maximum baseline shift caps per window | Enforcement behavioral analysis |
-| 6.6 | **Quarantine escape** | Quarantined agent attempts to operate through a non-quarantine-checked path | Quarantine status checked at all four boundaries; quarantine store is fail-closed (unavailable store = deny all); no agent self-unquarantine | Enforcement quarantine |
-| 6.7 | **Audit trail tampering** | Attacker modifies enforcement audit entries to hide violations | Audit entries are append-only with hash chain integrity; audit writer failure does not suppress enforcement (decisions continue, audit gap alerted) | Observability |
-| 6.8 | **Privilege escalation via enforcement configuration** | Operator misconfigures policy to grant excessive access | Policy composition uses most-restrictive-wins (cannot widen access by adding rules); fail-closed defaults; policy changes logged in audit trail | Policy pattern |
+| # | Attack Vector | Description | Mitigation | Control | Control refs |
+|---|--------------|-------------|------------|---------|---|
+| 6.1 | **Enforcement bypass** | Agent or component routes operations around enforcement boundaries | All four boundaries are non-bypassable by architecture — agents access storage/messaging/external only through enforcement proxies; no direct access paths exist | Architecture/enforcement | `architecture/enforcement` |
+| 6.2 | **Decision cache poisoning** | Attacker injects false allow decisions into the decision cache | Decision cache keys are derived from policy version + operation parameters; cache invalidates on any policy change; cache entries are not externally writable | Enforcement cache | `architecture/enforcement#sub-components` |
+| 6.3 | **TOCTOU between check and execution** | Conditions change between enforcement decision and operation execution | Enforcement proxy performs check-then-execute atomically — the proxy both decides and forwards in a single operation; no window between decision and execution | Enforcement proxy | `architecture/enforcement#fail-closed-guarantees` |
+| 6.4 | **Policy evaluation denial of service** | Complex or recursive policies cause enforcement to hang | Policy evaluation has bounded complexity (most-restrictive-wins, no recursive rules); timeout on policy evaluation; fail-closed on timeout | Policy pattern | `patterns/policy:policy-evaluation` |
+| 6.5 | **Baseline manipulation (boiling frog)** | Attacker gradually shifts behavioral baseline to normalize malicious patterns | Multi-window baselines (short-term, medium-term, long-term); immutable historical anchors; drift rate limits; maximum baseline shift caps per window | Enforcement behavioral analysis | `architecture/enforcement#rogue-agent-detection` |
+| 6.6 | **Quarantine escape** | Quarantined agent attempts to operate through a non-quarantine-checked path | Quarantine status checked at all four boundaries; quarantine store is fail-closed (unavailable store = deny all); no agent self-unquarantine | Enforcement quarantine | `architecture/enforcement#quarantine-enforcement` |
+| 6.7 | **Audit trail tampering** | Attacker modifies enforcement audit entries to hide violations | Audit entries are append-only with hash chain integrity; audit writer failure does not suppress enforcement (decisions continue, audit gap alerted) | Observability | `architecture/storage#hash-chain-integrity` |
+| 6.8 | **Privilege escalation via enforcement configuration** | Operator misconfigures policy to grant excessive access | Policy composition uses most-restrictive-wins (cannot widen access by adding rules); fail-closed defaults; policy changes logged in audit trail | Policy pattern | `patterns/policy:policy-composition` |
 
 ---
 
@@ -723,7 +737,7 @@ types:
       controls:
         type: array
         items: string
-        description: What enforces the mitigations, so a mitigation with no control is visible as an intention
+        description: What enforces the mitigations, each a ref as the attack tables' Control refs column writes one, so a mitigation with no control is visible as an intention
 ```
 
 ---
@@ -759,7 +773,7 @@ security:
       mechanism: A boundary absent from this document is undefended by
         definition; review of any new crossing includes this file
     - rule: A mitigation is not credited until something enforces it
-      mechanism: Controls reference the component that applies them
+      mechanism: Each attack table's Control refs column names, by ref, the blueprint, behaviour, requirement or section that specifies the control; a cell with none credits nothing
     - rule: Enforcement cannot be bypassed by a component choosing not to consult
         it
       mechanism: architecture/enforcement is consulted in the path rather than by

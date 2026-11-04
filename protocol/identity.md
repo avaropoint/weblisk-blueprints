@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.1.1
+version: 3.1.2
 requires: [protocol/types]
 platform: any
 tier: free
@@ -1418,9 +1418,11 @@ only a new `hub_id`, which a hub regenerated without its state has, does.
 
 ### Orchestrator High Availability
 
-In a multi-instance orchestrator deployment, all instances MUST
-share the same ML-DSA-65 key pair. The key is loaded from shared
-storage (not generated per instance).
+IF more than one instance answers for the hub: every instance MUST
+share the same ML-DSA-65 key pair, loaded from shared storage and
+never generated per instance. `weblisk server start` refuses a second
+instance ([`architecture/cli`](../architecture/cli.md#weblisk-server-start)),
+so a tenant it starts settles this premise false.
 
 ### Agent Migration
 
@@ -1601,7 +1603,7 @@ security:
 ## Verification Checklist
 
 Implementation MUST:
-- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there ([Post-Quantum Cryptography](#post-quantum-cryptography), [Conventions](#conventions))
+- [ ] Generate ML-DSA-65 key pairs (FIPS 204) for every identity, operating credential, sign-records credential, log key and token this protocol specifies — no other signing algorithm is permitted there. A credential that proves a live session and signs nothing kept, such as a step-up passkey ([`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act)) or a transport credential for a third party's protocol, is not one of these, and its algorithm is the blueprint's that specifies it ([Post-Quantum Cryptography](#post-quantum-cryptography), [Conventions](#conventions))
 - [ ] Reject any identity key, attestation, record signature or token using a non-ML-DSA-65 algorithm. A transport credential a blueprint specifies for a third party's protocol is that blueprint's, and signs nothing this protocol verifies ([Post-Quantum Cryptography](#post-quantum-cryptography))
 - [ ] Generate keys with cryptographically secure random source ([Generation](#generation))
 - [ ] Store private keys with restricted permissions (readable only by owning process) ([Storage](#storage))

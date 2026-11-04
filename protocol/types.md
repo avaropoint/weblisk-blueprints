@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.5.0
+version: 6.6.0
 requires: []
 platform: any
 tier: free
@@ -26,7 +26,7 @@ JSON using the exact field names shown in the `json` column.
 - All IDs are 32-character hex strings (16 random bytes), except a span id ([TraceContext](#tracecontext))
 - All signatures are base64url-encoded ML-DSA-65 signatures (3309 bytes)
 - All public keys are base64url-encoded ML-DSA-65 public keys (1952 bytes)
-- Optional fields MAY be omitted from JSON when empty/null
+- An optional field (`optional: true`, `required: false` or `required_when`, [`schemas/common`](../schemas/common.md#field-constraint-properties)) that holds no value is left out of the JSON, and a required field is always written, its zero value included. A field holds no value when it is null, or an empty list or map; an optional scalar that is present with its zero value is written, so absent and zero stay distinct
 - Unknown fields MUST be ignored (forward compatibility)
 
 ---
@@ -2757,7 +2757,7 @@ types:
         name: Development
         type: bool
         required: false
-        description: "True on a tenant flagged as a development tenant, the only place a requester may approve their own request; shown wherever the request is"
+        description: "True on a tenant flagged as a development tenant, one whose configuration says hub.environment: development (schemas/config, The environment, and the development tenant), the only place a requester may approve their own request; shown wherever the request is"
       justification:
         name: Justification
         type: string
@@ -4969,7 +4969,7 @@ security:
 - [ ] Signatures and public keys serialize as base64url ML-DSA-65 of the lengths [Conventions](#conventions) gives
 - [ ] ErrorResponse carries the fields [ErrorResponse](#errorresponse) declares under its exact JSON keys, `error` required
 - [ ] Error categories are only those [ErrorResponse](#errorresponse) lists, and each standard error code answers with the HTTP status [Error Handling](#error-handling) gives it
-- [ ] Unknown JSON fields are ignored on deserialization and optional fields are omitted when empty, as [Conventions](#conventions) says
+- [ ] Unknown JSON fields are ignored on deserialization; an optional field that holds no value is omitted and a required field is always written, its zero value included, as [Conventions](#conventions) says
 - [ ] AgentManifest requires the fields [AgentManifest](#agentmanifest) marks required, and carries `publishes` and `subscriptions` for the event system
 - [ ] EventEnvelope requires every field [EventEnvelope](#eventenvelope) marks required
 - [ ] Subscription requires `pattern`, and `scope` and `group` take the defaults [Subscription](#subscription) gives them

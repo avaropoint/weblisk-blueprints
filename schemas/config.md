@@ -17,6 +17,7 @@ CLI reads this file to start, stop, and manage all hub components.
 hub:
   name: string                     # Hub name (lowercase, alphanumeric + hyphens)
   version: string                  # Semver version of this hub configuration
+  environment: string              # The environment profile the tenant runs in (default: production); development flags a development tenant
 
 # Required — orchestrator configuration
 orchestrator:
@@ -141,6 +142,38 @@ observability:
 |-------|------|----------|---------|-------------|
 | `name` | string | yes | — | Unique hub identifier. Used in federation identity and audit logs. |
 | `version` | string | yes | — | Semver version. Tracks configuration changes. |
+| `environment` | string | no | `production` | The environment profile the whole tenant runs in, by its name in [`patterns/scope`](../patterns/scope.md#environment-profiles): a built-in profile (`development`, `staging`, `production`) or one the tenant declares. It is the one home of a tenant's environment, as [The environment, and the development tenant](#the-environment-and-the-development-tenant) says. |
+
+#### The environment, and the development tenant
+
+**A tenant is a development tenant exactly when its configuration says
+`hub.environment: development`.** Nothing else flags one: not a component's
+own settings, not an environment variable, not a flag, not a name. A file that
+says nothing is `production`, the default `patterns/scope` gives, so a tenant
+is never development by omission. This is the flag [`architecture/cli`](../architecture/cli.md#who-may-approve-a-change)
+D25 rule 3 permits self-approval on, that a change records as
+`approval.development` ([`schemas/change`](change.md)), and that an
+[`ApprovalRequest`](../protocol/types.md#approvalrequest) carries as
+`development`.
+
+- **Who reads it, and how.** Each component that judges by the environment
+  reads `hub.environment` from the tenant's configuration when it starts, as
+  the orchestrator reads its own section, and holds it for its lifetime: the
+  change service to decide whether a requester may approve their own request,
+  every component applying `patterns/scope` for its active profile. A
+  component never takes it from its own environment variables or arguments,
+  so no start can make a tenant development that its configuration does not.
+- **Changing it is a change, approved as the tenant stood before it.** An edit
+  to `hub.environment` is a configuration change, and so belongs to a change
+  ([`schemas/change`](change.md)); its approval is judged under the
+  environment in force before the edit. A tenant that is not development
+  cannot make itself development on its own requester's approval, which
+  would make D25 rule 3 an approval anyone can grant themselves.
+- **What it does not say.** The flag is the profile a tenant declares. Where a
+  listener can be reached from is a separate fact, derived from the
+  listeners, allowlists and addresses the same file declares, and a tenant
+  flagged development with an allowlist that reaches off its host is still
+  reachable from off its host.
 
 ### orchestrator
 
@@ -550,3 +583,4 @@ gateway set it, and no process runs there that the operator does not trust.
 21. A set `admin_gateway.tls_key` names a path outside the tenant's tree, or one inside it that an entry of the tenant's `.gitignore` excludes, such as any under `.weblisk/keys/`. Judged from the file, without asking git ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity), `gateway-keys-kept`)
 22. `admin_gateway.internal_address` is an absolute URL with no path, query or fragment, and is `https` unless its host is a loopback IP literal, as rule 19 says. Where `admin_gateway.orchestrator` names a host that is not a loopback address, `internal_address` is set and its host is not a loopback address: an orchestrator on another host cannot reach the gateway at the gateway's loopback
 23. Every `key_passphrase` is `<source>:<reference>` with a non-empty reference and a source name that matches `[a-z0-9][a-z0-9-]*` ([`protocol/secret-source`](../protocol/secret-source.md#conventions)); a `file:` reference names an absolute path; `fd:` is refused, because the CLI starting a component inherits no descriptor to name. Judged from the file, without asking any source
+24. `hub.environment`, where present, names a built-in profile of [`patterns/scope`](../patterns/scope.md#built-in-profiles) or one the tenant declares

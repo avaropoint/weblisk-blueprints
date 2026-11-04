@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: scope
-version: 3.1.0
+version: 3.2.1
 requires: [protocol/types]
 platform: any
 tier: free
@@ -237,6 +237,10 @@ contracts:
       description: Why the destination gate refused a send
       inherited_by: Scope Types section
 
+  # The three topics below are published under the emitting component's own
+  # event namespace, as protocol/spec Namespace Rules rule 6 says: a
+  # component owning `content` publishes `content.scope.violation`. Each topic
+  # is written here as its <entity>.<action>.
   events:
     - topic: scope.violation
       description: Emitted when an entity's scope is accessed beyond its allowed level
@@ -411,7 +415,7 @@ above the ceiling and send the rest. A payload changed to fit is one nobody
 asked to send, and whoever asked believes all of it went. The refusal says
 why, as a `DestinationRefusal`: the destination, its ceiling, and each item
 above it with its level, or that the item's level is undeclared. It emits
-`scope.violation`. A person may then send what is at or below the ceiling, as a
+its `<namespace>.scope.violation`. A person may then send what is at or below the ceiling, as a
 new request of their own, told what it leaves out.
 
 > **Gap — a register is not yet masked by column for a model provider.**
@@ -883,7 +887,8 @@ envelope. The receiving component MUST:
 4. **Propagate** the scope on any further transfers
 
 If the receiving component is not authorized for the declared scope,
-it MUST reject the transfer and emit a `scope.violation` event.
+it MUST reject the transfer and emit its `<namespace>.scope.violation` event
+([`protocol/spec`](../protocol/spec.md#namespace-rules), rule 6).
 
 ### Cross-Boundary Scenarios
 
@@ -998,7 +1003,7 @@ function compute_effective_scope(components):
             escalation_source = component.identifier
 
     if max_level > composite.declared_scope:
-        emit scope.escalation event
+        emit <namespace>.scope.escalation event
         composite.effective_scope = max_level
 
     return max_level
@@ -1171,7 +1176,7 @@ scope:
   propagation_mode: inherit              # default propagation rule
   escalation_strategy: maximum           # default escalation strategy
   violation_action: deny                 # default action on scope violation
-  environment: production                # active environment profile
+  environment: production                # the active profile: the tenant's hub.environment (schemas/config), read at start, never set per component
   custom_labels: {}                      # labels this component registers (Label Registration)
   audit:
     log_all_access: false                # log every access, not just violations
@@ -1188,7 +1193,7 @@ The following configuration parameters control scope behavior at runtime:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | Default scope level | `internal` | Scope applied to unclassified entities |
-| Active environment | `production` | Active environment profile |
+| Active environment | `production` | Active environment profile. It is the tenant's, [`schemas/config`](../schemas/config.md#the-environment-and-the-development-tenant) `hub.environment`, read when the component starts; a component does not set its own |
 | Violation action | `deny` | Default enforcement on violation (`audit`, `deny`, `block`) |
 | Reject unscoped | `false` | Whether to reject entities without scope declaration |
 | Strict propagation | `true` | Whether to fail if scope cannot be propagated |
@@ -1300,12 +1305,12 @@ agent:
 ```
 
 When an agent receives data above its operational scope, it MUST
-reject the request and emit a `scope.violation` event:
+reject the request and emit its `<namespace>.scope.violation` event:
 
 ```
 content-analyzer receives restricted-scoped data
 → agent.operational_scope (confidential) < data.scope (restricted)
-→ REJECT: emit scope.violation event
+→ REJECT: emit content-analyzer's <namespace>.scope.violation event
 → Return ErrorResponse { code: "SCOPE_EXCEEDED", category: "permanent" }
 ```
 
@@ -1551,7 +1556,7 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] Receiving components validate incoming scope against their operational scope — [Propagation Rules](#propagation-rules)
 - [ ] Components reject entities that exceed their operational scope with `SCOPE_EXCEEDED` error — [Propagation Rules](#propagation-rules), [Scope-Related Errors](#scope-related-errors)
 - [ ] Composite entities escalate to the highest scope of any non-fixed component — [Escalation Algorithm](#escalation-algorithm)
-- [ ] Escalation emits a `scope.escalation` event with the escalation source — [Escalation Algorithm](#escalation-algorithm), [Contracts](#contracts)
+- [ ] Escalation emits the component's `<namespace>.scope.escalation` event with the escalation source — [Escalation Algorithm](#escalation-algorithm), [Contracts](#contracts)
 - [ ] Fixed propagation rule (`propagation_rule: fixed`) excludes a component from escalation — [Escalation Algorithm](#escalation-algorithm)
 - [ ] Environment profiles modify enforcement without changing classification — [Key Distinction: Classification vs Enforcement](#key-distinction-classification-vs-enforcement), [Environment Profiles](#environment-profiles)
 - [ ] Development environment permits audit-only enforcement for restricted scope — [Built-in Profiles](#built-in-profiles)
@@ -1561,8 +1566,8 @@ a destination carries a `DestinationRefusal` as its detail.
 - [ ] A declaration whose level is below the `maps_to` of a registered custom label it carries is refused, naming the label and both levels, and is never raised to fit — [A label and its level](#a-label-and-its-level)
 - [ ] Bytes a component did not write, carrying a registered label whose `maps_to` is `restricted` beside `scope: internal` or beside no level, are classified `restricted` wherever the component records, copies or sends them — [A label and its level](#a-label-and-its-level)
 - [ ] A component that does not know a custom label preserves it and enforces the level declared beside it, during cross-boundary transfers included — [Label Resolution](#label-resolution), [Federation Scope Rules](#federation-scope-rules)
-- [ ] `scope.violation` events are emitted on every scope boundary violation — [Propagation Rules](#propagation-rules), [The gate](#the-gate)
-- [ ] `scope.override` events are emitted when environment profiles modify enforcement — [Contracts](#contracts)
+- [ ] Every scope boundary violation emits `<namespace>.scope.violation`, under the event namespace the emitting component owns and declares in its manifest's `publishes`, and no component publishes a bare `scope.violation` — [Propagation Rules](#propagation-rules), [The gate](#the-gate), [`protocol/spec`](../protocol/spec.md#namespace-rules)
+- [ ] The component's `<namespace>.scope.override` event is emitted when environment profiles modify enforcement — [Contracts](#contracts), [`protocol/spec`](../protocol/spec.md#namespace-rules)
 - [ ] Both `scope` (string) and `scope_metadata` (object) fields present on all envelopes — [Propagation in Message Envelopes](#propagation-in-message-envelopes), [Implementation Notes](#implementation-notes)
 - [ ] Scope-related errors use standard ErrorResponse format with appropriate codes — [Scope-Related Errors](#scope-related-errors)
 - [ ] Federation transfers preserve scope and apply receiving hub's enforcement policies — [Federation Scope Rules](#federation-scope-rules)

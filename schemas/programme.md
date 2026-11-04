@@ -1430,8 +1430,14 @@ actions is reported at install in the tenant like any other unknown name.
 
 ### `needs` is a ceiling on an agent, and is refused beside `does`
 
-The closed set is `read`, `write`, `delete`, `integrations`, `dispatch`,
-`notify`. What each word comes to, and which tools it gives a run, is stated
+The closed set is this block, and this block is its one statement. A tool
+that checks a `needs:` entry reads it from here, and holds no list of its own:
+
+```yaml
+needs_set: [read, write, delete, integrations, dispatch, notify]
+```
+
+What each word comes to, and which tools it gives a run, is stated
 once, by the prompt worker that runs every instruction
 ([`architecture/prompt-worker`](../architecture/prompt-worker.md#needs-comes-to-these-capabilities)):
 in short, `read` reads documents, registers, what is due and the
@@ -2504,7 +2510,7 @@ than naming a statute that does not exist.
 - [ ] Every operation declares an `id` unique within the programme, and a `does:` **or** an `agent:` — never both ([`operations`](#operations--the-standing-work-a-programme-installs), [The refusals](#the-refusals))
 - [ ] Every operation has a `schedule`, an `on:` or a `when:`, and every `cadence`, `weekday` and `at` is in the declared vocabulary ([The refusals](#the-refusals), [`schedule`](#schedule--a-small-closed-vocabulary-and-not-the-obligations))
 - [ ] Every `does:` names an action the target tenant's programme service actually runs — ask it, at `GET /v1/programme/actions`, do not trust a list in a document ([`does` names an action the platform has](#does-names-an-action-the-platform-has-and-the-list-is-the-platforms))
-- [ ] Every `needs:` entry is `read`, `write`, `delete`, `integrations`, `dispatch` or `notify`, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
+- [ ] Every `needs:` entry is a word of the `needs_set` block, read from that block, and no operation declares `needs:` beside `does:` ([`needs` is a ceiling](#needs-is-a-ceiling-on-an-agent-and-is-refused-beside-does))
 - [ ] Every operation that runs a model states what it may touch, even when that is only `read` ([What is declared here](#what-is-declared-here-and-what-is-deliberately-not))
 - [ ] Every operation says `why:`, in terms that answer somebody who finds it running at three in the morning ([`operations`](#operations--the-standing-work-a-programme-installs))
 - [ ] No operation declares `start: running` unless adopting the programme is genuinely meant to change behaviour that day ([`start` defaults to `paused`](#start-defaults-to-paused-and-that-is-the-design))
