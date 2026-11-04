@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.0.1
+version: 1.1.0
 noun: concept
 ---
 # Schema: Concepts
@@ -39,7 +39,8 @@ requirements:
 The entries are measured, not invented: the types are
 [`schemas/blocks`](blocks.md#types)' vocabulary; the identity primitives,
 checks and tests are the rows the language mappings' Primitive Mapping,
-Evaluating a Declared Check and Testing sections already carry; the services
+Evaluating a Declared Check (now its Structure Queries) and Testing sections
+carried; the services
 and stores are the union of the rows in the Node and Cloudflare Service
 Mapping tables, with the blueprints those rows name; the UI units are the
 documents under [`frameworks/weblisk/`](../frameworks/weblisk/README.md).

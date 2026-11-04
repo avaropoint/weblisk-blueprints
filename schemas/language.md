@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.1.0
+version: 1.2.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -53,6 +53,7 @@ sections:
     - {slot: storage-mapping, heading: {starts_with: "Storage Mapping ("}, required: false, use: binds}
     - {slot: security, heading: Security, required: true, use: binds}
     - {slot: testing, heading: Testing, required: true, use: instructs}
+    - {slot: structure-queries, heading: Structure Queries, required: false, use: binds}
     - {slot: examples, heading: Examples, required: false, use: illustrates}
     - {slot: implementation-notes, heading: Implementation Notes, required: true, use: instructs}
     - {slot: verification, heading: Verification Checklist, required: true, use: verifies}
@@ -136,6 +137,7 @@ itself — `name: go` implies `language: go`.
 | `## Storage Mapping (<Language>)` | Type Mapping | The language's answer for the storage contract |
 | `## Concurrency (<Language>-Specific)` | Language Conventions | Concurrency needs more than the conventions table |
 | `## Project Structure: Domain Controller` | Project Structure | Domain controllers differ structurally |
+| `## Structure Queries` | Testing | The language answers `structure` checks ([The structure block](#the-structure-block)) |
 | `## Examples` | Any section | Code examples |
 
 ---
@@ -206,6 +208,39 @@ layout:
 what each is called, how the package's work is divided between them, and the
 names of what no blueprint declares. No caller observes any of them, and no
 blueprint declares them ([`architecture/generation`](../architecture/generation.md#what-the-model-still-decides)).
+
+### Structure Queries (`## Structure Queries`)
+
+#### The structure block
+
+A `structure` check ([`schemas/blocks`](blocks.md#checks)) names a query and
+what it must find. The query's text is the language's, because it is a
+question about one language's parse tree, so it is declared here, once, and
+every blueprint's checks cite it by name. The engine runs it with the parser
+the block names and holds no query of its own.
+
+```yaml
+structure:
+  parser: {grammar: <tree-sitter grammar>, version: "<range>"}
+  files: <glob>                  # the source files of the language
+  queries:
+    <query name>:                # a part id, the name a check cites
+      text: <what it finds, in words>
+      query: <a tree-sitter query>
+      value: <regex>             # optional: one group, applied to each capture's text
+```
+
+| Key | Means |
+|---|---|
+| `parser` | A [tree-sitter](https://tree-sitter.github.io/tree-sitter/using-parsers/queries) grammar and the versions of it the queries are written against. A query language over a grammar is data any engine can run, and it names no Weblisk concept |
+| `query` | Captures are read by name. `@value` is a value the query finds; `@exclude` is a value removed from them, by its text; `@unread` is something the query cannot judge, such as a pattern held in a constant, and makes the check unread where it occurs; a capture whose name begins `_` is the query's own. `${name}` is filled from the check's `args` |
+| `value` | Applied to each `@value` and `@exclude` capture's text; the first group is the value. The whole text when absent |
+
+A check's `expect` is read over the values: `none` (no `@value`), `some`,
+`includes` (every listed value found) or `subset_of` (every value is one the
+named query also finds). Its `scope` is the files read: the `component`'s
+package, the whole `module`, the `contract` package the layout block names, or
+every file `outside-contract`.
 
 ### Language Conventions (`## Language Conventions`)
 

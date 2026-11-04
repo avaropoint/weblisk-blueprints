@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.0.1
+version: 5.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -750,27 +750,6 @@ a dependency level. Use a semaphore per target agent to respect
 
 ---
 
-## Evaluating a Declared Check in Go
-
-A blueprint's `declaration.checks:` names an expectation. The name is
-platform-neutral; **how it is evaluated is this platform's**, exactly as a
-declared name is neutral and its spelling is this platform's.
-
-| Check | Evaluated in Go by |
-|---|---|
-| `no-path-literals` | Walking the AST for a string literal beginning `/v` passed to `HandleFunc`, `Handle`, or assigned to a `pattern` field. A path reaches a route only through a `protocol.Path*` constant |
-| `no-method-less-pattern` | Every `HandleFunc` first argument resolves to a string beginning with a method name, or is exactly `"/"`. A bare path beside a wildcard sibling is a startup panic, not an error |
-| `endpoint-routed` | Resolving the route table's patterns — constants, local aliases and concatenation — and matching the declared `endpoint`. A pattern the resolver cannot read is reported as unread, never as absent |
-| `type-has-keys` | Parsing the named struct and comparing its `json:` tags against the declared `keys`. The tag is authority, not the field name |
-| `error-codes-registered` | Every SCREAMING_SNAKE string literal used as a code appears as a key of the central registry map. Environment variable names are excluded — they are found in `os.Getenv` calls, not guessed at by shape |
-| `starts-unattended` | Running the built binary with no terminal attached and requiring an answer on `GET /livez`. It catches a mux conflict and a passphrase prompt, and neither is visible in source review |
-
-A check this platform cannot evaluate is reported as **unevaluated**, never as
-passed. "We did not check this" and "this is correct" are different facts, and a
-platform that conflates them makes every check it does run worth less.
-
----
-
 ## Reading a Blueprint into Go
 
 [`architecture/generation`](../architecture/generation.md#how-a-blueprint-is-read)
@@ -916,6 +895,80 @@ go test -race -count=1 ./...
 
 ---
 
+## Structure Queries
+
+A `structure` check ([`schemas/blocks`](../schemas/blocks.md#checks)) names a
+query and never holds its text, because a query is a question about one
+language's parse tree. These are Go's, in the form
+[`schemas/language`](../schemas/language.md#the-structure-block) declares. A
+check naming a query this block does not declare is **unread** for Go, never
+passed.
+
+```yaml
+structure:
+  parser: {grammar: tree-sitter-go, version: ">=0.23.0"}
+  files: "**/*.go"
+  queries:
+    path-literal:
+      text: >-
+        A string literal that begins with a versioned path, /v and a digit.
+        Outside internal/protocol, a path reaches a route, a client or a test
+        only through a Path<Operation> constant.
+      query: |
+        ([(interpreted_string_literal) (raw_string_literal)] @value
+          (#match? @value "^[\"`]/v[0-9]+(/|[\"`])"))
+    method-less-pattern:
+      text: >-
+        A pattern given to Handle or HandleFunc that does not begin with a
+        method and is not exactly "/". A pattern held in a variable or a
+        constant is unread here; the topology check starts-unattended is what
+        settles it, since net/http panics on the conflict at startup.
+      query: |
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . (interpreted_string_literal) @value
+            (#not-match? @value "^\"((GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) |/\"$)")))
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . (binary_expression left: (interpreted_string_literal) @value)
+            (#not-match? @value "^\"(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) ")))
+        (call_expression
+          function: (selector_expression field: (field_identifier) @_f (#match? @_f "^Handle(Func)?$"))
+          arguments: (argument_list . [(identifier) (selector_expression)] @unread))
+    type-wire-keys:
+      text: >-
+        The wire keys of the struct named ${type}: the name in each field's
+        json tag. The tag is authority, never the field's name.
+      query: |
+        (type_spec name: (type_identifier) @_t (#eq? @_t "${type}")
+          type: (struct_type (field_declaration_list
+            (field_declaration tag: (raw_string_literal) @value))))
+      value: 'json:"([^",]*)'
+    error-code-use:
+      text: >-
+        A string literal shaped as an error code, SCREAMING_SNAKE with at
+        least one underscore. A literal passed to os.Getenv or os.LookupEnv
+        names an environment variable and is excluded.
+      query: |
+        ((interpreted_string_literal) @value
+          (#match? @value "^\"[A-Z][A-Z0-9]*(_[A-Z0-9]+)+\"$"))
+        (call_expression
+          function: (selector_expression operand: (identifier) @_p field: (field_identifier) @_f
+            (#eq? @_p "os") (#match? @_f "^(Getenv|LookupEnv)$"))
+          arguments: (argument_list (interpreted_string_literal) @exclude))
+      value: '^"(.*)"$'
+    error-code-registered:
+      text: >-
+        A key of a map literal in the contract package: the central registry
+        of error codes, each with its status and category.
+      query: |
+        (composite_literal type: (map_type)
+          body: (literal_value (keyed_element . (literal_element (interpreted_string_literal) @value))))
+      value: '^"(.*)"$'
+```
+
+---
+
 ## Implementation Notes
 
 - Each component is `package main` in its own directory; shared code is imported from `internal/`, never copied
@@ -955,7 +1008,7 @@ component. See `schemas/common.md` for what a group heading means.
 - [ ] Routes are registered with Go's method-and-pattern syntax, and path parameters are read with `r.PathValue`; no handler switches on `r.Method` to choose its behaviour ([The HTTP Surface](#the-http-surface)) <!-- wl:check routes-registered-gos-method-pattern-syntax -->
 - [ ] A wrong method answers 405 with an `Allow` header and an unmatched path answers 404, both as a structured `ErrorResponse` carrying a registered error code ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check wrong-method-answers-405-allow-header -->
 - [ ] 405 and 404 are decided by the single `"/"` handler matching the route table; no method-less pattern is registered anywhere — `net/http` panics at startup when one sits beside a wildcard sibling ([The HTTP Surface](#the-http-surface)) <!-- wl:check 405-404-decided-single-handler-matching -->
-- [ ] The process binds its port and answers `GET /livez` when started with no terminal attached ([Evaluating a Declared Check in Go](#evaluating-a-declared-check-in-go) `starts-unattended`) <!-- wl:check process-binds-port-answers-get-livez -->
+- [ ] The process binds its port and answers `GET /livez` when started with no terminal attached ([`architecture/orchestrator`](../architecture/orchestrator.md#declared-checks) `starts-unattended`) <!-- wl:check process-binds-port-answers-get-livez -->
 - [ ] Every struct field carries a `json:` tag matching the declared key exactly; no field is added that its type block does not declare, and `omitempty` is on every optional field and on no required one ([Reading a Blueprint into Go](#reading-a-blueprint-into-go), [What this rules out](#what-this-rules-out)) <!-- wl:check struct-field-carries-json-tag-matching -->
 - [ ] Every field's Go type is the one [Type Mapping](#type-mapping) gives its declared type, and an optional scalar is a pointer ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious)) <!-- wl:check fields-go-type-type-mapping-gives -->
 - [ ] A cursor is carried as an opaque string and never decoded ([Where the Go type is not obvious](#where-the-go-type-is-not-obvious)) <!-- wl:check cursor-carried-opaque-string-never-decoded -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.7.2
+version: 4.8.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -736,75 +736,393 @@ declaration:
       relations:
         - {relation: held_at, to: organisation, field: organisation}
         - {relation: held_at, to: project, field: project}
-  checks:
-    - check: no-path-literals
-      subject: route registration
-      why: Every routed path is a Path<Operation> constant, so a path is corrected in one place
-    - check: no-method-less-pattern
-      subject: route registration
-      why: net/http panics at startup when a method-less pattern sits beside a wildcard sibling
-    - check: endpoint-routed
-      endpoint: POST /v1/register
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/token
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/credentials/challenge
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/credentials/token
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/{name}/key
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/hub/proof
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/operators/{name}/credentials
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/operators/{name}/credentials
-    - check: endpoint-routed
-      endpoint: DELETE /v1/admin/operators/{name}/credentials/{cid}
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/audit
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/audit/export
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/records/orchestrator/snapshot
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/model/audit
-    - check: endpoint-routed
-      endpoint: POST /v1/model/audit
-    - check: endpoint-routed
-      endpoint: POST /v1/token/exchange
-    - check: endpoint-routed
-      endpoint: POST /v1/token/work
-    - check: endpoint-routed
-      endpoint: GET /v1/work/authorisations
-    - check: endpoint-routed
-      endpoint: DELETE /v1/work/authorisations/{id}
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/work-authorisations
-    - check: endpoint-routed
-      endpoint: GET /v1/admin/work-authorisations
-    - check: endpoint-routed
-      endpoint: POST /v1/admin/work-authorisations/{id}/renew
-    - check: endpoint-routed
-      endpoint: DELETE /v1/admin/work-authorisations/{id}
-    - check: endpoint-routed
-      endpoint: POST /v1/lease
-    - check: endpoint-routed
-      endpoint: GET /livez
-    - check: endpoint-routed
-      endpoint: GET /readyz
-    - check: type-has-keys
-      type: RegisterResponse
-      keys: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
-    - check: type-has-keys
-      type: ChannelGrant
-      keys: [channel_id, channel_token, target_url, target_pub_key, expires_at]
-    - check: error-codes-registered
-      subject: the central error registry
-      why: Every status lookup for an unregistered code falls through to 500
-    - check: starts-unattended
-      subject: the built binary
-      why: A hub that prompts for a passphrase dies on EOF and never binds its port
+```
+
+### Declared checks
+
+What used to be `declaration.checks` (31 named expectations that nothing ran)
+is written here as checks of the kinds [`schemas/blocks`](../schemas/blocks.md#checks)
+declares, each with the criterion it settles. The `structure` queries are the
+language's to declare ([`languages/go`](../languages/go.md#structure-queries)),
+so these checks name a query and never its text. `starts-unattended` is a
+`topology` check, because a mux conflict and a passphrase prompt are visible
+only when the binary runs.
+
+```yaml
+verifies:
+- id: no-path-literals
+  covers: ['languages/go:routed-path-exported-path-operation-constant']
+  check: structure
+  assertion: Every routed path is a Path<Operation> constant, so a path is corrected in one place.
+  structure: {query: path-literal, scope: outside-contract, expect: none}
+- id: no-method-less-pattern
+  covers: ['languages/go:405-404-decided-single-handler-matching']
+  check: structure
+  assertion: net/http panics at startup when a method-less pattern sits beside a wildcard sibling.
+  structure: {query: method-less-pattern, scope: component, expect: none}
+- id: routed-post-register
+  covers: [post-v1-register-returns-registerresponse-agent]
+  check: exchange
+  assertion: 'POST /v1/register is routed: a request without a token is answered by the route, never 404
+    or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/register
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-token
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/token is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/token
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-credentials-challenge
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/credentials/challenge is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/challenge
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-credentials-token
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/credentials/token is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/token
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-name-key
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/{name}/key is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/conformance-probe-subject/key
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-hub-proof
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/hub/proof is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/hub/proof
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-operators-name-credentials
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/operators/{name}/credentials is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/conformance-probe-subject/credentials
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-operators-name-credentials
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/operators/{name}/credentials is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/operators/conformance-probe-subject/credentials}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-admin-operators-name-credentials-cid
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'DELETE /v1/admin/operators/{name}/credentials/{cid} is routed: a request without a token
+    is answered by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/admin/operators/conformance-probe-subject/credentials/0000000000000000000000000000000000000000000000000000000000000000}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-audit
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/audit is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/audit}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-audit-export
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/audit/export is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/audit/export}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-records-orchestrator-snapshot
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/records/orchestrator/snapshot is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/records/orchestrator/snapshot}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-model-audit
+  covers: [post-v1-admin-model-audit-outside]
+  check: translated
+  assertion: POST /v1/admin/model/audit is in the route table and is dispatched in process; from outside the process it is answered 404 where the model gateway is installed, so no exchange from outside can tell routed from absent, and the test is translated from this criterion.
+- id: routed-post-model-audit
+  covers: [post-v1-model-audit-outside-process]
+  check: translated
+  assertion: POST /v1/model/audit is in the route table and is dispatched in process; from outside the process it is answered 404 where the model gateway is installed, so no exchange from outside can tell routed from absent, and the test is translated from this criterion.
+- id: routed-post-token-exchange
+  covers: [post-v1-token-exchange-answers-issued]
+  check: exchange
+  assertion: 'POST /v1/token/exchange is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/token/exchange
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-token-work
+  covers: [post-v1-token-work-admits-live]
+  check: exchange
+  assertion: 'POST /v1/token/work is routed: a request without a token is answered by the route, never
+    404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/token/work
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-work-authorisations
+  covers: [registration-token-pass-work-pass-cannot]
+  check: exchange
+  assertion: 'GET /v1/work/authorisations is routed: a request without a token is answered by the route,
+    never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/work/authorisations}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-work-authorisations-id
+  covers: [registration-token-pass-work-pass-cannot]
+  check: exchange
+  assertion: 'DELETE /v1/work/authorisations/{id} is routed: a request without a token is answered by
+    the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/work/authorisations/conformance-probe-id}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-work-authorisations
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/work-authorisations is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/work-authorisations
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-admin-work-authorisations
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'GET /v1/admin/work-authorisations is routed: a request without a token is answered by the
+    route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/work-authorisations}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-admin-work-authorisations-id-renew
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'POST /v1/admin/work-authorisations/{id}/renew is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/work-authorisations/conformance-probe-id/renew
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-delete-admin-work-authorisations-id
+  covers: [orchestrator-serves-administrative-endpoints]
+  check: exchange
+  assertion: 'DELETE /v1/admin/work-authorisations/{id} is routed: a request without a token is answered
+    by the route, never 404 or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe-id}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-post-lease
+  covers: [renewal-post-v1-lease-after-lapse]
+  check: exchange
+  assertion: 'POST /v1/lease is routed: a request without a token is answered by the route, never 404
+    or 405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/lease
+        body: {}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-livez
+  covers: [get-livez-get-readyz-answer]
+  check: exchange
+  assertion: 'GET /livez is routed: a request without a token is answered by the route, never 404 or 405
+    and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /livez}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: routed-get-readyz
+  covers: [get-livez-get-readyz-answer]
+  check: exchange
+  assertion: 'GET /readyz is routed: a request without a token is answered by the route, never 404 or
+    405 and never a redirect.'
+  live: safe
+  exchange:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /readyz}
+      expect:
+        status_not: [301, 302, 303, 307, 308, 404, 405]
+- id: type-register-response-has-keys
+  covers: [post-v1-register-returns-registerresponse-agent]
+  check: structure
+  assertion: The contract's RegisterResponse carries the wire keys agent_id, token, expires_at, services,
+    lease, orchestrator, protocol_version; the key the language writes on the wire is authority, not the
+    field's name.
+  structure:
+    query: type-wire-keys
+    args: {type: RegisterResponse}
+    scope: contract
+    expect:
+      includes: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
+- id: type-channel-grant-has-keys
+  covers: [channelgrant-names-target-url-where-orchestrator]
+  check: structure
+  assertion: The contract's ChannelGrant carries the wire keys channel_id, channel_token, target_url,
+    target_pub_key, expires_at; the key the language writes on the wire is authority, not the field's
+    name.
+  structure:
+    query: type-wire-keys
+    args: {type: ChannelGrant}
+    scope: contract
+    expect:
+      includes: [channel_id, channel_token, target_url, target_pub_key, expires_at]
+- id: error-codes-registered
+  covers: ['languages/go:declared-type-enum-constant-path-operation']
+  check: structure
+  assertion: 'Every status lookup for an unregistered code falls through to 500: every error code the
+    code uses is a key of the central registry.'
+  structure:
+    query: error-code-use
+    scope: module
+    expect: {subset_of: error-code-registered}
+- id: starts-unattended
+  covers: ['languages/go:process-binds-port-answers-get-livez']
+  check: topology
+  assertion: 'A hub that prompts for a passphrase dies on EOF and never binds its port: started with no
+    terminal and standard input closed, the built binary binds its port and answers live.'
+  topology:
+    instances:
+    - {name: a, stdin: closed}
+    acts:
+    - {act: start, instance: a, expect: live, within: 20s}
 ```
 
 ---

@@ -535,6 +535,37 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every declared check is data of a kind schemas/blocks declares; the kind
+# vectors each give exactly their fault. A copy of the orchestrator naming a
+# structure query no language declares, and a copy of the valid vectors with
+# no topology example, must each be reported with exactly that one finding.
+expect 0 "check-kinds: every verifies entry is a declared kind with valid data" python3 checks/check-kinds.py
+expect 0 "check-kinds vectors: every example passes and every invalid case gives its fault" python3 checks/check-kinds.py --vectors
+sed 's/structure: {query: path-literal, /structure: {query: path-literals, /' architecture/orchestrator.md >"$tmp/orchestrator.md"
+expect 1 "check-kinds control: a check naming an undeclared query fails" python3 checks/check-kinds.py --file "$tmp/orchestrator.md" --as architecture/orchestrator.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "names structure query 'path-literals', which no language declares" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the undeclared query"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the undeclared query"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
+python3 - "$tmp/ck/valid.yaml" <<'PY'
+import sys, yaml
+v = yaml.safe_load(open("vectors/check-kinds/valid.yaml", encoding="utf-8"))
+v["verifies"] = [e for e in v["verifies"] if e.get("check") != "topology"]
+yaml.safe_dump(v, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+expect 1 "check-kinds control: vectors with no topology example fail" python3 checks/check-kinds.py --vectors "$tmp/ck"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "no example of kind 'topology'" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the missing kind"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the missing kind"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

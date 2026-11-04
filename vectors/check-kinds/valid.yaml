@@ -1,0 +1,89 @@
+# One check of each component kind. Every one passes checks/check-kinds.py.
+parts: [example-refusal, example-signature, example-joins, example-audited, example-replay, example-form]
+verifies:
+  - id: translated-example
+    covers: [example-form]
+    assertion: The criterion's own text is what the translate step writes a test from.
+
+  - id: exchange-example
+    covers: [example-refusal]
+    check: exchange
+    assertion: A token whose signature does not verify is refused with 401 INVALID_SIGNATURE.
+    applies_to: [orchestrator]
+    live: safe
+    exchange:
+      steps:
+        - as: test-agent
+          request: {method: GET, path: /v1/services, token: bad-signature}
+          expect: {status: 401, code: INVALID_SIGNATURE, json: true, has: [/error]}
+
+  - id: vector-example
+    covers: [example-signature]
+    check: vector
+    assertion: Every fixed-form statement vector the orchestrator verifies is answered as the vector says.
+    applies_to: [orchestrator]
+    vector:
+      file: vectors/fixed-form-statements.json
+      entries: /vectors
+      where: {/prefix: weblisk/directory/v2}
+      step:
+        as: test-agent
+        request: {method: POST, path: /v1/services, body: "${v/body}"}
+        expect: {status_not: [401]}
+
+  - id: join-example
+    covers: [example-joins]
+    check: join
+    assertion: The component registers with a real orchestrator, is listed, and its lease is current within one lease duration.
+    applies_to: [registers]
+    join:
+      start: {orchestrator: built}
+      observe: [listens, no-exit, registered, listed, lease-current]
+      within: lease
+
+  - id: record-example
+    covers: [example-audited]
+    check: record
+    assertion: A refused token exchange writes one audit entry naming the refusal.
+    applies_to: [orchestrator]
+    record:
+      steps:
+        - as: test-agent
+          request: {method: POST, path: /v1/token/exchange, token: own, body: {}}
+          expect: {status: [400, 403]}
+      record:
+        source: audit
+        read: {method: GET, path: /v1/admin/audit, listener: admin, token: own}
+        match: {/action: token_exchange, /outcome: refused}
+        count: 1
+        within: 5s
+
+  - id: topology-example
+    covers: [example-replay]
+    check: topology
+    assertion: IF more than one instance answers for the hub, a jti used at one is refused at the other.
+    applies_to: [orchestrator]
+    topology:
+      instances:
+        - {name: a, shares: [jti]}
+        - {name: b, shares: [jti]}
+      acts:
+        - {act: start, instance: a, expect: ready, within: 20s}
+        - {act: start, instance: b, expect: ready, within: 20s}
+      steps:
+        - id: first
+          as: test-agent
+          instance: a
+          request: {method: POST, path: /v1/register, body: "${fixture/test-agent/manifest}", sign: {over: /manifest, into: /signature, timestamp: /timestamp}}
+          expect: {status: 200}
+        - id: replayed
+          as: test-agent
+          instance: b
+          request: {method: POST, path: /v1/register, body: "${fixture/test-agent/manifest}", sign: {over: /manifest, into: /signature, timestamp: /timestamp}}
+          expect: {status: 401}
+
+  - id: structure-example
+    covers: [example-form, "languages/go:routed-path-exported-path-operation-constant"]
+    check: structure
+    assertion: No versioned path literal appears outside the contract package.
+    structure: {query: path-literal, scope: outside-contract, expect: none}

@@ -1,0 +1,61 @@
+# Each check breaks exactly one rule, and is reported with exactly one fault
+# whose text holds `fault`.
+parts: [example-refusal]
+cases:
+  - id: unknown-kind
+    fault: "is not in schemas/blocks' check-kind"
+    check: {id: x, covers: [example-refusal], check: endpoint-answers, assertion: a}
+  - id: missing-data
+    fault: does not satisfy the check definition at /exchange
+    check: {id: x, covers: [example-refusal], check: exchange, assertion: a}
+  - id: other-kinds-data
+    fault: "carries 'structure' data but its kind is 'exchange'"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: GET, path: /livez}, expect: {status: 200}}]}
+      structure: {query: path-literal, expect: none}
+  - id: bad-step-shape
+    fault: does not satisfy the check definition at /exchange/steps/0/expect
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: GET, path: /livez}}]}
+  - id: live-on-corpus-kind
+    fault: "'live' on a check of the corpus"
+    check: {id: x, covers: [example-refusal], check: vectors-agree, assertion: a, live: safe}
+  - id: uncovered-local-part
+    fault: "covers 'no-such-requirement', which this file does not declare"
+    check: {id: x, covers: [no-such-requirement], assertion: a}
+  - id: uncovered-remote-part
+    fault: "which languages/go.md does not declare"
+    check: {id: x, covers: ["languages/go:no-such-criterion"], assertion: a}
+  - id: undeclared-query
+    fault: "names structure query 'no-such-query', which no language declares"
+    check: {id: x, covers: [example-refusal], check: structure, assertion: a, structure: {query: no-such-query, expect: none}}
+  - id: missing-vector-file
+    fault: "names vector file 'vectors/no-such-file.json', which does not exist"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: vector
+      assertion: a
+      vector: {file: vectors/no-such-file.json, entries: /v, step: {request: {method: GET, path: /livez}, expect: {status: 200}}}
+  - id: undeclared-identity
+    fault: "a step made as 'test-stranger', which no identity fixture declares"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{as: test-stranger, request: {method: GET, path: /livez}, expect: {status: 200}}]}
+  - id: undeclared-selector
+    fault: "applies_to 'mainframe', which schemas/kinds declares as neither"
+    check: {id: x, covers: [example-refusal], assertion: a, applies_to: [mainframe]}
+  - id: bad-duration
+    fault: does not satisfy the check definition at /join/within
+    check: {id: x, covers: [example-refusal], check: join, assertion: a, join: {observe: [listens], within: soon}}
