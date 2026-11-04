@@ -580,6 +580,36 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every language declares its layout, module, toolchain, diagnostics and
+# tests, and reads its own toolchain's real output as vectors/languages
+# expects. A copy of rust.md without its diagnostics block, and a copy of
+# go.md that has lost its pattern for an undefined name, must each be
+# reported with exactly that one finding.
+expect 0 "language-blocks: every language declares how it is built, read and tested" python3 checks/language-blocks.py
+python3 - "$tmp/rust.md" <<'PY'
+import re, sys
+t = open("languages/rust.md", encoding="utf-8").read()
+m = re.search(r"^```yaml\ndiagnostics:\n.*?^```\n", t, re.S | re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "language-blocks control: a language without diagnostics fails" python3 checks/language-blocks.py --file "$tmp/rust.md" --as rust
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^rust: no diagnostics block$" "$tmp/out"; then
+	echo "ok   language-blocks control: exactly one finding, rust's diagnostics"
+else
+	echo "FAIL language-blocks control: want exactly one finding, rust's diagnostics"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+grep -v "kind: undefined, pattern: 'undefined:" languages/go.md >"$tmp/go.md"
+expect 1 "language-blocks control: a grammar that misreads its vectors fails" python3 checks/language-blocks.py --file "$tmp/go.md" --as go
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^go: diagnostics read " "$tmp/out"; then
+	echo "ok   language-blocks control: exactly one finding, go's diagnostics"
+else
+	echo "FAIL language-blocks control: want exactly one finding, go's diagnostics"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

@@ -1,0 +1,20 @@
+{
+  "go": {
+    "build": "go-build.txt",
+    "findings": [
+      {"file": "internal/p/p.go", "line": 3, "col": 23, "symbol": "undefinedThing", "kind": "undefined"},
+      {"file": "internal/p/p.go", "line": 6, "col": 6, "symbol": "T", "kind": "redeclared"}
+    ],
+    "test": "go-test.jsonl",
+    "outcomes": {"Test_a_b": "pass", "Test_c": "fail"}
+  },
+  "rust": {
+    "build": "rust-build.jsonl",
+    "findings": [
+      {"file": "crates/p/src/lib.rs", "line": 3, "col": 1, "symbol": "T", "kind": "redeclared"},
+      {"file": "crates/p/src/lib.rs", "line": 1, "col": 21, "symbol": "undefined_thing", "kind": "undefined"}
+    ],
+    "test": "rust-test.txt",
+    "outcomes": {"a_b": "pass", "c": "fail"}
+  }
+}

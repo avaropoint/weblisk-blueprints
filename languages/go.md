@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.1.0
+version: 5.2.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -206,6 +206,7 @@ asks a model for anything
 layout:
   module_root: "."
   manifest: go.mod
+  module_path: "{hub}"
   name: drop-hyphens
   contract:
     package: internal/protocol
@@ -464,6 +465,58 @@ A component other than the orchestrator is built the same way — `go build -o
 bin/<name> ./cmd/<name>` — and run with the flags its own blueprint defines. This document names no component beyond the orchestrator on purpose;
 which ones a deployment has is decided by adopting their blueprints.
 
+### Toolchain and diagnostics
+
+The commands above, and how a failed build's output is read, as
+[`schemas/language`](../schemas/language.md#the-toolchain-block) declares
+them. `GOFLAGS=-gcflags=all=-e` makes the compiler report every error rather
+than stopping at ten, so one build gives a repair every finding.
+
+```yaml
+toolchain:
+  version: ">=1.27"
+  probe: {command: [go, env, GOVERSION], version: '^go([0-9]+\.[0-9]+(?:\.[0-9]+)?)'}
+  prepare: [[go, mod, tidy]]
+  build: [go, build, ./...]
+  build_component: [go, build, -o, "bin/{service}", "./cmd/{service}"]
+  run: ["bin/{service}"]
+  vet: [go, vet, ./...]
+  env: {GOFLAGS: "-gcflags=all=-e"}
+```
+
+```yaml
+diagnostics:
+  format: text
+  line: '^\.?/?(?P<file>[\w./-]+\.go):(?P<line>\d+):(?:(?P<col>\d+):)?\s*(?P<message>.+)$'
+  continuation: '^(\t|    )'
+  reset: '^# '
+  drop: ['^too many errors$']
+  symbols:
+    - {kind: undefined, pattern: 'undefined: (?P<symbol>\w+)'}
+    - {kind: redeclared, pattern: '^(?P<symbol>\w+) redeclared in this block'}
+    - {kind: redeclared, pattern: '(?P<other_file>[\w./-]+\.go):\d+:\d+: other declaration of (?P<symbol>\w+)'}
+    - {kind: method-redeclared, pattern: 'method (?P<type>\w+)\.(?P<symbol>\w+) already declared at (?P<other_file>[\w./-]+\.go):'}
+    - {kind: not-implemented, pattern: '\*?(?P<symbol>\w+) does not implement \*?(?P<other>\w+)'}
+    - {kind: unused, pattern: '^declared and not used: (?P<symbol>\w+)'}
+  load_failure:
+    - "found packages "
+    - "import cycle not allowed"
+    - "is a program, not an importable package"
+    - "build constraints exclude all Go files"
+    - "no Go files in"
+    - "no non-test Go files in"
+    - "is not in std"
+  dependency_fault:
+    markers:
+      - "missing go.sum entry"
+      - "no required module provides package"
+      - "updates to go.mod needed"
+      - "inconsistent vendoring"
+      - "module lookup disabled"
+    fix: [[go, mod, tidy]]
+  mechanism_failure: '^go: '
+```
+
 ### Environment Variables
 
 | Variable | Required | Default | Description |
@@ -488,22 +541,44 @@ go test -race -count=1 ./...
 
 ## Go Module File
 
+The module is the tenant's ([One module, one definition of everything](#one-module-one-definition-of-everything)),
+and `go.mod` is written by the engine from this block, never by a model. Its
+module path is the tenant's `hub.name` ([`schemas/config`](../schemas/config.md)),
+which is already a valid Go module path, so two builds of one tenant never name
+the module differently. Its `go` directive is the toolchain's minimum. It
+requires the two modules the [Primitive Mapping](#primitive-mapping) marks
+**required**, `golang.org/x/term` only where the implementation prompts, and a
+storage driver only where a backend other than the default was chosen; nothing
+else. Versions are never written by generation: `go mod tidy`, the prepare
+step, resolves them and writes `go.sum`.
+
+```yaml
+module:
+  manifest: go.mod
+  language_version: "1.27"
+  requires:
+    - {name: github.com/cloudflare/circl, when: always}
+    - {name: golang.org/x/crypto, when: always}
+    - {name: golang.org/x/term, when: the implementation prompts for a passphrase}
+    - {name: modernc.org/sqlite, when: the SQLite backend was chosen and CGo is not used}
+    - {name: github.com/mattn/go-sqlite3, when: the SQLite backend was chosen with CGo}
+  versions: resolved
+  written_by: engine
 ```
-module <tenant>
+
+Written out for a tenant whose `hub.name` is `demo-hub`, before `go mod tidy`
+adds versions:
+
+```
+module demo-hub
 
 go 1.27
 
 require (
-    github.com/cloudflare/circl <version>
-    golang.org/x/crypto <version>
+    github.com/cloudflare/circl <resolved>
+    golang.org/x/crypto <resolved>
 )
 ```
-
-The module is the tenant's ([One module, one definition of everything](#one-module-one-definition-of-everything)).
-It requires the two modules the [Primitive Mapping](#primitive-mapping) marks
-**required**, and adds `golang.org/x/term` only where the implementation
-prompts, and a storage driver only where a backend other than the default was
-chosen. Nothing else.
 
 ---
 
@@ -891,6 +966,41 @@ func TestValidateManifest(t *testing.T) {
 ```bash
 go vet ./...
 go test -race -count=1 ./...
+```
+
+---
+
+### Translated tests
+
+A test translated from a criterion
+([`schemas/language`](../schemas/language.md#the-tests-block)) is an HTTP
+black-box test in a package of its own under `test/`, one file per criterion,
+using only the standard library and `internal/protocol`'s declared types. It
+reads the component's address from `WL_TEST_URL`, and fails, never skips, when
+that is unset.
+
+```yaml
+tests:
+  owns: "test/**"
+  path: "test/{service}/{criterion}_test.go"
+  name: snake
+  header: "// weblisk:criterion {ref} digest {digest} action {action}"
+  package: conformance
+  function: "Test_{criterion}"
+  target: WL_TEST_URL
+  vectors: testdata/weblisk-vectors/
+  command: [go, test, -count=1, -json, -run, "^Test_{criterion}$", "./test/{service}"]
+  result:
+    format: json-lines
+    test: /Test
+    outcome: /Action
+    pass: pass
+    fail: fail
+    skip: skip
+  stub: >-
+    The plan's declared names in internal/protocol, and each component's entry
+    answering every route its blueprint declares with 501 and an ErrorResponse;
+    a translated test run against it must fail.
 ```
 
 ---

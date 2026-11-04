@@ -1,0 +1,4 @@
+{"Time":"2026-11-04T10:43:41.678223-05:00","Action":"run","Package":"demo-hub/test/svc","Test":"Test_a_b"}
+{"Time":"2026-11-04T10:43:41.678223-05:00","Action":"pass","Package":"demo-hub/test/svc","Test":"Test_a_b","Elapsed":0}
+{"Time":"2026-11-04T10:43:41.678244-05:00","Action":"fail","Package":"demo-hub/test/svc","Test":"Test_c","Elapsed":0}
+{"Time":"2026-11-04T10:43:41.678916-05:00","Action":"fail","Package":"demo-hub/test/svc","Elapsed":0.234}

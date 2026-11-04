@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.2.0
+version: 1.3.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -177,6 +177,7 @@ call, naming the language, as a concept a mapping leaves UNFILLED is
 layout:
   module_root: <path>             # where the module manifest sits, relative to the tenant root
   manifest: <file>                # the module manifest's file name
+  module_path: <spelling>         # optional: the module's own name; {hub} is schemas/config's hub.name
   name: <spelling>                # how a blueprint's name becomes a package name: as-is | drop-hyphens | snake
   contract:
     package: <path>               # the one package every declared name lives in
@@ -199,6 +200,7 @@ layout:
 
 | Key | Means |
 |---|---|
+| `module_path` | The name the module declares in its manifest, where the language has one (Go's `module` directive). `{hub}` is the tenant's `hub.name` from [`schemas/config`](config.md), which is already lower-case letters, digits and hyphens. A generator writes it; a model never chooses it |
 | `holds` | Declared names of these kinds live in the contract package and nowhere else. The kinds are a closed list: `type` (a `yaml:types` type, with fields or an enum), `enum-constant`, `path-constant`, `request-type`, `response-type` and `error-code`, each spelled as the language's mappings spell it |
 | `role` | `contract` is the package `holds` names. `component` is a running thing: the blueprint a row of [`schemas/programme`](programme.md#the-services-in-the-order-they-are-built)'s services table names, for a service in a process of its own, an agent or a domain, and `architecture/gateway`, which [`schemas/config`](config.md) declares as `gateway`. `library` is every other blueprint whose requirements some code answers |
 | `imports` | What a package of each role may import: `own-component` (an entry, its own component's package), `library` (any library package), `required-library` (the package of a library blueprint the importer's blueprint `requires`, outside any `requires` cycle with it) and `contract`. Nothing else, and nothing a role's list leaves out |
@@ -241,6 +243,114 @@ A check's `expect` is read over the values: `none` (no `@value`), `some`,
 named query also finds). Its `scope` is the files read: the `component`'s
 package, the whole `module`, the `contract` package the layout block names, or
 every file `outside-contract`.
+
+### Runtime Requirements: the module block
+
+Where the language has a module manifest that a build reads (`go.mod`,
+`Cargo.toml`), what it holds is stated as data, so the engine writes it and a
+model never does.
+
+```yaml
+module:
+  manifest: <file>                # the layout's manifest
+  language_version: <version>     # the language version the manifest states; the toolchain's minimum
+  requires:                       # every dependency the manifest may name, and nothing else
+    - {name: <module or crate>, when: always | <the IF premise under which it is added>}
+  versions: resolved              # written by the toolchain's prepare step, never by generation
+  written_by: engine
+```
+
+A dependency the manifest names that `requires` does not list, or one listed
+`when` a premise the tenant has not chosen, is refused before a build.
+
+### Build and Run (`## Build and Run`)
+
+#### The toolchain block
+
+How the language's code is prepared, built, run and tested, as commands an
+engine runs without knowing the language. A command is a list of arguments,
+never a shell line. `{service}` is the component's registered name,
+`{package}` a package directory the layout gives, `{module_root}` the layout's.
+
+```yaml
+toolchain:
+  version: <range>                # the toolchain versions the corpus is written against
+  probe: {command: [<arg>, ...], version: <regex with one group>}
+  prepare: [[<arg>, ...], ...]    # run at module_root, in order, before a build and after any import change
+  build: [<arg>, ...]             # every component in the module
+  build_component: [<arg>, ...]   # one component; its binary at the path run names
+  run: [<arg>, ...]               # one component; the starter appends its flags
+  vet: [<arg>, ...]               # optional: a static check the build gate also runs
+  env: {<name>: <value>}          # set for prepare, build and test only, never for a component
+```
+
+#### The diagnostics block
+
+How a failed build's output is read into findings an engine can act on:
+file, line, column, message and, where the language says, the symbol. It is
+the language's grammar, so no tool holds a copy of it.
+
+```yaml
+diagnostics:
+  format: text | json-lines
+  # text: one regular expression per finding line, with named groups
+  line: <regex with the groups file, line, col and message>
+  continuation: <regex>           # a line that belongs to the finding before it
+  reset: <regex>                  # a line that ends the current finding and names a package
+  drop: [<regex>, ...]            # lines that are never findings
+  # json-lines: one JSON object per line, read by pointers
+  select: {<pointer>: <value>}    # only objects whose member at pointer holds value
+  fields: {message: <pointer>, code: <pointer>, level: <pointer>, file: <pointer>, line: <pointer>, col: <pointer>}
+  span: {list: <pointer>, where: {<pointer>: <value>}, file: <pointer>, line: <pointer>, col: <pointer>}
+                                  # where a finding's place is one of a list: the first that matches where
+  symbols:                        # what a message says about a symbol, in order; the first match wins
+    - {kind: undefined | redeclared | not-implemented | method-redeclared | unused, pattern: <regex with the group symbol>}
+  load_failure: [<substring>, ...]      # the package could not be loaded: a placement fault, never a code fault
+  dependency_fault:                     # the dependency set is wrong: fixed by prepare, never by a code edit
+    markers: [<substring>, ...]
+    fix: [[<arg>, ...], ...]
+  mechanism_failure: <regex>            # the toolchain itself failed; nothing in the tree is implicated
+```
+
+A regular expression here is RE2 syntax with Python-style named groups
+(`(?P<name>...)`), which both Go's `regexp` and Python's `re` read the same
+way. A finding the block cannot read is reported as unread, never dropped.
+
+### Testing (`## Testing`)
+
+#### The tests block
+
+How a translated test is written, named, placed and run
+([`ENGINE_PLAN`](../ENGINE_PLAN.md), "What makes a translated test count").
+A test is written from one criterion and the declared contract alone, so it
+exercises the component as a black box: over HTTP, at the address the harness
+gives it, with the fixtures of [`architecture/testing`](../architecture/testing.md#fixtures-as-data).
+
+```yaml
+tests:
+  owns: <glob>                    # every test path; generation and repair may write none of them
+  path: <pattern>                 # one file per criterion: {service}, {criterion} as name spells it
+  name: <spelling>                # how a criterion id becomes a file and a test name: as-is | snake | camel
+  header: <line>                  # the test's first line: {ref}, {digest} and {action} filled in
+  package: <name>                 # optional: the package clause every test file states
+  function: <pattern>             # the test's own name: {criterion} as name spells it
+  target: <variable>              # the environment variable that carries the component's base URL
+  vectors: <path>                 # where published vectors are delivered, testdata/weblisk-vectors/
+  command: [<arg>, ...]           # runs one criterion's test: {path}, {package}, {test} filled in
+  result:
+    format: json-lines | text
+    line: <regex>                 # text only: the line that reports one test, with named groups
+    test: <pointer or group>      # which test a line is about
+    outcome: <pointer or group>
+    pass: <value>
+    fail: <value>
+    skip: <value>
+  stub: <what a stub of the plan's declarations is, for the test that must fail on nothing>
+```
+
+A test whose header names a criterion digest other than the criterion's
+current one is "translated under an older text"; a test path written by
+anything but the translate step is refused.
 
 ### Language Conventions (`## Language Conventions`)
 
