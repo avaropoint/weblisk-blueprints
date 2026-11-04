@@ -69,6 +69,7 @@ and versions, the way capabilities are closed in code and kinds are open data
 | The family grammar's keywords | [`schemas/family`](../schemas/family.md#the-grammar-keywords) |
 | Block types | [`schemas/blocks`](../schemas/blocks.md#blocks) |
 | Check kinds, the `check` of a `verifies` entry | [`schemas/blocks`](../schemas/blocks.md#definitions) |
+| Endpoint auth, the `auth` of a served endpoint, and so which endpoints are protected | [`schemas/blocks`](../schemas/blocks.md#which-endpoints-are-protected) |
 | `use` and `send` | [`schemas/family`](../schemas/family.md#the-grammar-keywords) |
 | Capabilities | [`schemas/kinds`](../schemas/kinds.md#capabilities) |
 | Executors | [`schemas/change`](../schemas/change.md#executors) |

@@ -268,6 +268,25 @@ start) reports **unread**, never passed and never failed
 read the artifact MUST say so"). Examples of every kind, and one invalid
 check per rule, are [`vectors/check-kinds/`](../vectors/check-kinds/README.md).
 
+### Which endpoints are protected
+
+Every endpoint a blueprint serves says what a request must carry to reach it,
+as its `auth`: in a declaration's `serves` list, and in a `serves` block's
+`http`. `auth` is a closed vocabulary, the definition `endpoint-auth`, and
+`checks/check-kinds.py` refuses any other value.
+
+| `auth` | A request must carry | Protected |
+|---|---|---|
+| `none` | nothing; anyone may reach it | no |
+| `identity` | a signature by the caller's own key over what it sends, as a registration is signed ([`protocol/spec`](../protocol/spec.md#post-v1register)), and no bearer token | no |
+| `token` | a bearer token of a kind the route takes, whatever its capabilities | yes |
+| a capability, such as `admin:read` | a bearer token carrying that capability, a name [`protocol/types`](../protocol/types.md#capability) lists | yes |
+
+`for_each: protected-endpoint` selects exactly the endpoints of the component's
+own blueprint whose `auth` is `token` or a capability. An endpoint whose `auth`
+is absent is not selected, and the check reports it **unread**, naming the
+endpoint, rather than guessing either way.
+
 ## Definitions
 
 ```yaml
@@ -413,7 +432,7 @@ defs:
     unevaluatedProperties: false
     properties:
       start: {$ref: "#/$defs/check-start"}
-      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint declares, or per one whose auth requires a token."}
+      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint serves, or per protected one: one whose endpoint-auth is token or a capability (Checks, Which endpoints are protected)."}
       steps: {type: array, minItems: 1, items: {$ref: "#/$defs/exchange-step"}}
   check-vector:
     type: object
@@ -563,7 +582,12 @@ defs:
         properties:
           method: {enum: [GET, HEAD, POST, PUT, PATCH, DELETE]}
           path: {type: string, pattern: "^/"}
-          auth: {type: string}
+          auth: {$ref: "#/$defs/endpoint-auth"}
+  endpoint-auth:
+    description: "What a request must carry to reach an endpoint: the auth of a serves entry, in a declaration's serves list or a serves block's http. A closed vocabulary (Checks, Which endpoints are protected)."
+    anyOf:
+      - enum: [none, identity, token]
+      - {type: string, pattern: "^[a-z]+:([a-z][a-z-]*|\\*)$", description: "A capability protocol/types' Capability section lists: a bearer token carrying it."}
   event:
     type: object
     required: [id, direction, payload]

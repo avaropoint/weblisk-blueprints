@@ -581,6 +581,23 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# The endpoint-auth vocabulary is closed: a copy of the orchestrator whose
+# Audit endpoint says auth "bearer" must be reported with exactly it.
+python3 - "$tmp/orch-auth.md" <<'PY'
+import sys
+t = open("architecture/orchestrator.md", encoding="utf-8").read()
+old = 'operation: Audit\n      auth: "token"'
+assert t.count(old) == 1
+open(sys.argv[1], "w", encoding="utf-8").write(t.replace(old, 'operation: Audit\n      auth: "bearer"'))
+PY
+expect 1 "check-kinds control: an endpoint auth outside endpoint-auth fails" python3 checks/check-kinds.py --file "$tmp/orch-auth.md" --as architecture/orchestrator.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "endpoint 'Audit' has auth 'bearer'" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the Audit endpoint's auth"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the Audit endpoint's auth"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 python3 - "$tmp/testing.md" <<'PY'
 import re, sys
 t = open("architecture/testing.md", encoding="utf-8").read()

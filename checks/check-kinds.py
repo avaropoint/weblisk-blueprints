@@ -22,6 +22,11 @@ and selectors schemas/kinds.md declares. A check is refused when:
 - a step is made `as` an identity no fixture declares, or a placeholder names
   a fixture architecture/testing.md's fixtures block does not declare;
 - `applies_to` names neither a component kind nor a selector.
+
+Every endpoint a file serves (a declaration's `serves` list, or a `serves`
+block's `http`) names its `auth` in the closed vocabulary `endpoint-auth`:
+`none`, `identity`, `token`, or a capability protocol/types' Capability
+section lists (schemas/blocks.md, "Which endpoints are protected").
 """
 import glob, json, os, re, sys
 
@@ -97,6 +102,50 @@ def component_selectors():
     if not isinstance(b, dict):
         return None
     return set((b.get("kinds") or {}).keys()) | set((b.get("selectors") or {}).keys())
+
+
+def capabilities():
+    """Every capability name protocol/types.md's Capability section lists."""
+    text = text_of(os.path.join(CORPUS, "protocol/types.md"))
+    m = re.search(r"^### Capability\n(.*?)^### ", text, re.S | re.M)
+    return set(re.findall(r"^- `([a-z]+:[a-z*]+)`", m.group(1), re.M)) if m else set()
+
+
+AUTH_WORDS = set(DEFS["endpoint-auth"]["anyOf"][0]["enum"])
+CAPABILITIES = capabilities()
+
+
+def serves_auth(rel, text):
+    """Each served endpoint's auth is a word of endpoint-auth or a declared capability."""
+    out = []
+    for m in FENCE.finditer(text):
+        try:
+            v = yaml.load(m.group(1), Loader=Core)
+        except yaml.YAMLError:
+            continue
+        line = text.count("\n", 0, m.start()) + 2
+        stack = [v]
+        while stack:
+            x = stack.pop()
+            if isinstance(x, list):
+                stack.extend(x)
+                continue
+            if not isinstance(x, dict):
+                continue
+            stack.extend(x.values())
+            if not isinstance(x.get("serves"), list):
+                continue
+            for e in x["serves"]:
+                if not isinstance(e, dict):
+                    continue
+                http = e.get("http") if isinstance(e.get("http"), dict) else e
+                if "auth" not in http:
+                    continue
+                a = http["auth"]
+                if a not in AUTH_WORDS and a not in CAPABILITIES:
+                    name = e.get("operation") or e.get("id") or http.get("path")
+                    out.append(f"{rel}:{line}: endpoint {name!r} has auth {a!r}, which is neither a word of endpoint-auth nor a capability protocol/types lists")
+    return out
 
 
 QUERIES, SELECTORS = queries(), component_selectors()
@@ -178,7 +227,7 @@ def suite(rel, text):
 
 
 def judge_file(rel, text):
-    out, n, kinds = suite(rel, text), 0, {}
+    out, n, kinds = suite(rel, text) + serves_auth(rel, text), 0, {}
     own = parts_of(text)
     for line, entries in verifies_blocks(text):
         for e in entries or []:
