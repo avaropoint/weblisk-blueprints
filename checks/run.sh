@@ -521,6 +521,20 @@ else
 	fails=$((fails + 1))
 fi
 
+# Component kinds and their cardinality, declared once in schemas/kinds.md,
+# against the services table; a copy without fabric-service must be reported
+# with exactly that service.
+expect 0 "component-kinds: every service is a kind with a count" python3 checks/component-kinds.py
+grep -v '^    fabric-service: ' schemas/kinds.md >"$tmp/kinds.md"
+expect 1 "component-kinds control: a kinds.md without fabric-service fails" python3 checks/component-kinds.py --kinds "$tmp/kinds.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "service 'fabric-service' is in the services table and is no component kind" "$tmp/out"; then
+	echo "ok   component-kinds control: exactly one finding, fabric-service"
+else
+	echo "FAIL component-kinds control: want exactly one finding, fabric-service"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # The type vectors: every canonical-json case canonicalises, by RFC 8785, to
 # what the vector records; a copy whose key-order case is sorted by code point
 # instead of UTF-16 code unit, and a copy whose timestamp entry sees a file

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.5.1
+version: 1.6.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -291,6 +291,56 @@ governs nothing, and saying so explicitly is what stops an ordinary consumption
 reading as an ungoverned platform.
 
 ---
+## Component kinds
+
+A `component` (above) is one running thing in a tenant. Its **component kind**
+is what it is built from, and the answer to *how many of this may one tenant
+run* belongs to the kind, not to any tool: a list of singletons compiled into
+the CLI, or four constructors that each know one kind, is a closed set written
+in the wrong place.
+
+The block below is that answer, as data. A kind is named as the service
+registers ([`schemas/programme`](programme.md#the-services-in-the-order-they-are-built),
+whose services table stays the one home of each service's blueprint, its order
+and what it needs running first), plus the three kinds that table does not
+order: `gateway`, and `agent` and `domain`, of which a tenant runs as many as
+it adopts.
+
+```yaml
+component_kinds:
+  instances: {max: 1}
+  kinds:
+    orchestrator:      {count: {min: 1, max: 1}, registers: false}
+    admin:             {count: {min: 1, max: 1}, registers: true}
+    content:           {count: {min: 0, max: 1}, registers: true}
+    execution:         {count: {min: 0, max: 1}, registers: true}
+    notification:      {count: {min: 0, max: 1}, registers: true}
+    model-service:     {count: {min: 0, max: 1}, registers: false, runs_with: orchestrator}
+    prompt-worker:     {count: {min: 0, max: 1}, registers: true}
+    programme-service: {count: {min: 0, max: 1}, registers: true}
+    fabric-service:    {count: {min: 0, max: 1}, registers: true}
+    gateway:           {count: {min: 0, max: 1}, registers: true}
+    agent:             {count: {min: 0}, registers: true, named: true}
+    domain:            {count: {min: 0}, registers: true, named: true}
+  selectors:
+    any: {text: every component kind}
+    registers: {text: every kind whose registers is true, where: {registers: true}}
+    singleton: {text: every kind whose count has max 1, where: {count.max: 1}}
+```
+
+| Key | Means |
+|---|---|
+| `instances.max` | How many processes may answer for one component. `1`: the CLI's `server start` refuses a second instance and `replicas` above 1 ([`architecture/cli`](../architecture/cli.md#weblisk-server-start), `start-one-instance`), so every requirement written `IF more than one instance answers for the hub` is not applicable |
+| `count` | How many components of the kind one tenant may run. `max` absent means no bound. A tenant's declaration that exceeds a `max`, or lacks a kind whose `min` is 1, is refused before anything is built or started |
+| `registers` | Whether a component of the kind registers with the orchestrator, and so is listed in its directory and holds a lease. The orchestrator holds the directory, and the model service is in the orchestrator's process |
+| `runs_with` | The kind in whose process this one runs. It has no entry, no port and no registration of its own, and its package is a library the host kind's entry imports ([`languages/go`](../languages/go.md#the-package-is-named-after-the-blueprint-that-specifies-it), `when: component`) |
+| `named` | A component of the kind is named by its own blueprint's name (`agents/<name>`, a programme's `domains/<id>`), and its code lives under that name. An unnamed kind is named by the kind itself |
+| `selectors` | Names a check's `applies_to` may use besides a kind ([`schemas/blocks`](blocks.md#checks)). `where` gives the facet each kind must hold, by dotted key |
+
+A singleton's library directory belongs to its one component, which is what
+the CLI's list of singletons was standing in for. A kind added to the services
+table is added here in the same change, with its count.
+
 ## Platform, provider, integration: three things that are not each other
 
 One word was doing two jobs, which is the ambiguity this schema exists to
@@ -664,4 +714,5 @@ not, the answer is a new relation in the table above, not a spelling.
 - [ ] `control` declares only `is-criterion`, and nothing versions a control as a kind; the one digest of a control is the per-control digest of its text that a `generated_from` claim cites ([Declared kinds](#declared-kinds), [What the table says, in words](#what-the-table-says-in-words)) <!-- wl:check control-declares-criterion-nothing-versions -->
 - [ ] No implementation switches on a kind name; capability is the only question asked ([Rules](#rules) 1) <!-- wl:check no-implementation-switches-kind-name-capability -->
 - [ ] A relation asserted between kinds this file does not pair is reported as a producer fault ([Relations](#relations)) <!-- wl:check relation-asserted-between-kinds-file -->
+- [ ] Every service the services table of `schemas/programme` names is a component kind here, with a count, and every kind here that is not `agent`, `domain` or `gateway` is a row of that table ([Component kinds](#component-kinds)) <!-- wl:check service-services-table-schemas-programme-names -->
 - [ ] Two references to one artifact from different subsystems resolve to the same kind ([One implementation](#one-implementation), [Rules](#rules) 7) <!-- wl:check two-references-artifact-different-subsystems -->

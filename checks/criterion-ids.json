@@ -2807,7 +2807,8 @@
    "control-declares-criterion-nothing-versions",
    "no-implementation-switches-kind-name-capability",
    "relation-asserted-between-kinds-file",
-   "two-references-artifact-different-subsystems"
+   "two-references-artifact-different-subsystems",
+   "service-services-table-schemas-programme-names"
   ],
   "schemas/names.md": [
    "ref-vectors-ids-json-s-valid",
