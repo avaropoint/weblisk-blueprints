@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.2.0
+version: 5.2.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -897,7 +897,11 @@ The Primitive Mapping table above binds the protocol's primitives, and the
 ### Input Validation
 
 - `io.LimitReader` on all request body reads (see IO Safety above)
-- Validate JSON structure before processing — reject unknown fields
+- Validate JSON structure before processing. An unknown field is ignored,
+  never rejected, and an object that is signed or forwarded is kept as it
+  arrived, its unknown fields included ([`protocol/types`](../protocol/types.md#conventions),
+  [`protocol/spec`](../protocol/spec.md#signing-input)); no decoder is set to
+  refuse unknown fields
 - Enforce maximum sizes per endpoint type
 
 ### Cryptography

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: cloudflare
-version: 3.0.2
+version: 3.0.3
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: cloudflare
 tier: free
@@ -314,7 +314,7 @@ for detailed platform API usage.
 - The signature algorithm is the one `protocol/identity` names. WebCrypto has no
   implementation of it, so a pure-JavaScript one is vendored as first-party source —
   see the Primitive Mapping table, which owns the status of that slot
-- Export keys as raw ArrayBuffer, convert to hex for protocol
+- Export keys as raw ArrayBuffer, encode as base64url for protocol ([`protocol/types`](../protocol/types.md#conventions))
 - Zeroisation is partial here and the blueprint says so rather than claiming it: hold
   key material in `ArrayBuffer` or `Uint8Array` and overwrite after use, never in a
   string. A JavaScript runtime offers no guarantee beyond that, and swap and core dumps
@@ -711,7 +711,7 @@ describe("liveness probe", () => {
 
 ## Verification Checklist
 
-- [ ] Signing uses the vendored first-party implementation, and while none is vendored and measured the slot is reported UNFILLED, never filled by a named package; keys exported as raw ArrayBuffer and hex-encoded for protocol ([Primitive Mapping](#primitive-mapping), [The signature slot, and why it stays UNFILLED](#the-signature-slot-and-why-it-stays-unfilled), [Crypto](#crypto)) <!-- wl:check signing-uses-vendored-first-party-implementation -->
+- [ ] Signing uses the vendored first-party implementation, and while none is vendored and measured the slot is reported UNFILLED, never filled by a named package; keys exported as raw ArrayBuffer and base64url-encoded for protocol ([Primitive Mapping](#primitive-mapping), [The signature slot, and why it stays UNFILLED](#the-signature-slot-and-why-it-stays-unfilled), [Crypto](#crypto)) <!-- wl:check signing-uses-vendored-first-party-implementation -->
 - [ ] Every routed path is an exported `PATH_<OPERATION>` constant in one module; no path literal appears in a comparison, a client, or a test ([The HTTP Surface](#the-http-surface)) <!-- wl:check routed-path-exported-path-operation-constant -->
 - [ ] Routes are declared as one `{ method, path, handler }` table and dispatched by a single function; `fetch` delegates rather than deciding ([The HTTP Surface](#the-http-surface)) <!-- wl:check routes-declared-method-path-handler-table -->
 - [ ] A known path with a wrong method answers 405 with an `Allow` header, and an unmatched path answers 404, both as a structured `ErrorResponse` ([The HTTP Surface](#the-http-surface), [`schemas/platform`](../schemas/platform.md#the-rules-every-platforms-http-surface-obeys)) <!-- wl:check known-path-wrong-method-answers-405 -->

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.2.0
+version: 4.2.1
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -172,7 +172,7 @@ namespace ownership. No auth required.
   "version": "1.0.0",
   "description": "Scans HTML files and analyzes SEO metadata",
   "url": "http://localhost:9710",
-  "public_key": "<64-char hex ML-DSA-65 public key>",
+  "public_key": "<base64url ML-DSA-65 public key>",
   "capabilities": [
     {"name": "file:read", "resources": ["app/**/*.html"]},
     {"name": "llm:chat", "resources": []},
@@ -227,7 +227,7 @@ is returned.
     "services": {}
   },
   "token": "<WLT auth token>",
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
@@ -244,7 +244,7 @@ is returned.
   "observations": [...],
   "recommendations": [...],
   "metrics": {"files_scanned": 5, "suggestions": 3},
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:01.000Z"
 }
 ```
@@ -297,7 +297,7 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "action": "check-overlap",
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:00.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7"
