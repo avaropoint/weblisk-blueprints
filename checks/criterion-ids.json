@@ -1292,7 +1292,11 @@
    "apply-refuses-plan-corpus-revision-lock",
    "component-blueprint-declares-kind-generated",
    "creating-tenant-generating-component-adding",
-   "conformance-performs-declared-operation-verb"
+   "conformance-performs-declared-operation-verb",
+   "criterions-class-first-matching-rule-six",
+   "build-reads-class-checks-acceptance-classes",
+   "tree-not-build-start-against-conformance",
+   "tree-accepted-gaps-class-b-e"
   ],
   "architecture/hub.md": [
    "listings-signed-provider-hubs-ml-dsa",
