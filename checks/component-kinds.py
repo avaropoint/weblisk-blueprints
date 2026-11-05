@@ -2,7 +2,7 @@
 """Component kinds and their cardinality are declared once, and agree with the
 services table.
 
-    checks/component-kinds.py [--kinds FILE]
+    checks/component-kinds.py [--kinds FILE] [--config FILE]
 
 Reads the `component_kinds` block of schemas/kinds.md ("Component kinds") and
 the services table of schemas/programme.md ("The services, in the order they
@@ -10,8 +10,10 @@ are built"). Holds that: every service the table names is a kind, and every
 kind but agent, domain and gateway is a service the table names; every kind
 has a count whose min is 0 or 1 and whose max, where given, is at least its
 min; a runs_with names a kind that is itself declared and does not register;
-`instances.max` is a positive integer; and every selector's `where` names a
-facet some kind holds.
+`instances.max` is a positive integer; every selector's `where` names a
+facet some kind holds; and schemas/config's `ports` block gives a port or a
+range to every kind but one that runs with another, and to nothing that is
+neither a kind nor `federation`.
 """
 import os, re, sys
 
@@ -21,7 +23,6 @@ sys.path.insert(0, HERE)
 from families import yaml_blocks, text_of  # noqa: E402
 
 CORPUS = os.path.normpath(os.path.join(HERE, ".."))
-UNORDERED = {"agent", "domain", "gateway"}
 
 
 def services():
@@ -49,8 +50,12 @@ def main(argv):
     table = services()
     for s in sorted(table - set(kinds)):
         faults.append(f"service {s!r} is in the services table and is no component kind")
-    for k in sorted(set(kinds) - table - UNORDERED):
-        faults.append(f"component kind {k!r} is no service of the services table")
+    for k in sorted(set(kinds) - table):
+        if not isinstance((kinds[k] or {}).get("blueprint"), str):
+            faults.append(f"component kind {k!r} is no service of the services table and names no blueprint")
+    for k in sorted(set(kinds) & table):
+        if "blueprint" in (kinds[k] or {}):
+            faults.append(f"component kind {k!r} names a blueprint, and the services table already names its own")
     for k, v in sorted(kinds.items()):
         c = (v or {}).get("count")
         if not isinstance(c, dict) or c.get("min") not in (0, 1):
@@ -69,6 +74,22 @@ def main(argv):
         for key, want in ((sel or {}).get("where") or {}).items():
             if not any(facet(v, key) == want for v in kinds.values()):
                 faults.append(f"selector {name!r} selects on {key} = {want!r}, which no kind holds")
+    config = argv[argv.index("--config") + 1] if "--config" in argv else os.path.join(CORPUS, "schemas/config.md")
+    ports = yaml_blocks(config).get("ports")
+    if not isinstance(ports, list):
+        faults.append("schemas/config.md has no ports block")
+        ports = []
+    listed = set()
+    for row in ports:
+        who = (row or {}).get("for")
+        if who != "federation" and who not in kinds and who not in table:
+            faults.append(f"schemas/config's ports block gives a port to {who!r}, which is no component kind")
+        if not isinstance(row.get("port"), int) and not (isinstance(row.get("range"), list) and len(row["range"]) == 2):
+            faults.append(f"schemas/config's ports row for {who!r} gives neither a port nor a range")
+        listed.add(who)
+    for k, v in sorted(kinds.items()):
+        if k not in listed and not (v or {}).get("runs_with"):
+            faults.append(f"component kind {k!r} listens on no port schemas/config's ports block gives")
     if faults:
         print("\n".join(faults))
         sys.exit(1)

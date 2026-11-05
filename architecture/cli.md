@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.14.0
+version: 4.15.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1021,7 +1021,19 @@ A tenant's `.gitignore` also excludes the runtime state a scaffolded application
 never has: `.weblisk/bootstrap`, `.weblisk/data/` — which holds the gateway's
 sessions, per [`architecture/storage`](storage.md) — `.weblisk/run/`,
 `.weblisk/logs/` and `bin/`. It is written before generation, and a `.gitignore`
-already present is amended, never replaced.
+already present is amended, never replaced. What it holds is the entries of
+[`architecture/data-security`](data-security.md#required-gitignore-entries)'s
+`gitignore` block, then the entries of the block below, each once, in the order
+written; a tool reads both blocks and holds no entry of its own.
+
+```gitignore
+# A tenant's runtime state (weblisk tenant create)
+.weblisk/bootstrap
+.weblisk/data/
+.weblisk/run/
+.weblisk/logs/
+bin/
+```
 
 **Creating a tenant does not create a repository.** The ignore file is the
 control: it makes the next `git init` safe, and it governs its own directory

@@ -585,6 +585,17 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# The ports block of schemas/config gives every kind its port; a copy without
+# the fabric service's row must be reported with exactly that kind.
+grep -v '{for: fabric-service, ' schemas/config.md >"$tmp/config.md"
+expect 1 "component-kinds control: a config.md without fabric-service's port fails" python3 checks/component-kinds.py --config "$tmp/config.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "component kind 'fabric-service' listens on no port" "$tmp/out"; then
+	echo "ok   component-kinds control: exactly one finding, fabric-service's port"
+else
+	echo "FAIL component-kinds control: want exactly one finding, fabric-service's port"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 
 # Every declared check is data of a kind schemas/blocks declares; the kind
 # vectors each give exactly their fault. A copy of the orchestrator naming a
