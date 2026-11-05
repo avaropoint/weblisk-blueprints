@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 2.0.0
+version: 2.1.0
 kind: blueprint
 noun: blueprint
 match: [architecture/*.md]
@@ -72,6 +72,10 @@ sections:
     - {slot: architecture, heading: Architecture, required: false, use: explains}
     - {slot: responsibilities, heading: Responsibilities, required: false, use: explains}
     - {slot: endpoints, heading: Endpoints, required: false, use: exposes}
+    - {slot: registration, heading: Registration,
+       aliases: [Registration Flow (POST /v1/register), Registration Flow (from agent side),
+                 Registration and Standalone Operation, Registration and Dependency Verification],
+       required: false, use: instructs}
     - {slot: interface, heading: Interface, aliases: [Interfaces],
        required: {when: {block_present: serves}},
        blocks: [{type: serves, count: {max: 1}}, {type: events, count: {max: 1}}],
@@ -133,6 +137,13 @@ declaration block holds (the one in `architecture/orchestrator.md` also carries
 checks and other machine-read content) is counted as `depends` while the file
 is in the older form, and the migration moves each part to the slot whose block
 it is.
+
+**Registration is a slot.** A component's registration section is where it
+joins the tenant, and a requirement written there is a contract requirement:
+[`architecture/generation`](../architecture/generation.md#how-a-criterion-gets-its-class)
+gives it class J by the slot alone, with no mark on the item. Six blueprints
+wrote the section under four headings, which are its aliases, so the slot
+classes them as they are written.
 
 **The header is grammar 1's, widened on purpose.** Beyond identity and
 dependencies it keeps `tier`, `author`, `status`, `superseded_by` and
