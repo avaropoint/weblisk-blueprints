@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 5.0.1
+version: 5.1.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -165,6 +165,7 @@ layout:
     contract: []
   rules:
     - id: rust-declared-names-in-contract
+      plan_rule: 8
       text: >-
         Every type a yaml:types block declares, in any blueprint the tenant's
         components are built from, is a struct or an enum in the crate
@@ -179,6 +180,7 @@ layout:
         serves the endpoint, and so are the component's one route table and the
         one function that builds its router from it.
     - id: rust-requirement-in-its-blueprints-crate
+      plan_rule: 7
       text: >-
         Code that answers a requirement of a library blueprint is written in
         that blueprint's crate, and a component calls it there; code that
@@ -187,11 +189,13 @@ layout:
         holds what answers its own blueprint's requirements and the handlers
         it serves, and nothing a library's requirement asks for.
     - id: rust-client-in-caller
+      plan_rule: 10
       text: >-
         Code that calls another component's endpoint is written in the calling
         crate, against the contract's path constant and types. No crate depends
         on the crate of a component other than its own.
     - id: rust-entry-holds-main
+      plan_rule: 7
       text: >-
         bins/<service>/src/main.rs holds main and the parsing of its
         arguments; it constructs the component from the component's crate and
@@ -202,11 +206,13 @@ layout:
         A crate exists only where the plan writes code into it. A blueprint
         whose requirements no code answers has no crate.
     - id: rust-one-definition
+      plan_rule: 9
       text: >-
         A name the contract holds is declared in crates/protocol alone, and a
         public name of a library crate in that crate alone; neither is
         declared again in any other crate, under its own name or a copy's.
     - id: rust-imports-acyclic
+      plan_rule: 10
       text: >-
         A library crate depends on crates/protocol and the crates of the
         library blueprints its own blueprint requires, and none other. Where

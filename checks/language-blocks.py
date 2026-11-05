@@ -11,7 +11,8 @@ block", "The toolchain block", "The diagnostics block", "The tests block"):
 
 - each of layout, module, toolchain, diagnostics and tests is declared;
 - the layout names its manifest, contract, packages and entry, and its rules
-  have unique ids;
+  have unique ids; a rule's plan_rule is 7, 8, 9 or 10, and each of the four
+  is named by some rule;
 - every toolchain command is a list of strings, and a placeholder in one is
   {service}, {package}, {module_root}, {criterion} or {test};
 - every regular expression compiles; a text diagnostics line names the groups
@@ -125,6 +126,11 @@ def judge(name, path, vectors):
     ids = [r.get("id") for r in lay.get("rules") or []]
     if len(ids) != len(set(ids)):
         faults.append(f"{name}: layout rule ids repeat")
+    named = {r.get("plan_rule") for r in lay.get("rules") or [] if "plan_rule" in r}
+    if not named <= {7, 8, 9, 10}:
+        faults.append(f"{name}: a layout rule's plan_rule is not 7, 8, 9 or 10")
+    for n in sorted({7, 8, 9, 10} - named):
+        faults.append(f"{name}: no layout rule is enforced by plan rule {n}")
     if b["module"].get("manifest") != lay.get("manifest"):
         faults.append(f"{name}: module manifest is not the layout's")
     tc = b["toolchain"]
