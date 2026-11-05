@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.4.3
+version: 2.5.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
 platform: any
 tier: free
@@ -185,9 +185,6 @@ requires:
     version: ">=4.2.0 <5.0.0"
     bindings:
       behaviors:
-        # What a pass this service accepts rests on. Relied on, never called
-        - name: token-exchange
-          usage: Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
         # What a work pass this service accepts, or its actors carry, rests on
         - name: work-exchange
           usage: Relied on, never called by this service for itself, except as an actor of a does item it runs. Every work pass it accepts was minted under a live work authorisation a person made for one installed item
@@ -200,9 +197,13 @@ requires:
     # 5.4.0 is where the gateway refuses a list at the uniform address that
     # omits a filter its required_filters names; every list this service
     # declares names organisation there
-    version: ">=5.4.0 <6.0.0"
+    # 5.9.0 is where it declares the token exchange
+    version: ">=5.9.0 <6.0.0"
     bindings:
       behaviors:
+        # What a pass this service accepts rests on. Relied on, never called
+        - name: token-exchange
+          usage: Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
         # The one door a person's request arrives through
         - name: admin-gateway-authorization
           usage: Relied on, never called here. A person's request reaches this service only on a route its manifest declares among pass_routes, on a pass naming every capability that route declares

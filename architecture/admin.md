@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.8.1
-requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
+version: 5.9.0
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
 -->
@@ -73,6 +73,10 @@ requires:
           methods: [POST]
         - path: /v1/services
           methods: [POST]
+        # Read on its own token at its anchor (protocol/spec, GET
+        # /v1/services), never served here
+        - path: /v1/services
+          methods: [GET]
         - path: /v1/execute
           methods: [POST]
         - path: /v1/message
@@ -172,67 +176,6 @@ requires:
           fields_used: [name, public_key, identity_id, retired_keys, role, status]
         - name: RetiredKey
           fields_used: [public_key, retired_at]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    # 3.0.0 is where the registry holds each agent's lease; the overview's
-    # lease-state counts and the agents' lease_state, lease and
-    # last_renewal are read from it, and a 2.x orchestrator holds none.
-    # 4.2.0 is where it serves its part of the resource API and the work
-    # authorisations, 4.3.0 where it records organisations, projects
-    # and grants, and 4.4.0 where it resolves one identity id to an
-    # operator's name for a role carrying content:read
-    version: ">=4.4.0 <5.0.0"
-    bindings:
-      behaviors:
-        # Called by the admin gateway for each request it carries to a
-        # provider other than the orchestrator. See admin-gateway-authorization
-        - name: token-exchange
-          usage: Relied on, never served here. The admin gateway sends a request to a provider other than the orchestrator only on the pass it answers
-      endpoints:
-        # The orchestrator-provided groups only: every route under
-        # /v1/admin/ that architecture/orchestrator's Administrative
-        # endpoints lists but POST /v1/admin/model/audit, its model
-        # gateway's alone, which the admin gateway forwards on the person's
-        # own token (admin-gateway-authorization). Every other group is bound
-        # from its own provider: the decision inbox from each owner's
-        # InboxRoute, workflow runs from architecture/execution; programme
-        # objectives and federation specify no routes yet — see the gap under
-        # "The admin API is an aggregate".
-        - path: /v1/admin/operators
-        - path: /v1/admin/credentials
-        - path: /v1/admin/hub/proof
-          methods: [POST]
-        - path: /v1/admin/agents
-        - path: /v1/admin/audit
-          methods: [GET]
-        - path: /v1/admin/model
-        - path: /v1/admin/complete
-          methods: [POST]
-        - path: /v1/admin/overview
-          methods: [GET]
-        - path: /v1/admin/work-authorisations
-        # Its part of the resource API (Resources: one API for every kind):
-        # its catalogue entries, the lease reads and the feeds of its kinds
-        - path: /v1/admin/resources
-          methods: [GET]
-        - path: /v1/admin/r/lease
-          methods: [GET]
-        - path: /v1/admin/r/organisation
-        - path: /v1/admin/r/project
-        - path: /v1/admin/r/grant
-        - path: /v1/admin/events
-          methods: [GET]
-        # Read by GET alone, at the gateway's anchor. POST /v1/services is an
-        # endpoint each agent serves, bound above from protocol/spec
-        - path: /v1/services
-          methods: [GET]
-        - path: /v1/token/exchange
-          methods: [POST]
-          request_type: TokenExchangeRequest
-          response_fields: [issued, code, pass, capabilities]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -1028,8 +971,10 @@ names.
 The operator flows are declared as behaviours, because what an implementation
 must get right about them is a **sequence and a signing input**, not a field
 list. A component that serves the operator surface binds these — see
-`architecture/orchestrator`, which serves them and until now bound nothing from
-this blueprint at all.
+`architecture/orchestrator`, which serves them. `token-exchange` is the
+operator surface too: the gateway calls it for every request it carries to a
+provider other than the orchestrator, so it is declared here with the rest,
+and the orchestrator binds it and serves its route, `POST /v1/token/exchange`.
 
 ```yaml
 contracts:
@@ -1251,8 +1196,8 @@ contracts:
         # <!-- wl:id role-now-narrowed-by-cap -->
         - The request MUST be authorised against the capabilities the operator's role carries now, and never beyond the token's cap - what it may use is the capabilities of both. A role changed since the token was issued takes effect on the next request
         # <!-- wl:id route-capability-forbidden -->
-        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token whose cap leaves out a route's capability reaches no such route, an admin's included, whichever component provides it - the orchestrator refuses it on its own routes, and for any other provider the exchange mints a pass naming only what the token may use, which that provider refuses with FORBIDDEN, or mints none and answers FORBIDDEN where nothing the request needs is left (admin-gateway-authorization; architecture/orchestrator, token-exchange)
-        - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request, not when the token expires - at the orchestrator when that request arrives, and for every other component at the exchange, which mints no pass on it (architecture/orchestrator, token-exchange). A pass minted before lives at most 30 seconds (protocol/identity, The pass)
+        - An administrative route MUST refuse with FORBIDDEN a request that cannot use the capability its minimum stands for (Auth Middleware), whatever role the operator holds. A route only a named operator may use, alone or beside an admin, needs admin:read from that operator. So a token whose cap leaves out a route's capability reaches no such route, an admin's included, whichever component provides it - the orchestrator refuses it on its own routes, and for any other provider the exchange mints a pass naming only what the token may use, which that provider refuses with FORBIDDEN, or mints none and answers FORBIDDEN where nothing the request needs is left (admin-gateway-authorization; token-exchange)
+        - Removing an operator, revoking a credential or rotating an operator's identity key therefore ends every token resting on it at its next request, not when the token expires - at the orchestrator when that request arrives, and for every other component at the exchange, which mints no pass on it (token-exchange). A pass minted before lives at most 30 seconds (protocol/identity, The pass)
         # <!-- wl:id gateway-no-stand-in -->
         - An admin gateway in front of the orchestrator MUST NOT stand in for this check. The orchestrator holds the records, and a signature check alone proves only that a token was once issued
 
@@ -1266,7 +1211,7 @@ contracts:
         # <!-- wl:id gateway-forwards-orchestrator-groups -->
         - A request for a group the orchestrator provides MUST be forwarded to the orchestrator with the operator token as it arrived, in the Authorization header, and is judged by its Auth Middleware when it arrives. So is a request to a route that issues tokens, which carries none, a request for a hub proof (hub-proof), which carries none either, and one carrying an attestation token to the attestation route. The orchestrator's routes are those architecture/orchestrator's Administrative endpoints lists, every one under /v1/admin/ and none outside it, which this document's dependency contract binds - Operator management, Agent management, Audit, the Model routes, its overview and its part of the resource API, its catalogue entries, the lease reads and the feeds of the kinds it owns (The admin API is an aggregate; Resources: one API for every kind) - but POST /v1/admin/model/audit. The orchestrator serves that route for the model gateway inside its own process alone (architecture/orchestrator, Recording what the model routes do), so the gateway MUST answer a request for it 404 NOT_FOUND, forwarding nothing and exchanging nothing, whatever the service directory declares, as the model gateway answers one that reaches it from outside the process. The gateway forwards no other path to the orchestrator
         # <!-- wl:id gateway-carries-on-pass -->
-        - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. The gateway learns such a route, which component provides it and what it requires from the service directory alone, never from a blueprint it was not generated from - it is a route that is not one of the orchestrator's and that exactly one directory entry declares among its pass_routes (protocol/types, PassRoute), matched by method and by path. For each such request the gateway MUST have the orchestrator exchange the token presented with it (architecture/orchestrator, token-exchange), naming as audience the identity id of that entry's component, the fingerprint of the public key the entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived, at that entry's url and nowhere else
+        - A request for a route any other component provides - an administrative group's (The admin API is an aggregate), or a route of a service whose blueprint admits a person's request on a pass, as architecture/content's and architecture/fabric's do - MUST be sent on a pass, and never on the operator token. The gateway learns such a route, which component provides it and what it requires from the service directory alone, never from a blueprint it was not generated from - it is a route that is not one of the orchestrator's and that exactly one directory entry declares among its pass_routes (protocol/types, PassRoute), matched by method and by path. For each such request the gateway MUST have the orchestrator exchange the token presented with it (token-exchange), naming as audience the identity id of that entry's component, the fingerprint of the public key the entry carries, and as scope what the next rule names, and MUST send the request on the pass it is answered with, in the Authorization header, with its body as it arrived, at that entry's url and nowhere else
         # <!-- wl:id gateway-pass-address-bound -->
         - The gateway MUST send a pass only where architecture/orchestrator's Presenting a credential to a component allows one - at an address on the orchestrator's host, or at one whose address_provenance is declared or verified. A request whose provider's directory address is on another host and only self-asserted MUST be answered ADMIN_GROUP_UNAVAILABLE, naming that address in the ErrorResponse's detail.address, and nothing is exchanged or sent
         # <!-- wl:id gateway-exchange-scope -->
@@ -1493,6 +1438,29 @@ contracts:
         - The last active admin MUST NOT be removable or demotable
         # <!-- wl:id role-change-audited -->
         - A role change MUST be audited with the previous and new role
+
+    - name: token-exchange
+      description: Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component
+      required: true
+      rules:
+        # <!-- wl:id exchange-route-shape -->
+        - The route POST /v1/token/exchange, which architecture/orchestrator serves, MUST take a TokenExchangeRequest and answer every judgement of its subject_token with 200 and a TokenExchangeResponse (protocol/types)
+        # <!-- wl:id exchange-caller-from-header -->
+        - It MUST read the caller's token from the Authorization header alone (architecture/orchestrator, Auth Middleware step 2), so nothing in the body, the token it exchanges included, authenticates the request. A request with no Authorization header MUST be refused with 401, as on any other route
+        # <!-- wl:id exchange-declared-gateway-only -->
+        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types) and whose identity_id is orchestrator.admin_gateway_identity (schemas/config). Every other token the orchestrator's Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH, and an operator token and a channel token at step 6, with FORBIDDEN
+        # <!-- wl:id exchange-body-refusals -->
+        - A body with no subject_token or no audience, or whose scope names no capability or a name protocol/types does not list, MUST be refused with 400 INVALID_REQUEST. An audience that is not the identity id of a component registered here now, other than the caller, MUST be refused with 404 NOT_FOUND. Neither mints anything
+        # <!-- wl:id exchange-judges-subject -->
+        - It MUST judge subject_token as the orchestrator's Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use - and answer issued false with the code it would refuse that token with on its own routes. A pass, a registration token, a channel token and an attestation token are each refused with CREDENTIAL_REQUIRED, so a pass is never exchanged again. A token it cannot judge MUST NOT be exchanged
+        # <!-- wl:id exchange-pass-cap -->
+        - The pass's cap MUST be the intersection of scope and what the person may use now - what the operator's role carries now, never beyond the token's cap, read as the orchestrator's Auth Middleware step 8 reads a role and a cap - keeping each name scope gives only where the person may use it, and admin:* only where they may use every capability of the admin family by name. Where the intersection is empty it MUST mint nothing and answer issued false with FORBIDDEN
+        # <!-- wl:id exchange-pass-claims -->
+        - The pass MUST carry what protocol/identity's The pass gives it, with aud the audience, act the caller and cap that intersection, and the answer MUST carry it with expires_at and capabilities
+        # <!-- wl:id exchange-mints-only-pass -->
+        - It MUST mint nothing but a pass, and MUST NOT keep, cache or present subject_token anywhere
+        # <!-- wl:id exchange-audited -->
+        - Each exchange MUST be audited, refused or not, with the identity id of the operator subject_token names where it names one, the caller's identity id, the audience and the scope
 ```
 
 ---
@@ -3782,7 +3750,7 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content and completions through the model route, each to the tenant's admin gateway on that person's token; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-no-agent-token covers console-no-agent-token -->
 - [ ] A console presents a person's token to the tenant's admin gateway alone. The content service receives a console's read on a pass whose `aud` is the content service and whose `cap` names only `content:read` or `content:describe`, never on the person's token, and never carrying an `admin:` capability ([Contracts](#contracts), `console-credential-use`, `admin-gateway-authorization`) <!-- wl:check console-token-to-gateway covers console-token-at-gateway -->
 - [ ] A token request carrying `cap` receives a token carrying exactly the named capabilities its operator's role carries; a name the role does not carry is left out, and a request with no `cap` receives the role's full set ([Contracts](#contracts), `operator-token-issuance`) <!-- wl:check cap-narrows-token covers role-from-record -->
-- [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and the token exchange answers it `issued: false` with `FORBIDDEN` for any `scope`, never minting a pass that carries the role's full set ([Contracts](#contracts), `operator-token-issuance`, `token-status-on-use`; [`architecture/orchestrator`](orchestrator.md#contracts), `token-exchange`) <!-- wl:check empty-cap-reaches-nothing covers operator-token-cap-always route-capability-forbidden -->
+- [ ] A token request whose `cap` names nothing the operator's role carries, such as a `viewer`'s or an `auditor`'s with `cap` `[fabric:attest]`, receives a token whose `cap` is the empty list. That token, and an operator token that carries no `cap` claim at all, is refused with `FORBIDDEN` at every route that requires a capability, and the token exchange answers it `issued: false` with `FORBIDDEN` for any `scope`, never minting a pass that carries the role's full set ([Contracts](#contracts), `operator-token-issuance`, `token-status-on-use`; `token-exchange`) <!-- wl:check empty-cap-reaches-nothing covers operator-token-cap-always route-capability-forbidden -->
 - [ ] An operator token carries `identity_id`, the `identity_id` of the credential its `cid` names ([Contracts](#contracts), `operator-token-issuance`) <!-- wl:check token-identity-id covers operator-token-claims -->
 - [ ] A `viewer` token carries `content:read` and `content:describe` and no other `content:` capability, and an `operator` token carries `content:write` and `content:decide` ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check viewer-operator-content covers capability-roles-table -->
 - [ ] Every capability this document names for a person's token is carried by at least one role in the Operator Roles table, and no role carries `token:exchange`, so no operator token's `cap` reaches it whatever it names ([Operator Roles](#operator-roles); [Contracts](#contracts), `operator-roles`) <!-- wl:check every-capability-in-a-role covers every-capability-held -->
@@ -3899,3 +3867,8 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] Given a certificate file, or a directory holding it, with a group or other write bit set, `weblisk tenant accept` and `weblisk server provision` refuse, naming the file, and read no pin from it; the certificate the CLI makes is mode 0644 in a `.weblisk/tls/` of mode 0755 ([Certificate](#certificate)) <!-- wl:check pin-source-checked covers pin-source-guarded -->
 - [ ] Started with `WL_DEV=1` from its tree alone, with no orchestrator and no certificate files, the admin gateway starts, answers `/readyz` not ready, binds its admin listener to an unused loopback port over TLS, prints `[dev] admin listener https://127.0.0.1:<port> tls_pin sha256:<hex>` before serving, the pin matching the certificate it serves, and writes no key or certificate file ([A start, and a build's own run](#a-start-and-a-builds-own-run)) <!-- wl:check dev-run-listener covers dev-run-admin-listener -->
 - [ ] With the default certificate absent and `admin-gateway-tls.key` present, the command that stands the gateway up makes the certificate from that key and the pin is unchanged; with the key absent and the certificate present, it refuses, naming the key, and makes neither ([Certificate](#certificate)) <!-- wl:check lone-certificate covers lone-certificate-refused -->
+- [ ] The token exchange is declared here and served by `architecture/orchestrator`, which binds it: `POST /v1/token/exchange` takes a `TokenExchangeRequest`, authenticates its caller by the `Authorization` header and never by the body, and gives each judgement of `subject_token` a 200 with a `TokenExchangeResponse` ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-declared-served-by-orchestrator covers exchange-route-shape exchange-caller-from-header -->
+- [ ] Only the registration whose identity id is `orchestrator.admin_gateway_identity` and which declares `token:exchange` has a token exchanged; any other caller is refused with `FORBIDDEN`, learning nothing of `subject_token`, a body lacking `subject_token` or `audience` with 400 `INVALID_REQUEST`, and an audience registered nowhere with 404 `NOT_FOUND`, each minting nothing ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-admits-declared-gateway-alone covers exchange-declared-gateway-only exchange-body-refusals -->
+- [ ] `subject_token` is judged as an operator route judges a token, `token-status-on-use` included, and a pass, registration, channel or attestation token offered as it is answered `issued: false` with `CREDENTIAL_REQUIRED` ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-judges-subject-as-operator-route covers exchange-judges-subject -->
+- [ ] A pass the exchange mints carries a `cap` within both `scope` and what the person may use at that moment, `aud` the audience and `act` the gateway; where nothing is left it mints none and answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-pass-within-scope-and-person covers exchange-pass-cap exchange-pass-claims -->
+- [ ] The exchange mints a pass and nothing else, keeps and presents `subject_token` nowhere, and audits each exchange whether it is refused or not ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-mints-pass-audits-each covers exchange-mints-only-pass exchange-audited -->

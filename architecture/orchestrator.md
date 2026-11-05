@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.9.1
+version: 4.10.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -161,10 +161,13 @@ declaration:
     - blueprint: architecture/admin
       # 4.0.0 is where a destructive act needs a step-up, never a second
       # person; 5.5.0 is where every 429 carries Retry-After
-      # (operator-rate-budgets)
-      version: ">=5.5.0 <6.0.0"
+      # (operator-rate-budgets); 5.9.0 is where it declares the token
+      # exchange, which this orchestrator serves
+      version: ">=5.9.0 <6.0.0"
       bindings:
         behaviors:
+          # Served here, at POST /v1/token/exchange (Token Exchange)
+          - name: token-exchange
           - name: operator-registration
           - name: registration-signing-input
           - name: first-operator-claim
@@ -181,6 +184,36 @@ declaration:
           - name: operator-rate-budgets
             usage: Its rate-limited-retry-after rule, on the auth routes' 429. The budgets themselves are the admin gateway's
           - name: operator-roles
+        # The operator surface's routes this orchestrator serves (Administrative
+        # endpoints): admin declares them under its Admin Endpoints, and the
+        # token exchange under token-exchange
+        endpoints:
+          - path: /v1/admin/operators
+          - path: /v1/admin/credentials
+          - path: /v1/admin/hub/proof
+            methods: [POST]
+          - path: /v1/admin/agents
+          - path: /v1/admin/audit
+            methods: [GET]
+          - path: /v1/admin/model
+          - path: /v1/admin/complete
+            methods: [POST]
+          - path: /v1/admin/overview
+            methods: [GET]
+          - path: /v1/admin/work-authorisations
+          - path: /v1/admin/resources
+            methods: [GET]
+          - path: /v1/admin/r/lease
+            methods: [GET]
+          - path: /v1/admin/r/organisation
+          - path: /v1/admin/r/project
+          - path: /v1/admin/r/grant
+          - path: /v1/admin/events
+            methods: [GET]
+          - path: /v1/token/exchange
+            methods: [POST]
+            request_type: TokenExchangeRequest
+            response_fields: [issued, code, pass, expires_at, capabilities]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -2354,10 +2387,13 @@ not permit.
 
 ## Contracts
 
-What the admin gateway may rely on when it has this orchestrator exchange a
-person's operator token for a pass. A blueprint whose component calls the
-exchange binds this behaviour, by name, from its dependency on this blueprint
-([`schemas/common`](../schemas/common.md#binding-types)). The prose is under
+What an actor may rely on when it has this orchestrator mint a work pass, and
+what a person's work authorisation is. A blueprint whose component calls the
+work exchange binds these behaviours, by name, from its dependency on this
+blueprint ([`schemas/common`](../schemas/common.md#binding-types)). The token
+exchange is the operator surface's, so
+[`architecture/admin`](admin.md#contracts) declares it as `token-exchange` and
+this orchestrator binds it and serves its route; the prose is under
 [Token Exchange](#token-exchange-post-v1tokenexchange), and it says why.
 
 ```yaml
@@ -2386,20 +2422,6 @@ contracts:
         - OperatorDelete MUST revoke no work authorisation, and MUST name in its audit entry each live one the removed operator made or last renewed
         - A verified POST /v1/rotate-key MUST replace the rotating component's identity id with its new one in every authorisation that names it as owner or actor, auditing each as work_authorisation_rekey
         - A registration token, a pass and a work pass MUST NOT make, renew or widen an authorisation
-    - name: token-exchange
-      description: Exchange the operator token a person has just presented to the admin gateway for a pass addressed to one component
-      required: true
-      rules:
-        - The route POST /v1/token/exchange MUST take a TokenExchangeRequest and answer every judgement of its subject_token with 200 and a TokenExchangeResponse (protocol/types)
-        - It MUST read the caller's token from the Authorization header alone (Auth Middleware step 2), so nothing in the body, the token it exchanges included, authenticates the request. A request with no Authorization header MUST be refused with 401, as on any other route
-        # <!-- wl:id exchange-declared-gateway-only -->
-        - It MUST admit only a registration token, one with no type and no cid, whose sub is a component registered here now, whose identity_id is that registration's (protocol/identity), and whose registration declares token:exchange (protocol/types) and whose identity_id is orchestrator.admin_gateway_identity (schemas/config). Every other token Auth Middleware lets through MUST be refused with FORBIDDEN, disclosing nothing about subject_token - a registration token whose registration does not declare token:exchange, and one whose component has deregistered or whose identity_id is no longer its registration's, as after POST /v1/rotate-key (protocol/spec). An attestation token and a pass are refused before this, at Auth Middleware step 5, a pass with PASS_AUDIENCE_MISMATCH, and an operator token and a channel token at step 6, with FORBIDDEN
-        - A body with no subject_token or no audience, or whose scope names no capability or a name protocol/types does not list, MUST be refused with 400 INVALID_REQUEST. An audience that is not the identity id of a component registered here now, other than the caller, MUST be refused with 404 NOT_FOUND. Neither mints anything
-        - It MUST judge subject_token as Auth Middleware judges a token on an operator route - its signature and expiry, that it is an operator token carrying cid, and token-status-on-use (architecture/admin) - and answer issued false with the code it would refuse that token with on its own routes. A pass, a registration token, a channel token and an attestation token are each refused with CREDENTIAL_REQUIRED, so a pass is never exchanged again. A token it cannot judge MUST NOT be exchanged
-        - The pass's cap MUST be the intersection of scope and what the person may use now - what the operator's role carries now, never beyond the token's cap, read as Auth Middleware step 8 reads a role and a cap - keeping each name scope gives only where the person may use it, and admin:* only where they may use every capability of the admin family by name. Where the intersection is empty it MUST mint nothing and answer issued false with FORBIDDEN
-        - The pass MUST carry what protocol/identity's The pass gives it, with aud the audience, act the caller and cap that intersection, and the answer MUST carry it with expires_at and capabilities
-        - It MUST mint nothing but a pass, and MUST NOT keep, cache or present subject_token anywhere
-        - Each exchange MUST be audited, refused or not, with the identity id of the operator subject_token names where it names one, the caller's identity id, the audience and the scope
 ```
 
 ---
@@ -2745,7 +2767,7 @@ Authorization: Bearer <the admin gateway's own registration token>
 200 { "issued": false, "code": "OPERATOR_REVOKED" }
 ```
 
-`token-exchange` in [Contracts](#contracts) is the rule. The body is a
+`token-exchange`, which [`architecture/admin`](admin.md#contracts) declares and this orchestrator binds, is the rule. The body is a
 `TokenExchangeRequest` and the answer a `TokenExchangeResponse`, both
 [`protocol/types`](../protocol/types.md#tokenexchangerequest)'s. The shape is
 OAuth 2.0 Token Exchange's ([RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)):
@@ -3609,17 +3631,17 @@ agents hold, which is theirs.
 - [ ] Either ceiling route answers a `?backend=` name the tenant's model configuration does not name, such as an api-ai endpoint's `providers:` key, with `internal` and no `address` where no current agreement lists it, and with the agreement's level where one does, and never with `NOT_FOUND` ([A model is a destination](#a-model-is-a-destination)) <!-- wl:check ceiling-route-answers-backend-name-tenants -->
 - [ ] `GET /v1/model/ceiling` answers a registered component's token with the `ProviderCeiling` `GET /v1/admin/model/ceiling` gives an operator for the same backend, `address` included where the backend has one, refuses an attestation token with `CREDENTIAL_REQUIRED`, and refuses an operator token, a channel token and the admin gateway's registration token with `FORBIDDEN` ([A model is a destination](#a-model-is-a-destination), [Auth Middleware](#auth-middleware) steps 5 and 6) <!-- wl:check get-v1-model-ceiling-answers-registered -->
 - [ ] Every platform-provided model route is authorised by the orchestrator's own judgement of the caller's token, and a `/v1/admin/*` one refuses an agent token with `CREDENTIAL_REQUIRED` ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) step 6) <!-- wl:check platform-provided-model-route-authorised -->
-- [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-reads-callers -->
+- [ ] `POST /v1/token/exchange` reads the caller's token from its `Authorization` header only: with no header it answers 401 whatever the body holds, and a body with no `subject_token` or no `audience` is refused with 400 `INVALID_REQUEST` ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-reads-callers -->
 - [ ] `POST /v1/token/exchange` answers `issued: false` with `OPERATOR_REVOKED` for a token minted before its operator was removed, with `CREDENTIAL_REVOKED` after its credential was revoked, and with `TOKEN_EXPIRED` past its `exp`, each as a 200 ([Token Exchange](#token-exchange-post-v1tokenexchange), [`TokenExchangeResponse`](../protocol/types.md#tokenexchangeresponse)), and mints no pass <!-- wl:check post-v1-token-exchange-answers-issued -->
-- [ ] `POST /v1/token/exchange` called with an operator token, a channel token, or the registration token of a component whose registration does not declare `token:exchange`, in its `Authorization` header, is refused with `FORBIDDEN`, with a pass with `PASS_AUDIENCE_MISMATCH` and a security event, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token` ([Contracts](#contracts), `token-exchange`, [Auth Middleware](#auth-middleware) steps 5 and 6) <!-- wl:check post-v1-token-exchange-called-operator -->
-- [ ] `POST /v1/register` refuses a manifest naming `token:exchange` with 403 `CAPABILITY_GATEWAY_ONLY`, recording nothing, where its key's fingerprint is not `orchestrator.admin_gateway_identity` or none is configured, and admits it under the declared key; `POST /v1/token/exchange` refuses with `FORBIDDEN` a registration token whose `identity_id` is not that fingerprint ([Registration Flow](#registration-flow-post-v1register) step 1, [Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-only-declared-gateway covers exchange-declared-gateway-only -->
-- [ ] `POST /v1/token/exchange` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-called-registration -->
-- [ ] `POST /v1/token/exchange` asked to exchange a pass, a registration token or a channel token answers `issued: false` with `CREDENTIAL_REQUIRED`, so a pass is never exchanged again ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-exchange -->
-- [ ] `POST /v1/token/exchange` with an `audience` that is not the identity id of a component registered here now, or that is the caller's own, is refused with 404 `NOT_FOUND`, and mints nothing ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-audience -->
-- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read]` on an admin's token answers with a pass whose `cap` is `[content:read]` alone, whose `aud` is the audience, whose `act` names the gateway, and whose `exp` is no more than 30 seconds after its `iat`; asked for `[content:decide]` on a `viewer`'s token, or on an admin's token minted with `cap` `[content:read]`, it answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`, [`protocol/identity`](../protocol/identity.md#the-pass)) <!-- wl:check post-v1-token-exchange-asked-scope -->
-- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-scope-content -->
-- [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [Contracts](#contracts), `token-exchange`) <!-- wl:check operator-token-cap-empty-list-viewer -->
-- [ ] Every exchange is audited, refused or not, with the identity id of the operator `subject_token` names where it names one, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-audited-refused-not-identity-id -->
+- [ ] `POST /v1/token/exchange` called with an operator token, a channel token, or the registration token of a component whose registration does not declare `token:exchange`, in its `Authorization` header, is refused with `FORBIDDEN`, with a pass with `PASS_AUDIENCE_MISMATCH` and a security event, and with an attestation token with `CREDENTIAL_REQUIRED`, and discloses nothing about `subject_token` ([`architecture/admin`](admin.md#contracts), `token-exchange`, [Auth Middleware](#auth-middleware) steps 5 and 6) <!-- wl:check post-v1-token-exchange-called-operator -->
+- [ ] `POST /v1/register` refuses a manifest naming `token:exchange` with 403 `CAPABILITY_GATEWAY_ONLY`, recording nothing, where its key's fingerprint is not `orchestrator.admin_gateway_identity` or none is configured, and admits it under the declared key; `POST /v1/token/exchange` refuses with `FORBIDDEN` a registration token whose `identity_id` is not that fingerprint ([Registration Flow](#registration-flow-post-v1register) step 1, [`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check exchange-only-declared-gateway -->
+- [ ] `POST /v1/token/exchange` called with the registration token of a component that has since deregistered, or whose identity id `POST /v1/rotate-key` has since changed, is refused with `FORBIDDEN` ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-called-registration -->
+- [ ] `POST /v1/token/exchange` asked to exchange a pass, a registration token or a channel token answers `issued: false` with `CREDENTIAL_REQUIRED`, so a pass is never exchanged again ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-exchange -->
+- [ ] `POST /v1/token/exchange` with an `audience` that is not the identity id of a component registered here now, or that is the caller's own, is refused with 404 `NOT_FOUND`, and mints nothing ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-audience -->
+- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read]` on an admin's token answers with a pass whose `cap` is `[content:read]` alone, whose `aud` is the audience, whose `act` names the gateway, and whose `exp` is no more than 30 seconds after its `iat`; asked for `[content:decide]` on a `viewer`'s token, or on an admin's token minted with `cap` `[content:read]`, it answers `issued: false` with `FORBIDDEN` ([`architecture/admin`](admin.md#contracts), `token-exchange`, [`protocol/identity`](../protocol/identity.md#the-pass)) <!-- wl:check post-v1-token-exchange-asked-scope -->
+- [ ] `POST /v1/token/exchange` asked for `scope` `[content:read, content:decide]` on a `viewer`'s token answers with a pass whose `cap` is `[content:read]` alone, and asked for `[admin:*]` on an `operator`'s token, whose role carries three of the four `admin:` capabilities, answers `issued: false` with `FORBIDDEN` ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check post-v1-token-exchange-asked-scope-content -->
+- [ ] An operator token whose `cap` is the empty list, as a `viewer` gets asking for `cap` `[fabric:attest]`, or that carries no `cap` claim, is refused with `FORBIDDEN` at every `/v1/admin/*` route Auth Middleware step 8 covers, and `POST /v1/token/exchange` answers it `issued: false` with `FORBIDDEN` for any `scope` ([Auth Middleware](#auth-middleware) step 8, [`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check operator-token-cap-empty-list-viewer -->
+- [ ] Every exchange is audited, refused or not, with the identity id of the operator `subject_token` names where it names one, the gateway's identity id, the audience and the scope, and `subject_token` is never kept or presented anywhere ([`architecture/admin`](admin.md#contracts), `token-exchange`) <!-- wl:check exchange-audited-refused-not-identity-id -->
 - [ ] A pass or a work pass presented at any route of the orchestrator is refused with `PASS_AUDIENCE_MISMATCH` and logged as a security event ([Auth Middleware](#auth-middleware) step 5) <!-- wl:check pass-work-pass-presented-route-orchestrator -->
 - [ ] `POST /v1/token/work` admits only a live registration token whose registration declares `work:exchange`, answers `WORK_AUTHORISATION_UNKNOWN` alike for an unknown authorisation and one that does not name the caller, `WORK_AUTHORISATION_REVOKED`, `WORK_AUTHORISATION_EXPIRED` and `WORK_OWNER_UNREGISTERED` as their rule says, each in a 200 with `issued: false` ([Contracts](#contracts), `work-exchange`) <!-- wl:check post-v1-token-work-admits-live -->
 - [ ] A work pass's `cap` is the intersection of `scope`, the authorisation's `capabilities` and what the owner's, the actor's and the audience's manifests declare; an empty intersection mints nothing and answers `FORBIDDEN`, except for a work pass addressed to the authorisation's owner, which is minted with an empty `cap` ([Contracts](#contracts), `work-exchange`) <!-- wl:check work-passs-cap-intersection-scope-authorisations -->

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.6.0
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
+version: 5.7.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
 -->
@@ -214,8 +214,10 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <5.0.0"
+  - blueprint: architecture/admin
+    # 5.9.0 is where it declares the token exchange, which the orchestrator
+    # serves
+    version: ">=5.9.0 <6.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See Who may move an entry
@@ -3036,8 +3038,9 @@ operator token is refused before this, on every route, with `PASS_REQUIRED`
 authorises the act against the pass's `cap`, which the orchestrator computed
 at the exchange from what the operator's role carried then, never beyond the
 token's `cap`, and only for a token it judged live then
-([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
-`token-exchange`). This service asks nothing again. So a removed operator, a
+([`architecture/admin`](admin.md#contracts), `token-exchange`, which
+[`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange)
+serves). This service asks nothing again. So a removed operator, a
 revoked credential and a lowered role reach this service at the person's next
 request, and a pass minted before lives at most 30 seconds. The audit entry
 for a request a pass carried names the person as `actor`, by the pass's

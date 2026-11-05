@@ -441,7 +441,12 @@
    "gateway-port-internal",
    "pin-source-checked",
    "dev-run-listener",
-   "lone-certificate"
+   "lone-certificate",
+   "exchange-declared-served-by-orchestrator",
+   "exchange-admits-declared-gateway-alone",
+   "exchange-judges-subject-as-operator-route",
+   "exchange-pass-within-scope-and-person",
+   "exchange-mints-pass-audits-each"
   ],
   "architecture/agent.md": [
    "post-v1-describe-returns-agent-manifest",
