@@ -487,7 +487,7 @@ never `0`.
 | `reach` | operations and capabilities, or `component` |
 | `premise` | the premise and the test that settles it, where it is `IF` |
 | `reaches` | components in this tenant that bind what it governs |
-| `advice` | the model's reading, labelled as advice |
+| `advice` | the model's reading, labelled as advice; recorded as the criterion's `readings` ([`schemas/run-statement`](schemas/run-statement.md#criteria)), so a reading that says met is kept too |
 
 ### On the change
 

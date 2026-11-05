@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: incident-response
-version: 3.0.2
+version: 3.0.3
 port: 9760
 requires: [protocol/spec, protocol/types, protocol/identity, architecture/agent, agents/alerting]
 extends: [patterns/incident-response, patterns/observability, patterns/storage, patterns/state-machine, patterns/messaging, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/security, patterns/governance]
@@ -717,7 +717,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/incident-response/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/incident-response.key (protocol/identity, Key Files)
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 

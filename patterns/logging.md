@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: logging
-version: 2.0.2
-requires: [protocol/types, architecture/agent]
+version: 2.0.3
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -43,13 +43,6 @@ requires:
           fields_used: [trace_id, span_id, parent_span_id, name, kind, component, start, end, status, attributes]
         - name: AuditEntry
           fields_used: [id, timestamp, actor, action, target, detail, status]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -581,6 +581,23 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# The endpoint-auth vocabulary is closed: a copy of the orchestrator whose
+# Audit endpoint says auth "bearer" must be reported with exactly it.
+python3 - "$tmp/orch-auth.md" <<'PY'
+import sys
+t = open("architecture/orchestrator.md", encoding="utf-8").read()
+old = 'operation: Audit\n      auth: "token"'
+assert t.count(old) == 1
+open(sys.argv[1], "w", encoding="utf-8").write(t.replace(old, 'operation: Audit\n      auth: "bearer"'))
+PY
+expect 1 "check-kinds control: an endpoint auth outside endpoint-auth fails" python3 checks/check-kinds.py --file "$tmp/orch-auth.md" --as architecture/orchestrator.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "endpoint 'Audit' has auth 'bearer'" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the Audit endpoint's auth"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the Audit endpoint's auth"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 python3 - "$tmp/testing.md" <<'PY'
 import re, sys
 t = open("architecture/testing.md", encoding="utf-8").read()
@@ -592,6 +609,22 @@ if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "conformance test L4-04 has no ch
 	echo "ok   check-kinds control: exactly one finding, L4-04"
 else
 	echo "FAIL check-kinds control: want exactly one finding, L4-04"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+# Every token a step may name is declared in testing's test_tokens; a copy
+# without channel-other must be reported with exactly it.
+python3 - "$tmp/testing-tok.md" <<'PY'
+import re, sys
+t = open("architecture/testing.md", encoding="utf-8").read()
+m = re.search(r"^    channel-other:\n(?:      .*\n)+", t, re.M)
+open(sys.argv[1], "w", encoding="utf-8").write(t[: m.start()] + t[m.end() :])
+PY
+expect 1 "check-kinds control: test_tokens without channel-other fails" python3 checks/check-kinds.py --file "$tmp/testing-tok.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "token 'channel-other' is a value of exchange-request's token and test_tokens does not declare it" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, channel-other"
+else
+	echo "FAIL check-kinds control: want exactly one finding, channel-other"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
@@ -667,6 +700,36 @@ if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^type WorkflowPhase no longer co
 	echo "ok   type-collisions control: exactly one finding, WorkflowPhase"
 else
 	echo "FAIL type-collisions control: want exactly one finding, WorkflowPhase"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# No pattern requires the framework, beyond the known list, which can only
+# shrink; a list missing command's requirement of architecture/agent must
+# report exactly it, and one still naming retry's, removed, exactly that.
+expect 0 "layering: every pattern that requires the framework is known, none new" python3 checks/layering.py
+python3 - "$tmp" <<'PY'
+import json, sys
+k = json.load(open("checks/layering.json", encoding="utf-8"))
+k["known"].pop("patterns/command")
+json.dump(k, open(sys.argv[1] + "/lay-new.json", "w"))
+k = json.load(open("checks/layering.json", encoding="utf-8"))
+k["known"]["patterns/retry"] = ["architecture/agent"]
+json.dump(k, open(sys.argv[1] + "/lay-gone.json", "w"))
+PY
+expect 1 "layering control: a requirement not in the list fails" python3 checks/layering.py --known "$tmp/lay-new.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/command requires architecture/agent" "$tmp/out"; then
+	echo "ok   layering control: exactly one finding, patterns/command"
+else
+	echo "FAIL layering control: want exactly one finding, patterns/command"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "layering control: a removed requirement still listed fails" python3 checks/layering.py --known "$tmp/lay-gone.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/retry no longer requires architecture/agent" "$tmp/out"; then
+	echo "ok   layering control: exactly one finding, patterns/retry"
+else
+	echo "FAIL layering control: want exactly one finding, patterns/retry"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi

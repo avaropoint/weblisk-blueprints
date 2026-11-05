@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.2.0
+version: 4.2.1
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -172,7 +172,7 @@ namespace ownership. No auth required.
   "version": "1.0.0",
   "description": "Scans HTML files and analyzes SEO metadata",
   "url": "http://localhost:9710",
-  "public_key": "<64-char hex ML-DSA-65 public key>",
+  "public_key": "<base64url ML-DSA-65 public key>",
   "capabilities": [
     {"name": "file:read", "resources": ["app/**/*.html"]},
     {"name": "llm:chat", "resources": []},
@@ -227,7 +227,7 @@ is returned.
     "services": {}
   },
   "token": "<WLT auth token>",
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:00.000Z"
 }
 ```
@@ -244,7 +244,7 @@ is returned.
   "observations": [...],
   "recommendations": [...],
   "metrics": {"files_scanned": 5, "suggestions": 3},
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:01.000Z"
 }
 ```
@@ -259,6 +259,31 @@ the only routes a component serves outside it.
 |-------|---------|---------|
 | `GET /livez` | [`Liveness`](types.md#liveness): 200 `{"live": true}`, or 503 `{"live": false}` | the supervisor on the component's host, which restarts a component that fails it |
 | `GET /readyz` | [`Readiness`](types.md#readiness): 200 `{"ready": true}`, or 503 `{"ready": false}` | the supervisor while it waits for a start to complete; the probe of the orchestrator |
+
+The two probes, as data a tool reads rather than holds. A role is what a
+probe answers, `live` or `ready`, a closed set the engine implements; its
+route, its answer and the member that carries the answer are read from here,
+by anything that starts, waits on or checks a component: `server start`'s
+order, a `join` check's `listens` and `readyz-agrees`, and a supervisor.
+
+```yaml
+probes:
+  live:
+    method: GET
+    path: /livez
+    answers: type://weblisk/protocol/types:Liveness
+    member: live
+    status: {"true": 200, "false": 503}
+  ready:
+    method: GET
+    path: /readyz
+    answers: type://weblisk/protocol/types:Readiness
+    member: ready
+    status: {"true": 200, "false": 503}
+```
+
+A tool MUST read a probe's method, path and answer from this block, and hold
+no probe path of its own. <!-- wl:id probes-read-as-data -->
 
 Neither answer carries anything else. What each value means, and the rule that
 liveness depends on no other component, are
@@ -297,7 +322,7 @@ Signature covers: `canonicalize({from, to, action, payload})` per
   "action": "check-overlap",
   "type": "request",
   "payload": {"url": "/blog/post-1", "keywords": ["seo", "performance"]},
-  "signature": "<hex ML-DSA-65 signature>",
+  "signature": "<base64url ML-DSA-65 signature>",
   "timestamp": "2024-04-03T16:00:00.000Z",
   "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
   "span_id": "00f067aa0ba902b7"
@@ -1364,6 +1389,7 @@ security:
 ---
 
 ## Verification Checklist
+- [ ] A tool that starts, waits on or checks a component reads `GET /livez` and `GET /readyz`, their answers and their status codes from the `probes` block, and a copy of the corpus whose block names other paths is probed at those paths ([GET /livez and GET /readyz](#get-livez-and-get-readyz)) <!-- wl:check probes-from-data covers probes-read-as-data -->
 - [ ] A subscription scope is a delivery scope and never a ScopeLevel ([Two words that mean two things](#two-words-that-mean-two-things)) <!-- wl:check subscription-scope-delivery-scope-never -->
 - [ ] `protocol_version` is compared for equality with the wire version, not parsed as semver ([Two words that mean two things](#two-words-that-mean-two-things)) <!-- wl:check protocol-version-compared-equality-wire-version -->
 - [ ] A client composes requests as origin + absolute path; no endpoint constant omits its `/v1` prefix ([Endpoint paths are absolute](#endpoint-paths-are-absolute)) <!-- wl:check client-composes-requests-origin-absolute-path -->

@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: email-send
-version: 3.0.2
+version: 3.0.3
 port: 9754
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/observability, patterns/storage, patterns/retry, patterns/notification, patterns/scope, patterns/policy, patterns/safety, patterns/privacy, patterns/security, patterns/governance]
@@ -666,7 +666,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/email-send/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/email-send.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED

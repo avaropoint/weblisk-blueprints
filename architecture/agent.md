@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 3.0.2
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging]
+version: 3.1.0
+requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging, patterns/rate-limiting]
 platform: any
 tier: free
 -->
@@ -100,13 +100,18 @@ requires:
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
+      types:
+        - name: RetryConfig
+          fields_used: [max_attempts, backoff, base_delay, max_delay, retryable_errors, non_retryable_errors]
+        - name: CircuitBreakerConfig
+          fields_used: [enabled, failure_threshold, recovery_timeout, success_threshold, monitored_errors]
       patterns:
         - behavior: retry-with-backoff
-          parameters: [max_attempts, backoff_strategy, timeout]
+          parameters: [max_attempts, backoff, base_delay, max_delay]
         - behavior: circuit-breaker
-          parameters: [failure_threshold, recovery_timeout]
+          parameters: [failure_threshold, recovery_timeout, success_threshold]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -119,6 +124,16 @@ requires:
           parameters: [topic, payload, source]
         - behavior: subscribe
           parameters: [topic, handler, consumer_group]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: patterns/rate-limiting
+    version: ">=1.2.0 <2.0.0"
+    bindings:
+      types:
+        - name: UpstreamRateLimit
+          fields_used: [requests, window, burst]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -886,6 +901,11 @@ types:
         type: CircuitBreakerConfig
         required: false
         description: "Circuit breaker configuration"
+      upstream_rate_limits:
+        name: UpstreamRateLimits
+        type: "map[string]UpstreamRateLimit"
+        required: false
+        description: "The agent's own budget for each external service it calls, keyed by that service (patterns/rate-limiting, Agent-Level Rate Limiting)"
 ```
 
 ### AgentState

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: platform
 name: node
-version: 4.0.2
+version: 4.0.3
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 platform: node
 tier: free
@@ -587,7 +587,7 @@ const PORT = parseInt(process.env.WL_PORT || process.env.WL_AGENT_PORT || "9710"
 
 async function start() {
   const app = Fastify({ logger });
-  const identity = await loadIdentity("./.weblisk/keys/<component>");
+  const identity = await loadIdentity("./.weblisk/keys/<component>.key");
 
   registerEndpoints(app, {
     manifest: {

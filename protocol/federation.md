@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 2.0.2
+version: 2.0.3
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
 platform: any
 tier: free
@@ -146,7 +146,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
   "version": "1.0.0",
   "description": "ACME Corporation agent environment",
   "federation_url": "https://agents.acme.com/v1/federation",
-  "public_key": "<hex ML-DSA-65 public key>",
+  "public_key": "<base64url ML-DSA-65 public key>",
   "jurisdiction": "US",
   "published_capabilities": [
     {
@@ -158,7 +158,7 @@ following the same rules as agent identity (see [identity.md](identity.md)).
   ],
   "trust_policy": "explicit",
   "max_concurrent_federated": 20,
-  "signature": "<hex ML-DSA-65 signature>"
+  "signature": "<base64url ML-DSA-65 signature>"
 }
 ```
 

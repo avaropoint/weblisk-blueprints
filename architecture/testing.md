@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.1.0
+version: 2.2.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -193,9 +193,10 @@ Test Domain:
   public_key:  derived from private key via ML-DSA-65
 ```
 
-Implementations MUST support a `--test-keys` flag or equivalent
-configuration option that loads these deterministic keys instead of
-generating random ones. This enables reproducible tests.
+A component is started with one of these keys instead of a generated one by
+the key file the harness writes before it starts it, as
+[Starting a component with a fixture key](#starting-a-component-with-a-fixture-key)
+says; it needs no flag of its own. This enables reproducible tests.
 
 ### Manifest Fixtures
 
@@ -308,6 +309,83 @@ fixtures:
 ```
 
 ---
+
+
+### Test tokens as data
+
+The bearer tokens an `exchange` step's `token` names
+([`schemas/blocks`](../schemas/blocks.md#definitions), `exchange-request`),
+each as the harness mints it. Every one is a WLT
+([`protocol/identity`](../protocol/identity.md#token-system)) with the header
+`{"alg": "ML-DSA-65", "typ": "WLT"}`, signed by the `signed_by` fixture's key
+over the token's first two parts, as Token Creation says. In a token's
+`claims`, `<as>` is the step's `as` identity fixture, `<self>` the name the
+component under test registers under, and `<cap>` the capability names of the
+`as` fixture's manifest, in the manifest's order (an empty list where the
+fixture has no manifest). `iat` and `exp` are seconds from the instant the
+token is minted, written into the claims as NumericDates. A token `from`
+another is that token with the fields it names replaced. A step whose `token`
+is not `none` or `captured` and whose `as` is `anonymous` is a fault of the
+check, reported as such, never sent with no token.
+
+```yaml
+test_tokens:
+  signed_by: test-orchestrator
+  tokens:
+    own:
+      means: The registration token the orchestrator issues the as identity
+      claims: {sub: "<as>", iss: orchestrator, cap: "<cap>", identity_id: "<fingerprint of the as fixture's public key>"}
+      iat: 0
+      exp: 86400
+    expired:
+      means: own, past its exp
+      from: own
+      iat: -90000
+      exp: -3600
+    bad-signature:
+      means: own, with the last byte of its decoded signature changed (exclusive-or 0x01) and the signature encoded again
+      from: own
+      signature: last-byte-flipped
+    wrong-type:
+      means: own, carrying a type no component route takes but an attestation submission
+      from: own
+      claims: {type: attestation}
+    channel-self:
+      means: A channel token for a channel from the as identity to the component under test
+      claims: {sub: "<as>↔<self>", iss: orchestrator, cid: "00000000000000000000000000000001"}
+      iat: 0
+      exp: 3600
+    channel-other:
+      means: A channel token for a channel from the as identity to a component that is not the one under test
+      claims: {sub: "<as>↔conformance-other", iss: orchestrator, cid: "00000000000000000000000000000002"}
+      iat: 0
+      exp: 3600
+```
+
+Every value of `token` that [`schemas/blocks`](../schemas/blocks.md#definitions)
+declares, other than `none` and `captured`, MUST have exactly one entry here,
+and a token MUST carry exactly the claims its entry gives and no other.
+`checks/check-kinds.py` holds the first. <!-- wl:id test-tokens-declared -->
+
+### Starting a component with a fixture key
+
+A check's `start.keys` ([`schemas/blocks`](../schemas/blocks.md#definitions),
+`check-start`) names an identity fixture. Before the harness starts the
+component, it writes that fixture's key to the component's key file in the
+scratch copy of the tree, `.weblisk/keys/<name>.key`, where `<name>` is the
+name the component registers under ([`protocol/identity`](../protocol/identity.md#key-files)):
+the key derived from the fixture's `seed`, in the `weblisk-key-v1` envelope
+with `kdf = none` ([`protocol/identity`](../protocol/identity.md#private-key-format)),
+mode 0600 under a `.weblisk/keys/` of mode 0700. The orchestrator's are
+`orchestrator.key` and `hub.key`, both the fixture's key, with `hub.pub` its
+public half, since a first start's token-signing key is its hub key. A key
+with `kdf = none` is a development key ([`protocol/identity`](../protocol/identity.md#service-key-protection),
+rule 6), so the component is started with `WL_DEV=1`, as every sealed start
+is. <!-- wl:id fixture-key-written -->
+
+A component that, given that file, does not load it, generates another, or
+registers with any other key has failed the check that named `start.keys`; it
+is never reported as having passed with the key it chose.
 
 ## Mock Orchestrator
 
@@ -676,7 +754,8 @@ MUST be able to listen before it has registered.
 #### L4-03: Signature Survives A Foreign Verifier
 
 ```
-1. Sign a manifest that carries one field the verifier's type does not define
+1. Sign a manifest that carries every field AgentManifest requires, and one
+   field the verifier's type does not define
 2. Register against a real orchestrator
 3. Registration MUST succeed
 ```
@@ -1020,6 +1099,7 @@ verifies:
                 type: agent
                 version: 1.0.0
                 protocol_version: "1"
+                description: Conformance test agent carrying one field AgentManifest does not define
                 url: http://localhost:9710
                 public_key: "${fixture/test-agent/public_key}"
                 capabilities: [{name: "agent:message", resources: []}]
@@ -1126,6 +1206,8 @@ security:
 - [ ] Mock orchestrator can start and accept registrations ([Mock Orchestrator](#mock-orchestrator)) <!-- wl:check mock-orchestrator-start-accept-registrations -->
 - [ ] Mock agent can respond to execute and message ([Mock Agent](#mock-agent)) <!-- wl:check mock-agent-respond-execute-message -->
 - [ ] Test keys are deterministic and reproducible ([Identity Fixtures](#identity-fixtures)) <!-- wl:check test-keys-deterministic-reproducible -->
+- [ ] Each `token` value of an exchange step other than `none` and `captured` is minted as its `test_tokens` entry gives it, signed by the `test-orchestrator` fixture's key, with exactly that entry's claims ([Test tokens as data](#test-tokens-as-data)) <!-- wl:check test-tokens-minted covers test-tokens-declared -->
+- [ ] A check naming `start.keys` starts the component with the fixture's key written as `.weblisk/keys/<name>.key`, `kdf = none`, mode 0600, under `WL_DEV=1`, and the component registers with that key's public half; one that registers with another key fails the check ([Starting a component with a fixture key](#starting-a-component-with-a-fixture-key)) <!-- wl:check fixture-key-start covers fixture-key-written -->
 - [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes)) <!-- wl:check tests-run-against-http-endpoints-black -->
 
 ### A check that cannot read the artifact MUST say so

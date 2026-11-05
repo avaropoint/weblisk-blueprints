@@ -1,6 +1,6 @@
 {
  "measured_at": "wt/c0-blueprints, 2026-11-04",
- "note": "Each name here is declared by more than one blueprint; settling one is the owner's decision of which declaration is the type and what the other is renamed to. Entries are removed as they are settled, never added.",
+ "note": "Each name here is declared by more than one blueprint. Settling one is choosing which declaration is the type and what the other is renamed to, or which blueprint binds it instead. They are settled blueprint by blueprint, as each is next built (owner's decision, 2026-11-04): the change that next builds a blueprint holding a listed name settles that name and removes its entry in the same change. Entries are removed as they are settled, never added.",
  "known": {
   "AgentContext": [
    "architecture/agent.md",

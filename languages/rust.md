@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 5.0.0
+version: 5.0.1
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -841,8 +841,11 @@ pub struct ErrorResponse {
 
 - Enforce body size limits on all request reads via `http_body_util::Limited`
   (see IO Safety above)
-- Validate JSON structure with `serde` — unknown fields rejected by default
-  when `#[serde(deny_unknown_fields)]` is applied
+- Validate JSON structure with `serde`. An unknown field is ignored, never
+  rejected, and an object that is signed or forwarded is kept as it arrived,
+  its unknown fields included ([`protocol/types`](../protocol/types.md#conventions),
+  [`protocol/spec`](../protocol/spec.md#signing-input)); no type carries
+  `#[serde(deny_unknown_fields)]`
 - Enforce maximum sizes per endpoint type
 
 ### Cryptography

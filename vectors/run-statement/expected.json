@@ -78,6 +78,16 @@
       "file": "invalid-verdict-result.json",
       "valid": false,
       "breaks": "verdict-result"
+    },
+    {
+      "file": "invalid-unsettled-not-passed.json",
+      "valid": false,
+      "breaks": "unsettled-not-passed"
+    },
+    {
+      "file": "invalid-reading-action.json",
+      "valid": false,
+      "breaks": "reading-action"
     }
   ]
 }

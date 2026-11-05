@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.0
+version: 1.4.0
 noun: block
 ---
 # Schema: Blocks
@@ -237,8 +237,11 @@ Three fields every component check may carry:
 - **`applies_to`** names the components it is run against: a component kind,
   or a selector, from the `component_kinds` block of
   [`schemas/kinds`](kinds.md#component-kinds). Absent, the check runs against
-  every component that owes what it covers. A check addressed to an agent is
-  never a failure of an orchestrator.
+  every component that owes what it covers; present, it runs against exactly
+  the components it names, which then owe it even where their blueprint does
+  not require its file. Who owes what is
+  [`architecture/engine`](../architecture/engine.md#what-a-component-owes)'s.
+  A check addressed to an agent is never a failure of an orchestrator.
 - **`live`** is `safe` where the check may run against a running tenant, and
   `sealed-only`, the default, where it changes state or needs fixtures only a
   build's sealed run has.
@@ -264,6 +267,25 @@ start) reports **unread**, never passed and never failed
 ([`architecture/testing`](../architecture/testing.md), "A check that cannot
 read the artifact MUST say so"). Examples of every kind, and one invalid
 check per rule, are [`vectors/check-kinds/`](../vectors/check-kinds/README.md).
+
+### Which endpoints are protected
+
+Every endpoint a blueprint serves says what a request must carry to reach it,
+as its `auth`: in a declaration's `serves` list, and in a `serves` block's
+`http`. `auth` is a closed vocabulary, the definition `endpoint-auth`, and
+`checks/check-kinds.py` refuses any other value.
+
+| `auth` | A request must carry | Protected |
+|---|---|---|
+| `none` | nothing; anyone may reach it | no |
+| `identity` | a signature by the caller's own key over what it sends, as a registration is signed ([`protocol/spec`](../protocol/spec.md#post-v1register)), and no bearer token | no |
+| `token` | a bearer token of a kind the route takes, whatever its capabilities | yes |
+| a capability, such as `admin:read` | a bearer token carrying that capability, a name [`protocol/types`](../protocol/types.md#capability) lists | yes |
+
+`for_each: protected-endpoint` selects exactly the endpoints of the component's
+own blueprint whose `auth` is `token` or a capability. An endpoint whose `auth`
+is absent is not selected, and the check reports it **unread**, naming the
+endpoint, rather than guessing either way.
 
 ## Definitions
 
@@ -312,7 +334,7 @@ defs:
       covers: {type: array, minItems: 1, items: {$ref: "#/$defs/ref"}}
       check: {type: string, description: "The kind of check that proves it: a value of check-kind; translated when absent."}
       assertion: {type: string, minLength: 1}
-      applies_to: {type: array, minItems: 1, items: {type: string, pattern: "^[a-z][a-z0-9-]*$"}, description: "The components it is run against: a component kind schemas/kinds declares, or a selector its component_kinds block declares. Every component the requirement is owed by, when absent."}
+      applies_to: {type: array, minItems: 1, items: {type: string, pattern: "^[a-z][a-z0-9-]*$"}, description: "The components it is run against: a component kind schemas/kinds declares, or a selector its component_kinds block declares. Every component the requirement is owed by, when absent (architecture/engine, What a component owes); present, exactly the components it names, who then owe it."}
       live: {enum: [safe, sealed-only], default: sealed-only, description: "Whether it may run against a running tenant (safe) or only in a build's sealed run."}
       exchange: {$ref: "#/$defs/check-exchange"}
       vector: {$ref: "#/$defs/check-vector"}
@@ -347,7 +369,7 @@ defs:
     properties:
       orchestrator: {enum: [none, mock, built], default: none, description: "none; the mock architecture/testing specifies, built as a component; or the orchestrator tree this build is judged against."}
       with: {type: array, items: {$ref: "#/$defs/ref"}, description: "Other components started first, each from the tree it was accepted with, in the order the services table gives."}
-      keys: {type: string, description: "An identity fixture of architecture/testing whose key the component is started with, in place of a generated one."}
+      keys: {type: string, description: "An identity fixture of architecture/testing whose key the component is started with, in place of a generated one: written as its key file before it starts (architecture/testing, Starting a component with a fixture key)."}
       mock_agent: {type: object, additionalProperties: {}, description: "Responses the mock agent of architecture/testing gives, keyed by action; a value is the TaskResult or payload it answers."}
       env: {type: object, additionalProperties: {type: string}, description: "Variables added to the clean start environment."}
   exchange-request:
@@ -361,7 +383,7 @@ defs:
       path: {type: string, pattern: "^/", description: "The path as sent; a placeholder ${name} is filled from an earlier capture or a fixture."}
       operation: {$ref: "#/$defs/ref", description: "An operation a serves block or Endpoints table declares; its method and path, in place of path."}
       listener: {enum: [public, admin], default: public}
-      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, captured], default: none, description: "The bearer token. own: a token the harness mints for the as identity under the test-orchestrator fixture's key; expired: the same, past exp; bad-signature: the same, its signature broken; wrong-type: one of a type the route does not take; channel-self and channel-other: a channel token scoped to the component under test, or to another target; captured: the value an earlier step captured as token."}
+      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, captured], default: none, description: "The bearer token. none: no token; captured: the value an earlier step captured as token; every other value is minted as architecture/testing's test_tokens block declares it (Test tokens as data): own, a registration token for the as identity; expired, own past its exp; bad-signature, own with its signature broken; wrong-type, own carrying a type the route does not take; channel-self and channel-other, a channel token to the component under test or to another target."}
       headers: {type: object, additionalProperties: {type: string}}
       body: {description: "Any JSON value; strings may hold placeholders."}
       body_bytes: {type: integer, minimum: 0, description: "A body of this many bytes, in place of body."}
@@ -410,7 +432,7 @@ defs:
     unevaluatedProperties: false
     properties:
       start: {$ref: "#/$defs/check-start"}
-      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint declares, or per one whose auth requires a token."}
+      for_each: {enum: [endpoint, protected-endpoint], description: "A step whose request says endpoint: each is sent once per endpoint the component's own blueprint serves, or per protected one: one whose endpoint-auth is token or a capability (Checks, Which endpoints are protected)."}
       steps: {type: array, minItems: 1, items: {$ref: "#/$defs/exchange-step"}}
   check-vector:
     type: object
@@ -433,7 +455,7 @@ defs:
         minItems: 1
         items: {enum: [listens, no-exit, registered, listed, lease-current, lease-renewed, readyz-agrees]}
         description: "listens: it binds its port; no-exit: it does not exit; registered: it holds an agent_id and a token; listed: the orchestrator's directory lists it; lease-current: its lease_state is ready, or not_ready where its blueprint allows, never unknown; lease-renewed: it renews within a third of its duration; readyz-agrees: its /readyz answers as its last renewal did."
-      within: {oneOf: [{$ref: "#/$defs/duration-literal"}, {const: lease}], description: "How long each observation may take; lease is one lease duration."}
+      within: {oneOf: [{$ref: "#/$defs/duration-literal"}, {const: lease}], description: "How long each observation may take; lease is one lease duration: the orchestrator.lease_duration the started orchestrator's configuration sets, else the default schemas/config's config block declares."}
       steps: {type: array, items: {$ref: "#/$defs/exchange-step"}, description: "Sent once joined."}
   check-record:
     type: object
@@ -560,7 +582,12 @@ defs:
         properties:
           method: {enum: [GET, HEAD, POST, PUT, PATCH, DELETE]}
           path: {type: string, pattern: "^/"}
-          auth: {type: string}
+          auth: {$ref: "#/$defs/endpoint-auth"}
+  endpoint-auth:
+    description: "What a request must carry to reach an endpoint: the auth of a serves entry, in a declaration's serves list or a serves block's http. A closed vocabulary (Checks, Which endpoints are protected)."
+    anyOf:
+      - enum: [none, identity, token]
+      - {type: string, pattern: "^[a-z]+:([a-z][a-z-]*|\\*)$", description: "A capability protocol/types' Capability section lists: a bearer token carrying it."}
   event:
     type: object
     required: [id, direction, payload]

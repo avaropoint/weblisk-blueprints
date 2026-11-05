@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: messaging
-version: 3.0.2
-requires: [protocol/types, architecture/agent, patterns/retry]
+version: 3.1.0
+requires: [protocol/types, patterns/retry]
 platform: any
 tier: free
 -->
@@ -46,22 +46,14 @@ requires:
           fields_used: [event_id, topic, source, scope, correlation_id, timestamp, trace_id, span_id, version, payload, token]
         - name: AgentManifest
           fields_used: [name, subscriptions, namespace]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentState
-          fields_used: [state, url, subscriptions]
+        - name: ServiceEntry
+          fields_used: [name, url, lease_state]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
   - blueprint: patterns/retry
-    version: ">=1.0.0 <3.0.0"
+    version: ">=2.1.0 <3.0.0"
     bindings:
       types:
         - name: RetryConfig

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.0.0
+version: 1.1.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -69,6 +69,8 @@ and versions, the way capabilities are closed in code and kinds are open data
 | The family grammar's keywords | [`schemas/family`](../schemas/family.md#the-grammar-keywords) |
 | Block types | [`schemas/blocks`](../schemas/blocks.md#blocks) |
 | Check kinds, the `check` of a `verifies` entry | [`schemas/blocks`](../schemas/blocks.md#definitions) |
+| Endpoint auth, the `auth` of a served endpoint, and so which endpoints are protected | [`schemas/blocks`](../schemas/blocks.md#which-endpoints-are-protected) |
+| Probe roles, `live` and `ready`, and each one's route and answer | [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz), its `probes` block |
 | `use` and `send` | [`schemas/family`](../schemas/family.md#the-grammar-keywords) |
 | Capabilities | [`schemas/kinds`](../schemas/kinds.md#capabilities) |
 | Executors | [`schemas/change`](../schemas/change.md#executors) |
@@ -165,6 +167,32 @@ and events the catalogue gives it. <!-- wl:id manifest-is-the-catalogue -->
 Both front ends MUST build their commands, help and menus from the manifest,
 and hold no list of operations of their own. <!-- wl:id front-ends-render-manifest -->
 
+### Front-end-only commands
+
+Three commands describe the tool itself rather than act on a corpus or a
+tenant, so they are a front end's and not the engine's: `version` (the front
+end's version and the engine's it embeds), `help` (the manifest, rendered),
+and `commands` (the manifest, printed). In Studio they are the about panel,
+the help it renders and the operations route. They are not operations: the
+manifest does not list them, they return no event stream, and parity does not
+compare them, because each front end presents them its own way (owner's
+decision, 2026-11-04).
+
+A front end MUST hold no command other than the manifest's operations and
+these three, and each of the three MUST read nothing but the manifest and the
+front end's own build. <!-- wl:id front-end-only-three -->
+
+**Commands no corpus document drives leave the tools** until a corpus document
+defines them: `doctor`, `update`, `app *`, `marketplace *`, `deps audit` and
+`gateway policy *`. A behaviour the corpus does not describe is one no tool
+has ([Overview](#overview)). Each returns when the document that defines it
+lands, as an operation of [The operation catalogue](#the-operation-catalogue).
+The CLI's commands as built today, and when each is removed, are
+[`ENGINE_PLAN.md`](../ENGINE_PLAN.md#2-the-engines-operations)'s.
+
+The tools MUST NOT offer `doctor`, `update`, `app *`, `marketplace *`,
+`deps audit` or `gateway policy *` while no corpus document defines it. <!-- wl:id undriven-commands-absent -->
+
 ### Events
 
 Every event has the same envelope.
@@ -178,6 +206,11 @@ event:
   type: <event type>
   body: {}                         # the type's fields, below
 ```
+
+An event MUST carry exactly the envelope's six fields, under the names above
+and no others: the instant is `at`, never `instant` or `time`, so that two
+front ends' streams compare without a mapping between them (owner's decision,
+2026-11-04). <!-- wl:id envelope-names-fixed -->
 
 Each event MUST be one JSON object in the RFC 8785 canonical form. Under
 `--json` the CLI writes one per line, and Studio's stream route carries the
@@ -253,12 +286,6 @@ check that holds both against this catalogue is
 
 ```yaml
 operations:
-  # The manifest itself.
-  - ops: [commands]
-    executor: local
-    events: [item]
-    records: nothing
-    driven_by: [architecture/engine]
   # Corpus: each reads a source the person holds, and none touches a tenant.
   - ops: [corpus sources, corpus update]
     executor: local
@@ -568,7 +595,8 @@ steps:
     declares: >-
       The build, run and test commands per language; the diagnostic grammar,
       load-failure and dependency-fault markers per language; the sealed
-      environment; ports; which routes are essential
+      environment; ports; which routes are essential; the probes and their
+      answers (the probes block of protocol/spec)
   - id: repair
     does: Edits files until the suite passes, class by class
     model: called
@@ -677,6 +705,41 @@ entry ([`schemas/blocks`](../schemas/blocks.md#definitions)): id, `covers`,
 [`schemas/blocks`](../schemas/blocks.md) declares, whose data is written in
 the corpus, or by a **translated test**, which is the default and is written
 `translated`.
+
+### What a component owes
+
+A component is built from one blueprint: the one the services table of
+[`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)
+gives its kind, or, for a kind whose components are `named`
+([`schemas/kinds`](../schemas/kinds.md#component-kinds)), the agent's or the
+domain's own. That is its **own blueprint**. Every other blueprint some
+component kind is built from is **another component's**. A blueprint no
+component kind is built from (a protocol, a pattern, a schema, a library
+architecture such as `architecture/agent` or `architecture/storage`, a
+language or a platform) is a **library blueprint**.
+
+A component MUST be held to the criteria of its own blueprint and of the
+library blueprints that blueprint requires, followed through `requires`
+from library to library but never into another component's blueprint, and to
+no other criterion except one whose check's `applies_to` names its kind or a
+selector its kind meets. So the orchestrator, whose blueprint requires
+`architecture/admin`, does not owe `architecture/admin`'s criteria: that is
+the admin gateway's blueprint. <!-- wl:id component-owes-own-and-libraries -->
+
+`applies_to` works in both directions. On a check in a library blueprint it
+narrows: an agent-only check of `protocol/spec` is not owed by the
+orchestrator. On a check anywhere it reaches: `architecture/testing`'s L4
+checks are owed by every component that registers, whether its blueprint
+requires `architecture/testing` or not, and a criterion of another
+component's blueprint that a component must meet, such as an administrative
+route the orchestrator serves and `architecture/admin` specifies, is owed by
+it only through a check whose `applies_to` names it. A component kind that
+`runs_with` another is still its own component and owes its own blueprint's
+criteria, checked in its host's process.
+
+The language and platform blueprints a component is generated for are
+library blueprints it requires, so a Go component owes `languages/go`'s
+criteria and a Rust component does not.
 
 ### How the suite is derived
 
@@ -876,8 +939,9 @@ is consulted, and nothing about the model's answer is.
 - [ ] The manifest names each vocabulary's declaring file and version, and a corpus whose declaring file is a later major is refused, naming the file and both versions ([Closed vocabularies](#closed-vocabularies)) <!-- wl:check vocabulary-versions-refused covers vocabularies-versioned -->
 - [ ] Studio, asked for a `cli-in-tenant` operation on a tenant, asks the tenant's engine through `tenant-api` and runs nothing on its own host ([Three hosts](#three-hosts)) <!-- wl:check client-asks-tenant covers cli-in-tenant-through-tenant -->
 - [ ] An operation acting on a tenant calls the tenant's model through the tenant, and Studio calls no model of its own ([Three hosts](#three-hosts)) <!-- wl:check tenant-model-for-tenant-acts covers model-is-the-acts-owner -->
-- [ ] Every operation in the manifest returns one event stream opened by one `started` and closed by one `finished`, with `seq` rising by one from 1 ([Events](#events)) <!-- wl:check streams-bracketed covers one-command-one-stream stream-bracketed -->
+- [ ] Every operation in the manifest returns one event stream opened by one `started` and closed by one `finished`, with `seq` rising by one from 1, and every event carries exactly `operation`, `invocation`, `seq`, `at`, `type` and `body` ([Events](#events)) <!-- wl:check streams-bracketed covers one-command-one-stream stream-bracketed envelope-names-fixed -->
 - [ ] The manifest lists exactly the catalogue's operations with their executors and events, and each front end exposes it unchanged ([The manifest](#the-manifest), [The operation catalogue](#the-operation-catalogue)) <!-- wl:check manifest-equals-catalogue covers manifest-is-the-catalogue front-ends-render-manifest front-end-parity -->
+- [ ] Each front end offers the manifest's operations and `version`, `help` and `commands` and nothing else; the three read only the manifest and the front end's own build; and neither front end offers `doctor`, `update`, `app *`, `marketplace *`, `deps audit` or `gateway policy *` ([Front-end-only commands](#front-end-only-commands)) <!-- wl:check front-end-own-commands covers front-end-only-three undriven-commands-absent -->
 - [ ] Driving one operation through the CLI under `--json` and through Studio's stream route, with the same scripted answers, gives streams equal byte for byte once `invocation` and `at` are normalised ([Events](#events)) <!-- wl:check streams-equal covers streams-byte-equal front-end-parity -->
 - [ ] An operation needing a passphrase emits a `question` and waits; with no answer it ends refused naming the question; and the answer appears in no event, record, transcript or log ([Questions](#questions)) <!-- wl:check questions-asked-and-kept-secret covers question-is-the-only-ask secret-answers-never-recorded unanswered-is-refused -->
 - [ ] A front end shows a verdict, threshold or list only as an operation's events carry it, and the neutrality check over its source reports one computed in it ([The parts, and the line between them](#the-parts-and-the-line-between-them)) <!-- wl:check front-end-computes-nothing covers front-end-decides-nothing -->
@@ -887,6 +951,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] Every sentence of every model prompt is an instruction file's folded text or a labelled declared input, and the action records each instruction's ref, version and digest ([Instructions](#instructions)) <!-- wl:check prompts-are-corpus-text covers no-engine-sentences instruction-revision-recorded -->
 - [ ] Conformance runs only the declared checks, the translated tests and the published vectors, and no tool holds a test, check or verdict rule of its own ([The one conformance suite](#the-one-conformance-suite)) <!-- wl:check suite-is-derived covers one-suite -->
 - [ ] A criterion keeps its id when its text changes; its digest moves when its text or any definition it cites changes, and not otherwise ([The unit is a criterion](#the-unit-is-a-criterion)) <!-- wl:check criterion-id-and-digest covers criterion-id-frozen criterion-digest-covers-citations -->
+- [ ] The suite holds a component to its own blueprint's criteria and those of the library blueprints it requires, never through another component's blueprint, and to another criterion only through a check whose `applies_to` names its kind: the orchestrator is not held to `architecture/admin`'s, and every registering component is held to `architecture/testing`'s L4 checks ([What a component owes](#what-a-component-owes)) <!-- wl:check component-owes covers component-owes-own-and-libraries -->
 - [ ] A translated test counts only with all four conditions shown on the record: the translate action precedes every generate action and was given no implementation, the test failed against the stub, no generate or repair action wrote it, and its verdict is the test command's ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check translated-test-conditions covers translated-test-counts translated-apart fails-on-nothing tests-frozen verdict-is-the-runs -->
 - [ ] In production, an S or J criterion settled only by a translated test is unsettled ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check production-needs-declared covers production-s-j-declared -->
 - [ ] A check with no `live` declaration is not run against a live tenant; a live S check failing after acceptance withholds the affected operations, and a live J check failing marks the acceptance contradicted ([Build time and run time](#build-time-and-run-time)) <!-- wl:check live-checks covers live-only-safe live-failure-after-acceptance -->

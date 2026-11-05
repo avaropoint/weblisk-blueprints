@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 2.1.2
+version: 2.1.3
 port: 9782
 requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
@@ -617,7 +617,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/lifecycle/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/lifecycle.key (protocol/identity, Key Files)
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 

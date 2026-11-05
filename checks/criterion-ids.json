@@ -697,7 +697,9 @@
    "change-apply-unapproved-change-refused",
    "change-apply-reads-corpus-changes-pins",
    "change-plan-upgrade-refreshes-clone-tenant",
-   "cli-status-hub-identity"
+   "cli-status-hub-identity",
+   "status-reads-hub-pub",
+   "start-writes-hub-pub"
   ],
   "architecture/client.md": [
    "browser-session-token-uses-wls-type",
@@ -1008,7 +1010,9 @@
    "live-checks",
    "record-held-by-tenant",
    "actions-reused",
-   "incremental-from-record"
+   "incremental-from-record",
+   "component-owes",
+   "front-end-own-commands"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",
@@ -1627,7 +1631,9 @@
    "mock-orchestrator-start-accept-registrations",
    "mock-agent-respond-execute-message",
    "test-keys-deterministic-reproducible",
-   "tests-run-against-http-endpoints-black"
+   "tests-run-against-http-endpoints-black",
+   "test-tokens-minted",
+   "fixture-key-start"
   ],
   "architecture/threat-model.md": [
    "auth-endpoints-enforce-per-ip-rate",
@@ -2661,7 +2667,8 @@
    "production-deployments-minimum-number-registered",
    "backup-operator-remove-compromised-operator",
    "bootstrap-reset-keys-lost-requires-orchestrator",
-   "no-identity-token-attestation-signed-record"
+   "no-identity-token-attestation-signed-record",
+   "hub-pub-declared"
   ],
   "protocol/secret-source.md": [
    "caller-resolves-source-registry-weblisk-secret",
@@ -2752,7 +2759,8 @@
    "request-between-components-task-message-event",
    "correlation-id-links-events-single-execution",
    "protected-endpoints-reject-requests",
-   "component-emits-event-pattern-defines-publishes"
+   "component-emits-event-pattern-defines-publishes",
+   "probes-from-data"
   ],
   "protocol/types.md": [
    "id-span-id-timestamp-form-conventions",

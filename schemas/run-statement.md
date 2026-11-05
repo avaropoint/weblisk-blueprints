@@ -327,8 +327,13 @@ criterion:
   digest: sha256:<hex>             # over its text and the definitions it cites
   class: S | J | B | E | F
   class_by: <the rule, and the ref, that gave the class>
-  settled_by: declared | vector | translated
+  settled_by: declared | vector | translated | unsettled
   check: <full ref of the declared check or vector>      # declared and vector only
+  unsettled:                       # unsettled only: why no test or check counts for it
+    why: untestable | model-finding | unresolved-cite | no-check
+    reported_by: {run: <run id>, action: <action id>}     # untestable and model-finding: the action whose answer was the finding
+    finding: <the finding's text, as the model gave it>  # untestable and model-finding
+    cite: <the ref, as the criterion writes it, that resolves to nothing>   # unresolved-cite
   tests:                           # translated only
     - path: <tenant path>
       digest: sha256:<hex>
@@ -352,7 +357,10 @@ criterion:
     reason: <text>
     premise: <the premise, and the test that settles it, of an IF requirement>
     reaches: [<component ref>]     # components in this tenant that bind what it governs
-    advice: <a model's reading, labelled as advice>
+  readings:                        # a model's readings of the criterion: advice, never counted
+    - action: <action id>          # the accept action that read it
+      says: met | unmet | unsure
+      reason: <the model's reason, as it gave it>
 ```
 
 - **The digest** is [`architecture/engine`](../architecture/engine.md#the-unit-is-a-criterion)'s:
@@ -367,6 +375,23 @@ criterion:
   repair action, and every translate action of the run comes before its first
   generate action; its `stub` is `failed`; no generate or repair action wrote
   its path; and its verdict is the test command's.
+- **Unsettled** is the form of a criterion no test or check counts for: the
+  translate step reported it untestable, a model reported a finding against
+  it, it cites a definition that resolves to nothing, or no check is declared
+  where one is required (an S or J criterion in production,
+  [`architecture/engine`](../architecture/engine.md#what-makes-a-translated-test-count)).
+  It has no tests and no check, its verdict is `not-run`, and its gap's result
+  is `unsettled`, so it is unmet for acceptance and never read as passed.
+- **A reading** is what a model said of the criterion at the accept step,
+  recorded in full whichever way it went, so a shadow run (ENGINE_PLAN, phase
+  E2) keeps the model's reading beside the suite's verdict, a reading that
+  says `met` included. A reading never moves the verdict or the gap
+  ([`architecture/engine`](../architecture/engine.md#what-the-model-may-not-do),
+  `model-reads-are-advice`): delete every reading from a statement and its
+  verdicts and gaps are unchanged. It is the gap's advice that
+  [`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#on-the-run-statement) names,
+  kept on the criterion so that a reading of a criterion that has no gap has a
+  home too.
 - **A gap's fields** are the ones [`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#on-the-run-statement)
   gives a gap. The check, class, covers, files and reach it lists are the
   criterion's own fields above, so they are not repeated inside `gap`.
@@ -394,7 +419,11 @@ rules:
   - id: criterion-id
     rule: every criterion has an id, unique in the run, and a digest written sha256:<hex>
   - id: criterion-settled
-    rule: settled_by translated has tests and no check; declared and vector have a check and no tests
+    rule: settled_by translated has tests and no check; declared and vector have a check and no tests; unsettled has neither, and names why
+  - id: unsettled-not-passed
+    rule: a criterion settled_by unsettled has verdict not-run and a gap whose result is unsettled
+  - id: reading-action
+    rule: every reading names a model action of the run whose step is accept, and says met, unmet or unsure
   - id: test-translated-by
     rule: every test's translated_by names a translate action, and when that action is of this run, its criterion is this criterion
   - id: translate-first

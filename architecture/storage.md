@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.3.1
+version: 2.3.2
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -423,6 +423,16 @@ JSONL to.
 
 Implementations MAY use in-memory storage for development/testing,
 but production deployments MUST use persistent backends.
+
+**A conditional put is not yet required of a backend.** A write that
+succeeds only where the record still holds the value its writer last read is
+what two instances answering for one hub would need to keep one store
+consistent. One instance answers for a hub
+([`schemas/kinds`](../schemas/kinds.md#component-kinds), `instances.max: 1`),
+so the owner deferred the primitive on 2026-11-04 until more than one instance
+is allowed. It is an open item
+([`ENGINE_PLAN.md`](../ENGINE_PLAN.md#open-items)), and the change that raises
+`instances.max` declares it here first.
 
 ### Flat-File Storage Tiers
 

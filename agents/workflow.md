@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 3.0.2
+version: 3.0.3
 port: 9780
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
@@ -627,7 +627,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/workflow/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/workflow.key (protocol/identity, Key Files)
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 

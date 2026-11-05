@@ -2,7 +2,7 @@
 type: agent
 kind: infrastructure
 name: sync
-version: 4.0.1
+version: 4.0.2
 port: 9751
 requires: [protocol/spec, protocol/types, architecture/agent]
 extends: [patterns/offline, patterns/observability, patterns/storage, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/governance]
@@ -473,7 +473,7 @@ Step 1 — Load Configuration
   Backout:     None
 
 Step 2 — Load Identity
-  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/sync/
+  Action:      Generate or load ML-DSA-65 keypair from .weblisk/keys/sync.key (protocol/identity, Key Files)
   Pre-check:   .weblisk/keys/ directory exists and is writable
   Validates:   Public key is 32 bytes
   On Fail:     EXIT with IDENTITY_FAILED

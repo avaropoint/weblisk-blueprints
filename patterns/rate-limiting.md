@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: rate-limiting
-version: 1.1.8
-requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent]
+version: 1.2.0
+requires: [protocol/types, protocol/identity]
 platform: any
 tier: free
 -->
@@ -58,27 +58,13 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/gateway
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: GatewayConfig
-          fields_used: [rate_limiting, routes, trusted_proxies]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentConfig
-          fields_used: [agent_rate_limits]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
 ```
+
+The gateway and the agent bind this pattern; it binds neither of them
+([`schemas/common`](../schemas/common.md#field-constraints), `requires`).
+Where the gateway keeps its limits is its own configuration's
+([`architecture/gateway`](../architecture/gateway.md)), and where an agent
+keeps its upstream budget is `AgentConfig`'s.
 
 ---
 
@@ -137,6 +123,54 @@ contracts:
     - path: /v1/admin/rate-limits/reset
       description: Reset counters for a specific key
       inherited_by: Admin Operations section
+```
+
+---
+
+## Types
+
+```yaml
+types:
+  RateLimitStatus:
+    description: Where one key stands against its limit, as the response headers of Response Behavior carry it
+    fields:
+      status:
+        type: enum
+        values: [allowed, limited]
+        required: true
+        description: allowed when the request was let through; limited when it was answered 429
+      limit:
+        type: int
+        required: true
+        description: Requests allowed in the window (X-RateLimit-Limit)
+      remaining:
+        type: int
+        required: true
+        description: Requests left in the window (X-RateLimit-Remaining)
+      reset:
+        type: int64
+        required: true
+        description: When the window resets, a NumericDate (X-RateLimit-Reset)
+      retry_after:
+        type: int
+        required: false
+        description: Seconds until a retry may succeed (Retry-After); set when status is limited
+
+  UpstreamRateLimit:
+    description: A component's own budget for calls to one external service (Agent-Level Rate Limiting)
+    fields:
+      requests:
+        type: int
+        required: true
+        description: Requests allowed per window; 0 means unlimited
+      window:
+        type: int
+        required: false
+        description: The window in seconds; required unless requests is 0
+      burst:
+        type: int
+        required: false
+        description: Requests allowed at once above the steady rate
 ```
 
 ---
@@ -265,7 +299,7 @@ limits to respect upstream API quotas:
 
 ```yaml
 # Example: AI agent external API budget
-agent_rate_limits:
+upstream_rate_limits:
   openai_api:
     requests: 60
     window: 60
@@ -275,7 +309,10 @@ agent_rate_limits:
 ```
 
 Agent rate limits are configured in the agent's own configuration,
-not in the gateway. The gateway does not manage agent-to-external
+not in the gateway: `AgentConfig.upstream_rate_limits`
+([`architecture/agent`](../architecture/agent.md#agentconfig)), each value an
+`UpstreamRateLimit` keyed by the external service it budgets. This pattern
+declares the type; the agent's configuration binds it, never the reverse. The gateway does not manage agent-to-external
 rate limits.
 
 ---

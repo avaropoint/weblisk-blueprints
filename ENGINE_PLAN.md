@@ -89,6 +89,10 @@ operation types, the `question` event, and the operation catalogue
 events, records and driving documents of each operation. What remains here is
 migration: which of today's commands fold into which operation.
 
+**The envelope's instant is `at`.** The CLI's first streams wrote it as
+`instant`; [`architecture/engine`](architecture/engine.md#events) keeps `at`
+as normative (owner's decision, 2026-11-04), and the CLI changes to it.
+
 **Folded or deleted**
 
 | Today | Becomes |
@@ -99,7 +103,8 @@ migration: which of today's commands fold into which operation.
 | `test mock-orchestrator` | Deleted from the tools. The mock that [`architecture/testing`](architecture/testing.md#mock-orchestrator) specifies is built from that specification, like any other component |
 | `pattern apply` | Deleted: it is a legacy pipeline with no plan, no ownership check, no build and no conformance |
 | `deploy rollback` | `change revert` |
-| `app new` · `dev` · `build` · `vendor`, `update`, `marketplace *`, `deps audit`, `gateway policy *`, `doctor` | Not yet driven by the corpus (decision 8) |
+| `app new` · `dev` · `build` · `vendor`, `update`, `marketplace *`, `deps audit`, `gateway policy *`, `doctor` | Leave the tools until a corpus document defines them (decision 8, with `doctor` and `update` added on 2026-11-04) |
+| `version`, `help`, `commands` | Stay, as front-end-only commands: they describe the tool itself, so they are not operations and the manifest does not list them (2026-11-04; [`architecture/engine`](architecture/engine.md#front-end-only-commands)) |
 
 ---
 
@@ -331,6 +336,18 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 | `ACCEPTANCE_PLAN` "What counts" | A test the generator wrote does not count | That stays true; a test translated under the four conditions counts | Open: the row is ACCEPTANCE_PLAN's to amend; the four conditions are [`architecture/engine`](architecture/engine.md#what-makes-a-translated-test-count)'s |
 | Studio's MISSION.md | Studio's standards, adoption and evidence work needs no CLI equivalent | Every operation is reachable from both front ends | Open: Studio's to amend |
 
+## Open items
+
+Deferred by the owner on 2026-11-04, each until the condition its row names,
+and one found the same day that waits for the owner. Nothing here is decided;
+each row says what stays true until it is.
+
+| Item | Stays | Until | Where it is stated |
+|---|---|---|---|
+| The Rust crate for ML-DSA | **UNFILLED**. A generation for Rust is refused before any model call, naming the row | the owner names a crate | [`languages/rust`](languages/rust.md#primitive-mapping) |
+| Where `agents/hub` keeps its key | `.weblisk/keys/hub/`, as its startup says, against [`protocol/identity`](protocol/identity.md#key-files)'s `<name>.key`, because `hub.key` is the hub key | the owner renames the agent or names its key file. Found 2026-11-04, not decided | [`agents/hub`](agents/hub.md) |
+| A storage conditional-put primitive | not required of any backend | more than one instance may answer for a hub (`instances.max` above 1 in [`schemas/kinds`](schemas/kinds.md#component-kinds)) | [`architecture/storage`](architecture/storage.md#what-a-backend-must-be) |
+
 ## Decisions
 
 Decided by the owner on 2026-11-03.
@@ -358,7 +375,10 @@ Decided by the owner on 2026-11-03.
 7. **Either front end may create a tenant**, on the host the tenant will live
    on, by a signed-in operator.
 8. **Commands no corpus document drives leave the tools** until one defines
-   them: `app *`, `marketplace *`, `deps audit` and `gateway policy *`.
+   them: `app *`, `marketplace *`, `deps audit` and `gateway policy *`, and,
+   added on 2026-11-04, `doctor` and `update`. `version`, `help` and
+   `commands` stay as front-end-only commands, because they describe the tool
+   itself ([`architecture/engine`](architecture/engine.md#front-end-only-commands)).
 9. **Ids for the unmarked checklist items** are minted in one mechanical pass,
    then frozen.
 10. **Model transcripts are kept in the tenant's record**, as the account of

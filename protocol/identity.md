@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.2.0
+version: 3.3.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -198,6 +198,47 @@ requires:
 - Private key files MUST have restrictive permissions (readable only by the owning process)
 - Public key files contain the base64url-encoded public key
 - On startup: load existing keys if present, generate new ones if absent
+
+### Key Files
+
+A tenant keeps its service keys under `.weblisk/keys/`, mode 0700, which the
+tenant's `.gitignore` excludes
+([`architecture/cli`](../architecture/cli.md#weblisk-tenant-create-name)).
+These are the files a tool may name there:
+
+| File | Holds | Written by |
+|---|---|---|
+| `<name>.key` | A registering service's private key, as a `weblisk-key-v1` envelope ([Private Key Format](#private-key-format)), where `<name>` is the name it registers under. The orchestrator's token-signing key is `orchestrator.key`. `hub` names the hub key below, so a service registering as `hub` cannot keep its key here: [`agents/hub`](../agents/hub.md) is the one such blueprint, and where its key lives is an open item ([`ENGINE_PLAN.md`](../ENGINE_PLAN.md#open-items)) | the service, at its first start ([Key Loading Flow](#key-loading-flow)) |
+| `hub.key` | The key the orchestrator was first created with, whose fingerprint is the hub's `hub_id` ([`architecture/orchestrator`](../architecture/orchestrator.md#startup-sequence) step 1). Kept after the orchestrator's key rotates, to sign `weblisk/hub-proof/v1` and nothing else ([Recommended Rotation Schedule](#recommended-rotation-schedule)) | the orchestrator, at its first start |
+| `hub.pub` | The public half of `hub.key`, base64url-encoded on one line, so that the hub's `hub_id` can be read without opening an encrypted key | whoever holds `hub.key` open, below |
+| `admin-gateway.key`, `admin-gateway.pub` | The admin gateway's registration key and its public half | [`architecture/admin`](../architecture/admin.md#registration-lease-and-identity) |
+
+**`hub.pub` holds a public key and nothing else.** It is one base64url public
+key of the length ML-DSA-65 gives (1952 bytes decoded), and a line feed. It
+MUST NOT hold any part of a private key, a seed, a passphrase or a KDF
+parameter: a reader that finds anything else in it treats the file as
+unreadable, never as a key. <!-- wl:id hub-pub-public-only -->
+
+**Whoever holds `hub.key` open writes `hub.pub`.** A tool that opens the hub
+key, because it was given the key's passphrase or because the key's `kdf` is
+`none`, derives the public half and writes it to `hub.pub` before it clears
+the private half. The CLI does so at `weblisk server start`, at
+`weblisk tenant create` once the orchestrator's first start has made the key,
+and at a rotation of the orchestrator's key, which leaves `hub.key` unchanged
+and so rewrites `hub.pub` with the same public key
+([`architecture/cli`](../architecture/cli.md#the-hub-public-key-file)). It is
+written mode 0644 by replacing the file whole, never by appending. <!-- wl:id hub-pub-written-by-holder -->
+
+**A stale or mismatched `hub.pub` is corrected by the next start, and said.**
+Every write compares the public half it derived with the `hub.pub` already
+there. Where they differ, or the file is unreadable, it replaces the file and
+reports the old and new fingerprints as a warning, because a `hub.pub` that
+does not match its key is stale or was put there by somebody else. A reader
+that cannot open `hub.key` judges `hub.pub` stale where it was last written
+before `hub.key` was, and reads no `hub_id` from it then. A `hub_id` read from
+`hub.pub` is what this directory says of itself, not a proof: a client that
+must know the hub at an address asks it for `weblisk/hub-proof/v1`
+([`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address)). <!-- wl:id hub-pub-staleness -->
 
 ### Key Fingerprint
 
@@ -1676,3 +1717,4 @@ Implementation MUST:
 - [ ] Backup operator can remove a compromised operator, whose person then registers again under a new name and a new identity id ([Recovery via Backup Operator](#recovery-via-backup-operator)) <!-- wl:check backup-operator-remove-compromised-operator -->
 - [ ] Bootstrap reset (all keys lost) requires orchestrator restart and re-registration ([Recovery via Bootstrap Reset](#recovery-via-bootstrap-reset)) <!-- wl:check bootstrap-reset-keys-lost-requires-orchestrator -->
 - [ ] No identity, token, attestation or signed record uses a quantum-vulnerable algorithm ([Post-Quantum Cryptography](#post-quantum-cryptography)) <!-- wl:check no-identity-token-attestation-signed-record -->
+- [ ] `.weblisk/keys/hub.pub` holds one base64url ML-DSA-65 public key and nothing else; a tool that opens `hub.key` writes it whole from the key's public half, replaces one that differs or is unreadable and warns naming both fingerprints, and a reader that cannot open `hub.key` reads no `hub_id` from a `hub.pub` written before `hub.key` was ([Key Files](#key-files)) <!-- wl:check hub-pub-declared covers hub-pub-public-only hub-pub-written-by-holder hub-pub-staleness -->

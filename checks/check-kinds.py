@@ -22,6 +22,11 @@ and selectors schemas/kinds.md declares. A check is refused when:
 - a step is made `as` an identity no fixture declares, or a placeholder names
   a fixture architecture/testing.md's fixtures block does not declare;
 - `applies_to` names neither a component kind nor a selector.
+
+Every endpoint a file serves (a declaration's `serves` list, or a `serves`
+block's `http`) names its `auth` in the closed vocabulary `endpoint-auth`:
+`none`, `identity`, `token`, or a capability protocol/types' Capability
+section lists (schemas/blocks.md, "Which endpoints are protected").
 """
 import glob, json, os, re, sys
 
@@ -99,6 +104,50 @@ def component_selectors():
     return set((b.get("kinds") or {}).keys()) | set((b.get("selectors") or {}).keys())
 
 
+def capabilities():
+    """Every capability name protocol/types.md's Capability section lists."""
+    text = text_of(os.path.join(CORPUS, "protocol/types.md"))
+    m = re.search(r"^### Capability\n(.*?)^### ", text, re.S | re.M)
+    return set(re.findall(r"^- `([a-z]+:[a-z*]+)`", m.group(1), re.M)) if m else set()
+
+
+AUTH_WORDS = set(DEFS["endpoint-auth"]["anyOf"][0]["enum"])
+CAPABILITIES = capabilities()
+
+
+def serves_auth(rel, text):
+    """Each served endpoint's auth is a word of endpoint-auth or a declared capability."""
+    out = []
+    for m in FENCE.finditer(text):
+        try:
+            v = yaml.load(m.group(1), Loader=Core)
+        except yaml.YAMLError:
+            continue
+        line = text.count("\n", 0, m.start()) + 2
+        stack = [v]
+        while stack:
+            x = stack.pop()
+            if isinstance(x, list):
+                stack.extend(x)
+                continue
+            if not isinstance(x, dict):
+                continue
+            stack.extend(x.values())
+            if not isinstance(x.get("serves"), list):
+                continue
+            for e in x["serves"]:
+                if not isinstance(e, dict):
+                    continue
+                http = e.get("http") if isinstance(e.get("http"), dict) else e
+                if "auth" not in http:
+                    continue
+                a = http["auth"]
+                if a not in AUTH_WORDS and a not in CAPABILITIES:
+                    name = e.get("operation") or e.get("id") or http.get("path")
+                    out.append(f"{rel}:{line}: endpoint {name!r} has auth {a!r}, which is neither a word of endpoint-auth nor a capability protocol/types lists")
+    return out
+
+
 QUERIES, SELECTORS = queries(), component_selectors()
 FIXTURES, FIXTURE_NAMES = fixtures()
 
@@ -164,21 +213,46 @@ def judge(rel, line, entry, own_parts):
     return out
 
 
+def test_tokens(rel, text):
+    """architecture/testing.md: test_tokens declares exactly the minted values of exchange-request's token."""
+    want = set(DEFS["exchange-request"]["properties"]["token"]["enum"]) - {"none", "captured"}
+    b = None
+    for m in FENCE.finditer(text):
+        try:
+            v = yaml.load(m.group(1), Loader=Core)
+        except yaml.YAMLError:
+            continue
+        if isinstance(v, dict) and "test_tokens" in v:
+            b = v["test_tokens"]
+    if not isinstance(b, dict) or not isinstance(b.get("tokens"), dict):
+        return [f"{rel}: no test_tokens block declaring the tokens a step may name"]
+    got, out = set(b["tokens"]), []
+    if b.get("signed_by") not in FIXTURES:
+        out.append(f"{rel}: test_tokens are signed by {b.get('signed_by')!r}, which no identity fixture declares")
+    out += [f"{rel}: token {k!r} is a value of exchange-request's token and test_tokens does not declare it" for k in sorted(want - got)]
+    out += [f"{rel}: test_tokens declares {k!r}, which is no value of exchange-request's token" for k in sorted(got - want)]
+    for k, e in sorted(b["tokens"].items()):
+        if isinstance(e, dict) and e.get("from") is not None and e["from"] not in got:
+            out.append(f"{rel}: token {k!r} is from {e['from']!r}, which test_tokens does not declare")
+    return out
+
+
 def suite(rel, text):
-    """architecture/testing.md: every conformance test heading has its check."""
+    """architecture/testing.md: every conformance test heading has its check, and every minted token is declared."""
     if rel != "architecture/testing.md":
         return []
+    tokens = test_tokens(rel, text)
     tests = re.findall(r"^#### (L[0-9]-[0-9]{2}):", text, re.M)
     ids = {e.get("id", "") for _, es in verifies_blocks(text) for e in es or [] if isinstance(e, dict)}
     out = [f"{rel}: conformance test {tid} has no check in the suite's data"
            for tid in tests if not any(i.startswith(tid.lower() + "-") for i in ids)]
     if not tests:
         out.append(f"{rel}: no conformance test headings found")
-    return out
+    return out + tokens
 
 
 def judge_file(rel, text):
-    out, n, kinds = suite(rel, text), 0, {}
+    out, n, kinds = suite(rel, text) + serves_auth(rel, text), 0, {}
     own = parts_of(text)
     for line, entries in verifies_blocks(text):
         for e in entries or []:
