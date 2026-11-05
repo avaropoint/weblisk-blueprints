@@ -1529,6 +1529,50 @@ else
 	fails=$((fails + 1))
 fi
 
+# Every criterion's acceptance class, derived from the corpus's own structure
+# (architecture/generation, How a criterion gets its class): the register the
+# engine reads is a fresh derivation, every control ref in the threat model
+# resolves, and each class's share is held within 2 points of what was
+# measured. Taking one control ref out of a copy of the threat model moves
+# exactly the criteria it alone credited, and nothing else; a ref that names
+# nothing fails.
+expect 0 "acceptance-classes: the register is fresh, every control ref resolves, each class's share holds" python3 checks/acceptance-classes.py --check --expect S=14.5,J=2.2,B=78.8,E=2.8,F=1.8 --within 2
+acref='architecture/storage#sealing-a-chained-log'
+sed "s|\`$acref\`|—|g" architecture/threat-model.md >"$tmp/tm-less.md"
+python3 checks/acceptance-classes.py --credits "$acref" >"$tmp/ac-credited"
+python3 checks/acceptance-classes.py --json >"$tmp/ac-before.json"
+python3 checks/acceptance-classes.py --json --threat-model "$tmp/tm-less.md" >"$tmp/ac-after.json"
+if python3 - "$tmp/ac-credited" "$tmp/ac-before.json" "$tmp/ac-after.json" >"$tmp/out" 2>&1 <<'PY'
+import json, sys
+credited = set(open(sys.argv[1]).read().split())
+a, b = (json.load(open(p))["criteria"] for p in sys.argv[2:4])
+changed = {k for k in a if a[k] != b.get(k)}
+moved = {k for k in changed if a[k]["class"] != b[k]["class"]}
+still = credited - moved
+ok = credited and changed == credited and all(b[k]["class"] == "S" and b[k]["class_by"].startswith("rule 2") for k in still)
+print(f"{len(credited)} credited, {len(moved)} moved class, {len(changed - credited)} changed outside them")
+sys.exit(0 if ok else 1)
+PY
+then
+	echo "ok   acceptance-classes control: removing $acref moves exactly the criteria it alone credited"
+else
+	echo "FAIL acceptance-classes control: removing $acref did not move exactly the criteria it alone credited"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+python3 -c 'import json, sys; r = json.load(open("checks/acceptance-classes.json", encoding="utf-8")); k = sorted(r["criteria"])[0]; r["criteria"][k]["class"] = "F" if r["criteria"][k]["class"] != "F" else "B"; json.dump(r, sys.stdout, indent=1, ensure_ascii=False)' >"$tmp/ac-stale.json"
+expect 1 "acceptance-classes control: a register with one class changed is stale" python3 checks/acceptance-classes.py --check --register "$tmp/ac-stale.json"
+grep -q '1 criteria differ' "$tmp/out" || { echo "FAIL acceptance-classes control: the changed class was not what was reported"; fails=$((fails + 1)); }
+python3 -c 'import sys; t = open("architecture/threat-model.md", encoding="utf-8").read(); sys.stdout.write(t.replace("`patterns/content-identity`", "`patterns/content-identity:no-such-requirement`", 1))' >"$tmp/tm-bad.md"
+expect 1 "acceptance-classes control: a control ref that names nothing fails" python3 checks/acceptance-classes.py --threat-model "$tmp/tm-bad.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q 'no-such-requirement names an id the file does not write' "$tmp/out"; then
+	echo "ok   acceptance-classes control: exactly one finding, the ref that names nothing"
+else
+	echo "FAIL acceptance-classes control: want exactly one finding, the ref that names nothing"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 [ "$notrun" -gt 0 ] && echo "checks: $notrun verifier leg(s) NOT RUN (see above)"
 [ "$fails" -eq 0 ] && echo "checks: all pass" || echo "checks: $fails failed"
 [ "$fails" -eq 0 ]
