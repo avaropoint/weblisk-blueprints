@@ -10,6 +10,10 @@
       "valid": true
     },
     {
+      "file": "valid-accepted.json",
+      "valid": true
+    },
+    {
       "file": "invalid-action-id.json",
       "valid": false,
       "breaks": "action-id"
@@ -88,6 +92,11 @@
       "file": "invalid-reading-action.json",
       "valid": false,
       "breaks": "reading-action"
+    },
+    {
+      "file": "invalid-verdict-classes.json",
+      "valid": false,
+      "breaks": "verdict-classes"
     }
   ]
 }

@@ -9,6 +9,15 @@
 >
 > Written 2026-11-03, measured against the development tenant's rebuild in
 > change `6f533b1a`, at corpus `70c923d`.
+>
+> **Landed (E3):** the five classes, their derivation and build acceptance in
+> [`architecture/generation`](architecture/generation.md#acceptance), derived
+> by [`checks/acceptance-classes.py`](checks/acceptance-classes.py) into the
+> register the engine reads; the registration slot in
+> [`schemas/architecture`](schemas/architecture.md#sections); `accepted` and
+> per-class counts in [`schemas/run-statement`](schemas/run-statement.md#the-verdict-a-run-ends-with);
+> outcome `accepted` and `repair` because `gaps` in [`schemas/change`](schemas/change.md#verdicts).
+> Its first measure, of 3,206 criteria: S 463, J 70, B 2,527, E 89, F 57.
 
 ---
 

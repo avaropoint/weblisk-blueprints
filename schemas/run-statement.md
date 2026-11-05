@@ -73,7 +73,9 @@ run_statement:
         on_behalf_of: <identity id of the operator who asked for the run>
         result: complete | failed | stopped   # how the run ended; see A run that did not complete
         verdict:                   # a complete run's verification; see The verdict a run ends with
-          conformance: established | refuted | not-run
+          conformance: established | accepted | refuted | not-run
+          classes:                 # per class, as the gate counted the criteria; a class it did not count is absent
+            S: {met: <count>, unmet: <count>, unsettled: <count>}   # and J, B, E, F likewise
           assertions: <count>      # the checklist's assertions, and how each ended
           satisfied: <count>
           unmet: <count>
@@ -229,15 +231,25 @@ returned on the tree the run ended on, with the counts it was reached from:
 
 | `conformance` | When |
 |---|---|
-| `established` | the gate verified the artifact |
-| `refuted` | the gate settled against it: a requirement unmet, a conformance test failing, or a build that does not build |
+| `established` | the gate verified the artifact: every criterion owed settled as met |
+| `accepted` | build acceptance holds ([`architecture/generation`](../architecture/generation.md#build-acceptance)): it builds and starts, no conformance test counts against it, and every S and J criterion is met; gaps of class B, E or F are recorded |
+| `refuted` | the gate settled against it: a conformance test failing, an S, J or unclassed criterion not met, or a build that does not build or start |
 | `not-run` | the run completed and the gate reached no verdict: inconclusive, or not reached |
 
-The counts are the checklist's, as the gate counted them; one the gate did not
-count is absent, never `0`. **A component whose latest run is not complete
-with conformance `established` is never kept as built**: an adoption's plan
-names it `regenerate` or `repair` ([`schemas/change`](change.md#verdicts)), so
-a build that failed is never mistaken for a service the tenant has.
+The counts are the gate's, as it counted them; one the gate did not count is
+absent, never `0`. `classes` counts the run's criteria by their class
+([`architecture/generation`](../architecture/generation.md#how-a-criterion-gets-its-class)):
+`met` those whose verdict is `pass`, `unmet` those whose verdict is `fail` or
+`error`, `unsettled` those whose verdict is `not-run`. Each gap is on its
+criterion ([Criteria](#criteria)), never repeated on the verdict. An
+`accepted` verdict is never read or shown as `established`.
+
+**A component whose latest run is not complete with conformance `established`
+or `accepted` is never kept as built**: an adoption's plan names it
+`regenerate` or `repair` ([`schemas/change`](change.md#verdicts)), so a build
+that failed is never mistaken for a service the tenant has. One whose latest
+run is `accepted` is kept, and planned `repair`, because `gaps`, so adopting is
+always the act that closes them.
 
 ## Signing
 
@@ -436,4 +448,6 @@ rules:
     rule: a criterion settled by translated tests has verdict pass only when each of its tests has stub failed
   - id: verdict-result
     rule: every verdict's result is pass, fail, error or not-run; a gap's result is unmet, unsettled or failed
+  - id: verdict-classes
+    rule: a run's verdict conformance is established, accepted, refuted or not-run; where it carries classes, each is S, J, B, E or F and counts that class's criteria, met those whose verdict is pass, unmet fail or error, unsettled not-run; an accepted verdict counts no S or J criterion unmet or unsettled, and an established one none of any class
 ```

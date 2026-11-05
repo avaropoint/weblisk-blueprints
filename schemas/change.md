@@ -121,7 +121,7 @@ change:
     - component: <component ref>
       result: built | failed | refused | skipped
       verdict:                     # the build's own, never the plan's
-        outcome: verified | failed | inconclusive | unchecked
+        outcome: verified | accepted | failed | inconclusive | unchecked   # accepted: build acceptance with gaps, never verified
         detail: <text>
   config_edits:                    # a backend driver change the plan was made as though done
     - path: <schemas/config path, e.g. content.backends[local].driver>
@@ -202,7 +202,7 @@ below and nothing else.
 |---|---|
 | `generate` | `absent`, `non-compliant` |
 | `regenerate` | `reached-by-change`, `incomplete` (the second for a component its latest run did not finish building: apply resumes that run, and every file it banked is reused) |
-| `repair` | `refuted`, `unverified` (a component whose latest run completed and whose verification refuted it, or reached no verdict on it: apply resumes its repair loop on the tree that run ended on) |
+| `repair` | `refuted`, `unverified`, `gaps` (a component whose latest run completed and whose verification refuted it, reached no verdict on it, or accepted it with gaps recorded: apply resumes its repair loop on the tree that run ended on) |
 | `translate` | `absent`, `criterion-moved` (a translated test: the first for a criterion with no test yet, the second for one whose criterion's digest moved since its test was translated) |
 | `review` | `reached-by-change`, `unmaintained`, `older-instruction` (the first for a node a person must look at, such as a document or a control; the second for a component an input reaches whose bytes moved and whose version did not; the third for a test, a plan or a file made under an instruction since revised, which is kept until somebody chooses to make it again) |
 | `redeploy` | `reached-by-change` |
@@ -233,8 +233,11 @@ built, and reads the answer from the component's latest run statement
 ([`schemas/run-statement`](run-statement.md#the-verdict-a-run-ends-with)): a
 run that did not complete is `regenerate`, because `incomplete`; one that
 completed with its conformance `refuted` is `repair`, because `refuted`; one
-that completed with conformance `not-run` is `repair`, because `unverified`.
-Only a complete run whose conformance is `established` is `keep`. Each is a
+that completed with conformance `not-run` is `repair`, because `unverified`;
+one that completed with conformance `accepted` is kept as built and planned
+`repair`, because `gaps`, so adopting is always the act that closes them, and
+is never shown as `keep`. Only a complete run whose conformance is
+`established` is `keep`. Each is a
 `build_set` component, and apply builds each as its verdict says: `generate`
 and `regenerate` through generation, the second resuming its run; `repair`
 never through generation — it takes the tree the run ended on, plans nothing
@@ -323,7 +326,7 @@ rules:
   - id: config-edit
     rule: each config_edits entry names path, kind, backend, from, to and blueprint, and to is a driver blueprint declares; applied is set only in states applied, verified and failed, and only after that component was built
   - id: outcomes-present
-    rule: outcomes is present only in states applied, verified and failed; each entry has component, a result of built, failed, refused or skipped, and a verdict whose outcome is verified, failed, inconclusive or unchecked
+    rule: outcomes is present only in states applied, verified and failed; each entry has component, a result of built, failed, refused or skipped, and a verdict whose outcome is verified, accepted, failed, inconclusive or unchecked
 ```
 
 ## Reading one
@@ -335,7 +338,9 @@ rules:
   true` is: nobody approved it, and the operator at the tenant's host applied it.
 - An outcome's `verdict` is the build's own ([`architecture/generation`](../architecture/generation.md#the-verification-gate)).
   An applied change says what was built and whether it was verified; it never
-  turns a build that was not verified into a pass.
+  turns a build that was not verified into a pass. `accepted` is build
+  acceptance with gaps recorded ([`architecture/generation`](../architecture/generation.md#build-acceptance)):
+  the tree is kept, and it is never shown as `verified`.
 - An entry of phase F is labelled as the model's proposed files wherever it is
   shown, until part ids make that phase deterministic.
 - `shown_roots` is display. The roots each output traces to are recorded in its

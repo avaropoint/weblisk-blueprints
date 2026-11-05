@@ -119,6 +119,19 @@ def broken(s):
         if v.get("result") not in ("pass", "fail", "error", "not-run"): b.add("verdict-result")
         if "gap" in c and c["gap"].get("result") not in ("unmet", "unsettled", "failed"): b.add("verdict-result")
         if sb == "translated" and v.get("result") == "pass" and any(t.get("stub") != "failed" for t in tests): b.add("test-counts")
+    verdict = ip.get("verdict")
+    if verdict is not None:
+        conf, classes = verdict.get("conformance"), verdict.get("classes")
+        if conf not in ("established", "accepted", "refuted", "not-run"): b.add("verdict-classes")
+        if classes is not None:
+            want = {}
+            for c in crits:
+                res = (c.get("verdict") or {}).get("result")
+                n = want.setdefault(c.get("class"), {"met": 0, "unmet": 0, "unsettled": 0})
+                n["met" if res == "pass" else "unmet" if res in ("fail", "error") else "unsettled"] += 1
+            if set(classes) - {"S", "J", "B", "E", "F"} or classes != want: b.add("verdict-classes")
+            if conf == "accepted" and any(classes.get(k, {}).get(x) for k in ("S", "J") for x in ("unmet", "unsettled")): b.add("verdict-classes")
+            if conf == "established" and any(n.get("unmet") or n.get("unsettled") for n in classes.values()): b.add("verdict-classes")
     return b
 
 

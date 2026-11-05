@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 3.0.1
+version: 3.1.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -2022,6 +2022,101 @@ for its vectors points here rather than restating the steps. The test is
 the only code that reads a vector key, and nothing a component ships loads one
 ([a vector key is no one's identity](../protocol/identity.md#fixed-form-statements)).
 
+## Acceptance
+
+Whether a tree may be kept as a component's code is decided by the one
+conformance suite ([`architecture/engine`](engine.md#the-one-conformance-suite))
+and by the rules below, and by nothing else. A model's reading of a tree is
+advice ([`architecture/engine`](engine.md#what-the-model-may-not-do),
+`model-reads-are-advice`); it never moves a verdict and never moves a class.
+The plan of this part, and its measurements, are
+[`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md)'s.
+
+### Five classes
+
+| Class | Unmet means |
+|---|---|
+| **S** security invariant | someone can do, read or sign what they should not; an identity, a signature, a scope, a custody rule or a secret does not hold |
+| **J** contract | the component cannot join, or another component cannot use what it binds |
+| **B** own behaviour | the component does the wrong thing inside access it grants correctly |
+| **E** evidence | the act happens and its record is missing or incomplete |
+| **F** form | the code's shape is wrong; nothing a caller observes changes |
+
+### How a criterion gets its class
+
+Every criterion ([`architecture/engine`](engine.md#the-unit-is-a-criterion))
+has exactly one class, decided where it is declared and owed with it by every
+component that owes it. The rules are taken in order, and the first that
+matches gives the class. Each reads only what the corpus already holds; no
+criterion is classed by hand. <!-- wl:id class-by-first-rule -->
+
+| # | Rule | Reads | Class |
+|---|---|---|---|
+| 1 | The criterion, a requirement it covers, the contract behaviour it sits in or names, a section it sits under or links to, or its blueprint is named by a ref in a `Control refs` cell of [`architecture/threat-model`](threat-model.md#attack-surface-map) | the threat model's Control refs, as refs | S |
+| 2 | It requires a refusal at `401` or `403`, or names an error code the [`protocol/types`](../protocol/types.md) errors tables give one of those statuses | the item's text; the errors tables, by their Code and HTTP columns | S |
+| 3 | It sits under or links to a component's registration section (the `registration` slot of [`schemas/architecture`](../schemas/architecture.md#sections)), or it governs a behaviour, endpoint, type or event that another service of the [services table](../schemas/programme.md#the-services-in-the-order-they-are-built) binds in its `## Dependencies` | the slot's heading and aliases; each binder's `bindings` | J |
+| 4 | Its blueprint's header type is `language` or `platform`, and it names no route, status, error code, header, event or environment variable | the header; the item's text | F |
+| 5 | Its obligation is a record: an `AuditEntry`, a `LogEntry`, a trace or span field, a log line, an emitted event | the item's text | E |
+| 6 | anything else | — | B |
+
+The audit record of a security act is security class (ACCEPTANCE_PLAN,
+decision 2): rule 1 credits a behaviour the threat model names whole, its
+audit rule included, before rule 5 is read.
+
+The derivation is [`checks/acceptance-classes.py`](../checks/acceptance-classes.py),
+and what it derives is the register
+[`checks/acceptance-classes.json`](../checks/acceptance-classes.json): each
+criterion's full ref (`<file>:<id>`), its class, and `class_by`, the rule and
+the ref that gave it. `checks/run.sh` holds the register to be a fresh
+derivation of the corpus it is committed in, and refuses a control ref that
+resolves to nothing.
+
+A tool MUST read a criterion's class from the register, at the corpus revision
+the build is pinned to, and MUST NOT decide, default or override one. <!-- wl:id classes-read-from-register -->
+
+A criterion the register does not class (a corpus revision without the
+register, or a source other than the one it was derived from) MUST be treated
+as blocking, as an S or J criterion is, and reported as unclassed, never as
+any class. <!-- wl:id unclassed-blocks -->
+
+### Build acceptance
+
+Decided in the sealed run ([`architecture/engine`](engine.md#build-time-and-run-time)):
+a scratch directory, `WL_DEV=1`, loopback only, no persistent store, removed
+after. No person decides it and no person can vouch for it. The conformance
+tests are the checks [`architecture/testing`](testing.md) declares.
+
+A tree is build-accepted when, on the tree the repair loop returns:
+
+1. its dependencies resolve and it builds (Layers 1 and 2);
+2. it starts in its sealed run, and no conformance test counts against it,
+   Level 4 included; a component that exits during startup fails L4-01;
+3. every S and J criterion it owes, and every criterion the register does not
+   class, is settled by a check or test that passed, or is not applicable by
+   an explicit premise test; unmet, unsettled, failed and unclassed all count
+   as unmet;
+4. every other criterion not settled as met is recorded as a gap with its
+   class.
+
+A tree MUST be refuted when any of 1 to 3 fails, and MUST NOT be kept as
+built, though it is banked as the best tree as before. <!-- wl:id gate-refutes -->
+
+| Run statement `conformance` | When |
+|---|---|
+| `established` | every criterion owed is settled as met |
+| `accepted` | 1 to 3 hold; gaps of class B, E or F are recorded |
+| `refuted` | any of 1 to 3 fails |
+| `not-run` | the gate did not run, or nothing owed was judged |
+
+An `accepted` tree MUST be recorded with each gap on its criterion
+([`schemas/run-statement`](../schemas/run-statement.md#criteria)) and with
+the per-class counts on its verdict, and MUST NOT be shown or counted as
+`established`. <!-- wl:id accepted-is-not-established -->
+
+Whether an accepted tree may start, and exposed to whom, is runtime
+acceptance, a person's signed decision, and is ACCEPTANCE_PLAN's until it
+lands in [`architecture/cli`](cli.md) and [`schemas/change`](../schemas/change.md).
+
 ---
 
 ## Security
@@ -2220,3 +2315,7 @@ and "nothing contradicted it".
 - [ ] A component whose blueprint declares a kind is generated with a handler at the uniform address for every operation and verb that binds nothing, a feed route for every kind with `events`, each among its `pass_routes`, and its manifest's `resources`; a bound operation gains no second handler ([Resources](#resources)) <!-- wl:check component-blueprint-declares-kind-generated -->
 - [ ] Creating a tenant, generating a component and adding one each leave a `.weblisk/resources.json` naming the corpus revision it was read from and every Resources block in it, with whether the tenant declares each owner ([Resources](#resources)) <!-- wl:check creating-tenant-generating-component-adding -->
 - [ ] Conformance performs every declared operation and verb through the admin gateway on an operator token minted for the run, and reports an operation it could not perform that way as not exercised, never as passed ([Resources](#resources)) <!-- wl:check conformance-performs-declared-operation-verb -->
+- [ ] Every criterion's class is the one the first matching rule of the six gives, read only from the corpus, and none is classed by hand ([How a criterion gets its class](#how-a-criterion-gets-its-class)) <!-- wl:check criterions-class-first-matching-rule-six covers class-by-first-rule -->
+- [ ] A build reads each class from `checks/acceptance-classes.json` at its pinned corpus revision, never decides or overrides one, and treats a criterion the register does not class as blocking, reported unclassed ([How a criterion gets its class](#how-a-criterion-gets-its-class)) <!-- wl:check build-reads-class-checks-acceptance-classes covers classes-read-from-register unclassed-blocks -->
+- [ ] A tree that does not build or start, against which a conformance test counts, or with an S, J or unclassed criterion not met by a check that passed, is refuted and never kept as built ([Build acceptance](#build-acceptance)) <!-- wl:check tree-not-build-start-against-conformance covers gate-refutes -->
+- [ ] A tree accepted with gaps of class B, E or F records each gap on its criterion and the per-class counts on its verdict, and is never shown or counted as established ([Build acceptance](#build-acceptance)) <!-- wl:check tree-accepted-gaps-class-b-e covers accepted-is-not-established -->

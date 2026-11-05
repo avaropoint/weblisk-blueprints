@@ -83,6 +83,14 @@
         "outcome": "inconclusive",
         "detail": "two assertions were left unanswered"
       }
+    },
+    {
+      "component": "component://example/orchestrator",
+      "result": "built",
+      "verdict": {
+        "outcome": "accepted",
+        "detail": "builds and starts; every S and J criterion met; 11 gaps of class B, E and F recorded"
+      }
     }
   ]
 }
