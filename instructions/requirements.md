@@ -1,6 +1,6 @@
 ---
 family: schemas/instruction@1
-version: 1.0.0
+version: 1.0.1
 in: [plan]
 ---
 # The requirements a plan places
@@ -35,8 +35,8 @@ are what it serves, each with its method, its path and the operation its
 blueprint declares: spell every symbol for an endpoint from its operation,
 through the platform blueprint's mapping, and never from its path. unnamed
 are endpoints whose blueprint declares no operation, and each is a gap.
-operations are the store operations the component owns, named as
-architecture/storage declares them, and used exactly as named. criteria are
+operations are the store operations the component owns, named as the
+owner's Storage section declares them, and used exactly as named. criteria are
 the Verification Checklist items the implementation must satisfy, each with
 the blueprint it is from. adopted are opt-in blueprints this tenant's
 configuration adopts, each with the setting that adopts it: their surface is
