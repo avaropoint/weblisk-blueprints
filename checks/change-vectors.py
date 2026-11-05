@@ -90,7 +90,7 @@ def change_broken(c):
     if ("applied_run" in c) != (st in APPLIED): b.add("applied-run")
     if "outcomes" in c and (st not in APPLIED or not all(
             o.get("component") and o.get("result") in ("built", "failed", "refused", "skipped")
-            and (o.get("verdict") or {}).get("outcome") in ("verified", "failed", "inconclusive", "unchecked")
+            and (o.get("verdict") or {}).get("outcome") in ("verified", "accepted", "failed", "inconclusive", "unchecked")
             for o in c["outcomes"])):
         b.add("outcomes-present")
     return b

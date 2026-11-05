@@ -27,6 +27,26 @@
         "backend": "example-backend",
         "model": "example-model-1",
         "result": "complete",
+        "verdict": {
+          "conformance": "refuted",
+          "classes": {
+            "S": {
+              "met": 1,
+              "unmet": 0,
+              "unsettled": 0
+            },
+            "J": {
+              "met": 0,
+              "unmet": 1,
+              "unsettled": 0
+            },
+            "E": {
+              "met": 0,
+              "unmet": 0,
+              "unsettled": 1
+            }
+          }
+        },
         "actions": [
           {
             "id": "resolve-1",

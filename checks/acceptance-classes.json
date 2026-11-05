@@ -4,7 +4,7 @@
  "counts": {
   "S": 463,
   "J": 70,
-  "B": 2527,
+  "B": 2531,
   "E": 89,
   "F": 57
  },
@@ -5541,6 +5541,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/generation:build-reads-class-checks-acceptance-classes": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/generation:build-receives-vectors-fixed-form-statements": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5614,6 +5618,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/generation:creating-tenant-generating-component-adding": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:criterions-class-first-matching-rule-six": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5914,6 +5922,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/generation:transient-provider-failure-inside-call-retried": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:tree-accepted-gaps-class-b-e": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:tree-not-build-start-against-conformance": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
