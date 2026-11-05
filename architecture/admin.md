@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.9.0
+version: 5.10.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -1408,6 +1408,10 @@ contracts:
         - It MUST present a person's token at the tenant's admin gateway and nowhere else, as protocol/identity requires of every holder of an operator token (The pass)
         # <!-- wl:id console-no-sign-records -->
         - It MUST NOT generate, hold or ask an identity to attest a sign-records credential, for anyone. A signature on a record means the person signed it, and a key a console holds signs whenever the console does (patterns/principal-identity, record-signing)
+        # <!-- wl:id console-hands-off-signing -->
+        - It MUST NOT build, hold, carry or send a statement whose signer protocol/identity's Fixed-Form Statements registry names as a person's sign-records credential, nor its signature, nor the act that carries one. On an engine question of kind signature it shows the person the pointer to the act, as text, a weblisk:// link and a QR code (protocol/identity, A signer acting on a pointer), with the short form the signer will show beside it - the subject's id and plan_digest, each to its first 12 hex characters - so the person can compare the two screens. It then watches the owner's feed, or reads the record again, and answers the question with handoff and the record's ref once the record shows the act; a person who declines, or cancels, leaves the question unanswered (architecture/engine, Questions). A content write the person wants signed is filed as a proposal, whose decision the signer makes; a direct write from a console is recorded witnessed
+        # <!-- wl:id console-never-drives-signer -->
+        - It MUST NOT start a signer for an act that needs a signature, and MUST NOT drive one through a pseudo-terminal, a pipe, a flag such as --yes or --confirm, or an environment variable. A console that drove a signer would sign whenever the console did while holding no key, which is what console-no-sign-records exists to stop
         # <!-- wl:id console-token-in-memory -->
         - It MUST hold an operator token in memory only and never write one anywhere, encrypted or not. What it keeps at rest is the credential key, as an installation secret
         # <!-- wl:id console-discards-tokens -->
@@ -3725,6 +3729,8 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] Every operator token names in `record_keys` each active, unexpired sign-records credential its operator holds here, and a token minted after one is revoked does not name it ([Contracts](#contracts), `operator-token-issuance`, `operator-credential-revocation`) <!-- wl:check record-keys-named covers operator-token-claims -->
 - [ ] Revoking the last authenticate credential of the last active admin is refused with `OPERATOR_LAST_ADMINISTRATOR` whatever sign-records credentials that admin holds ([Contracts](#contracts), `operator-credential-revocation`) <!-- wl:check last-admin-credential-refused covers last-admin-credential -->
 - [ ] A console holds no key attested with `purpose` `sign-records`, for any account ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-holds-no-sign-records covers console-no-sign-records -->
+- [ ] No string literal of a console's source equals a prefix whose *Signed by* in protocol/identity's Fixed-Form Statements registry is a person's sign-records credential, the list read from the registry and never copied, and a copy of the source holding one is reported ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-builds-no-record-statement covers console-hands-off-signing console-no-sign-records -->
+- [ ] No invocation of the CLI in a console's source names `sign` or an operation protocol/identity's pointer table lists, none passes `--yes` or `--confirm` to one, and a copy of the source that does is reported ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-drives-no-signer covers console-never-drives-signer -->
 - [ ] Removing an operator, or revoking one of its credentials, refuses its next request with `OPERATOR_REVOKED` or `CREDENTIAL_REVOKED` without waiting for its token to expire ([Contracts](#contracts), `token-status-on-use`, `operator-credential-revocation`) <!-- wl:check revocation-ends-tokens covers status-checked-on-use status-refusals revoked-credential-kept operator-removal-revokes -->
 - [ ] A removed operator keeps its record with status `revoked`, and a request naming it is refused with `OPERATOR_REVOKED`, never `OPERATOR_UNKNOWN` ([Contracts](#contracts), `token-status-on-use`, `operator-credential-revocation`) <!-- wl:check removed-operator-kept covers status-refusals operator-removal-revokes -->
 - [ ] The sole admin's change of identity key revokes their credentials and is not refused with `OPERATOR_LAST_ADMINISTRATOR`; the new identity then attests a credential and, once `weblisk/credential-auth/v1` has test vectors, mints ([Contracts](#contracts), `operator-credential-revocation`, `operator-key-change`) <!-- wl:check sole-admin-key-change covers last-admin-key-change key-change-not-last-admin -->

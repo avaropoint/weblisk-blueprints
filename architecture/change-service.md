@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: change-service
-version: 1.0.1
+version: 1.1.0
 requires: [protocol/types, protocol/identity, protocol/spec, patterns/principal-identity, architecture/admin, architecture/engine, architecture/model-service, architecture/storage, schemas/change, schemas/run-statement]
 platform: any
 tier: free
@@ -1412,10 +1412,14 @@ itself after checking its path, as
 
 - **A console holds no sign-records credential**
   ([`architecture/admin`](admin.md#contracts), `console-no-sign-records`), so
-  a decision is signed on the person's own device, by the CLI, and a console
-  sends one only where the person's own signer gives it the signature. How
-  Studio carries that signature is Studio's to specify, and until it does,
-  Studio shows a change's decision and does not make one.
+  a decision is made on the person's own device by their signer, which reads
+  the change itself, shows it, signs and sends the `ChangeDecision` on its own
+  token ([`protocol/identity`](../protocol/identity.md#a-signer-acting-on-a-pointer)).
+  A console carries no signature: it shows the pointer and answers the
+  engine's `signature` question with a `handoff` once this service's record
+  shows the decision ([`architecture/engine`](engine.md#questions),
+  `signature-handoff-answer`). This service needs nothing new for it: the
+  decision it records is the one the CLI makes.
 - **Who holds a position cannot be read here yet.** The register is in
   content, and this service holds no work authorisation to read it with. A
   knowledge change's decision is refused `CHANGE_POSITION_UNRESOLVED` until

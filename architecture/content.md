@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.10.0
+version: 5.11.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -3662,7 +3662,13 @@ A statement is optional. A write, removal or decision without one is recorded
 as it always was, and that person's part is `witnessed`. So a client that
 relays a person's statement can drop it and still have the change recorded. A
 client that sent a statement MUST check that the `ContentChange` it gets back
-carries it, and report the change as unsigned where it does not.
+carries it, and report the change as unsigned where it does not. That client
+is the person's signer: a console never sends a statement, and hands the act
+to the signer, which submits it and checks the record itself
+([`protocol/identity`](../protocol/identity.md#a-signer-acting-on-a-pointer),
+`signer-submits-and-checks`). A console's own direct write is recorded
+`witnessed`; a write the person wants signed is filed from the console as a
+proposal, whose decision the signer makes.
 `weblisk/content-change/v2` has test vectors
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)), and
 every empty field above appears in one; which cases they cover is the file's

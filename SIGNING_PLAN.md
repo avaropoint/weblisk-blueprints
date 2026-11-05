@@ -1,15 +1,14 @@
 # Signing from a console
 
 > **Status: adopted by the owner on 2026-11-05, with the decisions recorded in
-> [Decisions](#decisions) as recommended.** It is the plan of work; each part
-> becomes normative when it lands where [What changes where](#what-changes-where) names.
-> No blueprint, schema, check, vector or tool follows it yet. It sits at the
-> corpus root, beside [`ACCEPTANCE_PLAN.md`](ACCEPTANCE_PLAN.md), and not under
-> `architecture/` or `protocol/`, because a file there is a blueprint and its
-> MUST lines are read as requirements: a proposal placed there would be
-> normative by placement. Where each part would live once decided is
-> [What changes where](#what-changes-where), and the choices that are the
-> owner's are [Decisions](#decisions).
+> [Decisions](#decisions) as recommended; landing part by part, as
+> [Status by part](#status-by-part) records.** Each part is normative where
+> [What changes where](#what-changes-where) names, and only once it has landed
+> there. It sits at the corpus root, beside [`ACCEPTANCE_PLAN.md`](ACCEPTANCE_PLAN.md),
+> and not under `architecture/` or `protocol/`, because a file there is a
+> blueprint and its MUST lines are read as requirements: a plan placed there
+> would be normative by placement. The choices that are the owner's are
+> [Decisions](#decisions).
 >
 > Written 2026-11-05 at corpus `5164201`.
 
@@ -457,6 +456,53 @@ minted with it.
 | `architecture/threat-model` | rows 4.10–4.15 |
 | `vectors/signer/`, `checks/` | the fixtures and a check that every fixture is listed and every rule has one, as `change-vectors.py` does |
 | Studio | the dialog for a `signature` question (pointer, link, QR, short-form comparison), watching the feed, the `handoff` answer |
+
+---
+
+## Status by part
+
+Landed 2026-11-05 on `wt/signing`. Where a row says *landed*, the text named
+is normative and this plan is its reasoning, not its home.
+
+| Where | Status |
+|---|---|
+| `protocol/identity` | **landed** (3.7.0): *A signer acting on a pointer*, rules 1–7 with ids `signer-holds-own-credentials`, `signer-takes-a-pointer`, `signer-builds-from-what-it-read`, `signer-own-surface-confirms`, `signer-never-driven`, `signer-submits-and-checks`, `signer-known-hub`; the pointer grammar and its `pointer_operations` table; checks `signer-reads-every-field`, `signer-own-surface`, `signer-refuses-unknown-hub` (minted in place of the plan's `signer-known-hub`, which is the rule's id), `signer-checks-record`, and `signer-keeps-own-credentials` for rule 1, which the plan's table left unchecked. The attestation vectors wait on D5 |
+| `architecture/admin` | **landed** (5.10.0): `console-hands-off-signing` and `console-never-drives-signer` beside `console-no-sign-records`, which is unchanged; checks `console-builds-no-record-statement` and `console-drives-no-signer` |
+| `architecture/engine` | **landed** (1.4.0): the `signature` question's `pointer` and `compare`, the answer shape with form `handoff`, `signature-handoff-answer`, and check `handoff-answer-verified`; `sign` is the signer's entry point, not a front end's command (`front-end-only-three`); the parity row scripts a `handoff` |
+| `architecture/change-service` | **landed** (1.1.0): the Known Gaps console item points at the handoff |
+| `architecture/content` | **landed** (5.11.0): the client that checks a statement was recorded is the signer; a console's own write is `witnessed`, a signed one a proposal (D6). *Design Principle 6, strictly* unchanged (D1) |
+| `architecture/cli` | **landed** (4.16.0): `weblisk sign`, and `change approve` and `reject` through it; sign-records key generation and keeping (S1, D7) |
+| `architecture/threat-model` | **landed** (1.8.0): rows 4.10–4.15 |
+| `vectors/signer/`, `checks/` | **landed**: six fixtures and `expected.json`; `checks/signer-vectors.py` and `checks/console-signing.py`, each with controls in `run.sh`. `console-signing.py` reads a console's checkout only where `CONSOLE_SOURCE` names one, and is NOT RUN otherwise |
+| CLI and engine (`weblisk-cli`, `wt/signing`) | **built, not merged**: `weblisk sign` (`internal/signcmd`, `engine/signer`), `change approve` and `reject` through it, the sign-records key kept and attested (`engine/operator/signrecords.go`), the `handoff` answer and its check (`engine/ops/question.go`, `engine/decide`), the statement builder held to the vectors (`engine/statement`). The signer fixtures run against it (`engine/signer`, with `WL_BLUEPRINTS` naming this corpus) |
+| Studio | **not landed**: the dialog for a `signature` question (pointer, link, QR, short-form comparison), watching the feed, the `handoff` answer. Studio's source holds no sign-records prefix and drives no signer today (`console-signing.py`, run on its checkout) |
+
+**Found while landing it, for the owner:**
+
+- **A planned change's `plan_digest` has no definition.** `schemas/change`
+  shapes `plan_digest` only inside `approval` and `rejection`, and nothing says
+  how a planned change's digest is computed or where a client reads it. The
+  decision is bound to it, so a signer must read it from the owner (rule 3).
+  The fixtures, and the CLI, read it as the change service serves it, a
+  `plan_digest` field beside the change's own; `schemas/change` should say so
+  and say what it is a digest of.
+- **A planned change has no title.** The plan's S4 listed one; the rule shows
+  the change's id, kind, request, roots and entries instead, which is what a
+  change holds.
+- **The keychain's presence check is not reachable through the CLI's keychain
+  source.** That source drives `/usr/bin/security`, which cannot set a
+  user-presence access control; one needs the Security framework. So the
+  signer keeps its key as the authenticate credential is kept — a generated
+  passphrase in the keychain, the key in its envelope — and the confirmation
+  on its own terminal is the person's act. The presence check is D7's, still
+  to build.
+- **A pseudo-terminal another program holds cannot be told from a terminal
+  emulator's.** The CLI reads its confirmation only from `/dev/tty`, refuses
+  where that is not a terminal or this process is not in its foreground, and
+  refuses every flag and variable that tries to answer; a program that starts
+  the CLI as a session leader on a pty it holds still looks like a person's
+  terminal. That is threat 4.12's residual, and `console-drives-no-signer` is
+  what binds it, on the console's side.
 
 ---
 

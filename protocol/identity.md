@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.6.0
+version: 3.7.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -746,6 +746,115 @@ verifies:
     scope: component
     expect: none
 ```
+
+### A signer acting on a pointer
+
+A person signs a record with their sign-records credential, which a console
+may never hold ([`architecture/admin`](../architecture/admin.md#contracts),
+`console-no-sign-records`). So where the person is working at a console, the
+act is made by a **signer**: a program on the person's own device that holds
+that person's sign-records credential for one hub and makes the acts that need
+it. The CLI is the first signer ([`architecture/cli`](../architecture/cli.md#weblisk-sign)).
+Another, on a desktop or a phone, is held to the same rules, and none is
+specified yet. The console shows the person a **pointer** to the act; the
+signer reads everything the statement holds from the service that owns it,
+shows it, signs it on the person's word given there, submits the act itself
+and checks that the record carries it. The console never builds, carries or
+sends the statement or its signature, and watches the owner's record for the
+result ([`architecture/engine`](../architecture/engine.md#questions), the
+`handoff` answer). Why a passkey is not used instead, and what each of the
+options weighed answers, is [`SIGNING_PLAN.md`](../SIGNING_PLAN.md)'s.
+
+**The pointer.**
+
+```
+weblisk sign <hub_id> <operation> <argument>...
+
+  <hub_id>     the hub's hub_id, 64 lowercase hex
+  <operation>  an operation of the engine's catalogue that needs a signature,
+               its words joined by '-'
+  <argument>   that operation's arguments as the catalogue names them, and
+               nothing else
+```
+
+```yaml
+pointer_operations:
+  - {pointer: change-approve, operation: change approve, arguments: [change id]}
+  - {pointer: change-reject, operation: change reject, arguments: [change id]}
+  - {pointer: approval-accept, operation: approval accept, arguments: [decision id]}
+  - {pointer: approval-reject, operation: approval reject, arguments: [decision id]}
+  - {pointer: attest, operation: attest, arguments: [entry path, version, span]}
+```
+
+The same pointer is offered as the link
+`weblisk://sign/<hub_id>/<operation>/<argument>/...`, each argument
+percent-encoded, for a signer that registers the scheme, and as a QR code of
+that link for a signer on another device. The three are one pointer. A
+pointer is not a secret and authorises nothing: whoever holds one can only
+make a signer show something to its person. A pointer names no act of
+`attest` that may yet be signed: `weblisk/content-attestation/v1` has no
+vectors ([Fixed-Form Statements](#fixed-form-statements)), so a signer given
+one says so and signs nothing.
+
+**The rules.** Each binds every signer.
+
+1. **It holds its own credentials.** A signer generates its sign-records key
+   on the device, has the person's identity attest it with `purpose`
+   `sign-records`, and keeps it in the platform's keychain behind the
+   platform's user-presence check where the platform offers one, and
+   otherwise in the `weblisk-key-v1` envelope ([Private Key Format](#private-key-format)),
+   never unencrypted. It also holds its own authenticate credential at the
+   hub, so it reads and acts on its own token, never on a token or a body
+   another program hands it. <!-- wl:id signer-holds-own-credentials -->
+2. **It takes a pointer, never bytes.** What a signer is given MUST name only
+   a hub, an operation of the table above and that operation's arguments, in
+   the number the table gives. A pointer carrying anything more — a digest, a
+   statement, a signature, a plan, a document's bytes, or an argument the
+   operation does not take — is refused, and nothing is read or sent. <!-- wl:id signer-takes-a-pointer -->
+3. **It builds the statement from what it read.** Every field of the
+   statement MUST be read by the signer, on its own token, from the service
+   that holds it — `plan_digest`, `before`, `after`, `version`,
+   `covers_digest`, `approver_position` — or chosen by the person at the
+   signer: the decision, a rejection's reason, an attestation's words.
+   `signed_at` is the signer's clock. This is
+   [*Nothing offers to sign a caller's bytes*](#fixed-form-statements),
+   applied to the person. <!-- wl:id signer-builds-from-what-it-read -->
+4. **The person confirms on the signer's own surface.** Before it signs, a
+   signer MUST show what it read — for a change, its id, kind, request, roots, entries
+   and `plan_digest`, at least its first 12 hex characters, and the decision
+   and position — and sign only on the person's answer given there. A key
+   unlock that shows nothing, such as a keychain prompt or a vault approval, is
+   presence and not this confirmation: it may follow the confirmation, never
+   replace it. <!-- wl:id signer-own-surface-confirms -->
+5. **It is never driven.** A signer MUST NOT take a confirmation, a
+   `signature` answer or a key unlock from the program that started it: not
+   from standard input, under `--json` or without it; not from a flag such as
+   `--yes` or `--confirm`; not from an environment variable; and not from a
+   pseudo-terminal another program holds. It reads them only from the terminal
+   or window its person sees, and refuses, signing nothing, where it has none.
+   A flag or a variable that tries to answer is refused by name, never
+   ignored. <!-- wl:id signer-never-driven -->
+6. **It submits, and checks.** A signer MUST send the act to the owner
+   itself, on its own token, and read the owner's record back. Where the
+   record does not carry its signature — a content service may record an act
+   `witnessed` ([`architecture/content`](../architecture/content.md#the-change-statement)) —
+   it tells its person the act is unsigned, and never reports it signed. <!-- wl:id signer-submits-and-checks -->
+7. **It refuses a hub it does not know.** The pointer's `hub_id` MUST be one
+   the signer's identity holds a registration for. A pointer naming any other
+   hub is refused `not_registered`, nothing is read or sent, and no address a
+   pointer or a link names is ever followed. <!-- wl:id signer-known-hub -->
+
+The parity harness runs the CLI under a pseudo-terminal with vector keys,
+which are no one's identity ([Fixed-Form Statements](#fixed-form-statements));
+that is a test of the signer, not a way to drive one, and a vector key is
+never accepted outside tests.
+
+What a signer must do with each case is fixed by the fixtures in
+[`vectors/signer/`](../vectors/signer/README.md), which
+[`checks/signer-vectors.py`](../checks/signer-vectors.py) holds to these rules:
+every rule is exercised by a fixture, and the statement each signing fixture
+expects rebuilds, from the owner's record as the fixture gives it, to the
+bytes of the vector it names.
 
 ### Proving an identity to a service that is not a hub
 
@@ -1761,6 +1870,11 @@ Implementation MUST:
 - [ ] Every fixed-form statement an implementation signs begins with a prefix the [Fixed-Form Statements](#fixed-form-statements) registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list <!-- wl:check fixed-form-statement-implementation-signs-begins -->
 - [ ] An operator token minted on a credential's answer alone carries no `step_up_at`, and one minted on a request whose `weblisk/step-up/v1` re-confirmation verified carries its time of issue; a pass carries its person's token's `step_up_at` unchanged ([Payload (Claims)](#payload-claims)) <!-- wl:check step-up-at-set-once covers step-up-at-only-on-reconfirmation -->
 - [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself ([Fixed-Form Statements](#fixed-form-statements)) <!-- wl:check verb-route-function-signs-another-program -->
+- [ ] Given the signer fixtures `handoff-change-approve` and `handoff-pointer-carries-digest` of `vectors/signer/`, a signer reads the change on its own token and signs exactly the statement that rebuilds from the change as the owner holds it, and refuses a pointer carrying a digest, reading and sending nothing ([A signer acting on a pointer](#a-signer-acting-on-a-pointer), rules 2 and 3) <!-- wl:check signer-reads-every-field covers signer-takes-a-pointer signer-builds-from-what-it-read -->
+- [ ] Given the signer fixture `handoff-driven-confirmation`, a confirmation on standard input under `--json`, a `--yes` flag, a variable that tries to answer, and the absence of a terminal of its own are each refused and nothing is signed; and a signer signs only after showing the change's id, kind, request, roots, entries, `plan_digest`, decision and position on its own surface ([A signer acting on a pointer](#a-signer-acting-on-a-pointer), rules 4 and 5) <!-- wl:check signer-own-surface covers signer-never-driven signer-own-surface-confirms -->
+- [ ] Given the signer fixture `handoff-unknown-hub`, a pointer naming a `hub_id` the signer's identity holds no registration for is refused `not_registered`, and nothing is read or sent ([A signer acting on a pointer](#a-signer-acting-on-a-pointer), rule 7) <!-- wl:check signer-refuses-unknown-hub covers signer-known-hub -->
+- [ ] Given the signer fixture `handoff-recorded-witnessed`, a signer whose owner records the act without its signature reports the act unsigned and never signed ([A signer acting on a pointer](#a-signer-acting-on-a-pointer), rule 6) <!-- wl:check signer-checks-record covers signer-submits-and-checks -->
+- [ ] A signer generates its sign-records key on its device, has the identity attest it with `purpose` `sign-records`, keeps it in the platform keychain or the `weblisk-key-v1` envelope and never unencrypted, and reads and acts on its own token ([A signer acting on a pointer](#a-signer-acting-on-a-pointer), rule 1) <!-- wl:check signer-keeps-own-credentials covers signer-holds-own-credentials -->
 - [ ] A registration, a rotation, a task result and a message are each signed under [Sign JSON](#sign-json), never as a fixed-form statement, and no implementation signs under a prefix the registry does not list ([Which key signs what](#which-key-signs-what)) <!-- wl:check registration-rotation-task-result-message-signed covers registration-is-sign-json -->
 - [ ] A signer that refuses what its key does not sign admits every statement [Which key signs what](#which-key-signs-what) gives that key, in the form its row gives: a component's registered key signs its registration manifest under Sign JSON as well as any `weblisk/log-key/v2` and `weblisk/log-succession/v1` statement, and only a log key's signer admits `weblisk/log-checkpoint/v2` alone ([Which key signs what](#which-key-signs-what)) <!-- wl:check signer-refuses-what-key-not-sign covers which-key-signs-what log-authority-is-registered-key restriction-is-per-key -->
 - [ ] A proof of an identity to a service that is not a hub is the `weblisk/auth/v1` signature [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) gives, over a nonce spent and expiring as that section says; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one <!-- wl:check proof-identity-service-not-hub-weblisk -->

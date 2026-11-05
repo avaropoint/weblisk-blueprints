@@ -1171,6 +1171,70 @@ else
 	fails=$((fails + 1))
 fi
 
+# The signer fixtures of vectors/signer/ against protocol/identity's signer
+# rules (SIGNING_PLAN, Vectors and fixtures). Three controls: a fixture left
+# out of expected.json, a signer rule with no fixture, and an owner whose plan
+# digest moved, each reported for exactly that.
+expect 0 "signer-vectors: every fixture listed, every rule exercised, every statement its vector's" python3 checks/signer-vectors.py
+python3 -c 'import json, sys; e = json.load(open("vectors/signer/expected.json")); e["fixtures"] = [f for f in e["fixtures"] if f["id"] != "handoff-recorded-witnessed"]; json.dump(e, sys.stdout)' >"$tmp/sv-short.json"
+expect 1 "signer-vectors control: a fixture expected.json does not list fails" python3 checks/signer-vectors.py --expected "$tmp/sv-short.json"
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "^handoff-recorded-witnessed.json: a fixture expected.json does not list$" "$tmp/out" &&
+	grep -q "^a check names the fixture handoff-recorded-witnessed, which expected.json does not list$" "$tmp/out"; then
+	echo "ok   signer-vectors control: exactly the unlisted fixture, and the check that names it"
+else
+	echo "FAIL signer-vectors control: want exactly the unlisted fixture and the check that names it"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+python3 -c 'import sys; t = open("protocol/identity.md", encoding="utf-8").read(); a = "<!-- wl:id signer-known-hub -->"; sys.stdout.write(t.replace(a, a + "\n8. **A rule with no fixture.** <!-- wl:id signer-rule-unexercised -->", 1))' >"$tmp/sv-identity.md"
+expect 1 "signer-vectors control: a signer rule no fixture exercises fails" python3 checks/signer-vectors.py --identity "$tmp/sv-identity.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^the rule signer-rule-unexercised is exercised by no fixture$" "$tmp/out"; then
+	echo "ok   signer-vectors control: exactly one finding, the rule with no fixture"
+else
+	echo "FAIL signer-vectors control: want exactly one finding, the rule with no fixture"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+mkdir -p "$tmp/sv" && cp vectors/signer/*.json "$tmp/sv/"
+python3 -c 'import json, sys; p = sys.argv[1]; f = json.load(open(p)); f["given"]["owner"]["changes"][0]["plan_digest"] = "sha256:" + "0" * 64; json.dump(f, open(p, "w"))' "$tmp/sv/handoff-change-approve.json"
+expect 1 "signer-vectors control: an owner whose plan digest moved fails" python3 checks/signer-vectors.py --dir "$tmp/sv"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^handoff-change-approve: the statement rebuilt from the owner's change is not change-decision-approve's bytes$" "$tmp/out"; then
+	echo "ok   signer-vectors control: exactly one finding, the fixture whose digest moved"
+else
+	echo "FAIL signer-vectors control: want exactly one finding, the fixture whose digest moved"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
+# A console's source holds no record statement and drives no signer
+# (architecture/admin, console-builds-no-record-statement and
+# console-drives-no-signer), on a clean fixture and on one that does both. A
+# console's real source is read where CONSOLE_SOURCE names it; without it that
+# leg is NOT RUN, never ok.
+mkdir -p "$tmp/console-clean" "$tmp/console-dirty"
+printf 'package c\n\nfunc show(p string) string { return "open your signer: " + p }\n' >"$tmp/console-clean/c.go"
+pfx=weblisk
+pfx="$pfx/change-decision/v1"
+printf 'package c\n\nconst p = "%s"\n\nfunc run() { exec.Command(cliPath, "sign", hub, "change-approve", id, "--yes") }\n' "$pfx" >"$tmp/console-dirty/c.go"
+expect 0 "console-signing: a console that shows the pointer and drives nothing passes" python3 checks/console-signing.py --scan "$tmp/console-clean"
+expect 1 "console-signing control: a console holding a prefix and driving a signer fails" python3 checks/console-signing.py --scan "$tmp/console-dirty"
+if [ "$(wc -l <"$tmp/out")" -eq 4 ] && grep -q "c.go:3: console-builds-no-record-statement: the literal '$pfx'" "$tmp/out" &&
+	grep -q "c.go:5: console-drives-no-signer: the pointer operation 'change-approve'" "$tmp/out" &&
+	grep -q "c.go:5: console-drives-no-signer: the flag '--yes'" "$tmp/out" &&
+	grep -q "c.go:5: console-drives-no-signer: an invocation of the CLI for an act that needs a signature" "$tmp/out"; then
+	echo "ok   console-signing control: exactly the prefix, the pointer operation, the flag and the invocation"
+else
+	echo "FAIL console-signing control: want exactly the prefix, the pointer operation, the flag and the invocation"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+if [ -n "$CONSOLE_SOURCE" ]; then
+	expect 0 "console-signing: $CONSOLE_SOURCE holds no record statement and drives no signer" python3 checks/console-signing.py --scan "$CONSOLE_SOURCE"
+else
+	echo "NOT RUN console-signing: no console source named (set CONSOLE_SOURCE to a console's checkout)"
+	notrun=$((notrun + 1))
+fi
+
 # The run statement's actions and criteria against vectors/run-statement/,
 # under the rules schemas/run-statement.md declares and the steps
 # architecture/engine.md declares, and the worked criterion digests. A rule
