@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 3.0.3
+version: 3.0.4
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
@@ -952,12 +952,10 @@ When a hub operator publishes a capability or asset to the marketplace:
 ```
 Seller Hub                           Registry Hub
 ─────────                           ────────────
-1. Operator runs:
-   weblisk marketplace publish
-   --type capability
-   --name "demand-forecast"
-   --pricing per_invocation
-   --price 0.02
+1. Operator publishes a listing
+   (type capability, name
+   "demand-forecast", pricing
+   per_invocation, price 0.02)
 
 2. Seller's orchestrator:
    a. Builds marketplace listing JSON
@@ -999,10 +997,9 @@ Buyer Hub                Registry Hub              Seller Hub
                                      definition
                                    ◄──
 
-7. Operator approves:
-   weblisk marketplace buy mkt-xxx
-   --accept-contract
-   --accept-pricing
+7. Operator approves the
+   contract and the pricing
+   of mkt-xxx
 
 8. Purchase request:
    POST /v1/hub/marketplace ─► 9. Registry orchestrator:
@@ -1055,8 +1052,8 @@ Buyer Hub                Registry Hub              Seller Hub
                                ◄── 11. Returns receipt
                                        + download URL
 
-12. CLI downloads asset:
-    weblisk marketplace install mkt-xxx
+12. The buyer's hub downloads
+    the asset of mkt-xxx:
     a. Downloads blueprint files
     b. Verifies seller signature
        against registry's verified
@@ -1133,29 +1130,13 @@ Collaboration termination follows a structured wind-down:
               - Reviews remain visible (with "no longer active" badge)
 ```
 
-#### CLI Commands for Marketplace
+#### Operator commands for the marketplace
 
-```bash
-# Seller operations
-weblisk marketplace publish --type capability --config listing.yaml
-weblisk marketplace update mkt-xxx --price 0.03
-weblisk marketplace delist mkt-xxx --reason "end of life"
-weblisk marketplace dashboard                # revenue, downloads, ratings
-weblisk marketplace reviews mkt-xxx          # view reviews for your listing
-
-# Buyer operations
-weblisk marketplace search "demand forecasting"
-weblisk marketplace describe mkt-xxx          # detailed listing + metrics
-weblisk marketplace buy mkt-xxx --accept-contract --accept-pricing
-weblisk marketplace install mkt-xxx          # download + generate installable asset
-weblisk marketplace review mkt-xxx --rating 5 --title "Excellent"
-weblisk marketplace list                     # list active purchases
-
-# Collaboration management
-weblisk marketplace collaborations           # list all active collaborations
-weblisk marketplace usage mkt-xxx            # usage metrics for a collaboration
-weblisk marketplace terminate mkt-xxx        # initiate termination protocol
-```
+No tool offers a marketplace command. The commands that once stood for the
+operator's steps in the flows above left the tools until a corpus document
+defines them, and each returns then as an operation of the engine
+([`architecture/engine`](engine.md#front-end-only-commands)). The flows and
+the routes they call are this document's, and do not change with them.
 
 ---
 

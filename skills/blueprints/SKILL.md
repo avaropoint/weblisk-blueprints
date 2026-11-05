@@ -18,7 +18,7 @@ First hit wins:
 2. `WL_BLUEPRINT_SOURCES`
 3. the shared cache, `~/.weblisk/blueprints`
 
-`weblisk doctor` names which copy a build will read. `weblisk validate`
+`weblisk blueprint sources` names which copy a build will read. `weblisk validate`
 checks this tenant against whatever resolved.
 
 Read the blueprint **in full** before writing. Every section constrains the

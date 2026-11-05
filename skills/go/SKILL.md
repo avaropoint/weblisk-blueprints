@@ -44,7 +44,11 @@ at the call site.
 
 ```
 go build ./... && go vet ./... && gofmt -l .
-weblisk server verify
+weblisk test run --component <name> --tree .
 ```
+
+`test run` is the one conformance suite, run sealed against this tree
+(`architecture/engine.md`, The one conformance suite). A named component, an
+agent or a domain, also takes `--kind` and `--blueprint`.
 
 `gofmt -l` returning any filename is a failure.

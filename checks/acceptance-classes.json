@@ -4,7 +4,7 @@
  "counts": {
   "S": 469,
   "J": 94,
-  "B": 2606,
+  "B": 2576,
   "E": 93,
   "F": 57
  },
@@ -3309,10 +3309,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:mock-orchestrator-accepts-valid-registrations": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:no-started-components-environment-holds-ssl": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3465,10 +3461,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:template-resolution-follows-priority-weblisk-new": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:three-hubs-unreachable-rotate-marks-two": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3513,10 +3505,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:weblisk-build-minify-fingerprint-produces": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:weblisk-component-help-lists-component": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3541,34 +3529,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:weblisk-deps-audit-checks-lockfile-integrity": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-deps-audit-package-audits-specific": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-dev-builds-runs-hub-restart": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-dev-starts-file-watching-dev": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-doctor-cross-references-secret": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-doctor-validates-gitignore-contains": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-doctor-validates-weblisk-secrets-file": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:weblisk-domain-create-generates-domain": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3590,46 +3550,6 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/cli:weblisk-kind-verb-uid-prints-verbs": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-buy-purchases-listing": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-describe-shows-full-listing": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-install-downloads-places": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-list-shows-active-purchases": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-publish-publishes-capability": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-search-queries-marketplace": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-marketplace-terminate-initiates": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-new-always-generates-gitignore-weblisk": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-new-scaffolds-project-weblisk-templates": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-new-template-client-blog-template": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -3749,18 +3669,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:weblisk-pattern-apply-reads-pattern-blueprint": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-policy-test-runs-policy-assertions": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-policy-validate-checks-gateway-policy": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:weblisk-providers-json-marks-most-backend": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3818,10 +3726,6 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/cli:weblisk-server-stop-no-component-stops": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-server-verify-passes-fails-orchestrators": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -3905,22 +3809,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/cli:weblisk-test-conformance-level-filters-specific": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-test-conformance-runs-protocol": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-test-conformance-test-runs-single": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-test-mock-orchestrator-starts": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/cli:weblisk-validate-checks-blueprint-compliance": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3942,10 +3830,6 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/cli:weblisk-validate-json-without-directory-refused": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/cli:weblisk-vendor-copies-weblisk-client-framework": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -4902,10 +4786,6 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/data-security:blueprint-manifest-weblisk-blueprint-manifest": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/data-security:cli-weblisk-doctor-validates-gitignore-contains": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

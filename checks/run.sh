@@ -1264,9 +1264,9 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
-sed 's/^  - {noun: doctor, verb: "", executor: local}$/  - {noun: doctor, verb: "", executor: studio}/' architecture/cli.md >"$tmp/cs/architecture/cli.md"
+sed 's/^  - {noun: providers, verb: "", executor: local}$/  - {noun: providers, verb: "", executor: studio}/' architecture/cli.md >"$tmp/cs/architecture/cli.md"
 expect 1 "front-end-parity control: an undeclared executor fails" python3 checks/front-end-parity.py --root "$tmp/cs"
-grep -q "^doctor: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL front-end-parity control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
+grep -q "^providers: executor 'studio' is not one schemas/change.md declares$" "$tmp/out" || { echo "FAIL front-end-parity control: the undeclared executor was not what was reported"; fails=$((fails + 1)); }
 cp architecture/cli.md "$tmp/cs/architecture/cli.md"
 sed 's/^  - ops: \[run status\]$/  - ops: [run status, audit]/; s/^    events: \[check, verdict\]$/    events: [check, verdict, ruling]/' architecture/engine.md >"$tmp/cs/architecture/engine.md"
 expect 1 "front-end-parity control: a repeated operation and an undeclared event type fail" python3 checks/front-end-parity.py --root "$tmp/cs"

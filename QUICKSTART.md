@@ -234,15 +234,11 @@ weblisk agent create meta-checker --platform go
 
 ### Add patterns
 
+A pattern arrives in a tenant as any blueprint does: through a change a
+person approves ([`architecture/cli`](architecture/cli.md#changes)).
+
 ```bash
-# Add REST API endpoints
-weblisk pattern apply api-rest --resource posts
-
-# Add authentication
-weblisk pattern apply auth-session
-
-# Add user management
-weblisk pattern apply user-management
+weblisk change plan --adopt patterns/api-rest
 ```
 
 ### Use custom blueprints

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 3.1.0
+version: 3.1.1
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai, architecture/storage]
 platform: any
 tier: free
@@ -1159,9 +1159,9 @@ security:
   evaluation. The gateway watches the policy file for changes and
   hot-reloads on modification — no restart required. During reload,
   in-flight requests complete with the old policy set; new requests
-  use the updated policies. The weblisk-cli generates a default
-  policy file during project scaffolding and provides
-  `weblisk policy validate` and `weblisk policy test` commands.
+  use the updated policies. No tool validates or tests the policy
+  file until a corpus document defines how
+  ([`architecture/engine`](engine.md#front-end-only-commands)).
 - Failed authorization attempts are rate-limited separately from
   normal requests to prevent authorization probing.
 - The gateway MUST NOT forward raw user input to agents without

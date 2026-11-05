@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 4.1.1
+version: 4.1.2
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning, patterns/namespace]
 platform: any
 tier: free
@@ -549,7 +549,7 @@ rebuild began from. A rebuild is reported done only where every row holds:
 | Repositories | the same set of `id`, `scope_path` and placement, each with the same line and head, and the same log id. A log's tip may have moved, because the content service introduces a log key into every log when it starts; the exported tip's entry is still the entry at that `seq` |
 | Adoptions | the same programmes and standards, at the same organisations, each at the same pinned version, revision and digest |
 | Components | the same set of names registered with a live lease |
-| Conformance | the same verdict class at each level [`weblisk test conformance`](cli.md#weblisk-test-conformance) runs: `passed`, `failed` or `not-run` |
+| Conformance | the same verdict class at each level of [`architecture/testing`](testing.md), from the suite's live-safe checks against the orchestrator ([`architecture/engine`](engine.md#build-time-and-run-time)): `passed`, `failed` or `not-run` |
 | Operators | the same names, identity ids, roles and statuses |
 | Organisations and projects | the same set of ids, each with the same name, display name, state, and `operates_in` or organisation |
 | Grants | the same set of ids, each with the same operator, role, organisation, project and status |
@@ -817,7 +817,7 @@ types:
         name: Conformance
         type: "map[string]string"
         required: true
-        description: "Per level weblisk test conformance runs, `passed`, `failed` or `not-run`"
+        description: "Per level of architecture/testing, from the suite's live-safe checks against the orchestrator: `passed`, `failed` or `not-run`"
       unheld:
         name: Unheld
         type: "[]ManifestUnheld"
