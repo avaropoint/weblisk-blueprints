@@ -126,6 +126,8 @@ columns:
 | `min` | for a multi-valued column, the fewest entries that count as answered |
 | `bands` | the [readings](#bands) a numeric value falls into |
 | `default` | an [expression](#defaults) that fills a new record's field once |
+| `scope` | the classification level of what the column holds ([`patterns/scope`](../patterns/scope.md)) |
+| `scope_metadata` | `custom_labels`, the labels that go with `scope`, such as `pii` |
 | the type's own | the properties [its type owns](#column-types) |
 
 A label or an option holding a comma, a colon, a bracket or a brace, or
@@ -141,24 +143,24 @@ the column became a formula again.
 
 ### Column types
 
-| type | owns | the cell holds | numeric | computed | on a form |
-|---|---|---|---|---|---|
-| `text` | — | text | | | yes |
-| `longtext` | — | text, on one line | | | yes |
-| `number` | `decimals`, `group` | a number | yes | | yes |
-| `int` | `group` | an integer | yes | | yes |
-| `currency` | `symbol`, `decimals`, `group` | a number | yes | | yes |
-| `percent` | `decimals` | a number | yes | | yes |
-| `date` | — | `YYYY-MM-DD` | | | yes |
-| `bool` | — | `Yes` or `No`; `true` and `false` are read the same | | | yes |
-| `select` | `options` | one of `options`, matched case-insensitively | | | yes |
-| `link` | — | a URL | | | yes |
-| `user` | — | a person's identity id, never their name | | | yes |
-| `signature` | — | who acknowledged the record, as [signature entries](#signatures) | | | yes |
-| `attachment` | — | asset paths, comma-separated | | | yes |
-| `formula` | `expr`, `format`, `decimals`, `symbol`, `group` | the value `expr` computes, written out | when `format` is | yes | yes, read-only |
-| `relation` | `target`, `display`, `keyfield`, `multi` | the keys of rows in another table, comma-separated | | | yes |
-| `rollup` | `via`, `field`, `agg` | the fold of a field across a relation, written out | | yes | no |
+| type | owns | the cell holds | numeric | computed | multi-valued | on a form |
+|---|---|---|---|---|---|---|
+| `text` | — | text | | | | yes |
+| `longtext` | — | text, on one line | | | | yes |
+| `number` | `decimals`, `group` | a number | yes | | | yes |
+| `int` | `group` | an integer | yes | | | yes |
+| `currency` | `symbol`, `decimals`, `group` | a number | yes | | | yes |
+| `percent` | `decimals` | a number | yes | | | yes |
+| `date` | — | `YYYY-MM-DD` | | | | yes |
+| `bool` | — | `Yes` or `No`; `true` and `false` are read the same | | | | yes |
+| `select` | `options` | one of `options`, matched case-insensitively | | | | yes |
+| `link` | — | a URL | | | | yes |
+| `user` | — | a person's identity id, never their name | | | | yes |
+| `signature` | — | who acknowledged the record, as [signature entries](#signatures) | | | yes | yes |
+| `attachment` | — | asset paths, comma-separated | | | yes | yes |
+| `formula` | `expr`, `format`, `decimals`, `symbol`, `group` | the value `expr` computes, written out | when `format` is | yes | | yes, read-only |
+| `relation` | `target`, `display`, `keyfield`, `multi` | the keys of rows in another table, comma-separated | | | when `multi` is | yes |
+| `rollup` | `via`, `field`, `agg` | the fold of a field across a relation, written out | | yes | | no |
 
 - `decimals` is 0 to 10. `group: true` writes thousands separators, which are
   off unless asked for. `symbol` is a currency's symbol.
@@ -403,8 +405,10 @@ These hold for every client that writes a document holding a data table.
 **One implementation.** The only reader and writer today is Weblisk Studio's
 editor (`ui/dist/js/core/doc/data-block.js` with `data-formula.js`,
 `data-relation.js` and `data-default.js`). The CLI neither reads nor writes a
-data table. Nothing yet holds that implementation to this file, and no vectors
-are published.
+data table. Studio's guards hold its column types, what each owns, the
+numeric, computed, multi-valued and form columns of the table above, the band
+roles, the rollup and total folds and every column key it writes to this file
+(`ui/tests/table-format-declared.test.mjs`); no vectors are published.
 
 **`approvers` mixes two kinds of name.** A published template names
 positions, and a block a person makes in a client names identity ids. A client
