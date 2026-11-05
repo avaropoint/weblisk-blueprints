@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.11.0
+version: 4.12.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -782,6 +782,24 @@ so these checks name a query and never its text. `starts-unattended` is a
 `topology` check, because a mux conflict and a passphrase prompt are visible
 only when the binary runs.
 
+The checks from `register-signature-and-replay` on settle security-class
+criteria ([`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#classes)). Each one
+covers a criterion only where it proves the whole of it. A check that proved
+only part would let the part stand for the whole, because a criterion that any
+declared check covers is no longer translated. They reach what a sealed run can
+arrange with the identity fixtures alone: signed registrations, the
+registration tokens those earn, and a token from a second orchestrator. No
+channel token can be earned there: no grant may name an address the tenant did
+not declare, and no tenant can declare one yet. A criterion that needs an
+operator, attestation, channel, pass or work-pass token, a configuration
+setting, or a token's claims to be read is left to its translated test. A route
+probe (`routed-*`) covers the route's refusal of a request with no token, which
+is part of what it proves, and no criterion of which it proves only that the
+route exists. Where a check names every protected route, it lists them from the
+serves above, because the engine does not yet read
+`for_each: protected-endpoint`; a route added there must be added to those
+lists.
+
 ```yaml
 verifies:
 - id: no-path-literals
@@ -968,7 +986,7 @@ verifies:
   check: translated
   assertion: POST /v1/model/audit is in the route table and is dispatched in process; from outside the process it is answered 404 where the model gateway is installed, so no exchange from outside can tell routed from absent, and the test is translated from this criterion.
 - id: routed-post-token-exchange
-  covers: [post-v1-token-exchange-answers-issued]
+  covers: [auth-middleware-rejects-unauthenticated-requests]
   check: exchange
   assertion: 'POST /v1/token/exchange is routed: a request without a token is answered by the route, never
     404 or 405 and never a redirect.'
@@ -983,7 +1001,7 @@ verifies:
       expect:
         status_not: [301, 302, 303, 307, 308, 404, 405]
 - id: routed-post-token-work
-  covers: [post-v1-token-work-admits-live]
+  covers: [auth-middleware-rejects-unauthenticated-requests]
   check: exchange
   assertion: 'POST /v1/token/work is routed: a request without a token is answered by the route, never
     404 or 405 and never a redirect.'
@@ -1157,6 +1175,304 @@ verifies:
     - {name: a, stdin: closed}
     acts:
     - {act: start, instance: a, expect: live, within: 20s}
+- id: register-signature-and-replay
+  covers: [post-v1-register-verifies-ml-dsa]
+  check: exchange
+  assertion: "A registration is admitted only on the ML-DSA-65 signature of the key its manifest names, over the manifest as sent, inside the replay window: one signed by another fixture's key and one signed over other bytes are each refused 401 INVALID_SIGNATURE, a correct one is answered 200, its exact bytes sent again are refused 401, and a correct one whose timestamp is 301 seconds old is refused 401."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp, with: other-key}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp, with: other-bytes}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {id: first, as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, has: [/agent_id, /token]}}
+    - {request: {replay: first}, expect: {status: 401}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, signed outside the window', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp, age: 301s}}, expect: {status: 401}}
+- id: register-namespace-exclusive
+  covers: [post-v1-register-enforces-exclusive-namespace]
+  check: exchange
+  assertion: "A namespace is owned by one registration: test-agent claiming the event namespace conformance is admitted and named its owner in the directory's namespaces; test-domain claiming the same namespace is refused 409 NAMESPACE_CONFLICT and issued no token; test-agent registering again with the namespace is admitted, and the namespace is still test-agent's."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], publishes: [conformance]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/namespaces/conformance: test-agent}}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}], publishes: [conformance]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 409, code: NAMESPACE_CONFLICT, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, registering again', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], publishes: [conformance]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/namespaces/conformance: test-agent}}}
+- id: register-namespace-reserved
+  covers: [post-v1-register-rejects-reserved-namespace]
+  check: exchange
+  assertion: "A registration claiming the system namespace, or a namespace under it, is refused 403 NAMESPACE_RESERVED and issued no token."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], publishes: [system]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: NAMESPACE_RESERVED, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, a namespace under system', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], publishes: [system.agent]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: NAMESPACE_RESERVED, lacks: [/token]}}
+- id: register-person-only-refused
+  covers: [post-v1-register-refuses-manifest-naming]
+  check: exchange
+  assertion: "A registration whose capabilities name any one of the capabilities protocol/types marks person only is refused 403 CAPABILITY_PERSON_ONLY and issued no token, for each of them; and none of them is recorded, so the directory a later registration is answered with holds that registration alone. The steps name each person-only capability protocol/types lists at 6.3.0 or later; a capability marked person only after this check was written is not yet one of them."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:write', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:write', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:decide', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:decide', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:replicate', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:replicate', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:connect', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:connect', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:attest', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:attest', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:request', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:request', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:comment', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:comment', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:retain', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:retain', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:hold', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:hold', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring content:declassify', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:declassify', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring model:attest', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'model:attest', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring fabric:attest', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'fabric:attest', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring programme:switch', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'programme:switch', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring execution:record', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'execution:record', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring execution:decide', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'execution:decide', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring integration:manage', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'integration:manage', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring action:invoke', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'action:invoke', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring scope:admit', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'scope:admit', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring work:authorise', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'work:authorise', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring notification:receive', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'notification:receive', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring change:decide', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'change:decide', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/name: test-agent}, lacks: [/services/services/1]}}
+- id: register-subscription-scopes
+  covers: [post-v1-register-validates-subscription-scopes]
+  check: exchange
+  assertion: "A subscription of scope * is refused 403 without event:observe and admitted with it, and one scoped to a named agent is refused 403 unless that agent is among the manifest's collaborators."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], subscriptions: [{pattern: conformance.probe, scope: '*'}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'event:observe', resources: []}], subscriptions: [{pattern: conformance.probe, scope: '*'}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, has: [/agent_id, /token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, scoped to an agent it does not name', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], subscriptions: [{pattern: conformance.probe, scope: test-domain}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, scoped to its collaborator', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], subscriptions: [{pattern: conformance.probe, scope: test-domain}], collaborators: [test-domain]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, has: [/agent_id, /token]}}
+- id: register-unlisted-capability-refused
+  covers: [post-v1-register-refuses-400-invalid]
+  check: exchange
+  assertion: "A manifest naming a capability protocol/types does not list, in its capabilities, in a pass route's capabilities or in a pass route's body requirement, and one with two pass routes that can match one request, are each refused 400 INVALID_REQUEST and recorded nowhere, so the directory a later registration is answered with holds that registration alone."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'conformance:unlisted', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 400, code: INVALID_REQUEST, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}], pass_routes: [{method: GET, path: '/v1/conformance/{id}', capabilities: ['conformance:unlisted']}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 400, code: INVALID_REQUEST, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}], pass_routes: [{method: POST, path: /v1/conformance, capabilities: ['content:read'], body: [{field: decision, capabilities: ['conformance:unlisted']}]}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 400, code: INVALID_REQUEST, lacks: [/token]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}], pass_routes: [{method: GET, path: '/v1/x/{id}', capabilities: ['content:read']}, {method: GET, path: /v1/x/special, capabilities: ['content:read']}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 400, code: INVALID_REQUEST, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/name: test-agent}, lacks: [/services/services/1]}}
+- id: directory-carries-pass-routes
+  covers: [serviceentry-carries-pass-routes-manifest]
+  check: exchange
+  assertion: "A registration whose pass_routes name person-only capabilities is admitted, and its ServiceEntry carries those pass_routes unchanged, in the directory the registration is answered with and at GET /v1/services; a registration whose capabilities name a person-only capability is still refused 403 CAPABILITY_PERSON_ONLY."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}], pass_routes: [{method: POST, path: '/v1/conformance/{id}', capabilities: ['content:write'], body: [{field: decision, equals: apply, capabilities: ['content:decide']}]}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/pass_routes: [{method: POST, path: '/v1/conformance/{id}', capabilities: ['content:write'], body: [{field: decision, equals: apply, capabilities: ['content:decide']}]}]}}, capture: {agent: /token}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 200, equals: {/services/0/pass_routes: [{method: POST, path: '/v1/conformance/{id}', capabilities: ['content:write'], body: [{field: decision, equals: apply, capabilities: ['content:decide']}]}]}}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'content:write', resources: []}], pass_routes: [{method: POST, path: '/v1/conformance/{id}', capabilities: ['content:write'], body: [{field: decision, equals: apply, capabilities: ['content:decide']}]}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_PERSON_ONLY, lacks: [/token]}}
+- id: directory-address-provenance
+  covers: [serviceentry-carries-address-provenance-entry]
+  check: exchange
+  assertion: "Every ServiceEntry carries address_provenance, and, since no tenant can yet declare a component's address, each reports self-asserted rather than omitting the field: the two entries of the directory a second registration is answered with, and the two GET /v1/services answers."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/address_provenance: self-asserted}}, capture: {agent: /token}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/address_provenance: self-asserted, /services/services/1/address_provenance: self-asserted}}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 200, equals: {/services/0/address_provenance: self-asserted, /services/1/address_provenance: self-asserted}}}
+- id: register-response-complete
+  covers: [post-v1-register-returns-registerresponse-agent]
+  check: exchange
+  assertion: "A registration is answered 200 with every member RegisterResponse requires: agent_id, token, expires_at, a services directory holding services, routing_table and namespaces, lease, orchestrator and protocol_version."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, json: true, has: [/agent_id, /token, /expires_at, /services/services, /services/routing_table, /services/namespaces, /lease, /orchestrator, /protocol_version]}}
+- id: domain-readiness-is-its-lease
+  covers: [orchestrator-keeps-no-domain-status-own]
+  check: exchange
+  assertion: "A domain's readiness in the directory is its lease and nothing the orchestrator computes from its required_agents: test-domain, whose required agent test-agent is not registered, reads ready once it renews ready and not_ready once it renews not ready, and its entry carries no status of the orchestrator's own."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'workflow:execute', resources: []}], required_agents: [test-agent], workflows: [test-workflow]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {domain: /token}}
+    - {request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${domain}'}, body: {ready: true, timestamp: '${now}'}}, expect: {status: 200}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${domain}'}}, expect: {status: 200, equals: {/services/0/name: test-domain, /services/0/lease_state: ready}, lacks: [/services/1, /services/0/status]}}
+    - {request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${domain}'}, body: {ready: false, timestamp: '${now}'}}, expect: {status: 200}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${domain}'}}, expect: {status: 200, equals: {/services/0/lease_state: not_ready}, lacks: [/services/0/status]}}
+- id: channel-needs-agent-message
+  covers: [post-v1-channel-requires-agent-message]
+  check: exchange
+  assertion: "POST /v1/channel is refused 403 for a registration whose capabilities do not name agent:message, before the target is looked up: asked for a channel to an agent nobody registered, it answers 403 without agent:message, and 404 NOT_FOUND once the same agent registers with agent:message (Channel Brokering, steps 4 and 5). A target that is registered cannot be used, since no grant may name an address the tenant did not declare and no tenant can declare one yet."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {without: /token}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${without}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 403}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, now with agent:message', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}, {name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {with: /token}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${with}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 404, code: NOT_FOUND}}
+- id: agent-token-refused-under-admin
+  covers: [token-type-not-operator-agent-token]
+  check: exchange
+  assertion: "A registered agent's token is refused 401 CREDENTIAL_REQUIRED at every /v1/admin/* route whose declared auth requires a token, so it reaches no administrative handler; the routes are the declaration's serves entries under /v1/admin/ whose auth is token or a capability, less POST /v1/admin/model/audit, which from outside the process is answered 404. Written route by route because the engine does not yet read for_each protected-endpoint."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'llm:chat', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {agent: /token}}
+    - {request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/operators, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/operators/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: DELETE, path: /v1/admin/operators/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/work-authorisations, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/work-authorisations, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/agents, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/agents/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/overview, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/audit, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/audit/export, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/model, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: PUT, path: /v1/admin/model, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/model/providers, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/complete, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/model/ceiling, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/resources, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/lease, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/lease/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/events/agent, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/events/lease, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/organisation, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/organisation, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/events/organisation, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/project, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/project, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/project/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/events/project, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/grant, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/grant, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/r/grant/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {request: {method: GET, path: /v1/admin/events/grant, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+- id: no-token-refused
+  covers: [auth-middleware-rejects-unauthenticated-requests]
+  check: exchange
+  assertion: "A request carrying no token is refused 401 with an error member at every endpoint whose declared auth requires a token: the declaration's serves entries whose auth is token or a capability, less the two model audit routes, which from outside the process are answered 404. Written route by route because the engine does not yet read for_each protected-endpoint."
+  live: safe
+  exchange:
+    steps:
+    - {request: {method: DELETE, path: /v1/register}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/services}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/channel, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/rotate-key, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/token/exchange, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/token/work, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/work/authorisations}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: DELETE, path: /v1/work/authorisations/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/lease, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/audit}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/operators}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/operators/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: DELETE, path: /v1/admin/operators/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/work-authorisations, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/work-authorisations}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/agents}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/agents/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/overview}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/audit}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/audit/export}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/records/orchestrator/snapshot}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/model}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: PUT, path: /v1/admin/model, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/model/providers}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/complete, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/model/agreements, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/model/agreements}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/model/ceiling}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/model/ceiling}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/resources}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/lease}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/lease/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/events/agent}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/events/lease}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/organisation}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/organisation, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/organisation/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/events/organisation}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/project}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/project, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/project/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/events/project}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/grant}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/grant, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/r/grant/conformance-probe}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, body: {}}, expect: {status: 401, json: true, has: [/error]}}
+    - {request: {method: GET, path: /v1/admin/events/grant}, expect: {status: 401, json: true, has: [/error]}}
+- id: model-routes-judge-the-token
+  covers: [platform-provided-model-route-authorised]
+  check: topology
+  assertion: "Every platform-provided model route judges the caller's token itself and never on its shape: a well-formed registration token issued by another orchestrator is refused 401 INVALID_SIGNATURE at each of them, a registered agent's own token is refused 401 CREDENTIAL_REQUIRED at each one under /v1/admin/, and is not refused 401 or 403 at GET /v1/model/ceiling, which admits a registration token."
+  topology:
+    instances:
+    - {name: under-test}
+    - {name: other-issuer}
+    acts:
+    - {act: start, instance: under-test, expect: live, within: 20s}
+    - {act: start, instance: other-issuer, expect: live, within: 20s}
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'llm:chat', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {foreign: /token}, instance: other-issuer}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'llm:chat', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {agent: /token}, instance: under-test}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: PUT, path: /v1/admin/model, headers: {Authorization: 'Bearer ${foreign}'}, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/providers, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: POST, path: /v1/admin/complete, headers: {Authorization: 'Bearer ${foreign}'}, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: POST, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${foreign}'}, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/ceiling, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: GET, path: /v1/model/ceiling, headers: {Authorization: 'Bearer ${foreign}'}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: PUT, path: /v1/admin/model, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/providers, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: POST, path: /v1/admin/complete, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: POST, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${agent}'}, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/agreements, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: GET, path: /v1/admin/model/ceiling, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {instance: under-test, request: {method: GET, path: /v1/model/ceiling, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status_not: [401, 403, 404, 405]}}
+- id: hub-proof-takes-no-token
+  covers: [post-v1-admin-hub-proof-served]
+  check: exchange
+  assertion: "POST /v1/admin/hub/proof carrying no token reaches its handler: it is answered neither 401 nor 403, and is not refused as unrouted."
+  live: safe
+  exchange:
+    steps:
+    - {request: {method: POST, path: /v1/admin/hub/proof, body: {}}, expect: {status_not: [401, 403, 404, 405], json: true}}
+- id: operator-token-route-takes-no-token
+  covers: [post-v1-admin-operators-token-requires]
+  check: exchange
+  assertion: "POST /v1/admin/operators/token carrying no token reaches its handler, which issues tokens: it is answered neither 401 nor 403, and is not refused as unrouted."
+  live: safe
+  exchange:
+    steps:
+    - {request: {method: POST, path: /v1/admin/operators/token, body: {}}, expect: {status_not: [401, 403, 404, 405], json: true}}
 ```
 
 ---
