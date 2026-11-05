@@ -22,9 +22,9 @@ fault, so each rename needs confirming by somebody who knows what was meant.
 
 | Binder | Binds | From | Target declares |
 |---|---|---|---|
-| `agents/hub.md` | `FederatedListing` | `protocol/federation` | `FederatedTaskResult`, `FederatedTaskRequest` |
-| `agents/hub.md` | `KeyRotationAnnouncement` | `protocol/identity` | `KeyRotationRequest` |
-| `agents/hub.md` | `PeerRequest` | `protocol/federation` | `FederatedTaskRequest` |
+| `agents/listings.md` | `FederatedListing` | `protocol/federation` | `FederatedTaskResult`, `FederatedTaskRequest` |
+| `agents/listings.md` | `KeyRotationAnnouncement` | `protocol/identity` | `KeyRotationRequest` |
+| `agents/listings.md` | `PeerRequest` | `protocol/federation` | `FederatedTaskRequest` |
 | `agents/lifecycle.md` | `WorkflowResult` | `protocol/types` | `WorkflowExecution`, `WorkflowPhase` |
 | `agents/workflow.md` | `WorkflowResult` | `protocol/types` | `WorkflowExecution`, `WorkflowPhase` |
 | `architecture/observability.md` | `AuditEntry` | `architecture/orchestrator` | `AgentEntry` |
@@ -53,12 +53,12 @@ and does not, or a binding that should not be there.
 
 | Binder | Binds | From |
 |---|---|---|
-| `agents/hub.md` | `BehavioralChange` | `architecture/hub` |
-| `agents/hub.md` | `CollaboratorInfo` | `architecture/hub` |
-| `agents/hub.md` | `MetricsInfo` | `architecture/hub` |
-| `agents/hub.md` | `ProviderInfo` | `architecture/hub` |
-| `agents/hub.md` | `SearchQuery` | `architecture/hub` |
-| `agents/hub.md` | `SearchResult` | `architecture/hub` |
+| `agents/listings.md` | `BehavioralChange` | `architecture/hub` |
+| `agents/listings.md` | `CollaboratorInfo` | `architecture/hub` |
+| `agents/listings.md` | `MetricsInfo` | `architecture/hub` |
+| `agents/listings.md` | `ProviderInfo` | `architecture/hub` |
+| `agents/listings.md` | `SearchQuery` | `architecture/hub` |
+| `agents/listings.md` | `SearchResult` | `architecture/hub` |
 | `agents/incident-response.md` | `AlertEvent` | `protocol/types` |
 | `architecture/admin.md` | `Strategy` | `architecture/lifecycle` |
 | `architecture/admin.md` | `ThreatBoundary` | `architecture/threat-model` |

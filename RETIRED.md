@@ -120,6 +120,7 @@ rewrites that place.
 | `schemas/structures/`, the directory of the section structures a document is checked against, and its files | The document families in `documents/families/`, one declaration each | [`documents/families/policy`](documents/families/policy.md), [`procedure`](documents/families/procedure.md), [`standard`](documents/families/standard.md) and [`guideline`](documents/families/guideline.md), each 1.0.0, and [`schemas/programme`](schemas/programme.md#the-structures-a-document-is-checked-against), The structures a document is checked against |
 | `ApprovalResponse` and `ApprovalResult`, the response to a decision on recommendations, and `ApprovalRequest` in its sense of that decision's body (`recommendation_ids`, `decision`, `token`) | None. `ApprovalRequest` is the request an owner holds open; it is answered at the route its owner names | [`protocol/types`](protocol/types.md#approvals) 5.0.0, Approvals |
 | `/v1/tenants/{tenant}/orgs`, the control plane's routes `ListOrgs` and `CreateOrg`, and its `Org` and `Project` types, a host registry of a tenant's organisations and projects | The tenant's own records, held by its orchestrator: the `organisation` and `project` kinds at `/v1/admin/r/organisation` and `/v1/admin/r/project`, and the `Organisation` and `Project` types | [`architecture/tenancy`](architecture/tenancy.md#endpoints) 4.0.0, Endpoints; [`architecture/orchestrator`](architecture/orchestrator.md#the-tenants-organisations-and-projects) 4.3.0 |
+| `agents/hub`, the agent registering as `hub`, and `.weblisk/keys/hub/`, where it kept its key | `agents/listings`, registering as `listings`, its key `.weblisk/keys/listings.key`; its file names the old ref under `formerly` | [`agents/listings`](agents/listings.md) 5.0.0; [`protocol/identity`](protocol/identity.md#key-files) 3.3.1, Key Files |
 
 ## Entries
 
@@ -518,7 +519,7 @@ itself is always allowed.
   allow:
   - {path: agents/cron.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: agents/health-monitor.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
-  - {path: agents/hub.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
+  - {path: agents/listings.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: agents/incident-response.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: agents/lifecycle.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
   - {path: agents/task.md, why: 'not yet rewritten to durations; each such key means that number of its unit until v2-migrate rewrites it'}
@@ -562,4 +563,10 @@ itself is always allowed.
   - {spelling: Project, match: sense}
   allow:
   - {path: architecture/tenancy.md, why: 'Endpoints says the routes and types were withdrawn, and why'}
+- retired:
+  - {spelling: agents/hub, match: exact}
+  - {spelling: .weblisk/keys/hub/, match: exact}
+  allow:
+  - {path: agents/listings.md, why: 'its formerly record, which is how a citation of agents/hub still finds it'}
+  - {path: schemas/common.md, why: 'a measured fault, told under the name the agent had when it happened'}
 ```

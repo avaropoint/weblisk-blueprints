@@ -432,8 +432,8 @@ types:
 
 Both are valid YAML and MUST parse identically. A reader that requires the
 closing bracket on the opening line returns an EMPTY list for the second form —
-which is what happened, silently, so the fields of three types in `agents/hub`
-reached generation as nothing at all.
+which is what happened, silently, so the fields of three types in `agents/hub` (now
+[`agents/listings`](../agents/listings.md)) reached generation as nothing at all.
 
 To bind a whole type, write `["*"]`. The asterisk MUST be quoted: a bare `*` is
 YAML's alias indicator and makes the block unparseable, which is what
