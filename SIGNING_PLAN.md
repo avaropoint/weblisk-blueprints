@@ -1,6 +1,8 @@
 # Signing from a console
 
-> **Status: proposal, awaiting the owner's decision. Nothing here is adopted.**
+> **Status: adopted by the owner on 2026-11-05, with the decisions recorded in
+> [Decisions](#decisions) as recommended.** It is the plan of work; each part
+> becomes normative when it lands where [What changes where](#what-changes-where) names.
 > No blueprint, schema, check, vector or tool follows it yet. It sits at the
 > corpus root, beside [`ACCEPTANCE_PLAN.md`](ACCEPTANCE_PLAN.md), and not under
 > `architecture/` or `protocol/`, because a file there is a blueprint and its
@@ -509,3 +511,16 @@ ceiling decides whether they may apply it themselves.
 user-presence access control where the platform offers one, else the
 `weblisk-key-v1` envelope*, and a secure element once one holds ML-DSA-65 — a
 change to the signer only, never to the record.
+
+
+### Decided by the owner, 2026-11-05
+
+Every decision above is taken as recommended:
+
+- **D1:** a passkey never signs a record.
+- **D2:** the signer submits the act.
+- **D3:** the CLI is the first signer.
+- **D4:** the pointer travels as text, a link or a QR code, with no new route.
+- **D5:** settle the attestation statement's words, then publish its vectors.
+- **D6:** a console's own writes stay witnessed; a signed write is a proposal whose decision the signer signs.
+- **D7:** the signer keeps its key in the platform keychain with a presence check where offered, otherwise in the `weblisk-key-v1` envelope, and moves to a secure element once one holds ML-DSA-65.
