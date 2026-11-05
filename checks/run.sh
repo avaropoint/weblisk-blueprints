@@ -725,23 +725,23 @@ else
 fi
 
 # No pattern requires the framework, beyond the known list, which can only
-# shrink; a list missing command's requirement of architecture/agent must
-# report exactly it, and one still naming retry's, removed, exactly that.
+# shrink; a fixture pattern requiring architecture/agent must report exactly
+# it, and a list still naming retry's requirement, removed, exactly that.
 expect 0 "layering: every pattern that requires the framework is known, none new" python3 checks/layering.py
+mkdir -p "$tmp/lay/patterns"
+printf '<!-- blueprint\ntype: pattern\nname: fixture\nrequires: [protocol/types, architecture/agent]\n-->\n' >"$tmp/lay/patterns/fixture.md"
 python3 - "$tmp" <<'PY'
 import json, sys
-k = json.load(open("checks/layering.json", encoding="utf-8"))
-k["known"].pop("patterns/command")
-json.dump(k, open(sys.argv[1] + "/lay-new.json", "w"))
+json.dump({"known": {}}, open(sys.argv[1] + "/lay-none.json", "w"))
 k = json.load(open("checks/layering.json", encoding="utf-8"))
 k["known"]["patterns/retry"] = ["architecture/agent"]
 json.dump(k, open(sys.argv[1] + "/lay-gone.json", "w"))
 PY
-expect 1 "layering control: a requirement not in the list fails" python3 checks/layering.py --known "$tmp/lay-new.json"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/command requires architecture/agent" "$tmp/out"; then
-	echo "ok   layering control: exactly one finding, patterns/command"
+expect 1 "layering control: a requirement not in the list fails" python3 checks/layering.py --root "$tmp/lay" --known "$tmp/lay-none.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^patterns/fixture requires architecture/agent" "$tmp/out"; then
+	echo "ok   layering control: exactly one finding, the fixture's"
 else
-	echo "FAIL layering control: want exactly one finding, patterns/command"
+	echo "FAIL layering control: want exactly one finding, the fixture's"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi

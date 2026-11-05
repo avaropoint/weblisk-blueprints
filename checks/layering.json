@@ -1,16 +1,9 @@
 {
- "measured_at": "wt/decisions, 2026-11-04",
- "note": "Each pattern here still requires a framework blueprint, against the owner's decision of 2026-11-04 that the framework requires the patterns and a pattern never requires the framework (schemas/common.md, Field Constraints). An entry is removed when its pattern stops requiring that blueprint, usually by binding a type protocol/types or the pattern itself declares, or by the framework blueprint binding the pattern instead; entries are never added.",
+ "measured_at": "wt/layering, 2026-11-05",
+ "note": "Each pattern here still requires a framework blueprint, against the owner's decision of 2026-11-04 that the framework requires the patterns and a pattern never requires the framework (schemas/common.md, Field Constraints). Both bind types the framework blueprint declares and the pattern cannot do without, so which blueprint holds those types is the owner's to decide: content-git is a driver of architecture/content's backend contract (ContentChange, ContentRepository and the rest), and offline reads architecture/client's client taxonomy (ClientType, TrustLevel, ClientCapability, DataBoundaryTag). An entry is removed when its pattern stops requiring that blueprint; entries are never added.",
  "known": {
   "patterns/content-git": [
    "architecture/content"
-  ],
-  "patterns/deployment": [
-   "architecture/orchestrator"
-  ],
-  "patterns/domain-controller": [
-   "architecture/domain",
-   "architecture/lifecycle"
   ],
   "patterns/offline": [
    "architecture/client"
