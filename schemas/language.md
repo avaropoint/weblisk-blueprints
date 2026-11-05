@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.0
+version: 1.5.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -195,6 +195,7 @@ layout:
     contract: [<what>, ...]
   rules:                          # what belongs in each package, each with an id
     - id: <part id>
+      plan_rule: <7 | 8 | 9 | 10>  # optional: the rule of Validating a plan this one is enforced by
       text: <the rule, as a model is given it>
 ```
 
@@ -204,7 +205,7 @@ layout:
 | `holds` | Declared names of these kinds live in the contract package and nowhere else. The kinds are a closed list: `type` (a `yaml:types` type, with fields or an enum), `enum-constant`, `path-constant`, `request-type`, `response-type` and `error-code`, each spelled as the language's mappings spell it |
 | `role` | `contract` is the package `holds` names. `component` is a running thing: the blueprint a row of [`schemas/programme`](programme.md#the-services-in-the-order-they-are-built)'s services table names, for a service in a process of its own, an agent or a domain, and `architecture/gateway`, which [`schemas/config`](config.md) declares as `gateway`. `library` is every other blueprint whose requirements some code answers |
 | `imports` | What a package of each role may import: `own-component` (an entry, its own component's package), `library` (any library package), `required-library` (the package of a library blueprint the importer's blueprint `requires`, outside any `requires` cycle with it) and `contract`. Nothing else, and nothing a role's list leaves out |
-| `rules` | Binding statements of where code goes, each with an id a plan's validation cites when it refuses a plan. They are passed to the model as written |
+| `rules` | Binding statements of where code goes, each with an id a plan's validation cites when it refuses a plan. They are passed to the model as written. `plan_rule` names the rule of [Validating a plan](../architecture/generation.md#validating-a-plan) (7 to 10) that enforces it, so a refusal under that rule cites this one by its id; each of 7 to 10 is named by at least one rule |
 
 **What a layout leaves to the model.** Within a package: which files exist,
 what each is called, how the package's work is divided between them, and the
@@ -282,7 +283,17 @@ toolchain:
   run: [<arg>, ...]               # one component; the starter appends its flags
   vet: [<arg>, ...]               # optional: a static check the build gate also runs
   env: {<name>: <value>}          # set for prepare, build and test only, never for a component
+  switching:                      # optional: the toolchain obtains the version the module declares itself
+    probe: [<arg>, ...]           # asks the host's policy, in the host's own environment
+    never: <regex>                # an answer matching it means the toolchain never switches
 ```
+
+`switching` is for a toolchain that, given a module declaring a newer
+version than the one installed, obtains and uses that version itself. Where
+it is declared and its probe's answer does not match `never`, a host whose
+installed toolchain is older than `version` is not refused for it: the
+toolchain that builds is not the one installed. Where it is absent, or the
+answer matches `never`, the installed version is the one that builds.
 
 #### The diagnostics block
 

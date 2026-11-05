@@ -415,23 +415,33 @@ one reference; one passphrase then opens each of their keys.
 
 ## Port Conventions
 
-| Range | Assignment |
-|-------|-----------|
-| 8080 | Gateway |
-| 9800 | Orchestrator |
-| 9801 | Federation |
-| 9802 | Content service |
-| 9803 | Admin gateway, internal listener |
-| 9804 | Execution |
-| 9805 | Notification |
-| 9806 | Prompt worker |
-| 9807 | Programme service |
-| 9808 | Fabric service |
-| 9809 | Change service |
-| 9443 | Admin gateway, admin listener |
-| 9700–9709 | Domain controllers |
-| 9710–9749 | Work agents |
-| 9750–9799 | Infrastructure agents |
+Each port a component listens on when its section sets none, as data a tool
+reads rather than holds. `for` is the component kind
+([`schemas/kinds`](kinds.md#component-kinds)) that listens, or `federation`,
+the hub's federation listener; `section` and `key` are where in this file a
+port is set instead; `where` selects entries of a list section by a field; a
+`range` is where ports are assigned from for a kind that comes in multiples.
+A kind with no row listens on no port of its own: the model service serves on
+the orchestrator's ([The services a programme runs on](#the-services-a-programme-runs-on)).
+
+```yaml
+ports:
+  - {for: gateway, section: gateway, key: port, port: 8080}
+  - {for: orchestrator, section: orchestrator, key: port, port: 9800}
+  - {for: federation, section: federation, key: port, port: 9801}
+  - {for: content, section: content, key: port, port: 9802}
+  - {for: admin, section: admin_gateway, key: internal_port, port: 9803}
+  - {for: execution, section: execution, key: port, port: 9804}
+  - {for: notification, section: notification, key: port, port: 9805}
+  - {for: prompt-worker, section: prompt_worker, key: port, port: 9806}
+  - {for: programme-service, section: programme_service, key: port, port: 9807}
+  - {for: fabric-service, section: fabric, key: port, port: 9808}
+  - {for: change-service, section: change_service, key: port, port: 9809}
+  - {for: admin, section: admin_gateway, key: port, port: 9443}
+  - {for: domain, section: domains, key: port, range: [9700, 9709]}
+  - {for: agent, section: agents, key: port, where: {type: work}, range: [9710, 9749]}
+  - {for: agent, section: agents, key: port, where: {type: infrastructure}, range: [9750, 9799]}
+```
 
 When `port` is omitted, the CLI auto-assigns from the appropriate range,
 incrementing from the base for each additional component of that type.

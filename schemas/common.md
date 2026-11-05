@@ -780,9 +780,13 @@ implementation of the blueprint.
 ```
 
 Assertions MAY be grouped under `###` subheadings. A group whose heading BEGINS
-with a component name — `Agent`, `Orchestrator`, `Domain`, `Gateway`, `Content`, `Admin` — addresses
-that component only. `Admin` is the admin gateway, built from `architecture/admin`. Every other group, and every ungrouped assertion, addresses
-any implementation of the blueprint.
+with a component kind's name — any kind [`schemas/kinds`](kinds.md#component-kinds)'
+`component_kinds` block declares, written with a space for each hyphen or as
+the architecture blueprint it is built from (`Agent`, `Orchestrator`,
+`Content`, `Admin`, `Prompt worker`, `Fabric`) — addresses that component only.
+`Admin` is the admin gateway, built from `architecture/admin`. Every other
+group, and every ungrouped assertion, addresses any implementation of the
+blueprint. A tool reads the names from that block and holds no list of them.
 
 ```markdown
 ## Verification Checklist

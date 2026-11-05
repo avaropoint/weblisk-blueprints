@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.9.0
+version: 1.10.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -358,9 +358,9 @@ component_kinds:
     programme-service: {count: {min: 0, max: 1}, registers: true}
     fabric-service:    {count: {min: 0, max: 1}, registers: true}
     change-service:    {count: {min: 0, max: 1}, registers: true}
-    gateway:           {count: {min: 0, max: 1}, registers: true}
-    agent:             {count: {min: 0}, registers: true, named: true}
-    domain:            {count: {min: 0}, registers: true, named: true}
+    gateway:           {count: {min: 0, max: 1}, registers: true, blueprint: architecture/gateway}
+    agent:             {count: {min: 0}, registers: true, named: true, blueprint: "agents/{name}"}
+    domain:            {count: {min: 0}, registers: true, named: true, blueprint: "domains/{name}"}
   selectors:
     any: {text: every component kind}
     registers: {text: every kind whose registers is true, where: {registers: true}}
@@ -374,6 +374,7 @@ component_kinds:
 | `registers` | Whether a component of the kind registers with the orchestrator, and so is listed in its directory and holds a lease. The orchestrator holds the directory, and the model service is in the orchestrator's process |
 | `runs_with` | The kind in whose process this one runs. It has no entry, no port and no registration of its own, and its package is a library the host kind's entry imports ([`languages/go`](../languages/go.md#the-package-is-named-after-the-blueprint-that-specifies-it), `when: component`) |
 | `named` | A component of the kind is named by its own blueprint's name (`agents/<name>`, a programme's `domains/<id>`), and its code lives under that name. An unnamed kind is named by the kind itself |
+| `blueprint` | The blueprint a component of the kind is built from, for a kind the services table does not order; `{name}` is a named component's own name. A kind the table orders is built from the blueprint its row names, and declares none here, so the two never disagree. A tool reads it to place a component's code by the language's `layout` block, and holds no list of kinds and their blueprints |
 | `selectors` | Names a check's `applies_to` may use besides a kind ([`schemas/blocks`](blocks.md#checks)). `where` gives the facet each kind must hold, by dotted key |
 
 A singleton's library directory belongs to its one component, which is what

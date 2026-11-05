@@ -1,7 +1,27 @@
 {
   "format": "The tools' source at the commit named, and the string literals in it that equal a name the corpus declares (checks/engine-neutrality.py). Each entry is one finding, with the finding of the CLI drift audit of 2026-11-03 (CLI 4d54da8, corpus d20ca6f) that covers it, by its number in that audit's findings table or by the package row of its class shares; an entry that finding does not cover says so. The list can only shrink: an entry whose literal has left the source is reported until it is removed, and a finding not on the list is new knowledge in the tools.",
-  "commit": "01e41978a2a03a31a2cc1276f1a76351bb779050",
+  "commit": "07ab8fc82abca33adedd7a9775e09a748a11f49a",
   "known": [
+    {
+      "finding": "commands.go: component agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: component domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun policy",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
     {
       "finding": "engine/admin/admin.go: code RATE_LIMITED",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
@@ -59,10 +79,6 @@
       "audit": "finding 30"
     },
     {
-      "finding": "internal/build/build.go: component cli",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
       "finding": "engine/buildplan/corpus.go: component orchestrator",
       "audit": "section 3: internal/buildplan"
     },
@@ -115,32 +131,8 @@
       "audit": "finding 29"
     },
     {
-      "finding": "engine/buildplan/services.go: noun blueprint",
-      "audit": "finding 28"
-    },
-    {
       "finding": "engine/dispatch/behind.go: component orchestrator",
       "audit": "finding 16"
-    },
-    {
-      "finding": "engine/dispatch/blueprints.go: language cloudflare",
-      "audit": "finding 47"
-    },
-    {
-      "finding": "engine/dispatch/blueprints.go: language node",
-      "audit": "finding 47"
-    },
-    {
-      "finding": "engine/dispatch/blueprints.go: language rust",
-      "audit": "finding 47"
-    },
-    {
-      "finding": "engine/dispatch/buildtools.go: heading Runtime Requirements",
-      "audit": "finding 48"
-    },
-    {
-      "finding": "engine/dispatch/buildtools.go: language go",
-      "audit": "finding 48"
     },
     {
       "finding": "engine/dispatch/catalog.go: language cloudflare",
@@ -151,39 +143,7 @@
       "audit": "not covered by the 2026-11-03 audit: the literal became a corpus name when architecture/change-service 1.0.0 declared it"
     },
     {
-      "finding": "engine/dispatch/checklist.go: component admin",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: component agent",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: component content",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: component domain",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: component gateway",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: component orchestrator",
-      "audit": "finding 14"
-    },
-    {
       "finding": "engine/dispatch/checklist.go: heading ## Verification Checklist",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: noun agent",
-      "audit": "finding 14"
-    },
-    {
-      "finding": "engine/dispatch/checklist.go: noun domain",
       "audit": "finding 14"
     },
     {
@@ -235,6 +195,10 @@
       "audit": "finding 10"
     },
     {
+      "finding": "engine/dispatch/corpus_tables.go: noun blueprint",
+      "audit": "not in the CLI drift audit of 2026-11-03: written or moved since CLI 4d54da8"
+    },
+    {
       "finding": "engine/dispatch/declaration.go: noun platform",
       "audit": "finding 2"
     },
@@ -255,6 +219,10 @@
       "audit": "finding 8"
     },
     {
+      "finding": "engine/dispatch/instructions.go: noun platform",
+      "audit": "not itemised by the audit; the generate step's declared input platform (architecture/engine), the name the engine places the platform blueprint under, which equals the family noun"
+    },
+    {
       "finding": "engine/dispatch/interop.go: component orchestrator",
       "audit": "finding 34"
     },
@@ -267,50 +235,6 @@
       "audit": "finding 34"
     },
     {
-      "finding": "engine/dispatch/layout.go: component admin",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: component agent",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: component content",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: component domain",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: component gateway",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: component orchestrator",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: language cloudflare",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: language node",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: language rust",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: noun agent",
-      "audit": "finding 15"
-    },
-    {
-      "finding": "engine/dispatch/layout.go: noun domain",
-      "audit": "finding 15"
-    },
-    {
       "finding": "engine/dispatch/localcli.go: component content",
       "audit": "section 3: dispatch"
     },
@@ -320,18 +244,6 @@
     },
     {
       "finding": "engine/dispatch/locate.go: language cloudflare",
-      "audit": "finding 32"
-    },
-    {
-      "finding": "engine/dispatch/locate.go: language go",
-      "audit": "finding 32"
-    },
-    {
-      "finding": "engine/dispatch/locate.go: language node",
-      "audit": "finding 32"
-    },
-    {
-      "finding": "engine/dispatch/locate.go: language rust",
       "audit": "finding 32"
     },
     {
@@ -415,14 +327,6 @@
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "engine/dispatch/relevance.go: component orchestrator",
-      "audit": "finding 64"
-    },
-    {
-      "finding": "engine/dispatch/relevance.go: noun protocol",
-      "audit": "finding 64"
-    },
-    {
       "finding": "engine/dispatch/requirements.go: component agent",
       "audit": "finding 17"
     },
@@ -456,10 +360,6 @@
     },
     {
       "finding": "engine/dispatch/skills.go: component gateway",
-      "audit": "finding 49"
-    },
-    {
-      "finding": "engine/dispatch/skills.go: language go",
       "audit": "finding 49"
     },
     {
@@ -539,26 +439,6 @@
       "audit": "finding 4"
     },
     {
-      "finding": "internal/domain/domain.go: component domain",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "internal/domain/domain.go: language go",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "internal/domain/domain.go: noun domain",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "internal/gateway/gateway.go: component gateway",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "internal/gateway/gateway.go: language go",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
       "finding": "engine/grammar/family.go: noun family",
       "audit": "section 3: internal/grammar"
     },
@@ -585,14 +465,6 @@
     {
       "finding": "engine/grammar/walk.go: noun policy",
       "audit": "section 3: internal/grammar"
-    },
-    {
-      "finding": "internal/marketplace/marketplace.go: component domain",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "internal/marketplace/marketplace.go: noun domain",
-      "audit": "not itemised by the audit; found by this check"
     },
     {
       "finding": "engine/operator/admin.go: code CREDENTIAL_EXPIRED",
@@ -895,16 +767,44 @@
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/project/scaffold.go: component client",
-      "audit": "not itemised by the audit; found by this check"
+      "finding": "engine/ops/catalogue.go: component agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
     },
     {
-      "finding": "internal/project/scaffold.go: component domain",
-      "audit": "not itemised by the audit; found by this check"
+      "finding": "engine/ops/catalogue.go: component domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
     },
     {
-      "finding": "internal/project/scaffold.go: noun domain",
-      "audit": "not itemised by the audit; found by this check"
+      "finding": "engine/ops/catalogue.go: component gateway",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun block",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun blueprint",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun family",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun platform",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun position",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
     },
     {
       "finding": "engine/protocol/probes.go: route /livez",
@@ -923,23 +823,7 @@
       "audit": "finding 59"
     },
     {
-      "finding": "internal/serve/serve.go: route /__livereload",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
       "finding": "engine/server/admin_standup.go: component orchestrator",
-      "audit": "section 3: internal/server"
-    },
-    {
-      "finding": "internal/server/agent/commands.go: component agent",
-      "audit": "section 3: internal/server"
-    },
-    {
-      "finding": "internal/server/agent/commands.go: language go",
-      "audit": "section 3: internal/server"
-    },
-    {
-      "finding": "internal/server/agent/commands.go: noun agent",
       "audit": "section 3: internal/server"
     },
     {
@@ -979,31 +863,11 @@
       "audit": "finding 28"
     },
     {
-      "finding": "engine/server/hubconfig.go: component execution",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/hubconfig.go: component fabric",
-      "audit": "finding 28"
-    },
-    {
       "finding": "engine/server/hubconfig.go: component gateway",
       "audit": "finding 28"
     },
     {
-      "finding": "engine/server/hubconfig.go: component notification",
-      "audit": "finding 28"
-    },
-    {
       "finding": "engine/server/hubconfig.go: component orchestrator",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/hubconfig.go: component programme-service",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/hubconfig.go: component prompt-worker",
       "audit": "finding 28"
     },
     {
@@ -1047,31 +911,7 @@
       "audit": "section 3: internal/server"
     },
     {
-      "finding": "engine/server/tenantstart.go: component agent",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/tenantstart.go: component content",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/tenantstart.go: component domain",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/tenantstart.go: component gateway",
-      "audit": "finding 28"
-    },
-    {
       "finding": "engine/server/tenantstart.go: component orchestrator",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/tenantstart.go: noun agent",
-      "audit": "finding 28"
-    },
-    {
-      "finding": "engine/server/tenantstart.go: noun domain",
       "audit": "finding 28"
     },
     {
@@ -1085,90 +925,6 @@
     {
       "finding": "engine/startenv/startenv.go: language go",
       "audit": "finding 56"
-    },
-    {
-      "finding": "internal/tenantcmd/accept.go: component orchestrator",
-      "audit": "section 3: tenantcmd, changecmd"
-    },
-    {
-      "finding": "internal/tenantcmd/tenantcmd.go: language go",
-      "audit": "section 3: tenantcmd, changecmd"
-    },
-    {
-      "finding": "engine/test/test.go: component admin",
-      "audit": "finding 13"
-    },
-    {
-      "finding": "engine/test/test.go: route /v1/admin/operators/register",
-      "audit": "finding 13"
-    },
-    {
-      "finding": "engine/test/test.go: route /v1/admin/overview",
-      "audit": "finding 13"
-    },
-    {
-      "finding": "engine/test/test.go: route /v1/register",
-      "audit": "finding 13"
-    },
-    {
-      "finding": "engine/test/test.go: route /v1/services",
-      "audit": "finding 13"
-    },
-    {
-      "finding": "engine/testhome/testhome.go: component testing",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "engine/testhome/testhome.go: language go",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: component agent",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: component domain",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: component gateway",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: noun agent",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: noun blueprint",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: noun domain",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: noun pattern",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "main.go: noun policy",
-      "audit": "not itemised by the audit; found by this check"
-    },
-    {
-      "finding": "engine/tenant/preflight.go: language cloudflare",
-      "audit": "finding 54"
-    },
-    {
-      "finding": "engine/tenant/preflight.go: language go",
-      "audit": "finding 54"
-    },
-    {
-      "finding": "engine/tenant/preflight.go: language node",
-      "audit": "finding 54"
-    },
-    {
-      "finding": "engine/tenant/preflight.go: language rust",
-      "audit": "finding 54"
     },
     {
       "finding": "engine/tenant/rebuild/config.go: component content",
@@ -1211,10 +967,6 @@
       "audit": "finding 26"
     },
     {
-      "finding": "engine/tenant/route/route.go: route /v1/admin/changes",
-      "audit": "not covered by the 2026-11-03 audit: the literal became a corpus name when architecture/change-service 1.0.0 declared it"
-    },
-    {
       "finding": "engine/tenant/route/route.go: route /metrics",
       "audit": "finding 26"
     },
@@ -1233,6 +985,10 @@
     {
       "finding": "engine/tenant/route/route.go: route /v1/admin/audit/export",
       "audit": "finding 26"
+    },
+    {
+      "finding": "engine/tenant/route/route.go: route /v1/admin/changes",
+      "audit": "not covered by the 2026-11-03 audit: the literal became a corpus name when architecture/change-service 1.0.0 declared it"
     },
     {
       "finding": "engine/tenant/route/route.go: route /v1/admin/complete",
@@ -1299,72 +1055,128 @@
       "audit": "finding 52"
     },
     {
-      "finding": "commands.go: component agent",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/test/test.go: component admin",
+      "audit": "finding 13"
     },
     {
-      "finding": "commands.go: component domain",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/test/test.go: route /v1/admin/operators/register",
+      "audit": "finding 13"
     },
     {
-      "finding": "commands.go: noun agent",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/test/test.go: route /v1/admin/overview",
+      "audit": "finding 13"
     },
     {
-      "finding": "commands.go: noun domain",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/test/test.go: route /v1/register",
+      "audit": "finding 13"
     },
     {
-      "finding": "commands.go: noun policy",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/test/test.go: route /v1/services",
+      "audit": "finding 13"
     },
     {
-      "finding": "engine/dispatch/instructions.go: noun platform",
-      "audit": "not itemised by the audit; the generate step's declared input platform (architecture/engine), the name the engine places the platform blueprint under, which equals the family noun"
+      "finding": "engine/testhome/testhome.go: component testing",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: component agent",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "engine/testhome/testhome.go: language go",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: component domain",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/build/build.go: component cli",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: component gateway",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/domain/domain.go: component domain",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun agent",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/domain/domain.go: language go",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun block",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/domain/domain.go: noun domain",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun blueprint",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/gateway/gateway.go: component gateway",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun domain",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/gateway/gateway.go: language go",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun family",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/marketplace/marketplace.go: component domain",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun pattern",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/marketplace/marketplace.go: noun domain",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun platform",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/project/scaffold.go: component client",
+      "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "engine/ops/catalogue.go: noun position",
-      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+      "finding": "internal/project/scaffold.go: component domain",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "internal/project/scaffold.go: noun domain",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "internal/serve/serve.go: route /__livereload",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "internal/server/agent/commands.go: component agent",
+      "audit": "section 3: internal/server"
+    },
+    {
+      "finding": "internal/server/agent/commands.go: language go",
+      "audit": "section 3: internal/server"
+    },
+    {
+      "finding": "internal/server/agent/commands.go: noun agent",
+      "audit": "section 3: internal/server"
+    },
+    {
+      "finding": "internal/tenantcmd/accept.go: component orchestrator",
+      "audit": "section 3: tenantcmd, changecmd"
+    },
+    {
+      "finding": "internal/tenantcmd/tenantcmd.go: language go",
+      "audit": "section 3: tenantcmd, changecmd"
+    },
+    {
+      "finding": "main.go: component agent",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: component domain",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: component gateway",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: noun agent",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: noun blueprint",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: noun domain",
+      "audit": "not itemised by the audit; found by this check"
+    },
+    {
+      "finding": "main.go: noun policy",
+      "audit": "not itemised by the audit; found by this check"
     }
   ]
 }

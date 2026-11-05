@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.3.0
+version: 5.4.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -226,6 +226,7 @@ layout:
     contract: []
   rules:
     - id: go-declared-names-in-contract
+      plan_rule: 8
       text: >-
         Every type a yaml:types block declares, in any blueprint the tenant's
         components are built from, is a struct or a named type in
@@ -240,6 +241,7 @@ layout:
         component that serves the endpoint, in that component's package, and
         so are the component's one route table and its Routes() function.
     - id: go-requirement-in-its-blueprints-package
+      plan_rule: 7
       text: >-
         Code that answers a requirement of a library blueprint, one whose
         role is library above, is written in that blueprint's package, and a
@@ -252,11 +254,13 @@ layout:
         requirements and the handlers it serves, and nothing a library's
         requirement asks for.
     - id: go-client-in-caller
+      plan_rule: 10
       text: >-
         Code that calls another component's endpoint is written in the
         calling package, against the contract's path constant and types. No
         package imports the package of a component other than its own.
     - id: go-entry-holds-main
+      plan_rule: 7
       text: >-
         cmd/<service>/main.go is package main and holds main and the parsing
         of its arguments; it constructs the component from the component's
@@ -267,12 +271,14 @@ layout:
         whose requirements no code answers, such as one the component reads
         and implements nothing of, has no package.
     - id: go-one-definition
+      plan_rule: 9
       text: >-
         A name the contract holds is declared in internal/protocol alone, and
         an exported name of a library package in that package alone; neither
         is declared again in any other package, under its own name or a
         copy's.
     - id: go-imports-acyclic
+      plan_rule: 10
       text: >-
         A library package imports internal/protocol and the packages of the
         library blueprints its own blueprint requires, and none other. Where
@@ -482,7 +488,14 @@ toolchain:
   run: ["bin/{service}"]
   vet: [go, vet, ./...]
   env: {GOFLAGS: "-gcflags=all=-e"}
+  switching: {probe: [go, env, GOTOOLCHAIN], never: '^local$'}
 ```
+
+`switching` is Go's toolchain selection: since Go 1.21, `GOTOOLCHAIN=auto`
+(the default) makes `go` download and use the version `go.mod` declares when
+the installed one is older, so a host with an older `go` on `PATH` still
+builds the module. Only `GOTOOLCHAIN=local` makes the installed toolchain the
+one that builds.
 
 ```yaml
 diagnostics:
