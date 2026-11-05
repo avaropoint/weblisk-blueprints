@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -282,6 +282,80 @@ fixtures:
       required_agents: [test-agent]
       workflows: [test-workflow]
       max_concurrent: 10
+  test-gateway:
+    seed: "0000000000000000000000000000000000000000000000000000000000000010"
+  test-writer:
+    seed: "0000000000000000000000000000000000000000000000000000000000000011"
+    cap: ["content:read", "content:write", "content:describe", "content:declare", "content:establish", "content:propose"]
+  test-proposer:
+    seed: "0000000000000000000000000000000000000000000000000000000000000012"
+    cap: ["content:read", "content:propose", "content:describe"]
+  test-decider:
+    seed: "0000000000000000000000000000000000000000000000000000000000000013"
+    cap: ["content:read", "content:decide", "content:describe"]
+  test-content-client:
+    seed: "0000000000000000000000000000000000000000000000000000000000000014"
+    manifest:
+      name: test-content-client
+      type: agent
+      version: 1.0.0
+      protocol_version: "1"
+      description: Conformance client of a content service, holding only what a service may hold
+      url: http://localhost:9711
+      public_key: "${fixture/test-content-client/public_key}"
+      capabilities:
+        - {name: "content:describe", resources: []}
+        - {name: "content:propose", resources: []}
+      max_concurrent: 5
+  test-overreach:
+    seed: "0000000000000000000000000000000000000000000000000000000000000015"
+    manifest:
+      name: test-overreach
+      type: agent
+      version: 1.0.0
+      protocol_version: "1"
+      description: A component naming person-only capabilities no hub would grant it, for the tokens a hub that issued one by mistake would mint
+      url: http://localhost:9712
+      public_key: "${fixture/test-overreach/public_key}"
+      capabilities:
+        - {name: "content:read", resources: []}
+        - {name: "content:write", resources: []}
+        - {name: "content:decide", resources: []}
+        - {name: "content:attest", resources: []}
+        - {name: "content:request", resources: []}
+        - {name: "content:comment", resources: []}
+        - {name: "content:retain", resources: []}
+        - {name: "content:hold", resources: []}
+      max_concurrent: 5
+  unverifiable-statement:
+    signed_at: "${now}"
+    attestation:
+      identity_id: conformance-nobody
+      identity_public_key: "${fixture/test-overreach/public_key}"
+      credential_public_key: "${fixture/test-overreach/public_key}"
+      hub_id: conformance-hub
+      purpose: sign-records
+      not_after: "2099-01-01T00:00:00.000Z"
+      signature: AAAA
+    signature: AAAA
+  content-git:
+    content:
+      backends:
+        - name: stores
+          driver: git
+          root: "${instance}/stores"
+          options: {default_line: main, worktree: none, object_format: sha1}
+      repositories:
+        - id: docs
+          scope_path: conformance/org
+          placement: {backend: stores, locator: docs}
+          custody: exclusive
+        - id: opaque-docs
+          scope_path: conformance/org
+          placement: {backend: stores, locator: opaque-docs}
+          custody: opaque
+      reconcile_interval: 0s
+      checkpoint_interval: 0s
   task:
     id: conformance-task-1
     from: user
@@ -320,9 +394,12 @@ each as the harness mints it. Every one is a WLT
 `{"alg": "ML-DSA-65", "typ": "WLT"}`, signed by the `signed_by` fixture's key
 over the token's first two parts, as Token Creation says. In a token's
 `claims`, `<as>` is the step's `as` identity fixture, `<self>` the name the
-component under test registers under, and `<cap>` the capability names of the
-`as` fixture's manifest, in the manifest's order (an empty list where the
-fixture has no manifest). `iat` and `exp` are seconds from the instant the
+component under test registers under, `<self id>` the identity id it registers
+with (the fingerprint of the public key its manifest names), and `<cap>` the
+capability names of the `as` fixture's manifest, in the manifest's order, or
+its `cap` where it is a person's and has no manifest (an empty list where the
+fixture has neither). `<fingerprint of F>` is the fingerprint of fixture F's
+public key. `iat` and `exp` are seconds from the instant the
 token is minted, written into the claims as NumericDates. A token `from`
 another is that token with the fields it names replaced. A step whose `token`
 is not `none` or `captured` and whose `as` is `anonymous` is a fault of the
@@ -360,6 +437,25 @@ test_tokens:
       claims: {sub: "<as>↔conformance-other", iss: orchestrator, cid: "00000000000000000000000000000002"}
       iat: 0
       exp: 3600
+    pass:
+      means: A person's pass for the as identity, addressed to the component under test, as protocol/identity's The pass shapes one, obtained by the test-gateway fixture
+      claims: {type: pass, sub: "<as>", iss: orchestrator, aud: "<self id>", identity_id: "<fingerprint of the as fixture's public key>", cid: "00000000000000000000000000000003", act: {sub: test-gateway, identity_id: "<fingerprint of test-gateway>"}, cap: "<cap>", identity_key: "<fingerprint of the as fixture's public key>", record_keys: []}
+      iat: 0
+      exp: 30
+    pass-other:
+      means: pass, addressed to another component (the test-agent fixture) instead of the one under test
+      from: pass
+      claims: {aud: "<fingerprint of test-agent>"}
+    operator:
+      means: The as identity's operator token, as architecture/admin's Operator token shapes one; no component but the orchestrator and the admin gateway may be presented one
+      claims: {type: operator, sub: "<as>", iss: orchestrator, identity_id: "<fingerprint of the as fixture's public key>", cid: "00000000000000000000000000000004", cap: "<cap>", record_keys: []}
+      iat: 0
+      exp: 900
+    work:
+      means: A work pass addressed to the component under test, on the as identity's authority, carried by the test-agent fixture, as protocol/identity's The work pass shapes one
+      claims: {type: work, sub: "<as>", iss: orchestrator, aud: "<self id>", identity_id: "<fingerprint of the as fixture's public key>", cid: "00000000000000000000000000000005", act: {sub: test-agent, identity_id: "<fingerprint of test-agent>"}, definition: conformance-definition, run: conformance-run-1, cap: "<cap>"}
+      iat: 0
+      exp: 30
 ```
 
 Every value of `token` that [`schemas/blocks`](../schemas/blocks.md#definitions)
@@ -386,6 +482,22 @@ is. <!-- wl:id fixture-key-written -->
 A component that, given that file, does not load it, generates another, or
 registers with any other key has failed the check that named `start.keys`; it
 is never reported as having passed with the key it chose.
+
+### Starting a component with a fixture configuration
+
+A check's `start.config` ([`schemas/blocks`](../schemas/blocks.md#definitions),
+`check-start`) names a fixture of the fixtures block whose value is a
+configuration: what a tenant's `.weblisk/config.yaml` holds for the component
+([`schemas/config`](../schemas/config.md)). Before the harness starts the
+component, it writes that value, as YAML, to `.weblisk/config.yaml` in the
+working directory it starts the component in, with every `${instance}` in it
+replaced by that directory's absolute path, and creates nothing else. A
+configuration fixture holds no secret and names no address outside that
+directory, so a store it declares lives and dies with the run. <!-- wl:id fixture-config-written -->
+
+A component that, given that file, does not read it, or reads another, has
+failed the check that named `start.config`, as one that ignores `start.keys`
+has.
 
 ## Mock Orchestrator
 
@@ -1208,6 +1320,7 @@ security:
 - [ ] Test keys are deterministic and reproducible ([Identity Fixtures](#identity-fixtures)) <!-- wl:check test-keys-deterministic-reproducible -->
 - [ ] Each `token` value of an exchange step other than `none` and `captured` is minted as its `test_tokens` entry gives it, signed by the `test-orchestrator` fixture's key, with exactly that entry's claims ([Test tokens as data](#test-tokens-as-data)) <!-- wl:check test-tokens-minted covers test-tokens-declared -->
 - [ ] A check naming `start.keys` starts the component with the fixture's key written as `.weblisk/keys/<name>.key`, `kdf = none`, mode 0600, under `WL_DEV=1`, and the component registers with that key's public half; one that registers with another key fails the check ([Starting a component with a fixture key](#starting-a-component-with-a-fixture-key)) <!-- wl:check fixture-key-start covers fixture-key-written -->
+- [ ] A check naming `start.config` starts the component with the fixture's value written as `.weblisk/config.yaml` in its working directory, `${instance}` replaced by that directory's absolute path; a component that reads another configuration fails the check ([Starting a component with a fixture configuration](#starting-a-component-with-a-fixture-configuration)) <!-- wl:check fixture-config-start covers fixture-config-written -->
 - [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes)) <!-- wl:check tests-run-against-http-endpoints-black -->
 
 ### A check that cannot read the artifact MUST say so

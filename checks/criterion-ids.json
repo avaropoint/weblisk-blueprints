@@ -1697,7 +1697,8 @@
    "test-keys-deterministic-reproducible",
    "tests-run-against-http-endpoints-black",
    "test-tokens-minted",
-   "fixture-key-start"
+   "fixture-key-start",
+   "fixture-config-start"
   ],
   "architecture/threat-model.md": [
    "auth-endpoints-enforce-per-ip-rate",

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.4.0
+version: 1.5.0
 noun: block
 ---
 # Schema: Blocks
@@ -251,7 +251,9 @@ Three fields every component check may carry:
   under test describes itself with; a fixture of
   [`architecture/testing`](../architecture/testing.md#test-fixtures) as
   `${fixture/<name>/<pointer>}`, an identity's `public_key` derived from its
-  seed; or, in a `vector` check, the entry as `${v/<pointer>}`. A string that
+  seed; or, in a `vector` check, the entry as `${v/<pointer>}`. In a
+  configuration fixture a check's `start.config` names, `${instance}` is the
+  absolute path of the working directory the component is started in. A string that
   is one placeholder and nothing else is replaced by the value, whatever its
   type. A value that resolves to nothing is a fault of the check, reported as
   such, never sent empty.
@@ -370,6 +372,7 @@ defs:
       orchestrator: {enum: [none, mock, built], default: none, description: "none; the mock architecture/testing specifies, built as a component; or the orchestrator tree this build is judged against."}
       with: {type: array, items: {$ref: "#/$defs/ref"}, description: "Other components started first, each from the tree it was accepted with, in the order the services table gives."}
       keys: {type: string, description: "An identity fixture of architecture/testing whose key the component is started with, in place of a generated one: written as its key file before it starts (architecture/testing, Starting a component with a fixture key)."}
+      config: {type: string, description: "A configuration fixture of architecture/testing written as the component's .weblisk/config.yaml in its working directory before it starts, ${instance} in it naming that directory (architecture/testing, Starting a component with a fixture configuration)."}
       mock_agent: {type: object, additionalProperties: {}, description: "Responses the mock agent of architecture/testing gives, keyed by action; a value is the TaskResult or payload it answers."}
       env: {type: object, additionalProperties: {type: string}, description: "Variables added to the clean start environment."}
   exchange-request:
@@ -383,7 +386,7 @@ defs:
       path: {type: string, pattern: "^/", description: "The path as sent; a placeholder ${name} is filled from an earlier capture or a fixture."}
       operation: {$ref: "#/$defs/ref", description: "An operation a serves block or Endpoints table declares; its method and path, in place of path."}
       listener: {enum: [public, admin], default: public}
-      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, captured], default: none, description: "The bearer token. none: no token; captured: the value an earlier step captured as token; every other value is minted as architecture/testing's test_tokens block declares it (Test tokens as data): own, a registration token for the as identity; expired, own past its exp; bad-signature, own with its signature broken; wrong-type, own carrying a type the route does not take; channel-self and channel-other, a channel token to the component under test or to another target."}
+      token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, pass, pass-other, operator, work, captured], default: none, description: "The bearer token. none: no token; captured: the value an earlier step captured as token; every other value is minted as architecture/testing's test_tokens block declares it (Test tokens as data): own, a registration token for the as identity; expired, own past its exp; bad-signature, own with its signature broken; wrong-type, own carrying a type the route does not take; channel-self and channel-other, a channel token to the component under test or to another target; pass and pass-other, a person's pass for the as identity addressed to the component under test or to another component; operator, the as identity's operator token; work, a work pass addressed to the component under test on the as identity's authority."}
       headers: {type: object, additionalProperties: {type: string}}
       body: {description: "Any JSON value; strings may hold placeholders."}
       body_bytes: {type: integer, minimum: 0, description: "A body of this many bytes, in place of body."}

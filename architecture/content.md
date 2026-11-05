@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.9.0
+version: 5.10.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -6268,3 +6268,1390 @@ security:
 - [ ] Removing an entry before the latest disposal date its active schedules give is refused with `CONTENT_RETAINED` naming the schedule and the date; a schedule whose `from` names an event not yet recorded gives no date, and `GET /v1/content/disposals` reports the entry `unresolvable` and removes nothing ([Retention and holds](#retention-and-holds)) <!-- wl:check removing-entry-before-latest-disposal-date -->
 - [ ] A register's `retention` declared in an adopted programme spec is listed among the schedules with `declared_by` naming the spec, and `retire` on it is refused ([Retention and holds](#retention-and-holds), [Resources](#resources)) <!-- wl:check registers-retention-declared-adopted-programme -->
 - [ ] No record about an entry is removed by any route: a withdrawn request, a retracted comment, a retired schedule and a released hold each still read back, and `GET /v1/admin/records/content/snapshot` carries every such store ([Records About Entries](#records-about-entries) rules 4 and 6) <!-- wl:check no-record-about-entry-removed-route -->
+
+### Declared checks
+
+The checks below settle this service's security and contract criteria by data
+the engine runs, never by a reading of its code. They start the service
+sealed, beside the mock orchestrator, whose key signs every test token
+([`architecture/testing`](testing.md#test-tokens-as-data)), with the
+`content-git` configuration fixture: one git backend and two repositories,
+`docs` configured `exclusive` and `opaque-docs` configured `opaque`, whose
+ceiling is therefore `internal` whatever is demonstrated
+([Derived Scope Ceiling](#derived-scope-ceiling)). `hello\n` is written as
+`aGVsbG8K`, whose identity is
+`sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03`, and
+`world\n` as `d29ybGQK`. Where two checks cover one criterion, it is settled
+only when both pass.
+
+```yaml
+verifies:
+- id: standalone-serves-probes
+  covers: [no-orchestrator-url-configured-service-starts]
+  check: join
+  applies_to: [content]
+  assertion: Started with no orchestrator configured, the service binds its port, does not exit, and answers GET /livez live and GET /readyz unauthenticated.
+  join:
+    start: {orchestrator: none}
+    observe: [listens, no-exit]
+    within: 20s
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /livez}
+      expect:
+        status: 200
+        json: true
+        equals: {/live: true}
+    - as: anonymous
+      request: {method: GET, path: /readyz}
+      expect:
+        json: true
+        has: [/ready]
+        status_not: [401, 403, 404]
+- id: standalone-refuses-every-token
+  covers: [no-orchestrator-url-configured-protected]
+  check: exchange
+  assertion: Started with no orchestrator configured, the service holds no issuer key, so every protected endpoint of its Endpoints table refuses a token signed by any orchestrator, here the test orchestrator's, with 401 and a structured ErrorResponse.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: none}
+    steps:
+    - as: test-content-client
+      request: {method: GET, path: /v1/content, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/entry, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: DELETE
+        path: /v1/content/entry
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/stat, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/walk, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/repositories
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/repositories/conformance-probe/remotes
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/conformance-probe/remotes, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: DELETE
+        path: /v1/content/repositories/conformance-probe/remotes/conformance-probe
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/reconcile
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/proposals, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/proposals/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/proposals/conformance-probe/decision
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/conformance-probe/log, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/conformance-probe/log/head, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/repositories/conformance-probe/log/checkpoint
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/attestations
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/attestations, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/attestations/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/attestation-requests
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/attestation-requests, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/attestation-requests/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/attestation-requests/conformance-probe/withdraw
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/document-requests
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/document-requests, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/document-requests/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/document-requests/conformance-probe/withdraw
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/comments
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/comments, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/comments/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/comments/conformance-probe/resolve
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/comments/conformance-probe/reopen
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/comments/conformance-probe/retract
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/retention
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/retention, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/retention/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/retention/conformance-probe/retire
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/holds
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/holds, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/holds/conformance-probe, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/content/holds/conformance-probe/release
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/disposals, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/admin/records/content/snapshot, token: own}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request:
+        method: POST
+        path: /v1/services
+        token: own
+        body: {}
+      expect:
+        status: 401
+        json: true
+        has: [/code, /error]
+- id: failed-registration-exits
+  covers: [orchestrator-url-configured-failed-registration]
+  check: topology
+  applies_to: [content]
+  assertion: 'Started with an orchestrator URL configured at which nothing answers, the service cannot register, and exits: a failed registration is fatal.'
+  topology:
+    instances:
+    - name: a
+      env: {WL_ORCH_URL: 'http://127.0.0.1:9'}
+    acts:
+    - {act: start, instance: a, expect: exits, within: 60s}
+- id: registers-holding-no-person-only-capability
+  covers: [services-own-manifest-declares-none-content, registration-token-work-pass-post-v1]
+  check: join
+  applies_to: [content]
+  assertion: Started beside a real orchestrator, which refuses a manifest naming a person-only capability with CAPABILITY_PERSON_ONLY (protocol/spec, POST /v1/register), the service registers, is listed and holds a current lease, so its manifest declares none of content:write, content:decide, content:replicate, content:connect, content:declassify, content:attest, content:request, content:comment, content:retain and content:hold. With records-routes-refuse-non-person-tokens it settles registration-token-work-pass-post-v1.
+  join:
+    start: {orchestrator: built}
+    observe: [listens, no-exit, registered, listed, lease-current]
+    within: lease
+- id: records-routes-refuse-non-person-tokens
+  covers: [registration-token-work-pass-post-v1]
+  check: exchange
+  assertion: 'A registration token whose cap names content:attest, content:request, content:comment, content:retain and content:hold, and a work pass carrying them, are each refused with 403 FORBIDDEN at every route that records something about an entry: those capabilities are person only and count on a pass alone.'
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/attestations
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/attestations
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/attestation-requests
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/attestation-requests
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/document-requests
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/document-requests
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/comments
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/comments
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/retention
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/retention
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/holds
+        token: own
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: POST
+        path: /v1/content/holds
+        token: work
+        body: {}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+- id: write-above-ceiling-refused
+  covers: [write-declaring-scope-above-repository-ceiling]
+  check: exchange
+  assertion: On a repository configured opaque, whose ceiling is internal, a write declaring confidential is refused with 403 CONTENT_CUSTODY_CEILING_EXCEEDED naming both levels; nothing is appended to the log, and the path still holds nothing, so the same bytes are then written at internal with an if_match of the empty string.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - id: before
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/opaque-docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {seq0: /seq}
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: opaque-docs, path: ceiling.md, bytes: aGVsbG8K, if_match: '', scope: confidential}
+      expect:
+        status: 403
+        code: CONTENT_CUSTODY_CEILING_EXCEEDED
+        json: true
+        matches: {/error: '(?s)(internal.*confidential|confidential.*internal)'}
+    - id: after
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/opaque-docs/log/head, token: own}
+      expect:
+        status: 200
+        equals: {/seq: '${seq0}'}
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: opaque-docs, path: ceiling.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+      expect:
+        status: [200, 201]
+- id: proposal-above-ceiling-refused
+  covers: [proposalrequest-scope-exceeds-repository-ceiling]
+  check: exchange
+  assertion: On a repository configured opaque, whose ceiling is internal, a proposal declaring confidential is refused with 403 CONTENT_CUSTODY_CEILING_EXCEEDED, and no proposal is recorded at the path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: opaque-docs
+          change: {path: ceiling.md, action: create}
+          if_match: ''
+          bytes: aGVsbG8K
+          scope: confidential
+      expect:
+        status: 403
+        code: CONTENT_CUSTODY_CEILING_EXCEEDED
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=opaque-docs&path=ceiling.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals:
+          /proposals: []
+          /withheld: 0
+- id: proposer-cannot-write
+  covers: [caller-holding-content-propose-not-content]
+  check: exchange
+  assertion: A pass whose cap names content:propose and not content:write is refused PUT /v1/content/entry with 403 FORBIDDEN, and nothing is appended to the log.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - id: before
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {seq0: /seq}
+    - as: test-proposer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: p.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - id: after
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        equals: {/seq: '${seq0}'}
+- id: proposer-cannot-decide
+  covers: [caller-holding-content-propose-not-content-2]
+  check: exchange
+  assertion: A pass whose cap names content:propose and not content:decide is refused POST /v1/content/proposals/{id}/decision with 403 FORBIDDEN, on a proposal it may read, and the proposal stays open.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: d.md, action: create}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+      capture: {pid: /id}
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals/${pid}/decision
+        token: pass
+        body: {decision: apply}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals/${pid}', token: pass}
+      expect:
+        status: 200
+        equals: {/state: open}
+- id: decider-applies-without-write
+  covers: [decider-tokens-cap-names-content-decide]
+  check: exchange
+  assertion: A pass whose cap names content:decide and not content:write applies another person's proposal, which is recorded applied and whose bytes are then the entry's; the same pass is refused PUT /v1/content/entry with 403 FORBIDDEN.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: apply.md, action: create}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+      capture: {pid: /id}
+    - as: test-decider
+      request:
+        method: POST
+        path: /v1/content/proposals/${pid}/decision
+        token: pass
+        body: {decision: apply}
+      expect:
+        status: 200
+        json: true
+        equals: {/state: applied, /decision/decision: apply}
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: apply.md, action: modify}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          bytes: d29ybGQK
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+    - as: test-decider
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: apply.md, bytes: d29ybGQK, if_match: 'sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03'}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+- id: non-pass-write-refused
+  covers: [token-not-pass-cap-holds-content]
+  check: exchange
+  assertion: PUT /v1/content/entry is refused with 403 FORBIDDEN on a registration token and on a channel token whatever their cap, with a statement in the body and without; with 401 PASS_REQUIRED on a person's operator token; and with 401 PASS_AUDIENCE_MISMATCH on a pass addressed to another component. Nothing is appended to the log.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - id: before
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {seq0: /seq}
+    - as: test-overreach
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: own
+        body: {repository: docs, path: np.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: own
+        body: {repository: docs, path: np.md, bytes: aGVsbG8K, if_match: '', statement: '${fixture/unverifiable-statement}'}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-overreach
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: channel-self
+        body: {repository: docs, path: np.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        json: true
+        has: [/error]
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: operator
+        body: {repository: docs, path: np.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 401
+        code: PASS_REQUIRED
+        json: true
+        has: [/error]
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass-other
+        body: {repository: docs, path: np.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 401
+        code: PASS_AUDIENCE_MISMATCH
+        json: true
+        has: [/error]
+    - id: after
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        equals: {/seq: '${seq0}'}
+- id: put-empty-if-match-creates-once
+  covers: [put-v1-content-entry-match-creates]
+  check: exchange
+  assertion: PUT /v1/content/entry with if_match the empty string creates the entry at a path that holds none, and the same request again, now that the path holds one, is refused with 409 CONTENT_PRECONDITION_FAILED.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: once.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: once.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: 409
+        code: CONTENT_PRECONDITION_FAILED
+        json: true
+        has: [/error]
+- id: delete-empty-if-match-not-applicable
+  covers: [delete-v1-content-entry-match-refused]
+  check: exchange
+  assertion: DELETE /v1/content/entry with if_match the empty string, on an entry that exists, is refused with 400 CONTENT_PRECONDITION_NOT_APPLICABLE, and nothing is appended to the log.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: del.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - id: before
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {seq0: /seq}
+    - as: test-writer
+      request:
+        method: DELETE
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: del.md, if_match: ''}
+      expect:
+        status: 400
+        code: CONTENT_PRECONDITION_NOT_APPLICABLE
+        json: true
+        has: [/error]
+    - id: after
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        equals: {/seq: '${seq0}'}
+- id: proposal-without-if-match-refused
+  covers: [proposalrequest-no-match-refused-content-match]
+  check: exchange
+  assertion: A proposal with no if_match is refused with 400 CONTENT_IF_MATCH_REQUIRED, whether its action is create, modify or delete.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: nm.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: nm-new.md, action: create}
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: CONTENT_IF_MATCH_REQUIRED
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: nm.md, action: modify}
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: CONTENT_IF_MATCH_REQUIRED
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: nm.md, action: delete}
+      expect:
+        status: 400
+        code: CONTENT_IF_MATCH_REQUIRED
+        json: true
+        has: [/error]
+- id: proposal-if-match-not-applicable
+  covers: [proposalrequest-action-create-match-other-action]
+  check: exchange
+  assertion: A proposal to create with a digest as if_match, and a proposal to modify or delete with the empty string, are each refused with 400 CONTENT_PRECONDITION_NOT_APPLICABLE.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: na.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: na-new.md, action: create}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: CONTENT_PRECONDITION_NOT_APPLICABLE
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: na.md, action: modify}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: CONTENT_PRECONDITION_NOT_APPLICABLE
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: na.md, action: delete}
+          if_match: ''
+      expect:
+        status: 400
+        code: CONTENT_PRECONDITION_NOT_APPLICABLE
+        json: true
+        has: [/error]
+- id: proposal-create-over-entry-refused
+  covers: [proposalrequest-action-create-match-path-holds]
+  check: exchange
+  assertion: A proposal to create, with if_match the empty string, at a path that holds an entry is refused with 409 CONTENT_PRECONDITION_FAILED, and no proposal is recorded at the path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: taken.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: taken.md, action: create}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: 409
+        code: CONTENT_PRECONDITION_FAILED
+        json: true
+        has: [/error]
+    - id: none
+      as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=docs&path=taken.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals:
+          /proposals: []
+          /withheld: 0
+- id: proposal-stale-if-match-refused
+  covers: [proposalrequest-match-differs-entrys-digest]
+  check: exchange
+  assertion: A proposal to modify whose if_match is not the entry's digest (the entry holds hello, the proposal names world's digest) is refused with 409 CONTENT_PRECONDITION_FAILED, and no proposal is recorded at the path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: moved.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: moved.md, action: modify}
+          if_match: sha256:e258d248fda94c63753607f7c4494ee0fcbe92f1a76bfdac795c9d84101eb317
+          bytes: d29ybGQK
+      expect:
+        status: 409
+        code: CONTENT_PRECONDITION_FAILED
+        json: true
+        has: [/error]
+    - id: none
+      as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=docs&path=moved.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals:
+          /proposals: []
+          /withheld: 0
+- id: proposal-shape-refused
+  covers: [proposalrequest-action-not-create-modify-delete]
+  check: exchange
+  assertion: A proposal whose action is not create, modify or delete, whose bytes are missing on create or modify, whose bytes or scope are present on delete, or whose bytes are not valid base64, is refused with 400 INVALID_REQUEST, and no proposal is recorded at either path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: shape.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape-new.md, action: rename}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape-new.md, action: create}
+          if_match: ''
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape.md, action: modify}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape.md, action: delete}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          bytes: aGVsbG8K
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape.md, action: delete}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          scope: internal
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: shape-new.md, action: create}
+          if_match: ''
+          bytes: not base64!
+      expect:
+        status: 400
+        code: INVALID_REQUEST
+        json: true
+        has: [/error]
+    - id: none-new
+      as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=docs&path=shape-new.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals:
+          /proposals: []
+          /withheld: 0
+    - id: none-old
+      as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=docs&path=shape.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals:
+          /proposals: []
+          /withheld: 0
+- id: proposal-recorded-open-writes-nothing
+  covers: [post-v1-content-proposals-returns]
+  check: exchange
+  assertion: 'POST /v1/content/proposals returns a ContentProposal in state open, and the entry it would change still holds the bytes it was made against: a second proposal against the same digest is accepted, which it could not be had the entry moved.'
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: open.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: open.md, action: modify}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          bytes: d29ybGQK
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: open.md, action: modify}
+          if_match: sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03
+          bytes: d29ybGQK
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+- id: proposal-bytes-only-by-id
+  covers: [contentproposal-proposalpage-carries-no-bytes]
+  check: exchange
+  assertion: A proposal listed in a ProposalPage carries no bytes, and the same proposal read by id carries them.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-proposer
+      request:
+        method: POST
+        path: /v1/content/proposals
+        token: pass
+        body:
+          repository: docs
+          change: {path: page.md, action: create}
+          if_match: ''
+          bytes: aGVsbG8K
+      expect:
+        status: [200, 201]
+        json: true
+        equals: {/state: open}
+      capture: {pid: /id}
+    - as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals?repository=docs&path=page.md', token: pass}
+      expect:
+        status: 200
+        json: true
+        has: [/proposals/0/id]
+        lacks: [/proposals/0/bytes, /proposals/1]
+    - as: test-proposer
+      request: {method: GET, path: '/v1/content/proposals/${pid}', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals: {/bytes: aGVsbG8K}
+- id: log-head-for-describe-only
+  covers: [get-v1-content-repositories-repository-log-head]
+  check: exchange
+  assertion: GET /v1/content/repositories/{repository}/log/head is served to a caller holding content:describe and not content:read, and the head names no path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - id: head
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/log, /seq, /unsealed, /sealing, /chain]
+        lacks: [/path, /paths, /entries]
+- id: checkpoint-only-when-tip-moved
+  covers: [post-v1-content-repositories-repository-log]
+  check: exchange
+  assertion: After a write moves the tip, POST /v1/content/repositories/{repository}/log/checkpoint appends a checkpoint covering that tip and leaves nothing unsealed; asked again with the tip unmoved, it appends nothing.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: seal.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - id: tip
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {tip: /seq}
+    - id: seal
+      as: test-content-client
+      request: {method: POST, path: /v1/content/repositories/docs/log/checkpoint, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/checkpoint]
+        equals: {/sealed_through: '${tip}', /unsealed: 0}
+      capture: {sealed: /seq}
+    - id: again
+      as: test-content-client
+      request: {method: POST, path: /v1/content/repositories/docs/log/checkpoint, token: own}
+      expect:
+        status: 200
+        json: true
+        equals: {/seq: '${sealed}', /sealed_through: '${tip}', /unsealed: 0}
+
+```
