@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.8.0
+version: 5.9.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -882,16 +882,26 @@ interfaces:
 ## Error Handling
 
 **Each code's HTTP status follows its Category**, and a code is returned with
-that status wherever this service refuses: `validation` 400, `auth` 401,
-`policy` 403, `enforcement` 403, `conflict` 409, `integrity` 409, `io` 503 and
-`partial` 207. A code whose behaviour is not a refusal, such as
-`CONTENT_CUSTODY_UNDECLARED`, is reported and never returned as an error
-status. The Category column classes the fault. It is not
-`ErrorResponse.category`: there, an `io` or `partial` code is `transient` and
-`retryable`, and every other code is `permanent` and not `retryable`. A code
-another blueprint registers, such as `SCOPE_INVALID_LEVEL`, `FORBIDDEN`,
-`PASS_REQUIRED` or `PASS_AUDIENCE_MISMATCH`, keeps the status that blueprint
-gives it ([`protocol/types`](../protocol/types.md#errorresponse)).
+that status wherever this service refuses. A code whose behaviour is not a
+refusal, such as `CONTENT_CUSTODY_UNDECLARED`, is reported and never returned
+as an error status. The Category column classes the fault. It is not
+`ErrorResponse.category`, which the same table gives beside the status, with
+whether a caller may repeat the request unchanged. A client reads this table
+and keeps no copy of it. A code another blueprint registers, such as
+`SCOPE_INVALID_LEVEL`, `FORBIDDEN`, `PASS_REQUIRED` or
+`PASS_AUDIENCE_MISMATCH`, keeps the status, category and retryability that
+blueprint gives it ([`protocol/types`](../protocol/types.md#errorresponse)).
+
+| Category | Status | `ErrorResponse.category` | Retryable |
+|---|---|---|---|
+| `validation` | 400 | `permanent` | no |
+| `auth` | 401 | `permanent` | no |
+| `policy` | 403 | `permanent` | no |
+| `enforcement` | 403 | `permanent` | no |
+| `conflict` | 409 | `permanent` | no |
+| `integrity` | 409 | `permanent` | no |
+| `io` | 503 | `transient` | yes |
+| `partial` | 207 | `transient` | yes |
 
 A backend's own blueprint may register codes under this service's `CONTENT_`
 prefix, for a fault only that backend can meet, as
@@ -900,12 +910,16 @@ prefix, for a fault only that backend can meet, as
 each with the status its Category gives under the rule above, and no backend
 may register a code the table below registers.
 
-Five codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
-is 400: the token was accepted and the statement it carried was not, so a
-client told to authenticate again would send the same statement.
-`CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN`,
-`CONTENT_REMOTE_UNKNOWN` and `CONTENT_RECORD_UNKNOWN` are 404, because the request was well formed and
-names nothing the caller may see.
+Five codes take another status than their Category's, and keep their
+Category's `ErrorResponse.category` and retryability:
+
+| Code | Status | Why |
+|---|---|---|
+| `CONTENT_STATEMENT_INVALID` | 400 | The token was accepted and the statement it carried was not, so a client told to authenticate again would send the same statement |
+| `CONTENT_REPOSITORY_UNKNOWN` | 404 | The request was well formed and names nothing the caller may see |
+| `CONTENT_PROPOSAL_UNKNOWN` | 404 | The request was well formed and names nothing the caller may see |
+| `CONTENT_REMOTE_UNKNOWN` | 404 | The request was well formed and names nothing the caller may see |
+| `CONTENT_RECORD_UNKNOWN` | 404 | The request was well formed and names nothing the caller may see |
 
 `CONTENT_STATEMENT_INVALID` is this surface's wire form of
 [`patterns/principal-identity`](../patterns/principal-identity.md#error-handling)'s
