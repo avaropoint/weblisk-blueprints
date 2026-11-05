@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.2.0
+version: 1.2.1
 noun: standard
 capabilities: [author, versioned]
 ---
@@ -120,8 +120,10 @@ a second geographic vocabulary in one repository is a translation table waiting
 to be written. `EU` is ISO 3166-1's exceptionally reserved code for the European
 Union, which is why GDPR can name its union and the three EEA states beside it.
 
-The codes are the shipped list [`places/iso-3166.json`](places/iso-3166.json),
-which names the release it was made from; a code it does not hold is refused,
+The codes are the shipped list: [`places/iso-3166.json`](places/iso-3166.json)
+for countries and [`places/iso-3166-2.json`](places/iso-3166-2.json) for their
+subdivisions, each naming the release it was made from and its licence
+([`places/README.md`](places/README.md)); a code they do not hold is refused,
 however well formed.
 
 Four rules keep two lists comparable:

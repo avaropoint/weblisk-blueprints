@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: agent
-version: 3.1.0
+version: 3.1.1
 requires: [protocol/spec, protocol/identity, protocol/types, architecture/observability, patterns/retry, patterns/messaging, patterns/rate-limiting]
 platform: any
 tier: free
@@ -615,7 +615,7 @@ The registered URL in the manifest is the authoritative address.
 |-------|---------|----------|
 | 9700–9709 | Domain controllers | seo: 9700 |
 | 9710–9749 | Work agents | seo-analyzer: 9710, a11y-checker: 9711, security-scanner: 9712, content-analyzer: 9720, meta-checker: 9721, uptime-checker: 9730, perf-auditor: 9731 |
-| 9750–9799 | Infrastructure agents | cron: 9750, sync: 9751, alerting: 9752, webhook: 9753, email-send: 9754, health-monitor: 9755, incident-response: 9760, hub: 9770, workflow: 9780, task: 9781, lifecycle: 9782 |
+| 9750–9799 | Infrastructure agents | cron: 9750, sync: 9751, alerting: 9752, webhook: 9753, email-send: 9754, health-monitor: 9755, incident-response: 9760, listings: 9770, workflow: 9780, task: 9781, lifecycle: 9782 |
 | 9800 | Orchestrator | orchestrator: 9800 |
 | 9820+ | Custom agents | hash(name) % 80 + 9820 |
 

@@ -1,25 +1,28 @@
 <!-- blueprint
 type: agent
 kind: infrastructure
-name: hub
-version: 4.0.2
+name: listings
+version: 5.0.0
 port: 9770
 requires: [protocol/spec, protocol/identity, protocol/types, protocol/federation, patterns/namespace, architecture/hub, architecture/agent, architecture/orchestrator]
 extends: [patterns/messaging, patterns/caching, patterns/observability, patterns/scope, patterns/policy, patterns/safety, patterns/contract, patterns/privacy, patterns/security, patterns/interop]
 depends_on: []
 platform: any
 tier: free
+formerly: [agents/hub]
 -->
 
-# Hub Agent
+# Listings Agent
 
-Unified hub infrastructure agent for the Weblisk hub network.
+Unified infrastructure agent for the Weblisk hub network's listings.
 Handles indexing, search, metrics, verification, and alerting
-across the federated catalog of published capability listings.
+across the federated catalog of published capability listings. It
+registered as `hub` until 5.0.0, a name that collided with the hub
+key's own file ([`protocol/identity`](../protocol/identity.md#key-files)).
 
 ## Overview
 
-The hub agent is a single infrastructure agent that manages all hub
+The listings agent is a single infrastructure agent that manages all hub
 operations: indexing listings, searching the catalog, collecting
 metrics, verifying trust, and alerting on network events. These are
 subsystems within one agent, not separate agents. This design
@@ -27,7 +30,7 @@ simplifies deployment, reduces inter-process communication, and
 ensures all hub operations share a single identity, storage
 connection, and event subscription set.
 
-When a hub operates in the registry role, the hub agent provides:
+When a hub operates in the registry role, the listings agent provides:
 
 1. **Indexing** — Crawls, indexes, and maintains the catalog of
    published capability listings. Discovers providers, fetches their
@@ -50,7 +53,7 @@ When a hub operates in the registry role, the hub agent provides:
    and affected collaborators. Handles deduplication, muting, flapping
    detection, and cross-hub federation notifications.
 
-The hub agent has zero external runtime dependencies beyond the
+The listings agent has zero external runtime dependencies beyond the
 orchestrator and event bus. It communicates exclusively through the
 Weblisk messaging bus and federation protocol endpoints.
 
@@ -377,7 +380,7 @@ extends:
 
 depends_on: [alerting]
   # Runtime dependency on the alerting agent for notification delivery.
-  # The hub agent degrades gracefully if alerting is unavailable —
+  # The listings agent degrades gracefully if alerting is unavailable —
   # queues alerts locally until recovery.
 ```
 
@@ -1536,15 +1539,15 @@ storage:
     listing_index:
       frequency: daily
       format: JSON export of active listings
-      path: .weblisk/backups/hub/listing_index_{ISO8601}.json
+      path: .weblisk/backups/listings/listing_index_{ISO8601}.json
     provider_registry:
       frequency: daily
       format: JSON export of all providers
-      path: .weblisk/backups/hub/provider_registry_{ISO8601}.json
+      path: .weblisk/backups/listings/provider_registry_{ISO8601}.json
     alert_rules:
       frequency: daily
       format: JSON export of all rules
-      path: .weblisk/backups/hub/alert_rules_{ISO8601}.json
+      path: .weblisk/backups/listings/alert_rules_{ISO8601}.json
     verification_log:
       backup: false
       reason: Append-only log, not critical for restore
@@ -1689,7 +1692,7 @@ Step 1 — Load Configuration
   On Fail:     EXIT with CONFIG_INVALID — log which keys failed validation
 
 Step 2 — Load Identity
-  Action:      Load ML-DSA-65 keypair from .weblisk/keys/hub/
+  Action:      Load ML-DSA-65 keypair from .weblisk/keys/listings.key (protocol/identity, Key Files)
   Validates:   Public key is 32 bytes, private key decrypts test payload
   On Fail:     EXIT with IDENTITY_FAILED
 
@@ -1804,7 +1807,7 @@ health:
 
 ### Self-Update
 
-When `system.blueprint.changed` is received where `blueprint_name = "hub"`:
+When `system.blueprint.changed` is received where `blueprint_name = "listings"`:
 
 ```
 Step 1 — Validate new blueprint, verify version is newer
@@ -1923,7 +1926,7 @@ triggers:
   - name: blueprint_changed
     type: event
     topic: system.blueprint.changed
-    filter: blueprint_name = "hub"
+    filter: blueprint_name = "listings"
     description: Self-update if hub blueprint changed
 
   - name: direct_message
@@ -2678,7 +2681,7 @@ Suppress alerts for a listing during known maintenance.
 
 ## Execute Workflow
 
-The hub agent routes incoming tasks to subsystems based on action name
+The listings agent routes incoming tasks to subsystems based on action name
 and event topic. Each subsystem has its own processing loop.
 
 ### Task Router
@@ -2890,14 +2893,14 @@ events_subscribed:
 
   - topic: system.blueprint.changed
     payload: {blueprint_name, version}
-    filter: blueprint_name = "hub"
+    filter: blueprint_name = "listings"
     action: Self-update procedure
 
 direct_messages:
   - target: alerting
     action: send-notification
     when: Delegating notification delivery
-    reason: Hub agent determines what to notify; alerting handles how
+    reason: Listings agent determines what to notify; alerting handles how
 ```
 
 ---
@@ -3623,7 +3626,7 @@ tests:
 
 ## Implementation Notes
 
-- **Unified identity**: The hub agent uses a single ML-DSA-65 keypair
+- **Unified identity**: The listings agent uses a single ML-DSA-65 keypair
   for all subsystems. This eliminates cross-agent authentication
   overhead and simplifies key management.
 
@@ -3653,7 +3656,7 @@ tests:
 - **Mute safety**: CRITICAL alerts always bypass mutes. This prevents
   operators from accidentally silencing security-critical events.
 
-- **Delegation model for alerting**: The hub agent determines _who_
+- **Delegation model for alerting**: The listings agent determines _who_
   and _when_ to notify. The external alerting agent handles _how_
   (channel selection, formatting, delivery). This keeps hub logic
   focused.

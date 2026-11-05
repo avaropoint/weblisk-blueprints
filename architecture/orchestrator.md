@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.9.0
+version: 4.9.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -1750,10 +1750,12 @@ in, in the grammar a standard's `applies_in` is written in
 ([`schemas/standard`](../schemas/standard.md#applies_in--where-a-standard-has-force)):
 ISO 3166-1 alpha-2 and ISO 3166-2 codes, ascending, with no subdivision of a
 country it already lists, and never `international`, which is a standard's
-reach and nobody's place. A code is checked against the shipped list
-[`schemas/places/iso-3166.json`](../schemas/places/iso-3166.json), so `ZZ`,
+reach and nobody's place. A code is checked against the shipped list,
+[`schemas/places/iso-3166.json`](../schemas/places/iso-3166.json) and
+[`schemas/places/iso-3166-2.json`](../schemas/places/iso-3166-2.json), so `ZZ`,
 well formed and assigned to nothing, is refused as surely as `zz`; the list is
-built into the orchestrator from the release it names. A list outside that
+built into the orchestrator from the releases it names, and the subdivision
+file carries its own licence ([`schemas/places`](../schemas/places/README.md)). A list outside that
 grammar is refused with `INVALID_REQUEST`. **Absent means nobody has said**, and narrows nothing; it
 is never read as everywhere or as nowhere. A client compares it with each
 standard's `applies_in` to suggest what an organisation might adopt. It is

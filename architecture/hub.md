@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 3.0.2
+version: 3.0.3
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
@@ -541,16 +541,16 @@ POST /v1/federation/peer-revoke
 ## Registry Architecture
 
 A registry is itself a Weblisk hub — an orchestrator with a specialized
-hub infrastructure agent that handles indexing, discovery, verification,
+infrastructure agent, [listings](../agents/listings.md), that handles indexing, discovery, verification,
 metrics, alerting, and marketplace operations:
 
 | Subsystem | Agent Blueprint | Role |
 |-----------|----------------|------|
-| **Indexing** | [hub](../agents/hub.md) | Crawls and indexes hub manifests from known providers |
-| **Search** | [hub](../agents/hub.md) | Handles discovery queries with ranking and filtering |
-| **Metrics** | [hub](../agents/hub.md) | Collects and aggregates uptime, latency, and usage metrics |
-| **Verification** | [hub](../agents/hub.md) | Validates hub identity, signatures, and behavioral integrity |
-| **Alerting** | [hub](../agents/hub.md) | Monitors behavioral changes and notifies affected collaborators |
+| **Indexing** | [listings](../agents/listings.md) | Crawls and indexes hub manifests from known providers |
+| **Search** | [listings](../agents/listings.md) | Handles discovery queries with ranking and filtering |
+| **Metrics** | [listings](../agents/listings.md) | Collects and aggregates uptime, latency, and usage metrics |
+| **Verification** | [listings](../agents/listings.md) | Validates hub identity, signatures, and behavioral integrity |
+| **Alerting** | [listings](../agents/listings.md) | Monitors behavioral changes and notifies affected collaborators |
 
 The registry NEVER handles actual federated task data. It only indexes
 metadata (listings, metrics, contracts). All data exchange happens
@@ -934,14 +934,14 @@ The marketplace is not a separate system — it is orchestrated by the
 hub's existing infrastructure agents. Every marketplace operation maps
 to a sequence of agent messages coordinated by the orchestrator.
 
-#### Hub Agent Subsystem Roles in Marketplace Operations
+#### Listings Agent Subsystem Roles in Marketplace Operations
 
 | Operation | Subsystems Involved | Flow |
 |-----------|---------------------|------|
-| **Publish listing** | verify → index → alert | Seller's hub signs listing → hub agent verifies identity and signature → indexes listing → notifies subscribed searchers |
-| **Purchase (live capability)** | search → verify → federation → metrics → alert | Buyer discovers → hub agent verifies both parties → federation peering initiated → metrics collection begins → collaborators notified |
-| **Purchase (installable asset)** | search → verify → alert | Buyer discovers → hub agent verifies seller and asset signature → download URL issued → buyer notified of fulfillment |
-| **Leave review** | verify → index → alert | Hub agent verifies purchase proof → review indexed → seller notified |
+| **Publish listing** | verify → index → alert | Seller's hub signs listing → listings agent verifies identity and signature → indexes listing → notifies subscribed searchers |
+| **Purchase (live capability)** | search → verify → federation → metrics → alert | Buyer discovers → listings agent verifies both parties → federation peering initiated → metrics collection begins → collaborators notified |
+| **Purchase (installable asset)** | search → verify → alert | Buyer discovers → listings agent verifies seller and asset signature → download URL issued → buyer notified of fulfillment |
+| **Leave review** | verify → index → alert | Listings agent verifies purchase proof → review indexed → seller notified |
 | **Behavioral change detected** | metrics → verify → alert | Metrics probe detects anomaly → verify classifies change → alert notifies all affected collaborators |
 | **Delist** | index → alert → metrics | Listing marked for deprecation → collaborators notified → metrics archived |
 
@@ -963,12 +963,12 @@ Seller Hub                           Registry Hub
    a. Builds marketplace listing JSON
    b. Signs listing with hub's ML-DSA-65 key
    c. POST /v1/hub/publish ──────────► 3. Registry orchestrator:
-                                          a. Hub agent verification
+                                          a. Listings agent verification
                                              → verify-listing (signature check)
                                              → verify-identity (hub identity check)
-                                          b. If verified, hub agent indexing
+                                          b. If verified, listings agent indexing
                                              → index-listing (adds to catalog)
-                                          c. Hub agent alerting
+                                          c. Listings agent alerting
                                              → notify-marketplace-event
                                                (new listing notification)
                                        ◄── 4. Returns listing ID and status
@@ -985,12 +985,12 @@ When a hub wants to consume a live capability from another hub:
 Buyer Hub                Registry Hub              Seller Hub
 ─────────                ────────────              ──────────
 1. Search/browse:
-   GET /v1/hub/search ──► 2. Hub agent search returns
+   GET /v1/hub/search ──► 2. Listings agent search returns
                              ranked results
                           ◄──
 
 3. Evaluate listing:
-   GET /v1/hub/listing/{id} ► 4. Hub agent index returns
+   GET /v1/hub/listing/{id} ► 4. Listings agent index returns
                                  listing + metrics
                                ◄──
 
@@ -1006,13 +1006,13 @@ Buyer Hub                Registry Hub              Seller Hub
 
 8. Purchase request:
    POST /v1/hub/marketplace ─► 9. Registry orchestrator:
-   /purchase                      a. Hub agent verify: verify buyer
+   /purchase                      a. Listings agent verify: verify buyer
                                      identity and signature
-                                  b. Hub agent verify: verify seller
+                                  b. Listings agent verify: verify seller
                                      is still active
                                   c. Generate dual-signed
                                      purchase receipt
-                                  d. Hub agent alert: notify seller
+                                  d. Listings agent alert: notify seller
                                ◄── 10. Returns receipt + status
 
 11. Federation peering         ────────────────────► 12. Seller hub receives
@@ -1026,7 +1026,7 @@ Buyer Hub                Registry Hub              Seller Hub
     POST {seller}/v1/execute
     with federated auth
 
-14. Hub agent metrics      ─► 15. Registry records
+14. Listings agent metrics ─► 15. Registry records
     begins recording            usage metrics for both
     invocations                 parties
 ```
@@ -1043,7 +1043,7 @@ Buyer Hub                Registry Hub              Seller Hub
 
 8. Purchase request:
    POST /v1/hub/marketplace ─► 9. Registry orchestrator:
-   /purchase                      a. Hub agent verify: verify buyer
+   /purchase                      a. Listings agent verify: verify buyer
                                   b. Generate purchase receipt
                                   c. Request download URL
                                      from seller
@@ -1094,8 +1094,8 @@ the collaboration follows this lifecycle:
                                                └──────────┘ └──────────┘
 ```
 
-| Phase | What Happens | Hub Agent Subsystems |
-|-------|-------------|----------------------|
+| Phase | What Happens | Listings Agent Subsystems |
+|-------|-------------|---------------------------|
 | **Discover** | Buyer searches marketplace, browses listings, reads reviews | search, indexing |
 | **Evaluate** | Buyer reviews metrics, data contracts, pricing. May request a trial. | metrics, verification |
 | **Onboard** | Purchase, federation peering, data contract acceptance, initial capability test | verification, alerting, federation protocol |

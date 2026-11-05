@@ -16,11 +16,11 @@
    "patterns/alerting.md"
   ],
   "AlertRule": [
-   "agents/hub.md",
+   "agents/listings.md",
    "patterns/alerting.md"
   ],
   "BehavioralFingerprint": [
-   "agents/hub.md",
+   "agents/listings.md",
    "protocol/federation.md"
   ],
   "BoundarySpec": [
