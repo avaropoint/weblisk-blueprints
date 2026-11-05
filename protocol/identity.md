@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.4.1
+version: 3.5.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -622,6 +622,7 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/log-checkpoint/v2` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other. Where the owner is a registering component, they are its registered key before and after a rotation ([Which key signs what](#which-key-signs-what)) | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
 | `weblisk/content-change/v2` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
+| `weblisk/content-attestation/v1` | A person's sign-records credential, over their attestation of one version of a content entry | [`architecture/content`](../architecture/content.md#entry-attestations) |
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 | `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
 | `weblisk/directory/v2` | An orchestrator, by its signing key, over the service directory it pushes and serves | [`protocol/spec`](spec.md#post-v1services) |
@@ -650,8 +651,8 @@ It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
 `weblisk/directory/v2`, `weblisk/namespace-claim/v2`,
 `weblisk/namespace-grant/v2`, `weblisk/namespace-transfer/v2` and
 `weblisk/catalog-release/v2`. None is published
-yet for `weblisk/holder-probe/v1` or `weblisk/hub-proof/v1`, so no
-implementation may yet sign under either.
+yet for `weblisk/content-attestation/v1`, `weblisk/holder-probe/v1` or
+`weblisk/hub-proof/v1`, so no implementation may yet sign under any of them.
 
 Each vector key is made from a seed the file publishes, and each signature is
 FIPS 204's deterministic variant, so a signer that can sign deterministically
@@ -740,7 +741,7 @@ verifies:
   structure:
     query: unregistered-statement-prefix
     args:
-      registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
+      registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/content-attestation/v1, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
     scope: component
     expect: none
 ```

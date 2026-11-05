@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.4.2
+version: 2.4.3
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
 platform: any
 tier: free
@@ -1346,11 +1346,16 @@ judges an attestation. Until it does, `attested` says a person
 stood behind the record, and not that the person held the position the
 register names.
 
-**A document's own sign-off has no tenant owner.** `approved_by` on a spec
-names the positions that put a document in force, and no tenant service
-raises or records that sign-off. So the programme word `attestation` is
-published as `obligation.attested`, which is about a record, and nothing
-publishes a document's sign-off.
+**A document's own sign-off is recorded, and not yet read here.** `approved_by`
+on a spec names the positions that put a document in force. The record a
+sign-off is made of now has a home: content keeps each person's attestation
+of a version, and asks the named positions for one
+([`architecture/content`](content.md#entry-attestations)). This service does
+not yet read those attestations. It neither raises the sign-off `approved_by`
+asks for as an attestation request, nor derives an occurrence's `attested`
+from an attestation. So the programme word `attestation` is still published
+as `obligation.attested`, which is about a record, and nothing publishes a
+document's sign-off.
 
 **Programme objectives have no routes here.** The admin gateway names this
 service as the provider of a programme's objectives

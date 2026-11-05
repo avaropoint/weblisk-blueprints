@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.3.1
+version: 1.4.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain, architecture/storage]
 platform: any
 tier: free
@@ -388,6 +388,9 @@ and nowhere else.
 | POST | /v1/execution/schedules/{schedule}/pause | PauseSchedule | yes | `execution:register` | Start no new run from it. Runs already started continue. A registration token only |
 | POST | /v1/execution/schedules/{schedule}/resume | ResumeSchedule | yes | `execution:register` | Start runs from it again, delivering what it held while paused. A registration token only |
 | POST | /v1/execution/schedules/{schedule}/runs | RunScheduleNow | yes | `execution:register` | Start one run now, as its next firing would, or hold it for a later instant, with an optional `RunNow` body naming the run that asked for it. Answers `RunNowResult`. A registration token only ([Starting one run now](#starting-one-run-now)) |
+| POST | /v1/execution/console-runs | OpenConsoleRun | yes | `execution:record` | Open a run for model work the caller's own console does for them while they are present. Body `ConsoleRunStart`, answer `Run`. A pass only ([A run a console ran](#a-run-a-console-ran)) |
+| POST | /v1/execution/console-runs/{run}/turns | RecordConsoleTurn | yes | `execution:record` | Record one turn of it, as a `model-turn` step with its tool calls. Body `ConsoleTurn`, answer `RunStep`. A pass only, by the person who opened it, while it runs |
+| POST | /v1/execution/console-runs/{run}/end | EndConsoleRun | yes | `execution:record` | End it `completed`, `failed` or `cancelled`. Body `ConsoleRunEnd`, answer `Run`. A pass only, by the person who opened it |
 | POST | /v1/event | Event | yes | | Receive a delivered event: `workflow.trigger`, the allow-listed facts a start names, and the orchestrator's `system.agent.*` ([`protocol/spec`](../protocol/spec.md#post-v1event)) |
 | POST | /v1/services | Services | yes | | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies |
 | GET | /v1/admin/records/execution/snapshot | RecordSnapshot | yes | `admin:*` | Every store this service owns — the run ledger: every start, run, step, wait and timer — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). A pass only. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
@@ -451,7 +454,7 @@ position from content on one ([Unattended authority](#unattended-authority),
 [Who holds a position](#who-holds-a-position)). A work pass carries a
 capability only where the actor's manifest declares it too
 ([`protocol/identity`](../protocol/identity.md#minting-a-work-pass)). It checks
-`execution:decide` but never holds it, as
+`execution:decide` and `execution:record` but never holds either, as
 [`protocol/types`](../protocol/types.md#capability) requires of a person-only
 capability. An owner that registers starts here declares `execution:register`
 on its own manifest.
@@ -536,10 +539,11 @@ is read as the topic it is published on.
 | `EXECUTION_PASS_UNAVAILABLE` | `RunScheduleNow` or `RetryRun` needs a request carried on a work pass, and none can be obtained |
 | `EXECUTION_START_LOOP` | `RunScheduleNow` names a `parent` whose chain, or the parent itself, holds a run of the start's definition ([Starting one run now](#starting-one-run-now)) |
 | `STEP_UP_REQUIRED` | `CancelRun` without a recent re-confirmation: cancelling is destructive ([Resources](#resources); [`architecture/admin`](admin.md#contracts), `destructive-action-step-up`). The run continues |
+| `EXECUTION_CONSOLE_ABANDONED` | Not a refusal: the error a console run is ended `failed` with when no turn was recorded for `console_run_idle` ([A run a console ran](#a-run-a-console-ran)) |
 | `APPROVAL_SELF_DENIED` | An approval accepted by the person who started its run, or who completed a task it follows ([`patterns/approval`](../patterns/approval.md#error-handling)) |
 
 Each code but `APPROVAL_SELF_DENIED` is registered in
-[`protocol/types`](../protocol/types.md#errors), the five `EXECUTION_` codes
+[`protocol/types`](../protocol/types.md#errors), the six `EXECUTION_` codes
 under Execution codes; `APPROVAL_SELF_DENIED` is
 [`patterns/approval`](../patterns/approval.md#error-handling)'s. A refused
 decision changes nothing: the wait stays open and nothing is recorded on it
@@ -881,6 +885,61 @@ records them ([Known Gaps](#known-gaps)).
 
 ---
 
+## A Run a Console Ran
+
+A console may run model work for a person while that person is present: it
+reads the tenant's content and asks the tenant's model on their own token,
+and does nothing else at a hub
+([`architecture/admin`](admin.md#contracts), `console-credential-use`). That
+work is the person's. Its record is the tenant's: what was asked, what the
+model answered, and which tools the console called. It is kept here, in the
+one run ledger, beside every other run, because a model action's transcript
+is kept in the tenant's record
+([`architecture/engine`](engine.md#the-record), `transcripts-kept`). A
+console that keeps it itself is the only holder of the account of work done
+in the tenant's name, and a second console of the same tenant cannot see it.
+
+1. **It is opened on a pass, by the person whose work it is.** The run's
+   `definition_kind` is `console`, `trigger` is `person`, `triggered_by` is
+   the pass's `identity_id`, and it is `running` from the moment it is
+   opened. It has no `owner`, `agent`, `schedule` or `parent`.
+2. **`definition` names what the console gave the model.** It is the content
+   entry of the skill or instruction it ran, written `<repository>:<path>@<version>`,
+   or `ad-hoc` where the person wrote the instruction themselves. A console
+   names the entry it read, never a copy it keeps.
+3. **Each turn is one `model-turn` step.** It is recorded with `asked`, what
+   the person said for that turn, and `content`, what the model answered,
+   together with the model service's `completion`, `backend`, `model` and
+   `usage` as that service answered them, and each tool call the console
+   made, as a `RunToolCall`. A turn is admitted only from the pass of the
+   person who opened the run, and only while the run is `running`. Anyone
+   else is refused with `FORBIDDEN`, and a turn on an ended run with
+   `INVALID_STATE`.
+4. **It is a record of what the console reports, and grants nothing.**
+   Execution cannot see the console's requests, so a console run's steps
+   and calls are what the console said it did. Each is marked
+   `reported: true`, and is never read as execution's own observation. A
+   console run starts nothing, holds no wait, decides nothing and is never
+   retried: `RetryRun` on one is refused with `INVALID_STATE`. `CancelRun`
+   ends it as it ends any run.
+5. **It does not outlive its person.** A console run with no turn recorded
+   for `console_run_idle` ([Configuration](#configuration)) is ended by
+   execution as `failed` with `EXECUTION_CONSOLE_ABANDONED`, so a console
+   whose person left is never shown as running.
+6. **Its words are its person's.** A console run's turns carry what the
+   person read and asked. `GetRun` and the uniform address answer a console
+   run's steps with `asked`, `content` and each call's `arguments` only to
+   the person who opened it. Every other reader with `execution:read` gets
+   the run, its steps' timing, usage and outcomes, and each withheld field
+   named in `withheld`.
+
+`execution:record` is person only
+([`protocol/types`](../protocol/types.md#capability)). A registration token
+or a work pass on the three routes is refused with `FORBIDDEN`. Agent work
+the tenant runs unattended is recorded by its own dispatch, never here.
+
+---
+
 ## Known Gaps
 
 **Nothing is built from this blueprint yet.** No tenant runs execution, and
@@ -900,6 +959,11 @@ notification's request, which cannot name a wait
 **No content entry records the run that wrote it.** Execution carries a
 run's chain in every dispatch's context, and nothing yet writes it beside the
 row, so a `for` loop is stopped only within execution's own records.
+
+**Who may read another person's console run is not decided.** Rule 6 of
+[A run a console ran](#a-run-a-console-ran) answers a console run's words only
+to its person. Whether an auditor may read them, as the audit log is read,
+is the owner's to decide.
 
 **The interim agents are not retired.** `agents/cron`, `agents/task` and
 `agents/workflow` stay in the corpus, and `weblisk agent create` still builds
@@ -1098,6 +1162,33 @@ types:
       usage: {type: RunUsage, required: false, description: The usage the model service answered. Absent where the backend reported none}
       content: {type: string, required: false, description: "The model's answer for the turn, as text"}
       calls: {type: "[]RunToolCall", required: true, description: Each call the turn asked for, in order. Empty for a done turn or an unreadable one}
+```
+
+```yaml
+types:
+  ConsoleRunStart:
+    description: The body of POST /v1/execution/console-runs
+    fields:
+      definition: {type: string, required: true, description: "<repository>:<path>@<version> of the skill or instruction the console gave the model, or ad-hoc (A run a console ran, rule 2)"}
+      organisation: {type: string, required: true, description: The organisation the work belongs to, by the orchestrator's id}
+      project: {type: string, required: false, description: The project, where the work belongs to one}
+
+  ConsoleTurn:
+    description: The body of POST /v1/execution/console-runs/{run}/turns. One turn, as the console reports it
+    fields:
+      asked: {type: string, required: true, description: What the person said for this turn}
+      completion: {type: string, required: false, description: The Completion id the model service answered. Absent where the turn was refused before it ran}
+      backend: {type: string, required: false, description: CompletionResponse.provider}
+      model: {type: string, required: false, description: The model the backend's answer says ran, absent where it named none}
+      usage: {type: RunUsage, required: false, description: The usage the model service answered. Absent where the backend reported none}
+      content: {type: string, required: false, description: The model's answer for the turn, as text}
+      calls: {type: "[]RunToolCall", required: true, description: Each call the console made for the turn, in order. Empty where it made none}
+
+  ConsoleRunEnd:
+    description: The body of POST /v1/execution/console-runs/{run}/end
+    fields:
+      status: {type: string, required: true, enum: [completed, failed, cancelled]}
+      error: {type: ErrorResponse, required: false, description: Why it failed, where status is failed}
 ```
 
 `InstructionTask`, `ContentRef` and `InstructionTurn` are the contract of
@@ -1447,6 +1538,8 @@ execution:
   default_phase_timeout: 300  # seconds, for a machine phase that names none
   run_retention: 400d         # how long an ended run is kept
   dead_letter_retention: 30d
+  console_run_idle: 1h        # a console run with no turn for this long is
+                              # ended failed (A run a console ran)
 ```
 
 A start, a definition, a position and a switch are never configuration: each
@@ -1554,3 +1647,7 @@ security:
 - [ ] A `Wait` returned by any route carries no step output ([Types](#types)) <!-- wl:check wait-returned-route-carries-no-step -->
 - [ ] Each decision is recorded on its wait and in an `AuditEntry` with the pass's `identity_id` as `actor` and its `act.identity_id` as `via` ([Deciding](#deciding) step 4, [Who May Do What](#who-may-do-what)) <!-- wl:check decision-recorded-wait-auditentry-passs-identity -->
 - [ ] `GET /v1/admin/records/execution/snapshot` is declared among the manifest's `pass_routes` with `[admin:*]`, `admin:*` is not among the manifest's capabilities, and on a pass that can use `admin:*` it answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it; a registration token and a pass without `admin:*` are refused, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back)) <!-- wl:check get-v1-admin-records-execution-snapshot -->
+- [ ] `POST /v1/execution/console-runs` on a pass carrying `execution:record` opens a run with `definition_kind` `console`, `trigger` `person`, `triggered_by` the pass's `identity_id` and `status` `running`; on a registration token or a work pass it is refused with `FORBIDDEN`, and the manifest does not declare `execution:record` ([A run a console ran](#a-run-a-console-ran)) <!-- wl:check post-v1-execution-console-runs-pass -->
+- [ ] A turn recorded on a console run becomes one `model-turn` step carrying `asked`, `content` and its calls with `reported` `true`; a turn from any other person's pass is refused with `FORBIDDEN`, and a turn on an ended run with `INVALID_STATE` ([A run a console ran](#a-run-a-console-ran) rules 3 and 4) <!-- wl:check turn-recorded-console-run-becomes-model -->
+- [ ] `RetryRun` on a console run is refused with `INVALID_STATE`, and a console run with no turn for `console_run_idle` is ended `failed` with `EXECUTION_CONSOLE_ABANDONED` ([A run a console ran](#a-run-a-console-ran) rules 4 and 5, [Error Handling](#error-handling)) <!-- wl:check retryrun-console-run-refused-invalid-state -->
+- [ ] Reading a console run as anyone but the person who opened it answers its steps without `asked`, `content` or any call's `arguments`, each named in `withheld`; its person reads them whole ([A run a console ran](#a-run-a-console-ran) rule 6) <!-- wl:check reading-console-run-anyone-person-opened -->

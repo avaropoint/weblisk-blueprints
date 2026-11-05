@@ -918,7 +918,22 @@
    "service-started-over-change-log-lines",
    "rotating-services-registered-key-appends",
    "get-v1-admin-records-content-snapshot",
-   "service-registers-key-introduces-log-keys"
+   "service-registers-key-introduces-log-keys",
+   "get-v1-content-entry-version-log",
+   "attestation-naming-version-entrys-current",
+   "recorded-attestations-covers-digest-digest",
+   "attestation-attestation-request-document-request",
+   "registration-token-work-pass-post-v1",
+   "attestation-request-naming-position-records",
+   "answer-person-request-not-ask-refused",
+   "change-entry-while-request-about-open",
+   "proposal-naming-document-request-refused-content",
+   "reply-reply-refused-invalid-request-retracting",
+   "under-legal-hold-force-removing-covered",
+   "placing-releasing-legal-hold-require-step",
+   "removing-entry-before-latest-disposal-date",
+   "registers-retention-declared-adopted-programme",
+   "no-record-about-entry-removed-route"
   ],
   "architecture/data-security.md": [
    "weblisk-directory-inaccessible-agents-web",
@@ -1052,7 +1067,11 @@
    "get-v1-admin-workflows-pass-carrying",
    "wait-returned-route-carries-no-step",
    "decision-recorded-wait-auditentry-passs-identity",
-   "get-v1-admin-records-execution-snapshot"
+   "get-v1-admin-records-execution-snapshot",
+   "post-v1-execution-console-runs-pass",
+   "turn-recorded-console-run-becomes-model",
+   "retryrun-console-run-refused-invalid-state",
+   "reading-console-run-anyone-person-opened"
   ],
   "architecture/fabric.md": [
    "two-claims-about-two-artifacts-anchors",

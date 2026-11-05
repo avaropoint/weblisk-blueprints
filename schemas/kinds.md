@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.7.0
+version: 1.8.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -166,6 +166,12 @@ Not capabilities — values a kind declares.
 | `project` | — | project id | authored | — | *(none)* |
 | `grant` | — | grant id | authored | — | *(none)* |
 | `relationship` | — | from + to + relation + scope | derived | — | *(none)* |
+| `entry-attestation` | — | attestation id | authored | — | *(none)* |
+| `attestation-request` | — | request id | authored | — | *(none)* |
+| `document-request` | — | request id | authored | — | *(none)* |
+| `comment` | — | comment id | authored | — | *(none)* |
+| `retention-schedule` | — | schedule id | authored | — | *(none)* |
+| `legal-hold` | — | hold id | authored | — | *(none)* |
 
 ### What the table says, in words
 
@@ -285,6 +291,24 @@ and what it counts toward is decided by the kinds at its ends and by who
 vouched for it. It is declared so that
 [`architecture/fabric`](../architecture/fabric.md#resources) can name it, and a
 person can read and decide one through the tenant's one API.
+
+**`entry-attestation`, `attestation-request`, `document-request`, `comment`,
+`retention-schedule` and `legal-hold` are records a tenant's content service
+keeps about its entries, and none has a capability yet.** Each is a person's
+act about an entry, named by an id the content service mints, and none is
+part of the entry's bytes
+([`architecture/content`](../architecture/content.md#records-about-entries)).
+A comment governs nothing, and never will: a thread is not proof that
+anything was reviewed. A request, a schedule and a hold govern what may be
+done to an entry, and that is authority, which is judged and never counted.
+An entry attestation is the one that may become evidence: a person's signed
+statement about a version is what a read-and-understood obligation or a
+sign-off is discharged by. It has no `proves` yet because nothing yet decides
+what it proves. The programme service does not read attestations
+([`architecture/programme-service`](../architecture/programme-service.md#known-gaps)),
+and a capability that a scorer reads with nothing to say what is proven
+would count every attestation toward everything. They are declared so that
+[`architecture/content`](../architecture/content.md#resources) can name them.
 
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
