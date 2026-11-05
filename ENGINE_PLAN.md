@@ -102,7 +102,7 @@ as normative (owner's decision, 2026-11-04), and the CLI changes to it.
 | Today | Becomes |
 |---|---|
 | `server init`, `component <kind> init`, `agent create`, `domain create`, `gateway create` | `change plan --adopt`, then `change apply` |
-| `server verify`, `agent verify`, `test conformance` | `test run` |
+| `server verify`, `agent verify`, `test conformance` | `test run`, and not kept as aliases: a front end holds no command but the manifest's operations and the three front-end-only ones ([`architecture/engine`](architecture/engine.md#front-end-only-commands)). The lease reading `server verify` gave beside its verdict is gone; `weblisk status` counts lease states. The CLI's three interim shims, which run `test run --live` against the component each names, are removed with the rest of E3 |
 | `server start` · `stop` · `logs` · `status`, `agent start`, `domain start`, `gateway start` | `component start` · `stop` · `logs`, and `tenant status` |
 | `test mock-orchestrator` | Deleted from the tools. The mock that [`architecture/testing`](architecture/testing.md#mock-orchestrator) specifies is built from that specification, like any other component |
 | `pattern apply` | Deleted: it is a legacy pipeline with no plan, no ownership check, no build and no conformance |

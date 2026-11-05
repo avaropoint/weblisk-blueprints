@@ -44,10 +44,12 @@ read that line rather than retrying.
 ## Verify
 
 ```
-weblisk server verify --url http://localhost:9800
+weblisk test run --component orchestrator --live http://localhost:9800
 ```
 
-`GET /v1/health` is the only unauthenticated route. Everything else needs a
+The engine runs the conformance suite's live-safe checks against the running
+orchestrator (`architecture/engine.md`, Build time and run time). `GET /livez`
+and `GET /readyz` are the only unauthenticated routes. Everything else needs a
 token. The full endpoint list and the conformance levels live in the
 blueprints above — do not copy them here.
 

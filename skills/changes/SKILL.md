@@ -140,11 +140,12 @@ round reads them in, and what it does with each, is that section's.
 Then, over HTTP against the running thing:
 
 ```
-weblisk test conformance [--level <n>] [--test L1-03]
+weblisk test run --component <name> --live <url>
 ```
 
-Black-box, so an implementation in any language can run the same suite.
-`architecture/testing.md` specifies the test IDs. **`unrun` is not `pass`** — a
+Black-box, so an implementation in any language can run the same suite: the
+live-safe checks of the one conformance suite (`architecture/engine.md`, Build
+time and run time). `architecture/testing.md` specifies the test IDs. **`unrun` is not `pass`** — a
 level with no harness must be reported as having no harness, never counted.
 
 Finally, acceptance asks the finished tenant whether it *works*, over HTTP, the

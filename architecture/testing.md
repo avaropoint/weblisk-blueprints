@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.2.0
+version: 2.3.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -127,11 +127,12 @@ is generation's. Judging whether a blueprint's assertion is the right one.
 - Test fixture definitions (deterministic ML-DSA-65 key pairs, manifest fixtures)
 - Mock orchestrator specification and behavior contract
 - Mock agent specification and configurable response contract
-- Test execution CLI interface (`weblisk test conformance`)
 - Pass/fail criteria and assertion format for each test case
 
 ### Does NOT Own
 - Implementation of the components under test (owned by platform documents)
+- Running the suite: the engine's `test run` operation, which every front end
+  renders ([`architecture/engine`](engine.md#the-one-conformance-suite))
 - Production orchestrator or agent behavior (owned by their respective blueprints)
 - Performance/load testing (out of scope — this is conformance testing only)
 - Integration with external CI/CD systems (deployment-specific)
@@ -142,10 +143,7 @@ is generation's. Judging whether a blueprint's assertion is the right one.
 
 | Interface | Type | Description |
 |-----------|------|-------------|
-| `weblisk test conformance --orch <url>` | CLI | Run full conformance suite against a running system |
-| `weblisk test conformance --level <n>` | CLI | Run specific test level (1, 2, or 3) |
-| `weblisk test conformance --test <id>` | CLI | Run a single test by ID (e.g., L1-03) |
-| `weblisk test mock-orchestrator --port <n>` | CLI | Start mock orchestrator on specified port |
+| `test run` | Engine operation | Run the suite: against a tree, or its live-safe checks against a running component ([`architecture/engine`](engine.md#build-time-and-run-time)) |
 | Mock Orchestrator: `POST /v1/register` | HTTP | Accept valid registrations, return token |
 | Mock Orchestrator: `GET /livez`, `GET /readyz` | HTTP | Answer live and ready |
 | Mock Orchestrator: `POST /v1/lease` | HTTP | Accept a renewal from a registered test agent, return its `Lease` |
@@ -437,11 +435,11 @@ it fails fast during development; it is not evidence.
 
 ### Usage
 
-```bash
-# Start mock orchestrator on test port
-weblisk test mock-orchestrator --port 19800
+The tools carry no mock: it is built from this specification, like any other
+component ([`ENGINE_PLAN.md`](../ENGINE_PLAN.md#2-the-engines-operations)), and
+started by the test code that needs it.
 
-# Or programmatically in test code
+```go
 mockOrch := weblisk.NewMockOrchestrator(19800, testOrchestratorKey)
 mockOrch.Start()
 defer mockOrch.Stop()
@@ -1128,19 +1126,11 @@ verifies:
 
 ## Running Tests
 
-```bash
-# Run full conformance suite against a running system
-weblisk test conformance --orch http://localhost:9800
-
-# Run specific level
-weblisk test conformance --level 1
-
-# Run single test
-weblisk test conformance --test L1-03
-
-# Run with verbose output
-weblisk test conformance --verbose
-```
+The suite is run by the engine's `test run` operation, against a tree at
+build time or, with `--live <url>`, its live-safe checks against a running
+component ([`architecture/engine`](engine.md#build-time-and-run-time)). Its
+parameters are the manifest's (`weblisk commands --json`), and no front end
+runs a level or a single test of this document on its own.
 
 ## Security
 

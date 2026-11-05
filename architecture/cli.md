@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.15.0
+version: 5.0.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -19,17 +19,15 @@ tier: free
 > the LLM does the heavy lifting.
 
 Specification for CLI commands that manage the complete Weblisk
-development and operational lifecycle — from project creation through
-scaffolding, code generation, dev server, production build, blueprint
-management, and runtime operations.
+development and operational lifecycle — from tenant creation through code
+generation, blueprint management, and runtime operations.
 
 ## Overview
 
 The CLI has two command surfaces:
 
-1. **Development commands** — project scaffolding, code generation, dev
-   server, production builds (`weblisk new`, `weblisk dev`, `weblisk build`,
-   `weblisk server init`, `weblisk agent create`)
+1. **Development commands** — tenant creation and code generation
+   (`weblisk tenant create`, `weblisk server init`, `weblisk agent create`)
 2. **Operations commands** — interrogate and manage a running hub through
    its admin gateway, which carries each request to the provider of the
    admin API group it addresses (`weblisk status`, `weblisk agents`,
@@ -175,7 +173,7 @@ requires:
     # command re-confirms and retries on (Authentication Flow), exists;
     # TOKEN_REQUEST_REPLAYED, the code a replayed token request is refused
     # with, exists there too. No command reads a directory
-    # entry's lease state: server verify and status read lease states from
+    # entry's lease state: status reads lease states from
     # the admin API (architecture/admin below). The resource commands answer
     # the resource codes, which are 6.2.0's
     version: ">=6.2.0 <7.0.0"
@@ -197,7 +195,7 @@ requires:
       endpoints:
         - path: /v1/admin/*
           methods: [GET, POST, PUT, DELETE]
-        # weblisk test conformance reads the directory on its test agent's
+        # test run --live reads the directory on its test agent's
         # registration token; POST /v1/services is each agent's endpoint
         - path: /v1/services
           methods: [GET]
@@ -272,7 +270,7 @@ act on local files, and **operator** commands that act on a running hub.
          ▼
    ┌────────────────────────────────────┐
    │ CLI                                │
-   │  project: scaffold · build · serve │
+   │  project: tenant · secret · start  │
    │  operator: init · connect · token  │
    │  generation: dispatch · verify     │
    └────┬──────────────────────┬────────┘
@@ -283,7 +281,7 @@ act on local files, and **operator** commands that act on a running hub.
     or a key file)         a transport the operator named)
 ```
 
-**Responsibilities.** Scaffolding and building projects, generating components from
+**Responsibilities.** Creating tenants, generating components from
 blueprints and gating them on conformance, resolving where an identity lives,
 getting signatures from wherever the identity is held — a private key is in its
 memory only when that holder cannot sign — and minting short-lived tokens with
@@ -300,13 +298,8 @@ Studio's and the orchestrator's own surfaces.
 ### Owns
 
 - CLI command structure (`weblisk <noun> <verb>` pattern)
-- Project scaffolding from templates (`weblisk new`)
 - Code generation via LLM dispatch (`weblisk server init`, `weblisk agent create`)
-- Blueprint resolution ([Where blueprints come from](#where-blueprints-come-from)),
-  and template resolution (local → custom sources → core)
-- Dev server with file watching (`weblisk dev`)
-- Production builds (`weblisk build`)
-- Static framework vendoring (`weblisk vendor`)
+- Blueprint resolution ([Where blueprints come from](#where-blueprints-come-from))
 - Operator ML-DSA-65 identity creation, and resolving where a named identity
   lives — an encrypted key file, or a holder reference naming the secret source
   that holds the private half ([Where an identity lives](#where-an-identity-lives))
@@ -349,7 +342,8 @@ the sections below: [Project Commands](#project-commands),
 [Domain Commands](#domain-commands), [Workflow Commands](#workflow-commands),
 [Approval Commands](#approval-commands), [Objective Commands](#objective-commands),
 [Federation Commands](#federation-commands),
-[Audit Commands](#audit-commands), and the
+[Audit Commands](#audit-commands), [Test Commands](#test-commands),
+[Deploy Commands](#deploy-commands), and the
 [Resource commands](#resource-commands), whose nouns and verbs are read from
 the tenant.
 
@@ -436,7 +430,8 @@ them, and [Renamed commands](#renamed-commands) says what each becomes.
 - **Operational nouns are code**: `knowledge`, `component`, `agent`,
   `workflow`, `tenant`, `change`, `run`, `fabric`, `namespace`, `catalog`, `id`,
   `identity`, `operator`, `approval`, `secret`, `provider`, `cache`,
-  `marketplace`, `gateway`, `app`.
+  `gateway`. `marketplace` and `app` return when a corpus document defines
+  them ([Renamed commands](#renamed-commands)).
 - **One manifest.** `weblisk commands --json` lists every command with its
   parameters, capability and executor. Help is rendered from it, Studio is
   driven by it, and the per-family command list is generated from it and never
@@ -633,12 +628,7 @@ operations it must then list are the engine's catalogue
 
 ```yaml
 command_surface:
-  - {noun: new, verb: "", executor: local}
-  - {noun: dev, verb: "", executor: local}
-  - {noun: build, verb: "", executor: local}
-  - {noun: vendor, verb: "", executor: local}
   - {noun: version, verb: "", executor: local}
-  - {noun: doctor, verb: "", executor: local}
   - {noun: secret, verb: list, executor: local}
   - {noun: secret, verb: set, executor: local}
   - {noun: secret, verb: get, executor: local}
@@ -657,11 +647,9 @@ command_surface:
   - {noun: server, verb: init, executor: cli-in-tenant}
   - {noun: server, verb: start, executor: cli-in-tenant}
   - {noun: server, verb: stop, executor: cli-in-tenant}
-  - {noun: server, verb: verify, executor: cli-in-tenant}
   - {noun: server, verb: provision, executor: cli-in-tenant}
   - {noun: agent, verb: create, executor: cli-in-tenant}
   - {noun: agent, verb: start, executor: cli-in-tenant}
-  - {noun: agent, verb: verify, executor: cli-in-tenant}
   - {noun: agent, verb: list, executor: cli-in-tenant}
   - {noun: domain, verb: create, executor: cli-in-tenant}
   - {noun: domain, verb: start, executor: cli-in-tenant}
@@ -674,7 +662,6 @@ command_surface:
   - {noun: blueprint, verb: sources, executor: local}
   - {noun: blueprint, verb: update, executor: local}
   - {noun: validate, verb: "", executor: local}
-  - {noun: pattern, verb: apply, executor: cli-in-tenant}
   - {noun: operator, verb: init, executor: local}
   - {noun: operator, verb: store, executor: local}
   - {noun: operator, verb: path, executor: local}
@@ -710,26 +697,7 @@ command_surface:
   - {noun: operators, verb: describe, executor: tenant-api}
   - {noun: operators, verb: role, executor: tenant-api}
   - {noun: audit, verb: "", executor: tenant-api}
-  - {noun: test, verb: conformance, executor: tenant-api}
-  - {noun: test, verb: mock-orchestrator, executor: local}
   - {noun: deploy, verb: rollback, executor: cli-in-tenant}
-  - {noun: deps, verb: audit, executor: local}
-  - {noun: policy, verb: validate, executor: local}
-  - {noun: policy, verb: test, executor: local}
-  - {noun: marketplace, verb: search, executor: local}
-  - {noun: marketplace, verb: describe, executor: local}
-  - {noun: marketplace, verb: buy, executor: local}
-  - {noun: marketplace, verb: install, executor: local}
-  - {noun: marketplace, verb: list, executor: local}
-  - {noun: marketplace, verb: publish, executor: local}
-  - {noun: marketplace, verb: update, executor: local}
-  - {noun: marketplace, verb: delist, executor: local}
-  - {noun: marketplace, verb: dashboard, executor: local}
-  - {noun: marketplace, verb: reviews, executor: local}
-  - {noun: marketplace, verb: review, executor: local}
-  - {noun: marketplace, verb: collaborations, executor: local}
-  - {noun: marketplace, verb: usage, executor: local}
-  - {noun: marketplace, verb: terminate, executor: local}
 ```
 
 ### Renamed commands
@@ -740,101 +708,35 @@ byte identical to it.
 
 | Today | Becomes |
 |---|---|
-| `new`, `dev`, `build`, `vendor` (an application) | `app new`, `app dev`, `app build`, `app vendor` |
 | `build status` | `run status` |
 | `server init`, `component <kind> init`, `agent create`, `domain create`, `gateway create` | one path: `tenant new`, or `component new --from <ref>…`, which is a change |
 | `tenant create`, `tenant accept` | `tenant new`, `tenant verify` |
-| `pattern apply` | `blueprint adopt patterns/<name> --into component:<name>` |
 | `deploy rollback` | `change revert` |
 | `operator` (the identity on this machine: `init`, `store`, `path`, `connect`, `token`, `rotate`, `sign`, `pubkey`, `attest`) | `identity`; so `operator attest` is `identity attest` |
 | `operators` (a hub's operators) | `operator` |
 | `approvals` | `approval`; `change approve` is a form of `approval accept` |
 | `agents list`, `agents describe <name>`, `agents deregister <name>` | `agent list`, `agent show <name>`, `agent deregister <name>`, the resource commands for the `agent` kind ([Resource commands](#resource-commands)) |
-| `policy validate`, `policy test` (the gateway's policy file) | `gateway policy validate`, `gateway policy test` |
 | `programme <id> init` | `programme adopt <id>` |
 
 The CLI's hard-coded platform lists and its `go` defaults are removed: a target
 is declared, never assumed.
 
+**Commands that left the tools are not renamed.** `doctor`, `update`, the
+application commands (`new`, `dev`, `build` and `vendor`, which would have been
+`app *`), `marketplace *`, `deps audit` and the gateway's policy commands
+(`policy validate` and `policy test`, which would have been
+`gateway policy *`) are offered by no front end until a corpus document
+defines them ([`architecture/engine`](engine.md#front-end-only-commands));
+`test conformance`, `server verify` and `agent verify` were folded into
+`test run`, and `test mock-orchestrator` and `pattern apply` were deleted
+([`ENGINE_PLAN.md`](../ENGINE_PLAN.md#2-the-engines-operations)). They are not
+rows of [The Command Surface](#the-command-surface), and none lives on as an
+alias: a front end holds no command but the manifest's operations and the
+three front-end-only ones ([`architecture/engine`](engine.md#front-end-only-commands)).
+
 ---
 
 ## Project Commands
-
-### `weblisk new`
-
-Create a new project from a template.
-
-```bash
-$ weblisk new my-app
-$ weblisk new my-app --template client/blog
-$ weblisk new my-app --template server/starter
-$ weblisk new my-app --template client/blog --template server/starter
-```
-
-Templates are resolved from
-[weblisk-templates](https://github.com/avaropoint/weblisk-templates) in
-priority order: local `./templates/` → configured template sources → core.
-
-When multiple `--template` flags are specified, files are merged — client
-templates provide pages and islands, server templates provide hub
-configuration and agent specs.
-
-The name given replaces the template's project name everywhere the template
-carries it, in file contents and file names alike.
-
-**Security:** Every scaffolded project MUST include a `.gitignore` with
-entries for `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token`,
-`.env`, and `.env.*`. This is non-configurable and always generated.
-
-| Flag | Description |
-|------|-------------|
-| `--template <path>` | Template to scaffold (default: `client/default`) |
-| `--local` | Use local framework files instead of CDN |
-| `--lib <path>` | Custom framework directory (default: `lib/weblisk`) |
-
-### `weblisk dev`
-
-Start the development server with file watching and live reload.
-
-```bash
-$ weblisk dev
-$ weblisk dev --port 3000
-```
-
-For client-only projects, serves static files with live reload. For
-server projects, builds and runs the hub with automatic restart on file
-changes.
-
-| Flag | Description |
-|------|-------------|
-| `--port <n>` | Dev server port (default: 3000, configurable) |
-
-### `weblisk build`
-
-Build for production — minify, fingerprint, and optimize.
-
-```bash
-$ weblisk build
-$ weblisk build --minify --fingerprint
-```
-
-| Flag | Description |
-|------|-------------|
-| `--minify` | Minify HTML, CSS, and JS |
-| `--fingerprint` | Add content hashes to filenames for cache busting |
-
-### `weblisk vendor`
-
-Copy the Weblisk client framework into the project for offline use.
-
-```bash
-$ weblisk vendor
-$ weblisk vendor --dest js/vendor
-```
-
-| Flag | Description |
-|------|-------------|
-| `--dest <path>` | Destination directory (default: `lib/weblisk`) |
 
 ### `weblisk version`
 
@@ -844,29 +746,6 @@ Print the CLI version.
 $ weblisk version
 weblisk v1.1.0
 ```
-
-### `weblisk doctor`
-
-Validate project health and configuration.
-
-```bash
-$ weblisk doctor
-```
-
-Checks performed:
-
-| Check | Severity | Description |
-|-------|----------|-------------|
-| `.gitignore` exists | error | Project must have a `.gitignore` |
-| `.gitignore` excludes secrets | error | Must contain `.weblisk/secrets/`, `.weblisk/keys/`, `.weblisk/token` |
-| `.gitignore` excludes `.env` | warn | Should exclude `.env` and `.env.*` |
-| `.weblisk/config.yaml` valid | error | Config must parse and pass schema validation |
-| Blueprint YAML valid | error | All blueprints must parse without errors |
-| Secret declarations complete | warn | Declared secrets should have values in `.weblisk/secrets/` |
-| File permissions | warn | `.weblisk/secrets/` files should be 0600, directories 0700 |
-
-Exit codes, from the ones [Exit Codes](#exit-codes) declares: 0 = all pass,
-or warnings only, which are printed; 1 = errors found.
 
 ### `weblisk secret`
 
@@ -1010,12 +889,11 @@ the same action; nobody else can, because reaching the endpoint first confers
 nothing.
 
 **Security:** a tenant directory holds `.weblisk/keys/`, and creating one MUST
-write the same `.gitignore` `weblisk new` writes — `.weblisk/secrets/`,
-`.weblisk/keys/`, `.weblisk/token`, `.env`, `.env.*`. The rule was stated for
-the scaffolder and not for the operation that produces the directory holding
-the hub's ML-DSA private key, which is the one that needs it most. A tenant
-with no `.gitignore` is one `git init` away from a committed private key, and
-`weblisk doctor` correctly reports it as an error.
+write a `.gitignore` that excludes `.weblisk/secrets/`,
+`.weblisk/keys/`, `.weblisk/token`, `.env`, `.env.*`. This is the operation
+that produces the directory holding the hub's ML-DSA private key, which is
+the one that needs the rule most: a tenant with no `.gitignore` is one
+`git init` away from a committed private key.
 
 A tenant's `.gitignore` also excludes the runtime state a scaffolded application
 never has: `.weblisk/bootstrap`, `.weblisk/data/` — which holds the gateway's
@@ -1075,8 +953,7 @@ and a certificate that does not match the pin fails it as a pin that did not
 match, sending nothing over that connection, never as a refused connection. <!-- wl:id cli-accept-through-gateway --> Accept probes no
 other component and reads no lease: whether each
 registered component is present is a question for an operator's token, which
-[`weblisk server verify`](#weblisk-server-verify) and
-[`weblisk status`](#weblisk-status) ask.
+[`weblisk status`](#weblisk-status) asks.
 
 A failed non-essential check does not fail the tenant. It is a capability that
 tenant does not have, and **saying so is the point** — "created" must not mean
@@ -1106,8 +983,8 @@ operator token, which must carry the `admin` role
 ([`architecture/admin`](admin.md#operator-roles)): the bundle holds every
 record the tenant keeps. It reads the configuration, the lock and the run
 statements from the directory; the live components, the operators and every
-repository with its log head through the admin gateway; runs
-[`weblisk test conformance`](#weblisk-test-conformance) for the verdict at each
+repository with its log head through the admin gateway; runs the suite's live-safe checks against the orchestrator, as
+[`weblisk test run --live`](#test-commands) does, for the verdict at each
 level; and captures each record store last, so that nothing the manifest names
 is newer than what the bundle holds. It writes `manifest.json` last of all,
 and a directory without one is not a bundle.
@@ -1329,9 +1206,7 @@ tenant component: this command,
 [`weblisk tenant create`](#weblisk-tenant-create-name) starts,
 [`weblisk agent start`](#weblisk-agent-start),
 [`weblisk domain start`](#weblisk-domain-start),
-[`weblisk gateway start`](#weblisk-gateway-start), and
-[`weblisk dev`](#weblisk-dev) running a hub, both its first run and each
-restart it makes. That restart is the CLI's only one: there is no restart
+and [`weblisk gateway start`](#weblisk-gateway-start). There is no restart
 command, and one added later is a start under this rule. It covers the starts a
 build makes of a component it has just generated as well, a repair round's
 among them: the run that conformance-tests a tree
@@ -1486,8 +1361,7 @@ that: npm's names reach it, and the starter's do not.
 the CLI makes of a tenant component's code is under this rule, whichever
 command makes it: the build a start above makes before it runs the
 component, the orchestrator's and the admin gateway's builds in
-`weblisk tenant create`, each build
-`weblisk dev` makes, and generation's own build of a target, in
+`weblisk tenant create`, and generation's own build of a target, in
 [Layer 2](generation.md#layer-2--coherence) and in every repair round.
 Generated output is
 untrusted ([Generated output is untrusted](#generated-output-is-untrusted)),
@@ -1898,29 +1772,6 @@ fingerprint it found and the one it wrote. A command that holds no passphrase
 for an encrypted hub key does not ask for one in order to write `hub.pub`; it
 leaves the file as it is. <!-- wl:id hub-pub-corrected-at-start -->
 
-### `weblisk server verify`
-
-Verify the server is running: the orchestrator's `GET /livez` answers live and
-its `GET /readyz` ready. Those two decide the verdict, and no other component
-is probed. Every registered component's lease state is then read from
-`GET /v1/admin/agents` on the operator's token (each entry's `lease_state`,
-[`architecture/admin`](admin.md#agent-management)) and reported beside the
-verdict, and none of them fails it: a lease reading
-`not_ready` is reported as not ready, since a component may be not ready
-by design ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)),
-and one reading `unknown` is reported as unknown, never as down. Run with no
-operator token, or one the admin API refuses, verify still gives its verdict
-and says the lease states were not read, never that there are none.
-
-```bash
-$ weblisk server verify
-$ weblisk server verify --url http://localhost:9800
-```
-
-| Flag | Description |
-|------|-------------|
-| `--url <url>` | Orchestrator URL (default: `http://localhost:9800`) |
-
 ### `weblisk agent create`
 
 Generate an agent implementation from its blueprint spec.
@@ -1947,14 +1798,6 @@ $ weblisk agent start seo --orch http://localhost:9800 --port 9710
 |------|-------------|
 | `--orch <url>` | The orchestrator's own address, which the agent registers with — never the admin gateway an operator command's `--orch` names ([Configuration](#configuration)) |
 | `--port <n>` | Listen port (default: auto-assigned) |
-
-### `weblisk agent verify`
-
-Run protocol conformance checks against a running agent.
-
-```bash
-$ weblisk agent verify --url http://localhost:9710
-```
 
 ### `weblisk agent list`
 
@@ -2277,20 +2120,6 @@ This is how a console reads what a
 
 The command exits non-zero when there is a fault, and prints the JSON either
 way.
-
-### `weblisk pattern apply`
-
-Apply a cross-cutting pattern to a resource.
-
-```bash
-$ weblisk pattern apply auth-session --resource gateway
-$ weblisk pattern apply webhook-inbound --resource domain:seo
-```
-
-Reads the pattern blueprint, dispatches to the LLM with the target
-resource context, and generates the pattern implementation.
-
----
 
 ## Identity Commands
 
@@ -3562,64 +3391,17 @@ TIME        ACTOR           ACTION      TARGET          DETAIL
 
 ## Test Commands
 
-### `weblisk test conformance`
+`weblisk test run` is the terminal's rendering of the engine's `test run`
+operation. What it runs, against a tree or against a running component with
+`--live <url>`, is [the one conformance suite](engine.md#the-one-conformance-suite),
+and at run time only its live-safe checks
+([Build time and run time](engine.md#build-time-and-run-time)); its flags are
+the manifest's (`weblisk commands --json`). It is not specified here.
 
-Run protocol conformance tests against a running system.
-
-```bash
-$ weblisk test conformance --orch http://localhost:9800
-Running conformance suite against http://localhost:9800...
-
-Level 1 — Protocol Basics (10 tests)
-  ✓ L1-01  GET /livez and GET /readyz answer live and ready alone
-  ✓ L1-03  POST /v1/register accepts valid manifest
-  ✓ L1-04  POST /v1/register rejects bad signature
-  ...
-  ✓ L1-10  Errors answer in the protocol's error format
-
-Level 2 — Behavior (18 tests)
-  ✓ L2-01  Events delivered to scoped subscribers
-  ...
-
-Level 3 — Integration (8 tests)
-  ✓ L3-01  Full workflow execution end-to-end
-  ...
-
-Results: 36/36 passed (0 failed, 0 skipped)
-```
-
-| Flag | Description |
-|------|-------------|
-| `--orch <url>` | The orchestrator's own address to test against, which is sent no person's token ([Configuration](#configuration)) |
-| `--level <n>` | Run specific level only (1, 2, or 3) |
-| `--test <id>` | Run a single test by ID (e.g., `L1-03`) |
-| `--verbose` | Show request/response details for each test |
-| `--json` | Machine-readable test results |
-
-- Level 1: Protocol basics — registration, auth, the two probes, service directory
-- Level 2: Behavior — event delivery, scoping, namespace enforcement
-- Level 3: Integration — full lifecycle loop with real agents
-
-### `weblisk test mock-orchestrator`
-
-Start a lightweight mock orchestrator for local testing.
-
-```bash
-$ weblisk test mock-orchestrator --port 19800
-Mock orchestrator running on http://localhost:19800
-  - Accepts all valid registrations
-  - Issues test tokens (24h TTL)
-  - Stores registrations in memory
-  Press Ctrl+C to stop.
-```
-
-| Flag | Description |
-|------|-------------|
-| `--port <n>` | Port to listen on (default: `19800`) |
-
-- Verifies signature format but accepts any valid ML-DSA-65 signature
-- Useful for agent development without a full hub running
-- Does NOT forward tasks or events (registration and discovery only)
+The conformance commands of before the engine are not commands of the tools,
+and none is kept as an alias ([Renamed commands](#renamed-commands)). The lease states
+`server verify` once read beside its verdict are counted by
+[`weblisk status`](#weblisk-status).
 
 ---
 
@@ -3648,293 +3430,6 @@ Rolling back production to v1.1.0...
 - Audit entry is logged for the rollback event
 - Auto-rollback is triggered if error rate exceeds 5% within 5
   minutes of a deploy (see patterns/deployment.md)
-
----
-
-## Dependency Commands
-
-### `weblisk deps audit`
-
-Audit project dependencies for security vulnerabilities and policy
-compliance.
-
-```bash
-$ weblisk deps audit
-Checking dependency integrity...
-✓ go.sum matches go.mod (47 dependencies, all pinned)
-✓ No known vulnerabilities (checked against OSV database)
-✓ No new dependencies since last audit
-
-$ weblisk deps audit github.com/example/lib
-Auditing github.com/example/lib v1.2.3...
-  License:       MIT ✓
-  Last release:  2026-03-15 (47 days ago) ✓
-  Maintainers:   3 active ✓
-  CVEs:          none ✓
-  Dependents:    1,204 packages
-  Verdict:       APPROVED
-```
-
-| Flag | Description |
-|------|-------------|
-| `--json` | Machine-readable output |
-
-- Checks lockfile integrity (go.sum, package-lock.json, etc.)
-- Queries the OSV database for known vulnerabilities
-- Flags any new dependencies added since the last audit
-- Per-package audit shows license, activity, and CVE history
-
----
-
-## Policy Commands
-
-### `weblisk policy validate`
-
-Validate the gateway policy file for syntax and semantic errors.
-
-```bash
-$ weblisk policy validate
-Validating policies.yaml...
-✓ 12 policies parsed successfully
-✓ No conflicting rules
-✓ All referenced roles exist
-✓ No unreachable rules detected
-```
-
-- Loads `policies.yaml` (or configured policy file path)
-- Checks for syntax errors, conflicting rules, unreachable policies
-- Validates that referenced roles and resources exist in the project
-
-### `weblisk policy test`
-
-Run policy assertions against sample requests.
-
-```bash
-$ weblisk policy test
-Running policy test suite (policies_test.yaml)...
-  ✓ admin can access /api/admin/users
-  ✓ viewer cannot POST /api/admin/users
-  ✓ unauthenticated blocked from /api/*
-  ✓ rate limit applies to /api/public/*
-
-4/4 assertions passed.
-```
-
-- Reads test cases from `policies_test.yaml`
-- Each test case specifies a request (role, method, path) and
-  expected outcome (allow/deny)
-- Exit code 1 if any assertion fails
-
----
-
-## Marketplace Commands
-
-### `weblisk marketplace search <query>`
-
-Search the marketplace for capabilities, blueprints, and agents.
-
-```bash
-$ weblisk marketplace search "demand forecasting"
-ID        NAME                        TYPE          SELLER        PRICE     RATING
-mkt-001   Demand Forecasting Agent    capability    acme-ai       $0.02/req  4.8★
-mkt-002   Supply Chain Optimizer      capability    logicorp      $0.05/req  4.5★
-mkt-003   Inventory Predictor         installable   predict-co    $99/mo     4.2★
-```
-
-### `weblisk marketplace describe <id>`
-
-Full detail for a marketplace listing.
-
-```bash
-$ weblisk marketplace describe mkt-001
-Listing: mkt-001
-Name:     Demand Forecasting Agent
-Type:     capability (live service)
-Seller:   acme-ai
-Price:    $0.02 per request
-Rating:   4.8★ (142 reviews)
-
-Description:
-  ML-powered demand forecasting with 94% accuracy on retail data.
-  Supports weekly and monthly prediction horizons.
-
-Capabilities:
-  forecast:demand (inbound: sku, history[])
-                  (outbound: prediction, confidence, horizon)
-
-Data Contract:
-  Jurisdiction: US
-  Retention:    none (stateless)
-  Forbidden:    customer_pii, payment_data
-```
-
-### `weblisk marketplace buy <id>`
-
-Purchase a marketplace capability or asset.
-
-```bash
-$ weblisk marketplace buy mkt-001 --accept-contract --accept-pricing
-Purchasing 'Demand Forecasting Agent' from acme-ai...
-✓ Purchase confirmed.
-  Type:   live capability
-  Access: federation peering initiated with acme-ai
-  Status: Active — capability available in workflows
-```
-
-| Flag | Description |
-|------|-------------|
-| `--accept-contract` | Accept the data contract without interactive review |
-| `--accept-pricing` | Accept the pricing terms without interactive review |
-
-- Without flags, displays contract and pricing for interactive review
-- For live capabilities: initiates federation peering automatically
-- For installable assets: downloads the asset blueprint
-
-### `weblisk marketplace install <id>`
-
-Download and generate a purchased installable asset.
-
-```bash
-$ weblisk marketplace install mkt-003
-Downloading 'Inventory Predictor' blueprint...
-✓ Blueprint downloaded to agents/inventory-predictor/
-  Run: weblisk agent create inventory-predictor --platform go
-```
-
-- Only works for installable-type purchases (not live capabilities)
-- Downloads blueprint files and places them in the correct directory
-
-### `weblisk marketplace list`
-
-List active purchases and subscriptions.
-
-```bash
-$ weblisk marketplace list
-ID        NAME                       TYPE          STATUS    COST(30d)
-mkt-001   Demand Forecasting Agent   capability    active    $12.40
-mkt-003   Inventory Predictor        installable   installed $99.00
-```
-
-### `weblisk marketplace publish`
-
-Publish a capability or asset to the marketplace.
-
-```bash
-$ weblisk marketplace publish --type capability --config listing.yaml
-Validating listing...
-✓ Listing validated
-✓ Data contract parsed
-✓ Pricing terms set
-Publishing to marketplace...
-✓ Published as mkt-xxx: Demand Forecasting Agent
-```
-
-| Flag | Description |
-|------|-------------|
-| `--type <t>` | Listing type: `capability`, `installable` |
-| `--config <file>` | Path to listing configuration YAML |
-
-### `weblisk marketplace update <id>`
-
-Update a published listing's pricing or metadata.
-
-```bash
-$ weblisk marketplace update mkt-xxx --price 0.03
-✓ Listing mkt-xxx price updated: $0.02 → $0.03/req
-```
-
-### `weblisk marketplace delist <id>`
-
-Remove a listing from the marketplace.
-
-```bash
-$ weblisk marketplace delist mkt-xxx --reason "end of life"
-⚠ Active buyers will be notified. Existing contracts honored until expiry.
-  Type listing ID to confirm: mkt-xxx
-✓ Listing mkt-xxx delisted.
-```
-
-| Flag | Description |
-|------|-------------|
-| `--reason <text>` | Reason for delisting (required) |
-
-### `weblisk marketplace dashboard`
-
-View seller metrics for your published listings.
-
-```bash
-$ weblisk marketplace dashboard
-LISTING     REVENUE(30d)  REQUESTS(30d)  ACTIVE BUYERS  RATING
-mkt-xxx     $1,240.00     62,000         8              4.8★
-mkt-yyy     $340.00       3,400          2              4.5★
-
-Total revenue (30d): $1,580.00
-```
-
-### `weblisk marketplace reviews <id>`
-
-View reviews for a listing you own.
-
-```bash
-$ weblisk marketplace reviews mkt-xxx
-RATING  DATE        BUYER         TITLE
-5★      2026-04-20  logicorp      Excellent accuracy
-4★      2026-04-15  retailco      Good but slow on large datasets
-5★      2026-04-10  supplier-inc  Perfect for our use case
-```
-
-### `weblisk marketplace review <id>`
-
-Leave a review for a purchased listing.
-
-```bash
-$ weblisk marketplace review mkt-001 --rating 5 --title "Excellent accuracy"
-✓ Review submitted for mkt-001.
-```
-
-| Flag | Description |
-|------|-------------|
-| `--rating <1-5>` | Star rating (required) |
-| `--title <text>` | Review title (required) |
-
-### `weblisk marketplace collaborations`
-
-List all active marketplace collaborations (live capability connections).
-
-```bash
-$ weblisk marketplace collaborations
-ID       PEER         CAPABILITY         STATUS    REQUESTS(30d)  COST(30d)
-col-001  acme-ai      forecast:demand    active    620            $12.40
-col-002  logicorp     logistics:track    active    1,200          $60.00
-```
-
-### `weblisk marketplace usage <id>`
-
-View usage metrics for a specific collaboration.
-
-```bash
-$ weblisk marketplace usage mkt-001
-Collaboration: col-001 (acme-ai / forecast:demand)
-Period: 30 days
-
-  Requests:       620
-  Avg latency:    340ms
-  Error rate:     0.2%
-  Total cost:     $12.40
-  Avg cost/req:   $0.02
-```
-
-### `weblisk marketplace terminate <id>`
-
-Initiate termination of a marketplace collaboration.
-
-```bash
-$ weblisk marketplace terminate mkt-001
-⚠ This will terminate the collaboration with acme-ai (forecast:demand).
-  Active workflows using this capability will fail.
-  Type listing ID to confirm: mkt-001
-✓ Termination initiated. Grace period: 7 days.
-```
 
 ---
 
@@ -3967,7 +3462,7 @@ gateway, and the sources above supply it when the flag is omitted. On a
 command that runs, registers or tests a component —
 [`weblisk component <name> init`](#weblisk-component-name-init),
 [`weblisk agent start`](#weblisk-agent-start),
-[`weblisk test conformance`](#weblisk-test-conformance), and the address
+[`weblisk test run --live`](#test-commands), and the address
 [`weblisk server start`](#weblisk-server-start) passes each sibling — it is
 the orchestrator's own address, which a component registers with, and the
 sources above are never read for it. Only the first is ever sent a person's
@@ -4165,7 +3660,7 @@ security:
     - rule: Generated code a build runs inherits nothing from whoever started
         the CLI
       mechanism: Every build the CLI makes of a tenant component's code, a
-        start's, tenant create's, weblisk dev's and generation's in Layer 2
+        start's, tenant create's and generation's in Layer 2
         and its repair rounds alike, gets the component's clean environment
         plus its toolchain's own directories, and never the CLI's
         environment. CARGO_HOME, npm_config_userconfig and
@@ -4199,17 +3694,6 @@ security:
 - [ ] A blueprint source with uncommitted or untracked changes records a `-dirty` revision, and the run says so before generating ([`weblisk server init`](#weblisk-server-init)) <!-- wl:check blueprint-source-uncommitted-untracked-changes -->
 
 ### Project & Development
-- [ ] `weblisk new` scaffolds a project from weblisk-templates with correct name replacement ([`weblisk new`](#weblisk-new)) <!-- wl:check weblisk-new-scaffolds-project-weblisk-templates -->
-- [ ] `weblisk new` always generates the `.gitignore` [`weblisk new`](#weblisk-new) requires <!-- wl:check weblisk-new-always-generates-gitignore-weblisk -->
-- [ ] `weblisk new --template client/blog --template server/starter` merges both template sets ([`weblisk new`](#weblisk-new)) <!-- wl:check weblisk-new-template-client-blog-template -->
-- [ ] `weblisk dev` starts a file-watching dev server with live reload for client projects ([`weblisk dev`](#weblisk-dev)) <!-- wl:check weblisk-dev-starts-file-watching-dev -->
-- [ ] `weblisk dev` builds and runs the hub with restart-on-change for server projects ([`weblisk dev`](#weblisk-dev)) <!-- wl:check weblisk-dev-builds-runs-hub-restart -->
-- [ ] `weblisk build --minify --fingerprint` produces production-ready output ([`weblisk build`](#weblisk-build)) <!-- wl:check weblisk-build-minify-fingerprint-produces -->
-- [ ] `weblisk vendor` copies the Weblisk client framework to the specified directory ([`weblisk vendor`](#weblisk-vendor)) <!-- wl:check weblisk-vendor-copies-weblisk-client-framework -->
-- [ ] Template resolution follows the priority [`weblisk new`](#weblisk-new) gives <!-- wl:check template-resolution-follows-priority-weblisk-new -->
-- [ ] `weblisk doctor` validates .gitignore contains required secret exclusion entries ([`weblisk doctor`](#weblisk-doctor)) <!-- wl:check weblisk-doctor-validates-gitignore-contains -->
-- [ ] `weblisk doctor` validates .weblisk/secrets/ file permissions are 0600 ([`weblisk doctor`](#weblisk-doctor)) <!-- wl:check weblisk-doctor-validates-weblisk-secrets-file -->
-- [ ] `weblisk doctor` cross-references secret declarations with stored values ([`weblisk doctor`](#weblisk-doctor)) <!-- wl:check weblisk-doctor-cross-references-secret -->
 
 ### Secrets Management
 - [ ] `weblisk secret list` shows all declared secrets and their set/missing status ([`weblisk secret`](#weblisk-secret)) <!-- wl:check weblisk-secret-list-shows-declared-secrets -->
@@ -4226,7 +3710,7 @@ security:
 - [ ] `weblisk tenant create` ends with the orchestrator and the admin gateway running and its first operator registered at the gateway, and its result's `address` is the gateway's origin with its `tls_pin`, which the registration it records keeps whether the CLI made the certificate or the operator supplied it, never the orchestrator's own address ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`weblisk server provision`](#weblisk-server-provision)) <!-- wl:check cli-create-gateway covers cli-create-stands-up-gateway -->
 - [ ] Before it starts the orchestrator, `weblisk tenant create` has written `admin_gateway`, `orchestrator.admin_addresses` naming the gateway's origin and `orchestrator.admin_gateway_identity` naming the fingerprint of `.weblisk/keys/admin-gateway.key`, and with `--port 0` the gateway's ports are free ones and are the ports those name ([`weblisk tenant create <name>`](#weblisk-tenant-create-name), [`architecture/admin`](admin.md#registration-lease-and-identity)) <!-- wl:check cli-create-declares-gateway covers cli-create-stands-up-gateway -->
 - [ ] `weblisk server provision` registers the first operator with the bootstrap secret at the orchestrator's own address and keeps no token, then registers at the admin gateway's origin and records the registration, with the pin, at that address alone; no operator command afterwards sends a request, a token among it, to the orchestrator's own address ([`weblisk server provision`](#weblisk-server-provision), [Configuration](#configuration)) <!-- wl:check cli-provision-gateway covers cli-provision-registers-at-gateway -->
-- [ ] `weblisk tenant create` writes the `.gitignore` `weblisk new` writes ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)), so the directory it just put a private key in is not one `git init` from committing it <!-- wl:check weblisk-tenant-create-writes-gitignore-weblisk -->
+- [ ] `weblisk tenant create` writes the secret-excluding `.gitignore` ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)), so the directory it just put a private key in is not one `git init` from committing it <!-- wl:check weblisk-tenant-create-writes-gitignore-weblisk -->
 - [ ] `weblisk tenant create` emits the steps `provider · directory · generate · skills · provision · accept · done`, and renaming one breaks both front ends at once ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)) <!-- wl:check weblisk-tenant-create-emits-steps-provider -->
 - [ ] `weblisk tenant create` generates the orchestrator and the admin gateway only; every other component is added afterwards, and the command does not claim otherwise ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)) <!-- wl:check weblisk-tenant-create-generates-orchestrator -->
 - [ ] `weblisk tenant accept` reports a `404` as an absent route and a `401` as a pass, and a failed non-essential check does not fail the tenant ([`weblisk tenant accept`](#weblisk-tenant-accept)) <!-- wl:check weblisk-tenant-accept-reports-404-absent -->
@@ -4250,7 +3734,7 @@ security:
 - [ ] `weblisk server start` starts the orchestrator alone when `.weblisk/config.yaml` is absent, reporting it as a hub with no admin gateway, refuses a present file with no `admin_gateway` section before starting anything, naming `weblisk component admin init`, and refuses a declaration it cannot carry out before starting anything ([`weblisk server start`](#weblisk-server-start)) <!-- wl:check weblisk-server-start-starts-orchestrator-alone -->
 - [ ] `weblisk server stop` with no `--component` stops every recorded component, the orchestrator last ([`weblisk server start`](#weblisk-server-start)) <!-- wl:check weblisk-server-stop-no-component-stops -->
 - [ ] `weblisk component <name> start|stop|status|logs` runs any component the tenant has generated, and a detached start reports started only once the component's `GET /livez` answers live, then waits on its `GET /readyz` and reports a component that never becomes ready as not ready ([`weblisk component <name> start`](#weblisk-component-name-start--stop--status--logs)) <!-- wl:check weblisk-component-name-start-stop-status -->
-- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, `weblisk gateway start`, and the first run and each restart `weblisk dev` makes of a hub — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment <!-- wl:check start-tenant-component-weblisk-server-start -->
+- [ ] Every start of a tenant component — `weblisk server start` attached or detached, `weblisk component <name> start`, the orchestrator `weblisk tenant create` starts, `weblisk agent start`, `weblisk domain start`, and `weblisk gateway start` — gives it an environment built from nothing: the names in the allow-list of [A component starts with a clean environment](#a-component-starts-with-a-clean-environment) that are set in the CLI's own, `WL_PORT`, `WL_ORCH_URL` where an orchestrator is named or running and the component is not it, `npm_config_userconfig` and `npm_config_globalconfig` where its run command is npm's, and its declared `env`, and no other name of the CLI's environment <!-- wl:check start-tenant-component-weblisk-server-start -->
 - [ ] No vendor key variable — `WL_AI_KEY`, or any variable a model backend names for its key — is in any started component's environment, the orchestrator's included, even when the CLI's own environment holds it ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check no-vendor-key-variable-wl-ai -->
 - [ ] A build's own runs of a generated component, its conformance run and its interoperability run, give it the same environment a real start does, with `WL_DEV=1` the only addition ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check builds-own-runs-generated-component-conformance -->
 - [ ] A component other than the orchestrator, started while an orchestrator is named by `--orch` or recorded as running for the tenant, has `WL_ORCH_URL` set to that orchestrator's own address and the same address in `--orch` among its arguments; started with none named or running, it has neither, on a real start and on a build's own runs alike, except as the next line says ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check component-other-orchestrator-started -->
@@ -4258,7 +3742,7 @@ security:
 - [ ] Every start, and each of a build's own runs, is refused, naming the file, while the directory the component would start in holds `.env`, any `.env.*` other than `.env.example`, or, on the cloudflare platform, `.dev.vars` or any `.dev.vars.*` ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check start-builds-own-runs-refused-naming -->
 - [ ] A cloudflare start is refused, naming each entry, while its wrangler configuration's `[vars]` holds an entry rule 16 of [`schemas/config`](../schemas/config.md#validation-rules) recognises as a secret <!-- wl:check cloudflare-start-refused-naming-entry -->
 - [ ] Each of a build's own runs of a component — the conformance run and the interoperability run, repair rounds included — starts it in an empty working directory made for that run and removed after it, never the tenant's root, and after the run the tenant's root holds nothing the run wrote ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check builds-own-runs-component-conformance-run -->
-- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, each `weblisk dev` makes, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, `npm_config_userconfig` and `npm_config_globalconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME`, `npm_config_userconfig` and `npm_config_globalconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check build-cli-makes-tenant-components-code -->
+- [ ] Every build the CLI makes of a tenant component's code — before `weblisk agent start`, `domain start`, `gateway start`, `server start` or `component <name> start` runs it, the orchestrator's in `weblisk tenant create`, and generation's in Layer 2 and in every repair round — gets the component's clean environment plus only `GOCACHE`, `GOMODCACHE` and `GOPATH`, `CARGO_HOME` and `RUSTUP_HOME`, or `npm_config_cache`, `npm_config_userconfig` and `npm_config_globalconfig`, as its toolchain uses, and no vendor key variable; `CARGO_HOME`, `npm_config_userconfig` and `npm_config_globalconfig` are always under the tenant's root and never the CLI's, and every other one the CLI's environment does not set is the toolchain's own default under the home of the account the CLI runs as (so `RUSTUP_HOME` is `<home>/.rustup`), which a build on a default toolchain install finds, while the home itself is never passed ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check build-cli-makes-tenant-components-code -->
 - [ ] A start whose run command is npm's, and each of a build's own runs of one, has `npm_config_userconfig` and `npm_config_globalconfig` each naming an empty file under the tenant's root, so neither the starting account's `~/.npmrc` nor the global `npmrc` under Node's install prefix reaches the component as `npm_config_*` or `NODE_OPTIONS` ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check start-run-command-npms-builds-own -->
 - [ ] An `--orch` that carries a user or a password before its host is refused before anything is built or started ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check orch-carries-user-password-before-host -->
 - [ ] The CLI gives no started component `HOME`, `USERPROFILE`, `APPDATA` or `LOCALAPPDATA`, and none is in any started component's environment except the `HOME` npm itself sets for a component whose run command is npm's ([A component starts with a clean environment](#a-component-starts-with-a-clean-environment)) <!-- wl:check cli-gives-no-started-component-home -->
@@ -4266,7 +3750,6 @@ security:
 - [ ] An `agents[].env` entry that [`schemas/config`](../schemas/config.md#validation-rules) rule 16 recognises as a secret — by its name, by a published vendor key prefix, or by a PEM block or a URL with a user or password — is refused, naming every such entry, by the commands that generate a component and by every start, before anything is generated or started <!-- wl:check agents-env-entry-schemas-config-rule -->
 - [ ] A key the CLI reads from a holder or from standard input is used in the CLI's own process and is in no child process's environment, a provider CLI's included ([Security](#security)) <!-- wl:check key-cli-reads-holder-standard-input -->
 - [ ] `weblisk tenant create` writes its `.gitignore` before generation, amends one already present, and does not `git init` ([`weblisk tenant create <name>`](#weblisk-tenant-create-name)) <!-- wl:check weblisk-tenant-create-writes-gitignore -->
-- [ ] `weblisk server verify` passes or fails on the orchestrator's `GET /livez` and `GET /readyz` alone, reads every registered component's lease state from `GET /v1/admin/agents` on the operator's token, says the lease states were not read when it holds no token the admin API accepts, probes no other component, and reports a lease reading `not_ready` as not ready and one reading `unknown` as unknown, neither failing the verify ([`weblisk server verify`](#weblisk-server-verify)) <!-- wl:check weblisk-server-verify-passes-fails-orchestrators -->
 - [ ] `weblisk agent create` generates agent code from agent.yaml spec via LLM dispatch ([`weblisk agent create`](#weblisk-agent-create), [`weblisk server init`](#weblisk-server-init)) <!-- wl:check weblisk-agent-create-generates-agent-code -->
 - [ ] `weblisk agent start` builds and runs a single agent with --orch and --port flags ([`weblisk agent start`](#weblisk-agent-start)) <!-- wl:check weblisk-agent-start-builds-runs-single -->
 - [ ] `weblisk agent list` lists all locally scaffolded agents ([`weblisk agent list`](#weblisk-agent-list)) <!-- wl:check weblisk-agent-list-lists-locally-scaffolded -->
@@ -4286,7 +3769,6 @@ security:
 ### Blueprint Management
 - [ ] `weblisk blueprint update` re-fetches all cached blueprint sources and resets each clone to the commit fetched, so an edit made in a clone to a file its source holds does not survive; a source it cannot reach keeps the last version fetched, and the command says so ([`weblisk blueprint update`](#weblisk-blueprint-update)) <!-- wl:check weblisk-blueprint-update-re-fetches-cached -->
 - [ ] `weblisk validate` checks blueprint compliance (frontmatter, sections, types, deps) ([`weblisk validate`](#weblisk-validate)) <!-- wl:check weblisk-validate-checks-blueprint-compliance -->
-- [ ] `weblisk pattern apply` reads pattern blueprint, dispatches to LLM with target context ([`weblisk pattern apply`](#weblisk-pattern-apply)) <!-- wl:check weblisk-pattern-apply-reads-pattern-blueprint -->
 - [ ] Blueprint resolution follows the order of [Where blueprints come from](#where-blueprints-come-from), judged in the directory a command works in <!-- wl:check blueprint-resolution-follows-order -->
 - [ ] `weblisk tenant create` judges steps 0 and 1 in the tenant's directory, so standing in a corpus checkout does not make it read that checkout ([Where blueprints come from](#where-blueprints-come-from)) <!-- wl:check weblisk-tenant-create-judges-steps-0 -->
 - [ ] A source read in place — step 0 or the project's `blueprints/` — is never refreshed, and every command but `weblisk blueprint update` refreshes a clone before reading it only once the clone is a day old ([Where blueprints come from](#where-blueprints-come-from)) <!-- wl:check source-read-place-step-0-projects -->
@@ -4370,19 +3852,12 @@ security:
 - [ ] `weblisk approvals list` calls `GET /v1/admin/approvals`, reports the inbox unavailable and exits 1 when the gateway answers `ADMIN_GROUP_UNAVAILABLE`, shows each owner the gateway names under `unavailable` with its code and exits 1 when any is, and shows each owner's non-zero `withheld` count; `weblisk approvals accept` and `reject` send one decision to the route the item's `decide` names, never in bulk, and no `weblisk observations` or `weblisk strategies` command exists ([Approval Commands](#approval-commands), [The Command Surface](#the-command-surface)) <!-- wl:check weblisk-approvals-list-calls-get-v1 -->
 - [ ] `weblisk objectives list`, `weblisk federations peers`, `weblisk federations describe`, `weblisk federations contracts`, `weblisk domains list` and `weblisk workflows list` are sent to the hub's admin gateway, and report their group unavailable and exit 1 when it answers `ADMIN_GROUP_UNAVAILABLE`, as it does while no provider's blueprint specifies the route; the stored token is sent nowhere but the admin gateway ([Data Flow](#data-flow), [`weblisk operator token`](#weblisk-operator-token)) <!-- wl:check weblisk-objectives-list-weblisk-federations -->
 - [ ] `weblisk status` calls `GET /v1/admin/overview` at the hub's admin gateway and displays agents, domains, workflows, approvals, federation and objectives, showing as unavailable, never as zero, each figure the gateway reports unavailable, and shows no health score ([`weblisk status`](#weblisk-status)) <!-- wl:check weblisk-status-calls-get-v1-admin -->
-- [ ] Every command exits with a code [Exit Codes](#exit-codes) declares, in the meaning it gives that code, and `weblisk doctor` exits as [`weblisk doctor`](#weblisk-doctor) says <!-- wl:check command-exits-code-exit-codes-declares -->
+- [ ] Every command exits with a code [Exit Codes](#exit-codes) declares, in the meaning it gives that code <!-- wl:check command-exits-code-exit-codes-declares -->
 - [ ] Config resolution follows the precedence [Configuration](#configuration) gives <!-- wl:check config-resolution-follows-precedence -->
 - [ ] Commands fail fast with a clear message and non-zero exit code when the orchestrator is unreachable ([Design Principles](#design-principles) 4) <!-- wl:check commands-fail-fast-clear-message-non -->
 - [ ] Authentication flow retries once on 401 by refreshing the token, except on `STEP_UP_REQUIRED`, which it never answers with a refresh; when the hub refused the credential it tells the person to attest a new one with `weblisk operator connect` ([Authentication Flow](#authentication-flow) steps 5–7) <!-- wl:check authentication-flow-retries-once-401-refreshing -->
 - [ ] On `401` `STEP_UP_REQUIRED`, a command asks its person to re-confirm the act `detail.control` names, at the terminal or through a holder that asks, mints a token whose request carries `step_up` of form `identity`, retries once, and stores that token nowhere; a renewed token is never sent as a re-confirmation; with nothing that can ask, it fails with exit 2 and the challenge's `error_description` ([Authentication Flow](#authentication-flow)) <!-- wl:check cli-step-up-flow covers cli-step-up-reconfirms cli-step-up-token-held -->
 - [ ] A destructive command run with `--step-up` reads the identity's passphrase from stdin and sends its first request on a token carrying `step_up_at`; without `--step-up` and with no terminal, it fails on `STEP_UP_REQUIRED`; and a holder that releases the identity without asking anybody is never used to re-confirm ([Authentication Flow](#authentication-flow)) <!-- wl:check cli-step-up-script covers cli-step-up-scripted -->
-
-### Testing
-- [ ] `weblisk test conformance` runs protocol conformance tests against a running system ([`weblisk test conformance`](#weblisk-test-conformance)) <!-- wl:check weblisk-test-conformance-runs-protocol -->
-- [ ] `weblisk test conformance --level` filters to specific level (1, 2, or 3) ([`weblisk test conformance`](#weblisk-test-conformance)) <!-- wl:check weblisk-test-conformance-level-filters-specific -->
-- [ ] `weblisk test conformance --test` runs a single test by ID ([`weblisk test conformance`](#weblisk-test-conformance)) <!-- wl:check weblisk-test-conformance-test-runs-single -->
-- [ ] `weblisk test mock-orchestrator` starts a lightweight mock for local development ([`weblisk test mock-orchestrator`](#weblisk-test-mock-orchestrator)) <!-- wl:check weblisk-test-mock-orchestrator-starts -->
-- [ ] Mock orchestrator accepts valid registrations but does not forward tasks or events ([`weblisk test mock-orchestrator`](#weblisk-test-mock-orchestrator)) <!-- wl:check mock-orchestrator-accepts-valid-registrations -->
 
 ### Deployment
 - [ ] `weblisk deploy rollback` redeploys previous container image tag ([`weblisk deploy rollback`](#weblisk-deploy-rollback)) <!-- wl:check weblisk-deploy-rollback-redeploys-previous -->
@@ -4390,14 +3865,10 @@ security:
 - [ ] Rollback logs an audit entry ([`weblisk deploy rollback`](#weblisk-deploy-rollback)) <!-- wl:check rollback-logs-audit-entry -->
 
 ### Dependencies & Security
-- [ ] `weblisk deps audit` checks lockfile integrity and queries OSV for vulnerabilities ([`weblisk deps audit`](#weblisk-deps-audit)) <!-- wl:check weblisk-deps-audit-checks-lockfile-integrity -->
-- [ ] `weblisk deps audit <package>` audits a specific dependency (license, activity, CVEs) ([`weblisk deps audit`](#weblisk-deps-audit)) <!-- wl:check weblisk-deps-audit-package-audits-specific -->
 - [ ] `weblisk validate --deps` runs lockfile integrity as part of validation ([`weblisk validate`](#weblisk-validate)) <!-- wl:check weblisk-validate-deps-runs-lockfile-integrity -->
 - [ ] `weblisk server init --verify-signatures` validates signed commits before generation ([`weblisk server init`](#weblisk-server-init))
       — NOT MET. The flag is refused; blueprint commits are not consistently signed and
       no allowed-signers file is configured, so there is nothing to verify against yet. <!-- wl:check weblisk-server-init-verify-signatures-validates -->
-- [ ] `weblisk policy validate` checks gateway policy file for syntax and semantic errors ([`weblisk policy validate`](#weblisk-policy-validate)) <!-- wl:check weblisk-policy-validate-checks-gateway-policy -->
-- [ ] `weblisk policy test` runs policy assertions from policies_test.yaml ([`weblisk policy test`](#weblisk-policy-test)) <!-- wl:check weblisk-policy-test-runs-policy-assertions -->
 
 ### Objectives
 - [ ] Once the programme service's blueprint specifies the route, `weblisk objectives describe` shows one objective with its targets and what has been measured against them ([Objective Commands](#objective-commands)) <!-- wl:check once-programme-services-blueprint-specifies -->
@@ -4405,15 +3876,6 @@ security:
 ### Federation
 - [ ] Once the federation layer's blueprint specifies the route, `weblisk federations describe` shows full peer detail including data contract and metrics ([`weblisk federations describe <name>`](#weblisk-federations-describe-name)) <!-- wl:check once-federation-layers-blueprint-specifies-route -->
 - [ ] Once the federation layer's blueprint specifies the route, `weblisk federations contracts` lists all active data contracts across peers ([`weblisk federations contracts`](#weblisk-federations-contracts)) <!-- wl:check once-federation-layers-blueprint-specifies-route-2 -->
-
-### Marketplace
-- [ ] `weblisk marketplace search` queries the marketplace with text search ([`weblisk marketplace search <query>`](#weblisk-marketplace-search-query)) <!-- wl:check weblisk-marketplace-search-queries-marketplace -->
-- [ ] `weblisk marketplace describe` shows full listing detail including data contract ([`weblisk marketplace describe <id>`](#weblisk-marketplace-describe-id)) <!-- wl:check weblisk-marketplace-describe-shows-full-listing -->
-- [ ] `weblisk marketplace buy` purchases a listing (interactive contract/pricing review by default) ([`weblisk marketplace buy <id>`](#weblisk-marketplace-buy-id)) <!-- wl:check weblisk-marketplace-buy-purchases-listing -->
-- [ ] `weblisk marketplace install` downloads and places installable asset blueprints ([`weblisk marketplace install <id>`](#weblisk-marketplace-install-id)) <!-- wl:check weblisk-marketplace-install-downloads-places -->
-- [ ] `weblisk marketplace publish` publishes a capability or asset with listing config ([`weblisk marketplace publish`](#weblisk-marketplace-publish)) <!-- wl:check weblisk-marketplace-publish-publishes-capability -->
-- [ ] `weblisk marketplace list` shows active purchases and subscriptions ([`weblisk marketplace list`](#weblisk-marketplace-list)) <!-- wl:check weblisk-marketplace-list-shows-active-purchases -->
-- [ ] `weblisk marketplace terminate` initiates collaboration termination with grace period ([`weblisk marketplace terminate <id>`](#weblisk-marketplace-terminate-id)) <!-- wl:check weblisk-marketplace-terminate-initiates -->
 
 ### Resources
 - [ ] `weblisk <kind> list --limit <n>` sends `limit=<n>` with the request and prints the page the owner answered, which may hold fewer ([Resource commands](#resource-commands)) <!-- wl:check weblisk-kind-list-limit-n-sends -->

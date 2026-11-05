@@ -56,5 +56,9 @@ a per-isolate counter counts nothing, because isolates are not shared.
 
 ```
 npx wrangler deploy --dry-run
-weblisk server verify
+weblisk test run --component <name> --tree .
 ```
+
+`test run` is the one conformance suite, run sealed against this tree
+(`architecture/engine.md`, The one conformance suite). A named component, an
+agent or a domain, also takes `--kind` and `--blueprint`.

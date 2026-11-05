@@ -46,5 +46,9 @@ registration and messages, 10 MB for tasks, 64 KB for channels.
 
 ```
 cargo build --release && cargo clippy -- -D warnings && cargo fmt --check
-weblisk server verify
+weblisk test run --component <name> --tree .
 ```
+
+`test run` is the one conformance suite, run sealed against this tree
+(`architecture/engine.md`, The one conformance suite). A named component, an
+agent or a domain, also takes `--kind` and `--blueprint`.

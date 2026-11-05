@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.5
+version: 1.0.6
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
@@ -461,7 +461,7 @@ Checking dependency integrity...
 $ weblisk validate --deps
 ✗ 1 issue found:
   NEW: github.com/example/lib v1.2.3 (added since last audit)
-  Action: Run `weblisk deps audit github.com/example/lib` to review
+  Action: review github.com/example/lib before it is accepted
 ```
 
 ### Vulnerability Response
@@ -541,7 +541,7 @@ is inherited and extends the agent-specific verification checklist.
 ### Supply Chain
 
 - [ ] All dependencies pinned to exact versions in lockfile — [Dependency Rules](#dependency-rules) <!-- wl:check dependencies-pinned-exact-versions-lockfile -->
-- [ ] No new dependencies added without `weblisk deps audit` review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification) <!-- wl:check no-new-dependencies-added-without-weblisk -->
+- [ ] No new dependencies added without review — [Dependency Rules](#dependency-rules), [Lockfile Verification](#lockfile-verification) <!-- wl:check no-new-dependencies-added-without-weblisk -->
 - [ ] `weblisk validate --deps` passes (no known vulnerabilities) — [Lockfile Verification](#lockfile-verification) <!-- wl:check weblisk-validate-deps-passes-no-known -->
 - [ ] Client-side framework has zero external runtime dependencies — [Client-Side Policy](#client-side-policy) <!-- wl:check client-side-framework-zero-external-runtime -->
 - [ ] Critical CVEs are handled within the deadline and by the action [Vulnerability Response](#vulnerability-response) gives <!-- wl:check critical-cves-handled-within-deadline-action -->

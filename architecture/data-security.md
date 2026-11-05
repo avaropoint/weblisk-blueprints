@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.4.0
+version: 1.4.1
 requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract, patterns/repository]
 platform: any
 tier: free
@@ -628,13 +628,13 @@ secrets from being committed to source control.
 
 ### Enforcement
 
-1. **CLI scaffolding.** `weblisk new` MUST generate a `.gitignore`
-   containing these entries. No project can be created without them.
-2. **CLI validation.** `weblisk doctor` checks that `.gitignore`
-   exists and contains the required entries. Warns if missing.
-3. **Template requirement.** Every project template in the templates
+1. **Tenant creation.** `weblisk tenant create` MUST write a `.gitignore`
+   containing these entries
+   ([`architecture/cli`](cli.md#weblisk-tenant-create-name)). No tenant can
+   be created without them.
+2. **Template requirement.** Every project template in the templates
    repository MUST include a `.gitignore` with these entries.
-4. **Pre-commit hook (optional).** Projects MAY add a pre-commit hook
+3. **Pre-commit hook (optional).** Projects MAY add a pre-commit hook
    that rejects commits containing files matching `.weblisk/secrets/*`.
 
 ---
@@ -965,9 +965,8 @@ data_security:
 - [ ] Framework audit log records operations (registration, task dispatch, route decisions) but does NOT include request/response body content by default ([What Gets Logged](#what-gets-logged), [What Does NOT Get Logged by the Framework](#what-does-not-get-logged-by-the-framework)) <!-- wl:check framework-audit-log-records-operations -->
 - [ ] Code generation pipeline receives only blueprint YAML as input, never .weblisk/ contents or .env files ([What the LLM NEVER Sees](#what-the-llm-never-sees), [Enforcement](#enforcement)) <!-- wl:check code-generation-pipeline-receives-blueprint-yaml -->
 - [ ] Generated code references secrets exclusively via secrets.get(key), never as hardcoded string literals ([Enforcement](#enforcement), [The Isolation Chain](#the-isolation-chain)) <!-- wl:check generated-code-references-secrets-exclusively -->
-- [ ] Every project template ships with a .gitignore containing the [Required `.gitignore` Entries](#required-gitignore-entries) ([Enforcement](#enforcement-1) 3) <!-- wl:check project-template-ships-gitignore-containing -->
-- [ ] CLI `weblisk new` scaffolds .gitignore with required secret exclusion entries ([Enforcement](#enforcement-1) 1) <!-- wl:check cli-weblisk-new-scaffolds-gitignore-required -->
-- [ ] CLI `weblisk doctor` validates .gitignore contains required entries and warns if missing ([Enforcement](#enforcement-1) 2) <!-- wl:check cli-weblisk-doctor-validates-gitignore-contains -->
+- [ ] Every project template ships with a .gitignore containing the [Required `.gitignore` Entries](#required-gitignore-entries) ([Enforcement](#enforcement-1) 2) <!-- wl:check project-template-ships-gitignore-containing -->
+- [ ] CLI `weblisk tenant create` writes a .gitignore with the required secret exclusion entries ([Enforcement](#enforcement-1) 1) <!-- wl:check cli-weblisk-new-scaffolds-gitignore-required -->
 - [ ] Post-generation security scan blocks file write when violations are found (injection, hardcoded creds, unsafe APIs) ([Validation Pipeline](#validation-pipeline), [Security Checks](#security-checks)) <!-- wl:check post-generation-security-scan-blocks-file -->
 - [ ] Generated code scanner uses AST-level analysis where the target language has it, and pattern matching otherwise ([Pattern Matching](#pattern-matching)) <!-- wl:check generated-code-scanner-uses-ast-level -->
 - [ ] Security-ignore annotations require a reason and are logged in audit trail ([Override Mechanism](#override-mechanism)) <!-- wl:check security-ignore-annotations-require-reason -->

@@ -28,7 +28,7 @@ tenant, or the highest-weighted on the machine.
 weblisk agent create seo --platform go
 weblisk agent start seo --orch http://localhost:9800 --port 9710
 weblisk agent list
-weblisk agent verify --url http://localhost:9710
+weblisk test run --component seo --kind agent --blueprint agents/seo --live http://localhost:9710
 ```
 
 Do not write an agent by hand and do not invent endpoints the agent
