@@ -917,7 +917,8 @@
    "post-v1-content-repositories-repository-log",
    "service-started-over-change-log-lines",
    "rotating-services-registered-key-appends",
-   "get-v1-admin-records-content-snapshot"
+   "get-v1-admin-records-content-snapshot",
+   "service-registers-key-introduces-log-keys"
   ],
   "architecture/data-security.md": [
    "weblisk-directory-inaccessible-agents-web",
@@ -2668,7 +2669,9 @@
    "backup-operator-remove-compromised-operator",
    "bootstrap-reset-keys-lost-requires-orchestrator",
    "no-identity-token-attestation-signed-record",
-   "hub-pub-declared"
+   "hub-pub-declared",
+   "registration-rotation-task-result-message-signed",
+   "signer-refuses-what-key-not-sign"
   ],
   "protocol/secret-source.md": [
    "caller-resolves-source-registry-weblisk-secret",

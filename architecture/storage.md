@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.3.2
+version: 2.4.0
 requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
 platform: any
 tier: free
@@ -1332,6 +1332,17 @@ The owner appends the statement, the log key's public key and the long-lived
 public key that signed it as a key entry, before the log key signs anything in
 that log. A key entry is never removed and never replaced. A new log key gets a
 new key entry.
+
+**Where the owner registers, its long-lived key is the key it registers
+with.** It is not a second key kept for the log: the service directory lists
+it, which is where a verifier takes the log's authority from. One key then
+signs the owner's registration manifest under Sign JSON and these statements
+as fixed-form statements. A signer for it that refuses what the key does not
+sign refuses by that key's rows in
+[`protocol/identity`](../protocol/identity.md#which-key-signs-what), never by
+this section's statements alone: a signer that admits only the log's
+statements refuses the owner's own registration, and the owner never joins a
+hub.
 
 **A log key is replaced before it expires, not only at start.** The owner
 mints its first log key when its process starts. Before that key's `not_after` passes, it mints the
