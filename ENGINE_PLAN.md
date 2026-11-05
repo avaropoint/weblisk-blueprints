@@ -248,7 +248,7 @@ From the Studio audit.
 | Computing verdicts: posture thresholds, compliance levels, the impact analyzer, the standards author, evidence strength | engine operations over corpus declarations; the impact analyzer and standards author are deleted | the corpus homes ([§3](#where-the-corpus-says-what-and-not-how)) |
 | Its 16 prompt literals | `instructions/` (engine steps), or programme `skills:` (tenant agent work) | the instruction family |
 | The programme-service copy (17k lines) and the agent runner (10.9k) | the tenant's programme service and prompt worker, through `tenant-api` | those tenant routes |
-| The tenant-record stores (22k): change ledger, attestations, evidence, audit, retention, access, comments, chat | the tenant's routes | each route, which is G11 in Studio's TENANT_CONNECTION_PLAN |
+| The tenant-record stores (22k): change ledger, attestations, evidence, audit, retention, access, comments, chat | the tenant's routes, store by store in [S2](#s2-which-tenant-route-replaces-which-studio-store) | each route, which is G11 in Studio's TENANT_CONNECTION_PLAN |
 | Spec documents it owns (`FORMS_ARCHITECTURE`, attestation law) and docs that restate the corpus | corpus schemas; the Studio docs are cut to pointers | — |
 
 Until a route exists, Studio labels the area *not served by this tenant*. It
@@ -272,6 +272,82 @@ fallback recreates the drift in new code.
 E2 comes before E3 for the reason that ends the CLI audit: without a check
 layer, thinning the judge removes the only judge there is. T1 comes before
 Studio drives builds, because a client never runs a `cli-in-tenant` operation.
+
+### S2: which tenant route replaces which Studio store
+
+Written 2026-11-05 against corpus `9342483` and Studio `b538565a`, from the
+Studio drift audit's class (d) and Studio's own classification of its state
+(`internal/server/server_state_dir.go`, and TENANT_CONNECTION_PLAN §G11). It
+is the order of S2 above, area by area. A row says which tenant route takes
+over a store, and what Studio deletes once that route answers in the
+development tenant. Until a route answers, the area says *not served by this
+tenant* and does not read the local store (see "What Studio stops doing
+locally" above).
+
+**Where each store goes.** "Specified" means a tenant blueprint already
+held the home before this pass. "Added" means this pass wrote it.
+
+| Studio store or service | Tenant home | State of the home |
+|---|---|---|
+| The programme-service copy (`obligations`, `obligation_status`, `obligation_discharge`, `due`, `program_events`, `register*`, `programme*`, `handlers_program*`; 17.0k lines) | [`architecture/programme-service`](architecture/programme-service.md): `/v1/programme/obligations`, `/occurrences`, `/due`, `/readiness`, `/items`, `/installations`; [`execution`](architecture/execution.md) for starts and runs; [`notification`](architecture/notification.md) for telling | Specified. Still open there: programme objectives, and reading attestations |
+| `jobs.json`, tenant jobs | an operation in a programme map the organisation holds, installed by the programme service, its start at execution | Specified. A platform job (installation housekeeping) stays Studio's and is never handed tenant data |
+| `workflows.json` | programme workflows, run by execution with its waits | Specified |
+| `due-notices.json` | the programme service's record of each advance and whether notification accepted it, and notification's deduplication | Specified |
+| `trigger-conditions.json` | the programme service's counted conditions and execution's `Condition` | Specified |
+| `studio-agents.json` (named instructions) | a `skill` file in the organisation's content, run unattended by an `agent:` item through the prompt worker, or by a console for a person who is present | Specified for both paths. A console run's record is **added** (next row) |
+| `agent-runs/` (65 MB of transcripts) | execution's run ledger. Unattended work is recorded through the prompt worker's dispatch. A console's interactive run is **`POST /v1/execution/console-runs`**, `…/{run}/turns`, `…/{run}/end` | **Added**: [`architecture/execution`](architecture/execution.md#a-run-a-console-ran) 1.4.0, `execution:record`, `Run.definition_kind` `console`, `RunStep.asked`, `reported` and `withheld` ([`protocol/types`](protocol/types.md) 6.7.0), and the console's leave to record ([`architecture/admin`](architecture/admin.md) 5.7.0, `console-credential-use`) |
+| The agent runner and its prompts (10.9k lines) | the prompt worker for unattended work; the console's run for interactive work; instruction text in [`instructions/`](instructions/README.md) or a programme's `skills:` | Specified, apart from the console run above |
+| `changes/` ledger and pending changes | content's change log, proposals and decisions, with separation of duties | Specified |
+| `trash/` (pre-images) | **`GET /v1/content/entry?version=`**, where the backend keeps history. A restore is a write | **Added**: [Reading an earlier version](architecture/content.md#reading-an-earlier-version) |
+| `attestations/log.jsonl`, `reseals.jsonl` | **`/v1/content/attestations`**, kept in a sealed, chained store. A re-seal is that log's key succession | **Added**: [Entry attestations](architecture/content.md#entry-attestations), the `weblisk/content-attestation/v1` statement ([`protocol/identity`](protocol/identity.md) 3.5.0, no vectors yet) |
+| `attestations/invitations.jsonl`, `envelopes.jsonl` | **`/v1/content/attestation-requests`**, `order: sequential` for an envelope | **Added** for operators. Signers outside the tenant are an owner decision (below) |
+| `attestations/signing-key.json`, `keyring.json` | none. They are Studio's own seal key | Stays until attestations move, and then nothing needs it |
+| `evidence.json`, `evidence-files/` | an entry in a content repository, with what it proves as a fabric `proves` relationship | Specified. Evidence strength and posture have no corpus home (§3, H2 and M3) |
+| `compliance-snapshots.json` | none. A posture is derived, and a snapshot that is cited needs the posture rule first | Gap, behind H2 |
+| `relationships.log` | the fabric's ledger, `/v1/fabric/*` | Specified. A person's assertions work on their pass now. Studio's unattended sync needs its service identity (G8), which admin specifies no route for |
+| project `audit.log` | each tenant service's own audit, and `/v1/admin/audit` | Specified. Studio's local audit keeps only the installation's own acts |
+| `events.json`, `integrations.json` | [`INTEGRATION_PLAN.md`](INTEGRATION_PLAN.md) | Proposed, not adopted |
+| `retention/` | **`/v1/content/retention`**, **`/v1/content/holds`**, **`/v1/content/disposals`** | **Added**: [Retention and holds](architecture/content.md#retention-and-holds) |
+| `comments/` | **`/v1/content/comments`** | **Added**: [Comments](architecture/content.md#comments) |
+| `document-requests/` | **`/v1/content/document-requests`**, answered by a proposal | **Added** for operators. Outside parties are the same owner decision as external signers |
+| `chat/` | none | Owner decision (below) |
+| `section-access.json` | none | Owner decision (below) |
+| `access.json`, `principals.json` (the customer's half) | the orchestrator's `grant` kind and admin's operators | Specified. Studio already reads grants (G11) |
+| `identity/keys.jsonl` (escrowed seeds) | none. Nothing moves: [`architecture/admin`](architecture/admin.md)'s `console-no-sign-records` forbids a console from holding anyone's sign-records key | Delete. There is no migration |
+| `identity/service-identities.jsonl` | Studio's own service identity at the hub (G8) | Gap. Not this lane's |
+| `webhooks/hooks.jsonl`, `deliveries.jsonl` | [`agents/webhook`](agents/webhook.md), a published agent a tenant adopts | Specified as an agent. Notification has no webhook channel adapter |
+| `mail-profiles.json` | [`agents/email-send`](agents/email-send.md)'s sender | A relay per organisation or project is not specified |
+| `hierarchy.json`, `tenancy-identity.json` | the orchestrator's `organisation` and `project` kinds | Specified. Studio already reads them for a tenant that serves them |
+
+**The kinds added** are `entry-attestation`, `attestation-request`,
+`document-request`, `comment`, `retention-schedule` and `legal-hold`
+([`schemas/kinds`](schemas/kinds.md) 1.8.0), each declared at the uniform
+address ([`architecture/content`](architecture/content.md#resources) 5.6.0).
+The capabilities added are `content:attest`, `content:request`,
+`content:comment`, `content:retain`, `content:hold` and `execution:record`,
+all six person only. The roles carry them as [`architecture/admin`](architecture/admin.md#operator-roles)
+gives them: a viewer may attest. Each route has its checks in its file's
+Verification Checklist, with ids minted.
+
+**The order.** Each step deletes nothing until its route answers in the
+development tenant. Content comes first because most stores land there and
+every later area reads it.
+
+| Step | Area | Tenant routes it becomes a client of | Gated on | Studio deletes after |
+|---|---|---|---|---|
+| S2.1 | Documents and their history | content's entry, proposal, decision and log routes; `GET /v1/content/entry?version=` | the content service running in the development tenant (G11 steps D and F) | `changes/`, `trash/`, the local apply, gate, approver and separation paths, and the direct path through `resolveSourcePath` |
+| S2.2 | Evidence | content entries in an evidence repository; the fabric's `proves` | S2.1, and the fabric service running | `evidence.json`, `evidence-files/`, the evidence-scan writer (H5). `compliance-snapshots.json` stops being written, and posture says *unscoreable* until H2 has a home |
+| S2.3 | Relationships | `/v1/fabric/*` | the fabric service; G8 for unattended sync | `relationships.log` as system of record. The `relate` package stays, as the fold of what the fabric answers |
+| S2.4 | Attestation and sign-off | `/v1/content/attestations`, `/v1/content/attestation-requests` | S2.1; vectors for `weblisk/content-attestation/v1` before anything is reported `signed` | `attestations/log`, `invitations`, `envelopes` and `reseals`, then the seal key and keyring. External signing is shown *not served* until the owner decides |
+| S2.5 | Retention and holds | `/v1/content/retention`, `/holds`, `/disposals` | S2.1 | `retention/`, `program_retention.go`'s local reckoning |
+| S2.6 | Comments and requests | `/v1/content/comments`, `/v1/content/document-requests` | S2.1 | `comments/`, `document-requests/` (operators only). `chat/` waits for the owner |
+| S2.7 | Programmes and what is due | the programme service, execution and notification | all three running; the programme service reading attestations for sign-off | the 17.0k-line programme copy, tenant jobs in `jobs.json`, `workflows.json`, `due-notices.json`, `trigger-conditions.json` |
+| S2.8 | Agents | the prompt worker for unattended work; `/v1/execution/console-runs` for interactive work | S2.7; the model service route | `agent-runs/`, the agent scheduler, `studio-agents.json` (its instructions become skill files), the 16 prompt literals (with S1) |
+| S2.9 | People and access | orchestrator grants and admin operators | already served (G11) | the customer's half of `access.json` and `principals.json`; `identity/keys.jsonl` at once, since it is forbidden rather than unhomed |
+| S2.10 | Integrations, webhooks and mail | [`INTEGRATION_PLAN.md`](INTEGRATION_PLAN.md), `agents/webhook`, `agents/email-send` | an adopted integration plan; a notification webhook channel; a per-scope sender | `integrations.json`, `events.json`, `webhooks/`, `mail-profiles.json` |
+
+**What needs the owner** is listed in [Open items](#open-items), each from
+this pass.
 
 ---
 
@@ -339,11 +415,23 @@ Studio drives builds, because a client never runs a `cli-in-tenant` operation.
 ## Open items
 
 Deferred by the owner on 2026-11-04, each until the condition its row names.
-Nothing here is decided; each row says what stays true until it is.
+The rows from "A signer outside the tenant" to "Retention beyond content"
+were found on 2026-11-05, specifying the tenant homes S2 needs, and each waits
+for the owner. Nothing here is decided; each row says what stays true until
+it is.
 
 | Item | Stays | Until | Where it is stated |
 |---|---|---|---|
 | The Rust crate for ML-DSA | **UNFILLED**. A generation for Rust is refused before any model call, naming the row | the owner names a crate | [`languages/rust`](languages/rust.md#primitive-mapping) |
+| A signer outside the tenant | Attesting, and answering a document request, need an operator's pass, so only the tenant's own operators can sign or supply a document. Studio's external signing is shown *not served* | the owner decides whether a tenant has a door for a person with no operator identity, which component serves it, and how that person is identified. Found 2026-11-05 | [`architecture/content`](architecture/content.md#what-is-still-open) |
+| Who may change the attestation words | `attestation_statements` is closed and the corpus's | the owner decides whether a tenant may add words, which would make a signed word's meaning depend on the tenant | [`architecture/content`](architecture/content.md#entry-attestations) |
+| Restricting one section of an entry | not specified: an entry's scope is the whole entry's, and `section-access.json` has no home | the owner chooses between splitting such an entry and a redacted read, which answers bytes that are not the entry's | [`architecture/content`](architecture/content.md#what-is-still-open) |
+| People's chat | no tenant service keeps it, and `chat/` has no home | the owner decides whether people's chat is in the product, or is left to the integrations it already names (Slack, Teams) | this plan, [S2](#s2-which-tenant-route-replaces-which-studio-store) |
+| Reading another person's console run | its words are answered only to its person | the owner decides whether an auditor may read them | [`architecture/execution`](architecture/execution.md#known-gaps) |
+| A console recording its run | admitted, as a MAY in `console-credential-use`: a console may record the run at execution on the person's token, and do nothing else | the owner confirms the widening, which is the first write a console sends that a person did not choose item by item | [`architecture/admin`](architecture/admin.md#contracts) |
+| The roles that carry the new capabilities | a viewer may attest; only an admin may hold or record a console run; operators carry the rest | the owner confirms, in particular whether a viewer may comment | [`architecture/admin`](architecture/admin.md#operator-roles) |
+| What an attestation proves | `entry-attestation` has no capability, so nothing counts it as evidence | the programme service reads attestations for sign-off and occurrences, and the owner decides whether the kind takes `proves` | [`schemas/kinds`](schemas/kinds.md#declared-kinds) |
+| Retention beyond content | a schedule or a hold governs content's entries only | the owner decides whether one hold reaches runs, notifications and audit logs | [`architecture/content`](architecture/content.md#what-is-still-open) |
 | A storage conditional-put primitive | not required of any backend | more than one instance may answer for a hub (`instances.max` above 1 in [`schemas/kinds`](schemas/kinds.md#component-kinds)) | [`architecture/storage`](architecture/storage.md#what-a-backend-must-be) |
 
 ## Decisions
