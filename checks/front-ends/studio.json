@@ -1,5 +1,9 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
+  "engine": {
+    "module": "github.com/avaropoint/weblisk-cli/engine",
+    "version": "(devel)"
+  },
   "envelope": [
     "operation",
     "invocation",
@@ -18,3451 +22,5254 @@
   ],
   "operations": [
     {
-      "noun": "tenant",
-      "verb": "create",
-      "executor": "cli-in-tenant",
-      "summary": "Turn a name into a running tenant, with a first operator credential",
-      "inputs": [
+      "operation": "tenant new",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--platform",
-          "kind": "flag",
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         },
         {
-          "name": "--provider",
-          "kind": "flag",
+          "name": "provider",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         },
         {
-          "name": "--model",
-          "kind": "flag",
+          "name": "model",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "m"
         },
         {
-          "name": "--operator",
-          "kind": "flag",
+          "name": "operator",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--port",
-          "kind": "flag",
+          "name": "port",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--resume",
-          "kind": "flag"
+          "name": "resume",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "model",
         "artifact",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "host",
+      "summary": "Turn a name into a running tenant, with a first operator credential"
     },
     {
-      "noun": "tenant",
-      "verb": "accept",
-      "executor": "cli-in-tenant",
-      "summary": "Ask a running tenant whether it works, and report every answer",
-      "inputs": [
+      "operation": "tenant verify",
+      "executor": "tenant-api",
+      "capability": "change:operate",
+      "parameters": [
         {
-          "name": "--url",
-          "kind": "flag",
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Ask a running tenant whether it works, and report every answer"
     },
     {
-      "noun": "tenant",
-      "verb": "export",
+      "operation": "tenant export",
       "executor": "cli-in-tenant",
-      "summary": "Write what this tenant is rebuilt from into a bundle",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--out",
-          "kind": "flag",
-          "value": "path",
-          "required": true
-        },
-        {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "out",
+          "type": "string",
+          "required": true,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--stopped",
-          "kind": "flag"
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "stopped",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "artifact",
         "check"
-      ]
+      ],
+      "records": "host",
+      "summary": "Write what this tenant is rebuilt from into a bundle"
     },
     {
-      "noun": "tenant",
-      "verb": "rebuild",
+      "operation": "tenant rebuild",
       "executor": "cli-in-tenant",
-      "summary": "Stand the same tenant up again from a bundle",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<bundle>",
-          "kind": "positional",
-          "required": true
+          "name": "bundle",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
-          "value": "path",
-          "required": true
-        },
-        {
-          "name": "--root",
-          "kind": "flag",
-          "value": "backend=path",
-          "repeatable": true
-        },
-        {
-          "name": "--keys",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": true,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--port",
-          "kind": "flag",
+          "name": "root",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "backend=path"
+        },
+        {
+          "name": "keys",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "port",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "artifact",
         "check"
-      ]
+      ],
+      "records": "host",
+      "summary": "Stand the same tenant up again from a bundle"
     },
     {
-      "noun": "change",
-      "verb": "plan",
+      "operation": "change plan",
       "executor": "cli-in-tenant",
-      "summary": "Plan an upgrade or an adoption, written to .weblisk/changes/<id>.json",
-      "inputs": [
+      "capability": "change:plan",
+      "parameters": [
         {
-          "name": "<ref>",
-          "kind": "positional",
-          "repeatable": true
+          "name": "ref",
+          "type": "list<string>",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--upgrade",
-          "kind": "flag"
+          "name": "upgrade",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--adopt",
-          "kind": "flag"
+          "name": "adopt",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--no-refresh",
-          "kind": "flag"
+          "name": "no-refresh",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--driver",
-          "kind": "flag",
-          "value": "kind.backend=driver",
-          "repeatable": true
+          "name": "driver",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "kind.backend=driver"
         },
         {
-          "name": "--replace-edited",
-          "kind": "flag",
-          "value": "path=why",
-          "repeatable": true
+          "name": "replace-edited",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "path=why"
         },
         {
-          "name": "--platform",
-          "kind": "flag",
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--url",
-          "kind": "flag",
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--strict",
-          "kind": "flag"
+          "name": "strict",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--resolve-only",
-          "kind": "flag"
+          "name": "resolve-only",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "gap"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Plan an upgrade or an adoption, written to .weblisk/changes/<id>.json"
     },
     {
-      "noun": "change",
-      "verb": "apply",
+      "operation": "change apply",
       "executor": "cli-in-tenant",
-      "summary": "Regenerate what a planned change names, at the corpus it read",
-      "inputs": [
+      "capability": "change:apply",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--without-approval",
-          "kind": "flag"
+          "name": "without-approval",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--shadow-suite",
-          "kind": "flag"
+          "name": "verdict",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "suite|model"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "shadow-suite",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "model",
         "artifact",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Regenerate what a planned change names, at the corpus it read"
     },
     {
-      "noun": "change",
-      "verb": "show",
+      "operation": "change show",
       "executor": "cli-in-tenant",
-      "summary": "One change",
-      "inputs": [
+      "capability": "change:read",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One change"
     },
     {
-      "noun": "change",
-      "verb": "list",
+      "operation": "change list",
       "executor": "cli-in-tenant",
-      "summary": "The changes this tenant holds",
-      "inputs": [
+      "capability": "change:read",
+      "parameters": [
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "The changes this tenant holds"
     },
     {
-      "noun": "build",
-      "verb": "status",
+      "operation": "build status",
       "executor": "cli-in-tenant",
-      "summary": "What a generation in this directory did, and whether its inputs moved upstream",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<root>",
-          "kind": "positional"
+          "name": "root",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--upstream",
-          "kind": "flag"
+          "name": "upstream",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "What a generation in this directory did, and whether its inputs moved upstream"
     },
     {
-      "noun": "build",
-      "verb": "verify",
+      "operation": "build verify",
       "executor": "cli-in-tenant",
-      "summary": "Establish a component's recorded build against its checks",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<component>",
-          "kind": "positional"
+          "name": "component",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--dir",
-          "kind": "flag",
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "check",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Establish a component's recorded build against its checks"
     },
     {
-      "noun": "cache",
-      "verb": "status",
+      "operation": "cache status",
       "executor": "cli-in-tenant",
-      "summary": "What this tenant has banked, and what resuming here would reuse",
-      "inputs": [],
+      "capability": "always",
+      "parameters": [],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "What this tenant has banked, and what resuming here would reuse"
     },
     {
-      "noun": "cache",
-      "verb": "prune",
+      "operation": "cache prune",
       "executor": "cli-in-tenant",
-      "summary": "Remove generation-cache entries not written within a duration",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--older-than",
-          "kind": "flag",
+          "name": "older-than",
+          "type": "duration",
+          "required": false,
+          "form": "flag",
           "value": "duration"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
-    },
-    {
-      "noun": "providers",
-      "verb": "",
-      "executor": "local",
-      "summary": "What this machine can generate with, and which a build would take",
-      "inputs": [
-        {
-          "name": "--json",
-          "kind": "flag"
-        }
       ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
+      "records": "cache",
+      "summary": "Remove generation-cache entries not written within a duration"
     },
     {
-      "noun": "component",
-      "verb": "init",
-      "executor": "cli-in-tenant",
-      "summary": "Generate a component into this tenant",
-      "inputs": [
-        {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "<instance>",
-          "kind": "positional"
-        },
-        {
-          "name": "--platform",
-          "kind": "flag",
-          "value": "p"
-        }
+      "operation": "provider list",
+      "executor": [
+        "local",
+        "tenant-api"
       ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "model",
-        "artifact",
-        "check",
-        "gap",
-        "verdict"
-      ]
-    },
-    {
-      "noun": "component",
-      "verb": "start",
-      "executor": "cli-in-tenant",
-      "summary": "Build and run a component",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "<instance>",
-          "kind": "positional"
-        },
-        {
-          "name": "--detach",
-          "kind": "flag"
-        },
-        {
-          "name": "--port",
-          "kind": "flag",
-          "value": "n"
-        },
-        {
-          "name": "--orch",
-          "kind": "flag",
-          "value": "url"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item",
-        "check"
-      ]
-    },
-    {
-      "noun": "component",
-      "verb": "stop",
-      "executor": "cli-in-tenant",
-      "summary": "Stop a detached component",
-      "inputs": [
-        {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "<instance>",
-          "kind": "positional"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "component",
-      "verb": "status",
-      "executor": "cli-in-tenant",
-      "summary": "Whether a component is running, where, and since when",
-      "inputs": [
-        {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "<instance>",
-          "kind": "positional"
-        },
-        {
-          "name": "--json",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "component",
-      "verb": "logs",
-      "executor": "cli-in-tenant",
-      "summary": "Stream a detached component's log",
-      "inputs": [
-        {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "<instance>",
-          "kind": "positional"
-        },
-        {
-          "name": "--tail",
-          "kind": "flag",
-          "value": "n"
-        },
-        {
-          "name": "--follow",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "init",
-      "executor": "cli-in-tenant",
-      "summary": "Generate the orchestrator",
-      "inputs": [
-        {
-          "name": "--platform",
-          "kind": "flag",
-          "value": "p"
-        },
-        {
-          "name": "--provider",
-          "kind": "flag",
-          "value": "p"
-        },
-        {
-          "name": "--model",
-          "kind": "flag",
-          "value": "m"
-        },
-        {
-          "name": "--resume",
-          "kind": "flag"
-        },
-        {
-          "name": "--verify-signatures",
-          "kind": "flag"
-        },
-        {
-          "name": "--allowed-signers",
-          "kind": "flag",
-          "value": "file"
-        },
-        {
-          "name": "--encrypt-keys",
-          "kind": "flag"
-        },
-        {
-          "name": "--verify-only",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "model",
-        "artifact",
-        "check",
-        "gap",
-        "verdict"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "start",
-      "executor": "cli-in-tenant",
-      "summary": "Build and run the orchestrator",
-      "inputs": [
-        {
-          "name": "--port",
-          "kind": "flag",
-          "value": "n"
-        },
-        {
-          "name": "--detach",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item",
-        "check"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "stop",
-      "executor": "cli-in-tenant",
-      "summary": "Ask a detached orchestrator to shut down",
-      "inputs": [],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "logs",
-      "executor": "cli-in-tenant",
-      "summary": "Stream a detached orchestrator's log",
-      "inputs": [
-        {
-          "name": "--tail",
-          "kind": "flag",
-          "value": "n"
-        },
-        {
-          "name": "--follow",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "status",
-      "executor": "cli-in-tenant",
-      "summary": "Whether this tenant's orchestrator is running, where, and since when",
-      "inputs": [
-        {
-          "name": "--json",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "verify",
-      "executor": "cli-in-tenant",
-      "summary": "Test a running orchestrator against the protocol specification",
-      "inputs": [
-        {
-          "name": "--url",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--json",
-          "kind": "flag"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "check",
-        "gap",
-        "verdict"
-      ]
-    },
-    {
-      "noun": "server",
-      "verb": "provision",
-      "executor": "cli-in-tenant",
-      "summary": "Register the first operator at this tenant's orchestrator",
-      "inputs": [
-        {
-          "name": "--operator",
-          "kind": "flag",
-          "value": "name"
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "What this host can generate with, or, given a tenant, what the tenant's host can"
     },
     {
-      "noun": "agent",
-      "verb": "create",
+      "operation": "component init",
       "executor": "cli-in-tenant",
-      "summary": "Generate a work agent",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--platform",
-          "kind": "flag",
+          "name": "instance",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "model",
         "artifact",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Generate a component into this tenant"
     },
     {
-      "noun": "agent",
-      "verb": "start",
+      "operation": "component start",
       "executor": "cli-in-tenant",
-      "summary": "Build and run a generated agent",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--port",
-          "kind": "flag",
+          "name": "instance",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "detach",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "port",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "check"
-      ]
+      ],
+      "records": "note",
+      "summary": "Build and run a component"
     },
     {
-      "noun": "agent",
-      "verb": "verify",
+      "operation": "component stop",
       "executor": "cli-in-tenant",
-      "summary": "Test a running agent against the protocol specification",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--url",
-          "kind": "flag",
-          "value": "url"
+          "name": "instance",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "check",
-        "verdict"
-      ]
-    },
-    {
-      "noun": "agent",
-      "verb": "list",
-      "executor": "cli-in-tenant",
-      "summary": "Generated agents and available domain blueprints",
-      "inputs": [],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "note",
+      "summary": "Stop a detached component"
     },
     {
-      "noun": "domain",
-      "verb": "create",
+      "operation": "component status",
       "executor": "cli-in-tenant",
-      "summary": "Generate a domain controller",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--platform",
-          "kind": "flag",
+          "name": "instance",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Whether a component is running, where, and since when"
+    },
+    {
+      "operation": "component logs",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "instance",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "tail",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "follow",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Stream a detached component's log"
+    },
+    {
+      "operation": "server init",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         },
         {
-          "name": "--from",
-          "kind": "flag",
+          "name": "provider",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "p"
+        },
+        {
+          "name": "model",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "m"
+        },
+        {
+          "name": "resume",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "verify-signatures",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "allowed-signers",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "file"
+        },
+        {
+          "name": "encrypt-keys",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "verify-only",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ],
+      "records": "tenant",
+      "summary": "Generate the orchestrator"
+    },
+    {
+      "operation": "server start",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "port",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "detach",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "note",
+      "summary": "Build and run the orchestrator"
+    },
+    {
+      "operation": "server stop",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [],
+      "events": [
+        "item"
+      ],
+      "records": "note",
+      "summary": "Ask a detached orchestrator to shut down"
+    },
+    {
+      "operation": "server logs",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "tail",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "follow",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Stream a detached orchestrator's log"
+    },
+    {
+      "operation": "server status",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Whether this tenant's orchestrator is running, where, and since when"
+    },
+    {
+      "operation": "server verify",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check",
+        "gap",
+        "verdict"
+      ],
+      "records": "nothing",
+      "summary": "test run's live-safe checks against a running orchestrator (folded into test run)"
+    },
+    {
+      "operation": "server provision",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "operator",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "name"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "tenant",
+      "summary": "Register the first operator at this tenant's orchestrator"
+    },
+    {
+      "operation": "agent create",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "p"
+        }
+      ],
+      "events": [
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ],
+      "records": "tenant",
+      "summary": "Generate a work agent"
+    },
+    {
+      "operation": "agent start",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "port",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "note",
+      "summary": "Build and run a generated agent"
+    },
+    {
+      "operation": "agent verify",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "check",
+        "verdict"
+      ],
+      "records": "nothing",
+      "summary": "test run's live-safe checks against a running agent (folded into test run)"
+    },
+    {
+      "operation": "agent list",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Generated agents and available domain blueprints"
+    },
+    {
+      "operation": "domain create",
+      "executor": "cli-in-tenant",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "p"
+        },
+        {
+          "name": "from",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "source"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "model",
         "artifact",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Generate a domain controller"
     },
     {
-      "noun": "domain",
-      "verb": "start",
+      "operation": "domain start",
       "executor": "cli-in-tenant",
-      "summary": "Build and run a domain controller",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "check"
-      ]
+      ],
+      "records": "note",
+      "summary": "Build and run a domain controller"
     },
     {
-      "noun": "gateway",
-      "verb": "create",
+      "operation": "gateway create",
       "executor": "cli-in-tenant",
-      "summary": "Generate the application gateway",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--platform",
-          "kind": "flag",
+          "name": "platform",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "p"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "model",
         "artifact",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Generate the application gateway"
     },
     {
-      "noun": "gateway",
-      "verb": "start",
+      "operation": "gateway start",
       "executor": "cli-in-tenant",
-      "summary": "Build and run the application gateway",
-      "inputs": [],
+      "capability": "always",
+      "parameters": [],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "check"
-      ]
-    },
-    {
-      "noun": "pattern",
-      "verb": "apply",
-      "executor": "cli-in-tenant",
-      "summary": "Apply a cross-cutting pattern",
-      "inputs": [
-        {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "--resource",
-          "kind": "flag",
-          "value": "target"
-        }
       ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "model",
-        "artifact",
-        "check",
-        "gap",
-        "verdict"
-      ]
+      "records": "note",
+      "summary": "Build and run the application gateway"
     },
     {
-      "noun": "blueprint",
-      "verb": "sources",
+      "operation": "corpus sources",
       "executor": "local",
-      "summary": "Which blueprints a build here reads, and how current",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Which blueprints a build here reads, and how current"
     },
     {
-      "noun": "blueprint",
-      "verb": "update",
+      "operation": "corpus update",
       "executor": "local",
-      "summary": "Re-fetch every blueprint clone now",
-      "inputs": [],
+      "capability": "always",
+      "parameters": [],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "cache",
+      "summary": "Re-fetch every blueprint clone now"
     },
     {
-      "noun": "validate",
-      "verb": "",
+      "operation": "<family> validate",
       "executor": "local",
-      "summary": "Validate blueprint compliance, or report what one repository holds",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<dir>",
-          "kind": "positional"
+          "name": "dir",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--deps",
-          "kind": "flag"
+          "name": "deps",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--security-overrides",
-          "kind": "flag"
+          "name": "security-overrides",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "check"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Validate blueprint compliance, or report what one repository holds"
     },
     {
-      "noun": "walk",
-      "verb": "",
+      "operation": "<family> list",
       "executor": "local",
-      "summary": "Every part of a file, by its family, and the findings",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<file>",
-          "kind": "positional",
-          "required": true
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "Every file of a family, as its declaration matches them"
+    },
+    {
+      "operation": "<family> show",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "ref",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--family",
-          "kind": "flag",
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "One file of a family, walked"
+    },
+    {
+      "operation": "<family> walk",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "file",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "family",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "ref@n"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "check"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Every part of a file, by its family, and the findings"
     },
     {
-      "noun": "schema",
-      "verb": "export",
+      "operation": "schema export",
       "executor": "local",
-      "summary": "A family's header schema, or a block type's, as JSON Schema",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "<family>",
-          "kind": "positional"
+          "name": "family",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--block",
-          "kind": "flag",
+          "name": "block",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "type"
         },
         {
-          "name": "--corpus",
-          "kind": "flag",
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "dir"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "A family's header schema, or a block type's, as JSON Schema"
     },
     {
-      "noun": "doctor",
-      "verb": "",
+      "operation": "identity init",
       "executor": "local",
-      "summary": "Validate project health and configuration",
-      "inputs": [],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "check"
-      ]
-    },
-    {
-      "noun": "operator",
-      "verb": "init",
-      "executor": "local",
-      "summary": "Create an identity",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--name",
-          "kind": "flag",
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--holder",
-          "kind": "flag",
+          "name": "holder",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "source"
         },
         {
-          "name": "--holder-opt",
-          "kind": "flag",
-          "value": "key=value",
-          "repeatable": true
+          "name": "holder-opt",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "key=value"
         },
         {
-          "name": "--vault",
-          "kind": "flag",
+          "name": "vault",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "vault"
         },
         {
-          "name": "--account",
-          "kind": "flag",
+          "name": "account",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "account"
         },
         {
-          "name": "--force",
-          "kind": "flag"
+          "name": "force",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "artifact"
-      ]
+      ],
+      "records": "host",
+      "summary": "Create an identity"
     },
     {
-      "noun": "operator",
-      "verb": "store",
+      "operation": "identity store",
       "executor": "local",
-      "summary": "Map an identity already held by a source",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--reference",
-          "kind": "flag",
-          "value": "where",
-          "required": true
+          "name": "reference",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "where"
         },
         {
-          "name": "--holder",
-          "kind": "flag",
+          "name": "holder",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "source"
         },
         {
-          "name": "--holder-opt",
-          "kind": "flag",
-          "value": "key=value",
-          "repeatable": true
+          "name": "holder-opt",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "key=value"
         },
         {
-          "name": "--account",
-          "kind": "flag",
+          "name": "account",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "account"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "artifact"
-      ]
+      ],
+      "records": "host",
+      "summary": "Map an identity already held by a source"
     },
     {
-      "noun": "operator",
-      "verb": "path",
+      "operation": "identity path",
       "executor": "local",
-      "summary": "Where an identity lives",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Where an identity lives"
     },
     {
-      "noun": "operator",
-      "verb": "pubkey",
+      "operation": "identity pubkey",
       "executor": "local",
-      "summary": "This identity's public half",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "This identity's public half"
     },
     {
-      "noun": "operator",
-      "verb": "sign",
+      "operation": "identity sign",
       "executor": "local",
-      "summary": "Prove possession, for signing in to a service",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--audience",
-          "kind": "flag",
-          "value": "name",
-          "required": true
+          "name": "audience",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "name"
         },
         {
-          "name": "--nonce",
-          "kind": "flag",
+          "name": "nonce",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "value"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Prove possession, for signing in to a service"
     },
     {
-      "noun": "operator",
-      "verb": "register",
+      "operation": "identity register",
       "executor": "tenant-api",
-      "summary": "Register at a hub: the person's own act",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
-          "value": "url",
-          "required": true
+          "name": "orch",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "url"
         },
         {
-          "name": "--name",
-          "kind": "flag",
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--role",
-          "kind": "flag",
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "role"
         },
         {
-          "name": "--tls-pin",
-          "kind": "flag",
+          "name": "tls-pin",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "pin"
         },
         {
-          "name": "--bootstrap",
-          "kind": "flag",
+          "name": "bootstrap",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "file"
         },
         {
-          "name": "--no-store",
-          "kind": "flag"
+          "name": "no-store",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "host",
+      "summary": "Register at a hub: the person's own act"
     },
     {
-      "noun": "operator",
-      "verb": "connect",
+      "operation": "tenant connect",
       "executor": "tenant-api",
-      "summary": "Obtain a token from a running tenant with this device's credential",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
-          "value": "url",
-          "required": true
+          "name": "orch",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "url"
         },
         {
-          "name": "--name",
-          "kind": "flag",
+          "name": "name",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--no-register",
-          "kind": "flag"
+          "name": "no-register",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--cap",
-          "kind": "flag",
+          "name": "cap",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name,..."
         },
         {
-          "name": "--remember-passphrase",
-          "kind": "flag"
+          "name": "remember-passphrase",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--passphrase-holder",
-          "kind": "flag",
+          "name": "passphrase-holder",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "source"
         },
         {
-          "name": "--no-store",
-          "kind": "flag"
+          "name": "no-store",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "note",
+      "summary": "Obtain a token from a running tenant with this device's credential"
     },
     {
-      "noun": "operator",
-      "verb": "token",
+      "operation": "identity token",
       "executor": "tenant-api",
-      "summary": "Inspect or refresh the operator token",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--refresh",
-          "kind": "flag"
+          "name": "refresh",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--cap",
-          "kind": "flag",
+          "name": "cap",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name,..."
         },
         {
-          "name": "--no-store",
-          "kind": "flag"
+          "name": "no-store",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "host",
+      "summary": "Inspect or refresh the operator token"
     },
     {
-      "noun": "operator",
-      "verb": "rotate",
+      "operation": "identity rotate",
       "executor": "tenant-api",
-      "summary": "Rotate the key pair and tell every hub the identity is registered at",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--resume",
-          "kind": "flag"
+          "name": "resume",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--abandon",
-          "kind": "flag",
+          "name": "abandon",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "hub_id"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "artifact",
         "item"
-      ]
+      ],
+      "records": "host",
+      "summary": "Rotate the key pair and tell every hub the identity is registered at"
     },
     {
-      "noun": "operator",
-      "verb": "attest",
+      "operation": "identity attest",
       "executor": "tenant-api",
-      "summary": "Attest a credential another program holds",
-      "inputs": [
+      "capability": "always",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--credential-key",
-          "kind": "flag",
+          "name": "credential-key",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "file"
         },
         {
-          "name": "--device-label",
-          "kind": "flag",
+          "name": "device-label",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "text"
         },
         {
-          "name": "--days",
-          "kind": "flag",
+          "name": "days",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--batch",
-          "kind": "flag",
+          "name": "batch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "file"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
-    },
-    {
-      "noun": "operator",
-      "verb": "list",
-      "executor": "tenant-api",
-      "summary": "Who this tenant knows, pending included",
-      "inputs": [
-        {
-          "name": "--orch",
-          "kind": "flag",
-          "value": "url",
-          "required": true
-        },
-        {
-          "name": "--identity",
-          "kind": "flag",
-          "value": "label"
-        },
-        {
-          "name": "--keys-dir",
-          "kind": "flag",
-          "value": "path"
-        },
-        {
-          "name": "--json",
-          "kind": "flag"
-        }
       ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
+      "records": "host",
+      "summary": "Attest a credential another program holds"
     },
     {
-      "noun": "operator",
-      "verb": "approve",
+      "operation": "operator list",
       "executor": "tenant-api",
-      "summary": "Admit an operator this tenant is holding",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
-        },
-        {
-          "name": "--orch",
-          "kind": "flag",
-          "value": "url",
-          "required": true
-        },
-        {
-          "name": "--identity",
-          "kind": "flag",
-          "value": "label"
-        },
-        {
-          "name": "--keys-dir",
-          "kind": "flag",
-          "value": "path"
-        }
-      ],
-      "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
-        "item"
-      ]
-    },
-    {
-      "noun": "status",
-      "verb": "",
-      "executor": "tenant-api",
-      "summary": "System overview",
-      "inputs": [
-        {
-          "name": "--watch",
-          "kind": "flag"
-        },
-        {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": true,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Who this tenant knows, pending included"
+    },
+    {
+      "operation": "operator approve",
+      "executor": "tenant-api",
+      "capability": "admin:*",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "tenant",
+      "summary": "Admit an operator this tenant is holding"
+    },
+    {
+      "operation": "tenant status",
+      "executor": "tenant-api",
+      "capability": "admin:read",
+      "parameters": [
+        {
+          "name": "watch",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
         "item",
         "event"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "System overview"
     },
     {
-      "noun": "resource",
-      "verb": "list",
+      "operation": "resource list",
       "executor": "tenant-api",
-      "summary": "Every kind the tenant declares, and whether each is available",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Every kind the tenant declares, and whether each is available"
     },
     {
-      "noun": "resource",
-      "verb": "show",
+      "operation": "resource show",
       "executor": "tenant-api",
-      "summary": "One kind's fields, operations, verbs and events",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<kind>",
-          "kind": "positional",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One kind's fields, operations, verbs and events"
     },
     {
-      "noun": "<kind>",
-      "verb": "list",
+      "operation": "<kind> list",
       "executor": "tenant-api",
-      "summary": "A declared kind's items",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--where",
-          "kind": "flag",
-          "value": "field=value",
-          "repeatable": true
+          "name": "where",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "field=value"
         },
         {
-          "name": "--limit",
-          "kind": "flag",
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--all",
-          "kind": "flag"
+          "name": "all",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "A declared kind's items"
     },
     {
-      "noun": "<kind>",
-      "verb": "show",
+      "operation": "<kind> show",
       "executor": "tenant-api",
-      "summary": "One item of a declared kind",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<uid>",
-          "kind": "positional",
-          "required": true
+          "name": "uid",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One item of a declared kind"
     },
     {
-      "noun": "<kind>",
-      "verb": "create",
+      "operation": "<kind> create",
       "executor": "tenant-api",
-      "summary": "Create an item of a declared kind",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "--set",
-          "kind": "flag",
-          "value": "field=value",
-          "repeatable": true
+          "name": "set",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "field=value"
         },
         {
-          "name": "--from",
-          "kind": "flag",
+          "name": "from",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "file"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Create an item of a declared kind"
     },
     {
-      "noun": "<kind>",
-      "verb": "update",
+      "operation": "<kind> update",
       "executor": "tenant-api",
-      "summary": "Update an item of a declared kind; the write carries If-Match",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<uid>",
-          "kind": "positional",
-          "required": true
+          "name": "uid",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--set",
-          "kind": "flag",
-          "value": "field=value",
-          "repeatable": true
+          "name": "set",
+          "type": "list<string>",
+          "required": false,
+          "form": "flag",
+          "value": "field=value"
         },
         {
-          "name": "--from",
-          "kind": "flag",
+          "name": "from",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "file"
         },
         {
-          "name": "--if-match",
-          "kind": "flag",
+          "name": "if-match",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "etag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Update an item of a declared kind; the write carries If-Match"
     },
     {
-      "noun": "<kind>",
-      "verb": "delete",
+      "operation": "<kind> delete",
       "executor": "tenant-api",
-      "summary": "Delete an item of a declared kind; the write carries If-Match",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<uid>",
-          "kind": "positional",
-          "required": true
+          "name": "uid",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--if-match",
-          "kind": "flag",
+          "name": "if-match",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "etag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Delete an item of a declared kind; the write carries If-Match"
     },
     {
-      "noun": "<kind>",
-      "verb": "<verb>",
+      "operation": "<kind> <verb>",
       "executor": "tenant-api",
-      "summary": "A verb the kind declares",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<uid>",
-          "kind": "positional",
-          "required": true
+          "name": "uid",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--yes",
-          "kind": "flag"
+          "name": "yes",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "A verb the kind declares"
     },
     {
-      "noun": "<kind>",
-      "verb": "watch",
+      "operation": "<kind> watch",
       "executor": "tenant-api",
-      "summary": "A declared kind's events as they arrive",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<uid>",
-          "kind": "positional"
+          "name": "uid",
+          "type": "string",
+          "required": false,
+          "form": "positional"
         },
         {
-          "name": "--after",
-          "kind": "flag",
+          "name": "after",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "position"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "event"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "A declared kind's events as they arrive"
     },
     {
-      "noun": "agents",
-      "verb": "list",
+      "operation": "agents list",
       "executor": "tenant-api",
-      "summary": "Registered agents",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--type",
-          "kind": "flag",
+          "name": "type",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "type"
         },
         {
-          "name": "--lease",
-          "kind": "flag",
+          "name": "lease",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "state"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Registered agents"
     },
     {
-      "noun": "agents",
-      "verb": "describe",
+      "operation": "agents describe",
       "executor": "tenant-api",
-      "summary": "One agent",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--metrics-range",
-          "kind": "flag",
+          "name": "metrics-range",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "range"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One agent"
     },
     {
-      "noun": "agents",
-      "verb": "deregister",
+      "operation": "agents deregister",
       "executor": "tenant-api",
-      "summary": "Force-deregister an agent",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--confirm",
-          "kind": "flag"
+          "name": "confirm",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Force-deregister an agent"
     },
     {
-      "noun": "domains",
-      "verb": "list",
+      "operation": "domains list",
       "executor": "tenant-api",
-      "summary": "Domain controllers",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Domain controllers"
     },
     {
-      "noun": "domains",
-      "verb": "describe",
+      "operation": "domains describe",
       "executor": "tenant-api",
-      "summary": "One domain controller",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One domain controller"
     },
     {
-      "noun": "workflows",
-      "verb": "list",
+      "operation": "workflows list",
       "executor": "tenant-api",
-      "summary": "Recent workflow executions",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--domain",
-          "kind": "flag",
+          "name": "domain",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--status",
-          "kind": "flag",
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "status"
         },
         {
-          "name": "--limit",
-          "kind": "flag",
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Recent workflow executions"
     },
     {
-      "noun": "workflows",
-      "verb": "describe",
+      "operation": "workflows describe",
       "executor": "tenant-api",
-      "summary": "One workflow execution",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One workflow execution"
     },
     {
-      "noun": "approvals",
-      "verb": "list",
+      "operation": "approval list",
       "executor": "tenant-api",
-      "summary": "The decision inbox, through the admin gateway",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--owner",
-          "kind": "flag",
+          "name": "owner",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "owner"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "The decision inbox, through the admin gateway"
     },
     {
-      "noun": "approvals",
-      "verb": "describe",
+      "operation": "approval show",
       "executor": "tenant-api",
-      "summary": "One decision, read at its owner",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One decision, read at its owner"
     },
     {
-      "noun": "approvals",
-      "verb": "accept",
+      "operation": "approval accept",
       "executor": "tenant-api",
-      "summary": "Decide one at its owner, never in bulk",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Decide one at its owner, never in bulk"
     },
     {
-      "noun": "approvals",
-      "verb": "reject",
+      "operation": "approval reject",
       "executor": "tenant-api",
-      "summary": "Reject one at its owner",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--reason",
-          "kind": "flag",
-          "value": "reason",
-          "required": true
+          "name": "reason",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "reason"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Reject one at its owner"
     },
     {
-      "noun": "operators",
-      "verb": "list",
+      "operation": "operators list",
       "executor": "tenant-api",
-      "summary": "Registered operators",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Registered operators"
     },
     {
-      "noun": "operators",
-      "verb": "describe",
+      "operation": "operators describe",
       "executor": "tenant-api",
-      "summary": "One operator",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One operator"
     },
     {
-      "noun": "operators",
-      "verb": "approve",
+      "operation": "operators approve",
       "executor": "tenant-api",
-      "summary": "Admit a pending operator",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Admit a pending operator"
     },
     {
-      "noun": "operators",
-      "verb": "revoke",
+      "operation": "operators revoke",
       "executor": "tenant-api",
-      "summary": "Revoke an operator",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--confirm",
-          "kind": "flag"
+          "name": "confirm",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Revoke an operator"
     },
     {
-      "noun": "operators",
-      "verb": "role",
+      "operation": "operators role",
       "executor": "tenant-api",
-      "summary": "Change an operator's role",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "<role>",
-          "kind": "positional"
-        },
-        {
-          "name": "--role",
-          "kind": "flag",
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "role"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Change an operator's role"
     },
     {
-      "noun": "federations",
-      "verb": "peers",
+      "operation": "federations peers",
       "executor": "tenant-api",
-      "summary": "Federation peers",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Federation peers"
     },
     {
-      "noun": "federations",
-      "verb": "pending",
+      "operation": "federations pending",
       "executor": "tenant-api",
-      "summary": "Pending peering requests",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Pending peering requests"
     },
     {
-      "noun": "federations",
-      "verb": "accept",
+      "operation": "federations accept",
       "executor": "tenant-api",
-      "summary": "Accept a peering request",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Accept a peering request"
     },
     {
-      "noun": "federations",
-      "verb": "reject",
+      "operation": "federations reject",
       "executor": "tenant-api",
-      "summary": "Reject a peering request",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<id>",
-          "kind": "positional",
-          "required": true
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Reject a peering request"
     },
     {
-      "noun": "federations",
-      "verb": "revoke",
+      "operation": "federations revoke",
       "executor": "tenant-api",
-      "summary": "Revoke peer trust",
-      "inputs": [
+      "capability": "admin:*",
+      "parameters": [
         {
-          "name": "<peer>",
-          "kind": "positional",
-          "required": true
+          "name": "peer",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--confirm",
-          "kind": "flag"
+          "name": "confirm",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--step-up",
-          "kind": "flag"
+          "name": "step-up",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Revoke peer trust"
     },
     {
-      "noun": "federations",
-      "verb": "describe",
+      "operation": "federations describe",
       "executor": "tenant-api",
-      "summary": "One peer",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "<name>",
-          "kind": "positional",
-          "required": true
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One peer"
     },
     {
-      "noun": "federations",
-      "verb": "contracts",
+      "operation": "federations contracts",
       "executor": "tenant-api",
-      "summary": "Active federation contracts",
-      "inputs": [
+      "capability": "admin:read",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Active federation contracts"
     },
     {
-      "noun": "audit",
-      "verb": "",
+      "operation": "audit",
       "executor": "tenant-api",
-      "summary": "Query the audit log",
-      "inputs": [
+      "capability": "admin:audit",
+      "parameters": [
         {
-          "name": "--actor",
-          "kind": "flag",
+          "name": "actor",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--action",
-          "kind": "flag",
+          "name": "action",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "type"
         },
         {
-          "name": "--since",
-          "kind": "flag",
+          "name": "since",
+          "type": "duration",
+          "required": false,
+          "form": "flag",
           "value": "duration"
         },
         {
-          "name": "--limit",
-          "kind": "flag",
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
           "value": "n"
         },
         {
-          "name": "--export",
-          "kind": "flag",
+          "name": "export",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "format"
         },
         {
-          "name": "--follow",
-          "kind": "flag"
+          "name": "follow",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         },
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--identity",
-          "kind": "flag",
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "label"
         },
         {
-          "name": "--keys-dir",
-          "kind": "flag",
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item",
         "event"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "Query the audit log"
     },
     {
-      "noun": "test",
-      "verb": "conformance",
+      "operation": "test conformance",
       "executor": "tenant-api",
-      "summary": "Run protocol conformance tests",
-      "inputs": [
+      "capability": "change:operate",
+      "parameters": [
         {
-          "name": "--orch",
-          "kind": "flag",
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "url"
         },
         {
-          "name": "--level",
-          "kind": "flag",
-          "value": "n"
+          "name": "url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
         },
         {
-          "name": "--test",
-          "kind": "flag",
-          "value": "id"
-        },
-        {
-          "name": "--verbose",
-          "kind": "flag"
-        },
-        {
-          "name": "--json",
-          "kind": "flag"
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "test run's live-safe checks against a running orchestrator (folded into test run)"
     },
     {
-      "noun": "test",
-      "verb": "run",
+      "operation": "test run",
       "executor": "tenant-api",
-      "summary": "Run the conformance suite the corpus declares for one component, sealed or live, and give each criterion its verdict",
-      "inputs": [
+      "capability": "change:operate",
+      "parameters": [
         {
-          "name": "--component",
-          "kind": "flag",
-          "value": "name",
-          "required": true
-        },
-        {
-          "name": "--kind",
-          "kind": "flag",
-          "value": "kind"
-        },
-        {
-          "name": "--blueprint",
-          "kind": "flag",
-          "value": "ref"
-        },
-        {
-          "name": "--tree",
-          "kind": "flag",
-          "value": "path"
-        },
-        {
-          "name": "--live",
-          "kind": "flag",
-          "value": "url"
-        },
-        {
-          "name": "--lang",
-          "kind": "flag",
-          "value": "ref"
-        },
-        {
-          "name": "--hub-service",
-          "kind": "flag",
+          "name": "component",
+          "type": "string",
+          "required": true,
+          "form": "flag",
           "value": "name"
         },
         {
-          "name": "--lease",
-          "kind": "flag",
-          "value": "duration"
+          "name": "kind",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "kind"
         },
         {
-          "name": "--corpus",
-          "kind": "flag",
+          "name": "blueprint",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "ref"
+        },
+        {
+          "name": "tree",
+          "type": "string",
+          "required": false,
+          "form": "flag",
           "value": "path"
         },
         {
-          "name": "--json",
-          "kind": "flag"
+          "name": "live",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "lang",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "ref"
+        },
+        {
+          "name": "hub-service",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "name"
+        },
+        {
+          "name": "lease",
+          "type": "duration",
+          "required": false,
+          "form": "flag",
+          "value": "duration"
+        },
+        {
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "check",
         "gap",
         "verdict"
-      ]
+      ],
+      "records": "tenant",
+      "summary": "Run the conformance suite the corpus declares for one component, sealed or live, and give each criterion its verdict"
     },
     {
-      "noun": "test",
-      "verb": "mock-orchestrator",
-      "executor": "local",
-      "summary": "Start a lightweight mock orchestrator",
-      "inputs": [
+      "operation": "change stop",
+      "executor": "tenant-api",
+      "capability": "change:operate",
+      "parameters": [
         {
-          "name": "--port",
-          "kind": "flag",
-          "value": "n"
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "End a running build run stopped, at the next boundary the engine can stop at"
+    },
+    {
+      "operation": "run status",
+      "executor": "tenant-api",
+      "capability": "change:read",
+      "parameters": [
+        {
+          "name": "run",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
         }
       ],
       "events": [
-        "started",
-        "step",
-        "progress",
-        "question",
-        "warning",
-        "finished",
         "item"
-      ]
+      ],
+      "records": "nothing",
+      "summary": "One build run: its operation, state, change, statements, open question and last event"
+    },
+    {
+      "operation": "record show",
+      "executor": "tenant-api",
+      "capability": "change:read",
+      "parameters": [
+        {
+          "name": "statement",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "The tenant's build lock and run statements, or one statement"
+    },
+    {
+      "operation": "acceptance propose",
+      "executor": "tenant-api",
+      "capability": "change:plan",
+      "parameters": [
+        {
+          "name": "change",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "tenant",
+      "summary": "Propose runtime acceptance of a change"
+    },
+    {
+      "operation": "acceptance decide",
+      "executor": "tenant-api",
+      "capability": "change:decide",
+      "parameters": [
+        {
+          "name": "change",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "decision",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "decision"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "tenant",
+      "summary": "Decide a proposed acceptance"
+    },
+    {
+      "operation": "model choose",
+      "executor": "tenant-api",
+      "capability": "admin:*",
+      "parameters": [
+        {
+          "name": "provider",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "backend"
+        },
+        {
+          "name": "model",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "m"
+        },
+        {
+          "name": "base-url",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check"
+      ],
+      "records": "tenant",
+      "summary": "Set the tenant's model: a backend, and a model it reports"
+    },
+    {
+      "operation": "platform list",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "The platforms the corpus declares"
+    },
+    {
+      "operation": "platform show",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "platform",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "corpus",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "One platform the corpus declares"
+    },
+    {
+      "operation": "integration list",
+      "executor": "tenant-api",
+      "capability": "integration:read",
+      "parameters": [
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "The tenant's integrations"
+    },
+    {
+      "operation": "integration add",
+      "executor": "tenant-api",
+      "capability": "admin:*",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "tenant",
+      "summary": "Add an integration to the tenant"
+    },
+    {
+      "operation": "integration check",
+      "executor": "tenant-api",
+      "capability": "integration:read",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "Check one of the tenant's integrations"
+    },
+    {
+      "operation": "integration remove",
+      "executor": "tenant-api",
+      "capability": "admin:*",
+      "parameters": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "tenant",
+      "summary": "Remove an integration from the tenant"
+    },
+    {
+      "operation": "content backend list",
+      "executor": "tenant-api",
+      "capability": "content:read",
+      "parameters": [
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "The repositories content holds, with their custody and ceiling"
+    },
+    {
+      "operation": "content backend add",
+      "executor": "tenant-api",
+      "capability": "content:establish",
+      "parameters": [
+        {
+          "name": "from",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "file"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "tenant",
+      "summary": "Bring a store under content's governance"
+    },
+    {
+      "operation": "content backend check",
+      "executor": "tenant-api",
+      "capability": "content:read",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "check"
+      ],
+      "records": "nothing",
+      "summary": "Check one repository's backend against what it claims"
+    },
+    {
+      "operation": "content list",
+      "executor": "tenant-api",
+      "capability": "content:read",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "cursor"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Entries beneath a path"
+    },
+    {
+      "operation": "content read",
+      "executor": "tenant-api",
+      "capability": "content:read",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "version"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "One entry's bytes and identity, or an earlier version's"
+    },
+    {
+      "operation": "content history",
+      "executor": "tenant-api",
+      "capability": "content:read",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "from",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "A repository's change log, from a sequence number"
+    },
+    {
+      "operation": "content write",
+      "executor": "tenant-api",
+      "capability": "content:write",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "from",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "file"
+        },
+        {
+          "name": "if-match",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "etag"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check",
+        "artifact"
+      ],
+      "records": "tenant",
+      "summary": "Write one entry, guarded by the version it replaces"
+    },
+    {
+      "operation": "content move",
+      "executor": "tenant-api",
+      "capability": "content:write",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check",
+        "artifact"
+      ],
+      "records": "tenant",
+      "summary": "Move one entry, keeping its identity"
+    },
+    {
+      "operation": "content remove",
+      "executor": "tenant-api",
+      "capability": "content:write",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "if-match",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "etag"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check",
+        "artifact"
+      ],
+      "records": "tenant",
+      "summary": "Remove one entry and retire its identity"
+    },
+    {
+      "operation": "content reconcile",
+      "executor": "tenant-api",
+      "capability": "content:reconcile",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item",
+        "gap"
+      ],
+      "records": "tenant",
+      "summary": "Detect change made outside content, in a store of shared custody"
+    },
+    {
+      "operation": "secret list",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Every secret kept here, and whether each is set"
+    },
+    {
+      "operation": "secret set",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "host",
+      "summary": "Keep a secret's value, asked for unseen"
+    },
+    {
+      "operation": "secret get",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "confirm",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Show a secret's value, only when asked to on purpose"
+    },
+    {
+      "operation": "secret delete",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "host",
+      "summary": "Remove a secret"
+    },
+    {
+      "operation": "secret rotate",
+      "executor": "local",
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "agent",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "key",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "host",
+      "summary": "Replace a secret's value, asked for unseen"
+    },
+    {
+      "operation": "impact",
+      "executor": "tenant-api",
+      "capability": "fabric:read",
+      "parameters": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "source"
+        },
+        {
+          "name": "artifact-id",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "id"
+        },
+        {
+          "name": "diff",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "ref@a..b"
+        },
+        {
+          "name": "depth",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "relation",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "relation"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "Everything reachable from a node, or from each changed part of a diff"
+    },
+    {
+      "operation": "fabric trace",
+      "executor": "tenant-api",
+      "capability": "fabric:read",
+      "parameters": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "source"
+        },
+        {
+          "name": "artifact-id",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "id"
+        },
+        {
+          "name": "anchor",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "anchor"
+        },
+        {
+          "name": "relation",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "relation"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "status"
+        },
+        {
+          "name": "cursor",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "cursor"
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "form": "flag",
+          "value": "n"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "item"
+      ],
+      "records": "nothing",
+      "summary": "The live relationships with either end at a node"
+    },
+    {
+      "operation": "document check",
+      "executor": [
+        "tenant-api",
+        "local"
+      ],
+      "capability": "always",
+      "parameters": [
+        {
+          "name": "file",
+          "type": "string",
+          "required": false,
+          "form": "positional"
+        },
+        {
+          "name": "repository",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [
+        "check",
+        "gap"
+      ],
+      "records": "nothing",
+      "summary": "A document against the family it is written to: at the tenant (--repository, --path), or a file here"
+    },
+    {
+      "operation": "attest",
+      "executor": "tenant-api",
+      "capability": "content:attest",
+      "parameters": [
+        {
+          "name": "repository",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "repository"
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "version",
+          "type": "string",
+          "required": true,
+          "form": "flag",
+          "value": "version"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "identity",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "label"
+        },
+        {
+          "name": "keys-dir",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "path"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "Attest one version of a document"
     }
   ]
 }

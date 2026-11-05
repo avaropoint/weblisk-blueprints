@@ -22,13 +22,16 @@ Parity). Replaces command-surface.py, whose check is its second leg.
    architecture/engine.md's manifest block writes it, or `noun` and `verb`, as
    the engine publishes it today; and either whole (Studio's operations route)
    or as the `operations` of `weblisk commands --json`, which carries its
-   front-end-only commands beside them. --executors E,F (or the pins'
+   front-end-only commands beside them. An entry's executor is one, or a
+   list where the catalogue gives several (provider list), and an entry is in
+   scope where any of its executors is. --executors E,F (or the pins'
    `executors`) holds the leg to the operations of those executors, in the
    catalogue and in each manifest: a phase is done for the executors it
    covers (ENGINE_PLAN S1: local and tenant-api). With pinned manifests, what
    the leg finds is held to the pins' `expected_gaps`, exactly, as
    cli-verbs.json holds the CLI's drift: an entry leaves the list when its gap
-   closes, and a new gap fails.
+   closes, and a new gap fails. Where the pins carry `gap_reasons`, every
+   expected gap's operation has a reason there, and none is left over.
 
   front-end-parity.py [--root DIR]
   front-end-parity.py --parity [--manifests A.json B.json] [--executors E,F] [--root DIR]
@@ -156,7 +159,7 @@ def check_parity(ops):
     faults, sets = [], {}
     for name, m in manifests.items():
         entries = m["operations"] if "operations" in m else m["manifest"]["operations"]
-        sets[name] = {op_name(o) for o in entries if scope is None or "executor" not in o or o["executor"] in scope}
+        sets[name] = {op_name(o) for o in entries if scope is None or "executor" not in o or row_executors(o) & scope}
         for o in sorted(sets[name]):
             if not any(matches(o, t) for t in ops):
                 faults.append(f"{name}: {o} is not an operation of the catalogue")
@@ -175,6 +178,20 @@ def check_parity(ops):
         return faults, ""
     print("\n".join(faults))
     held = []
+    # Every expected gap says why it is open (the pins' gap_reasons, by
+    # operation), so a gap is a decision with a reason, never a list nobody
+    # reads; and a reason no expected gap needs is reported as stale.
+    reasons = pins.get("gap_reasons")
+    if reasons is not None:
+        named = set()
+        for line in expected:
+            m = re.match(r"^[^:]+: (?:the catalogue's (.+) is missing|(.+) is not an operation of the catalogue)$", line)
+            op = m and (m.group(1) or m.group(2))
+            named.add(op)
+            if not op or not reasons.get(op):
+                held.append(f"expected gap with no reason in gap_reasons: {line}")
+        for op in sorted(set(reasons) - named):
+            held.append(f"gap_reasons names {op}, which no expected gap is")
     for line in sorted(set(faults) - set(expected)):
         held.append(f"unexpected gap: {line}")
     for line in sorted(set(expected) - set(faults)):
