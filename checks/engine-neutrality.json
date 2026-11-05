@@ -1,61 +1,61 @@
 {
   "format": "The tools' source at the commit named, and the string literals in it that equal a name the corpus declares (checks/engine-neutrality.py). Each entry is one finding, with the finding of the CLI drift audit of 2026-11-03 (CLI 4d54da8, corpus d20ca6f) that covers it, by its number in that audit's findings table or by the package row of its class shares; an entry that finding does not cover says so. The list can only shrink: an entry whose literal has left the source is reported until it is removed, and a finding not on the list is new knowledge in the tools.",
-  "commit": "4d54da80c613b2e732fe9bda8c5b1c41ed34554d",
+  "commit": "01e41978a2a03a31a2cc1276f1a76351bb779050",
   "known": [
     {
-      "finding": "internal/admin/admin.go: code RATE_LIMITED",
+      "finding": "engine/admin/admin.go: code RATE_LIMITED",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/admin.go: component admin",
+      "finding": "engine/admin/admin.go: component admin",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/admin.go: component domain",
+      "finding": "engine/admin/admin.go: component domain",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/admin.go: noun domain",
+      "finding": "engine/admin/admin.go: noun domain",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/gateway_commands.go: code ADMIN_GROUP_UNAVAILABLE",
+      "finding": "engine/admin/gateway_commands.go: code ADMIN_GROUP_UNAVAILABLE",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/gateway_commands.go: component agent",
+      "finding": "engine/admin/gateway_commands.go: component agent",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/gateway_commands.go: component content",
+      "finding": "engine/admin/gateway_commands.go: component content",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/gateway_commands.go: noun agent",
+      "finding": "engine/admin/gateway_commands.go: noun agent",
       "audit": "section 3: internal/admin, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/admin/resource.go: code RESOURCE_FIELD_NOT_SETTABLE",
+      "finding": "engine/admin/resource.go: code RESOURCE_FIELD_NOT_SETTABLE",
       "audit": "finding 71"
     },
     {
-      "finding": "internal/admin/resource.go: code RESOURCE_KIND_UNDECLARED",
+      "finding": "engine/admin/resource.go: code RESOURCE_KIND_UNDECLARED",
       "audit": "finding 71"
     },
     {
-      "finding": "internal/admin/resource.go: code RESOURCE_OPERATION_UNDECLARED",
+      "finding": "engine/admin/resource.go: code RESOURCE_OPERATION_UNDECLARED",
       "audit": "finding 71"
     },
     {
-      "finding": "internal/admin/resource.go: code RESOURCE_PRECONDITION_FAILED",
+      "finding": "engine/admin/resource.go: code RESOURCE_PRECONDITION_FAILED",
       "audit": "finding 71"
     },
     {
-      "finding": "internal/admingw/admingwtest/admingwtest.go: component testing",
+      "finding": "engine/admingw/admingwtest/admingwtest.go: component testing",
       "audit": "section 3: internal/admingw"
     },
     {
-      "finding": "internal/admingw/settings.go: component admin",
+      "finding": "engine/admingw/settings.go: component admin",
       "audit": "finding 30"
     },
     {
@@ -63,479 +63,475 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/buildplan/corpus.go: component orchestrator",
+      "finding": "engine/buildplan/corpus.go: component orchestrator",
       "audit": "section 3: internal/buildplan"
     },
     {
-      "finding": "internal/buildplan/needs.go: component agent",
+      "finding": "engine/buildplan/needs.go: component agent",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component content",
+      "finding": "engine/buildplan/needs.go: component content",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component domain",
+      "finding": "engine/buildplan/needs.go: component domain",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component execution",
+      "finding": "engine/buildplan/needs.go: component execution",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component model-service",
+      "finding": "engine/buildplan/needs.go: component model-service",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component notification",
+      "finding": "engine/buildplan/needs.go: component notification",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component orchestrator",
+      "finding": "engine/buildplan/needs.go: component orchestrator",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component programme-service",
+      "finding": "engine/buildplan/needs.go: component programme-service",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: component prompt-worker",
+      "finding": "engine/buildplan/needs.go: component prompt-worker",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: noun agent",
+      "finding": "engine/buildplan/needs.go: noun agent",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: noun blueprint",
+      "finding": "engine/buildplan/needs.go: noun blueprint",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/needs.go: noun domain",
+      "finding": "engine/buildplan/needs.go: noun domain",
       "audit": "finding 29"
     },
     {
-      "finding": "internal/buildplan/services.go: noun blueprint",
+      "finding": "engine/buildplan/services.go: noun blueprint",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/dispatch/behind.go: component orchestrator",
+      "finding": "engine/dispatch/behind.go: component orchestrator",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/blueprints.go: language cloudflare",
+      "finding": "engine/dispatch/blueprints.go: language cloudflare",
       "audit": "finding 47"
     },
     {
-      "finding": "internal/dispatch/blueprints.go: language node",
+      "finding": "engine/dispatch/blueprints.go: language node",
       "audit": "finding 47"
     },
     {
-      "finding": "internal/dispatch/blueprints.go: language rust",
+      "finding": "engine/dispatch/blueprints.go: language rust",
       "audit": "finding 47"
     },
     {
-      "finding": "internal/dispatch/buildtools.go: heading Runtime Requirements",
+      "finding": "engine/dispatch/buildtools.go: heading Runtime Requirements",
       "audit": "finding 48"
     },
     {
-      "finding": "internal/dispatch/buildtools.go: language go",
+      "finding": "engine/dispatch/buildtools.go: language go",
       "audit": "finding 48"
     },
     {
-      "finding": "internal/dispatch/catalog.go: language cloudflare",
+      "finding": "engine/dispatch/catalog.go: language cloudflare",
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component admin",
+      "finding": "engine/dispatch/checklist.go: component admin",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component agent",
+      "finding": "engine/dispatch/checklist.go: component agent",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component content",
+      "finding": "engine/dispatch/checklist.go: component content",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component domain",
+      "finding": "engine/dispatch/checklist.go: component domain",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component gateway",
+      "finding": "engine/dispatch/checklist.go: component gateway",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: component orchestrator",
+      "finding": "engine/dispatch/checklist.go: component orchestrator",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: heading ## Verification Checklist",
+      "finding": "engine/dispatch/checklist.go: heading ## Verification Checklist",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: noun agent",
+      "finding": "engine/dispatch/checklist.go: noun agent",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/checklist.go: noun domain",
+      "finding": "engine/dispatch/checklist.go: noun domain",
       "audit": "finding 14"
     },
     {
-      "finding": "internal/dispatch/component.go: component agent",
+      "finding": "engine/dispatch/component.go: component agent",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/component.go: component domain",
+      "finding": "engine/dispatch/component.go: component domain",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/component.go: component gateway",
+      "finding": "engine/dispatch/component.go: component gateway",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/component.go: component orchestrator",
+      "finding": "engine/dispatch/component.go: component orchestrator",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/component.go: noun agent",
+      "finding": "engine/dispatch/component.go: noun agent",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/component.go: noun domain",
+      "finding": "engine/dispatch/component.go: noun domain",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/conformance.go: component admin",
+      "finding": "engine/dispatch/conformance.go: component admin",
       "audit": "finding 11"
     },
     {
-      "finding": "internal/dispatch/conformance_register.go: component agent",
+      "finding": "engine/dispatch/conformance_register.go: component agent",
       "audit": "finding 35"
     },
     {
-      "finding": "internal/dispatch/conformance_register.go: component orchestrator",
+      "finding": "engine/dispatch/conformance_register.go: component orchestrator",
       "audit": "finding 35"
     },
     {
-      "finding": "internal/dispatch/conformance_register.go: noun agent",
+      "finding": "engine/dispatch/conformance_register.go: noun agent",
       "audit": "finding 35"
     },
     {
-      "finding": "internal/dispatch/conformance_register.go: route /v1/register",
+      "finding": "engine/dispatch/conformance_register.go: route /v1/register",
       "audit": "finding 35"
     },
     {
-      "finding": "internal/dispatch/corpus_conflict.go: heading ## Verification Checklist",
+      "finding": "engine/dispatch/corpus_conflict.go: heading ## Verification Checklist",
       "audit": "finding 10"
     },
     {
-      "finding": "internal/dispatch/declaration.go: noun platform",
+      "finding": "engine/dispatch/declaration.go: noun platform",
       "audit": "finding 2"
     },
     {
-      "finding": "internal/dispatch/declarednames.go: heading ## Endpoints",
+      "finding": "engine/dispatch/declarednames.go: heading ## Endpoints",
       "audit": "finding 17"
     },
     {
-      "finding": "internal/dispatch/dispatch.go: language go",
+      "finding": "engine/dispatch/dispatch.go: language go",
       "audit": "finding 19"
     },
     {
-      "finding": "internal/dispatch/dispatch.go: language rust",
+      "finding": "engine/dispatch/dispatch.go: language rust",
       "audit": "finding 19"
     },
     {
-      "finding": "internal/dispatch/generate.go: route /*",
+      "finding": "engine/dispatch/generate.go: route /*",
       "audit": "finding 8"
     },
     {
-      "finding": "internal/dispatch/interop.go: component orchestrator",
+      "finding": "engine/dispatch/interop.go: component orchestrator",
       "audit": "finding 34"
     },
     {
-      "finding": "internal/dispatch/interop.go: route /v1/register",
+      "finding": "engine/dispatch/interop.go: route /v1/register",
       "audit": "finding 34"
     },
     {
-      "finding": "internal/dispatch/interop.go: route /v1/services",
+      "finding": "engine/dispatch/interop.go: route /v1/services",
       "audit": "finding 34"
     },
     {
-      "finding": "internal/dispatch/layout.go: component admin",
+      "finding": "engine/dispatch/layout.go: component admin",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: component agent",
+      "finding": "engine/dispatch/layout.go: component agent",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: component content",
+      "finding": "engine/dispatch/layout.go: component content",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: component domain",
+      "finding": "engine/dispatch/layout.go: component domain",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: component gateway",
+      "finding": "engine/dispatch/layout.go: component gateway",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: component orchestrator",
+      "finding": "engine/dispatch/layout.go: component orchestrator",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: language cloudflare",
+      "finding": "engine/dispatch/layout.go: language cloudflare",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: language node",
+      "finding": "engine/dispatch/layout.go: language node",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: language rust",
+      "finding": "engine/dispatch/layout.go: language rust",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: noun agent",
+      "finding": "engine/dispatch/layout.go: noun agent",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/layout.go: noun domain",
+      "finding": "engine/dispatch/layout.go: noun domain",
       "audit": "finding 15"
     },
     {
-      "finding": "internal/dispatch/localcli.go: component content",
+      "finding": "engine/dispatch/localcli.go: component content",
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "internal/dispatch/locate.go: component orchestrator",
+      "finding": "engine/dispatch/locate.go: component orchestrator",
       "audit": "finding 32"
     },
     {
-      "finding": "internal/dispatch/locate.go: language cloudflare",
+      "finding": "engine/dispatch/locate.go: language cloudflare",
       "audit": "finding 32"
     },
     {
-      "finding": "internal/dispatch/locate.go: language go",
+      "finding": "engine/dispatch/locate.go: language go",
       "audit": "finding 32"
     },
     {
-      "finding": "internal/dispatch/locate.go: language node",
+      "finding": "engine/dispatch/locate.go: language node",
       "audit": "finding 32"
     },
     {
-      "finding": "internal/dispatch/locate.go: language rust",
+      "finding": "engine/dispatch/locate.go: language rust",
       "audit": "finding 32"
     },
     {
-      "finding": "internal/dispatch/modelgw.go: component orchestrator",
+      "finding": "engine/dispatch/modelgw.go: component orchestrator",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw.go: language go",
+      "finding": "engine/dispatch/modelgw.go: language go",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code FORBIDDEN",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code FORBIDDEN",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code INVALID_REQUEST",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code INVALID_REQUEST",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_FAILED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_FAILED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_LIMITED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_LIMITED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_UNAVAILABLE",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_BACKEND_UNAVAILABLE",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_NONE_LOADED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_NONE_LOADED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_NOT_CONFIGURED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_NOT_CONFIGURED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_UNRECORDED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code MODEL_UNRECORDED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code NOT_FOUND",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code NOT_FOUND",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code SCOPE_CEILING_EXCEEDED",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code SCOPE_CEILING_EXCEEDED",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: code SCOPE_MISSING",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: code SCOPE_MISSING",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: component content",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: component content",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: language cloudflare",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: language cloudflare",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: route /v1/admin/agents",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: route /v1/admin/agents",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/modelgw_src/model_gateway.go.txt: route /v1/model/audit",
+      "finding": "engine/dispatch/modelgw_src/model_gateway.go.txt: route /v1/model/audit",
       "audit": "finding 6"
     },
     {
-      "finding": "internal/dispatch/plan.go: instruction types, functions, methods, constants and package-level varia",
-      "audit": "finding 45"
-    },
-    {
-      "finding": "internal/dispatch/processes.go: component model-service",
+      "finding": "engine/dispatch/processes.go: component model-service",
       "audit": "finding 42"
     },
     {
-      "finding": "internal/dispatch/processes.go: route /livez",
+      "finding": "engine/dispatch/processes.go: route /livez",
       "audit": "finding 42"
     },
     {
-      "finding": "internal/dispatch/reconcile.go: component orchestrator",
+      "finding": "engine/dispatch/reconcile.go: component orchestrator",
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "internal/dispatch/relevance.go: component orchestrator",
+      "finding": "engine/dispatch/relevance.go: component orchestrator",
       "audit": "finding 64"
     },
     {
-      "finding": "internal/dispatch/relevance.go: noun protocol",
+      "finding": "engine/dispatch/relevance.go: noun protocol",
       "audit": "finding 64"
     },
     {
-      "finding": "internal/dispatch/requirements.go: component agent",
+      "finding": "engine/dispatch/requirements.go: component agent",
       "audit": "finding 17"
     },
     {
-      "finding": "internal/dispatch/requirements.go: component orchestrator",
+      "finding": "engine/dispatch/requirements.go: component orchestrator",
       "audit": "finding 17"
     },
     {
-      "finding": "internal/dispatch/requirements.go: heading ## Endpoints",
+      "finding": "engine/dispatch/requirements.go: heading ## Endpoints",
       "audit": "finding 17"
     },
     {
-      "finding": "internal/dispatch/requirements.go: noun agent",
+      "finding": "engine/dispatch/requirements.go: noun agent",
       "audit": "finding 17"
     },
     {
-      "finding": "internal/dispatch/scratchrun.go: component admin",
+      "finding": "engine/dispatch/scratchrun.go: component admin",
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "internal/dispatch/shared.go: component orchestrator",
+      "finding": "engine/dispatch/shared.go: component orchestrator",
       "audit": "finding 46"
     },
     {
-      "finding": "internal/dispatch/skills.go: component agent",
+      "finding": "engine/dispatch/skills.go: component agent",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: component domain",
+      "finding": "engine/dispatch/skills.go: component domain",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: component gateway",
+      "finding": "engine/dispatch/skills.go: component gateway",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: language go",
+      "finding": "engine/dispatch/skills.go: language go",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: noun agent",
+      "finding": "engine/dispatch/skills.go: noun agent",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: noun domain",
+      "finding": "engine/dispatch/skills.go: noun domain",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/skills.go: noun kinds",
+      "finding": "engine/dispatch/skills.go: noun kinds",
       "audit": "finding 49"
     },
     {
-      "finding": "internal/dispatch/typecheck.go: language go",
+      "finding": "engine/dispatch/typecheck.go: language go",
       "audit": "finding 40"
     },
     {
-      "finding": "internal/dispatch/upgrade.go: component orchestrator",
+      "finding": "engine/dispatch/upgrade.go: component orchestrator",
       "audit": "finding 16"
     },
     {
-      "finding": "internal/dispatch/upstream.go: component orchestrator",
+      "finding": "engine/dispatch/upstream.go: component orchestrator",
       "audit": "section 3: dispatch"
     },
     {
-      "finding": "internal/dispatch/validate.go: component agent",
+      "finding": "engine/dispatch/validate.go: component agent",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate.go: component domain",
+      "finding": "engine/dispatch/validate.go: component domain",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate.go: language go",
+      "finding": "engine/dispatch/validate.go: language go",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate.go: noun agent",
+      "finding": "engine/dispatch/validate.go: noun agent",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate.go: noun domain",
+      "finding": "engine/dispatch/validate.go: noun domain",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate.go: noun protocol",
+      "finding": "engine/dispatch/validate.go: noun protocol",
       "audit": "finding 61"
     },
     {
-      "finding": "internal/dispatch/validate_corpus.go: heading ## Verification Checklist",
+      "finding": "engine/dispatch/validate_corpus.go: heading ## Verification Checklist",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/validate_corpus.go: noun form",
+      "finding": "engine/dispatch/validate_corpus.go: noun form",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/validate_integrity.go: language go",
+      "finding": "engine/dispatch/validate_integrity.go: language go",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/validate_programmes.go: noun spec",
+      "finding": "engine/dispatch/validate_programmes.go: noun spec",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/validate_standards.go: noun family",
+      "finding": "engine/dispatch/validate_standards.go: noun family",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/validate_standards.go: noun framework",
+      "finding": "engine/dispatch/validate_standards.go: noun framework",
       "audit": "finding 60"
     },
     {
-      "finding": "internal/dispatch/verify.go: noun pattern",
+      "finding": "engine/dispatch/verify.go: noun pattern",
       "audit": "finding 4"
     },
     {
@@ -559,31 +555,31 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/grammar/family.go: noun family",
+      "finding": "engine/grammar/family.go: noun family",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/project.go: noun policy",
+      "finding": "engine/grammar/project.go: noun policy",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/validate.go: noun pattern",
+      "finding": "engine/grammar/validate.go: noun pattern",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/walk.go: component content",
+      "finding": "engine/grammar/walk.go: component content",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/walk.go: noun block",
+      "finding": "engine/grammar/walk.go: noun block",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/walk.go: noun family",
+      "finding": "engine/grammar/walk.go: noun family",
       "audit": "section 3: internal/grammar"
     },
     {
-      "finding": "internal/grammar/walk.go: noun policy",
+      "finding": "engine/grammar/walk.go: noun policy",
       "audit": "section 3: internal/grammar"
     },
     {
@@ -595,303 +591,303 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/operator/admin.go: code CREDENTIAL_EXPIRED",
+      "finding": "engine/operator/admin.go: code CREDENTIAL_EXPIRED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/api.go: component admin",
+      "finding": "engine/operator/api.go: component admin",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/attest.go: code CREDENTIAL_EXPIRED",
+      "finding": "engine/operator/attest.go: code CREDENTIAL_EXPIRED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/attest.go: code CREDENTIAL_REQUIRED",
+      "finding": "engine/operator/attest.go: code CREDENTIAL_REQUIRED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/attest.go: code CREDENTIAL_REVOKED",
+      "finding": "engine/operator/attest.go: code CREDENTIAL_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/attest.go: code CREDENTIAL_UNKNOWN",
+      "finding": "engine/operator/attest.go: code CREDENTIAL_UNKNOWN",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/attest.go: code OPERATOR_REVOKED",
+      "finding": "engine/operator/attest.go: code OPERATOR_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_ATTESTATION_INVALID",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_ATTESTATION_INVALID",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_CHALLENGE_INVALID",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_CHALLENGE_INVALID",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_FOREIGN_HUB",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_FOREIGN_HUB",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_FORM_UNSUPPORTED",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_FORM_UNSUPPORTED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_IS_IDENTITY_KEY",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_IS_IDENTITY_KEY",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_KEY_BOUND",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_KEY_BOUND",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_LIFETIME_INVALID",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_LIFETIME_INVALID",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_OPERATOR_MISMATCH",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_OPERATOR_MISMATCH",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code CREDENTIAL_PURPOSE_REFUSED",
+      "finding": "engine/operator/connect.go: code CREDENTIAL_PURPOSE_REFUSED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code NOT_FOUND",
+      "finding": "engine/operator/connect.go: code NOT_FOUND",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code OPERATOR_BOOTSTRAP_REFUSED",
+      "finding": "engine/operator/connect.go: code OPERATOR_BOOTSTRAP_REFUSED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code OPERATOR_KEY_REUSED",
+      "finding": "engine/operator/connect.go: code OPERATOR_KEY_REUSED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code OPERATOR_REVOKED",
+      "finding": "engine/operator/connect.go: code OPERATOR_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code OPERATOR_SUBJECT_MISMATCH",
+      "finding": "engine/operator/connect.go: code OPERATOR_SUBJECT_MISMATCH",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/connect.go: code OPERATOR_UNKNOWN",
+      "finding": "engine/operator/connect.go: code OPERATOR_UNKNOWN",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/credential_client.go: code CREDENTIAL_FOREIGN_HUB",
+      "finding": "engine/operator/credential_client.go: code CREDENTIAL_FOREIGN_HUB",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_ATTESTATION_INVALID",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_ATTESTATION_INVALID",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_CHALLENGE_INVALID",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_CHALLENGE_INVALID",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_EXPIRED",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_EXPIRED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_FOREIGN_HUB",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_FOREIGN_HUB",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_FORM_UNSUPPORTED",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_FORM_UNSUPPORTED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_IS_IDENTITY_KEY",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_IS_IDENTITY_KEY",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_KEY_BOUND",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_KEY_BOUND",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_LIFETIME_INVALID",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_LIFETIME_INVALID",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_OPERATOR_MISMATCH",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_OPERATOR_MISMATCH",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_REQUIRED",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_REQUIRED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_REVOKED",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_REVOKED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code CREDENTIAL_UNKNOWN",
+      "finding": "engine/operator/fakehub/fakehub.go: code CREDENTIAL_UNKNOWN",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code FORBIDDEN",
+      "finding": "engine/operator/fakehub/fakehub.go: code FORBIDDEN",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code INVALID_REQUEST",
+      "finding": "engine/operator/fakehub/fakehub.go: code INVALID_REQUEST",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code NOT_FOUND",
+      "finding": "engine/operator/fakehub/fakehub.go: code NOT_FOUND",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_BOOTSTRAP_REFUSED",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_BOOTSTRAP_REFUSED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_KEY_CHANGE_INVALID",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_KEY_CHANGE_INVALID",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_KEY_REUSED",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_KEY_REUSED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_LAST_ADMINISTRATOR",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_LAST_ADMINISTRATOR",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_NOT_APPROVED",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_NOT_APPROVED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_REVOKED",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_REVOKED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_SUBJECT_MISMATCH",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_SUBJECT_MISMATCH",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code OPERATOR_UNKNOWN",
+      "finding": "engine/operator/fakehub/fakehub.go: code OPERATOR_UNKNOWN",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code STEP_UP_REQUIRED",
+      "finding": "engine/operator/fakehub/fakehub.go: code STEP_UP_REQUIRED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: code TOKEN_REQUEST_REPLAYED",
+      "finding": "engine/operator/fakehub/fakehub.go: code TOKEN_REQUEST_REPLAYED",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: component admin",
+      "finding": "engine/operator/fakehub/fakehub.go: component admin",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: component testing",
+      "finding": "engine/operator/fakehub/fakehub.go: component testing",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: noun form",
+      "finding": "engine/operator/fakehub/fakehub.go: noun form",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: route /v1/admin/credentials/challenge",
+      "finding": "engine/operator/fakehub/fakehub.go: route /v1/admin/credentials/challenge",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: route /v1/admin/credentials/token",
+      "finding": "engine/operator/fakehub/fakehub.go: route /v1/admin/credentials/token",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: route /v1/admin/operators",
+      "finding": "engine/operator/fakehub/fakehub.go: route /v1/admin/operators",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: route /v1/admin/operators/register",
+      "finding": "engine/operator/fakehub/fakehub.go: route /v1/admin/operators/register",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/fakehub/fakehub.go: route /v1/admin/operators/token",
+      "finding": "engine/operator/fakehub/fakehub.go: route /v1/admin/operators/token",
       "audit": "finding 69"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_CHALLENGE_INVALID",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_CHALLENGE_INVALID",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_EXPIRED",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_EXPIRED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_FOREIGN_HUB",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_FOREIGN_HUB",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_KEY_BOUND",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_KEY_BOUND",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_PREVIOUSLY_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_REVOKED",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code CREDENTIAL_UNKNOWN",
+      "finding": "engine/operator/mint.go: code CREDENTIAL_UNKNOWN",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/mint.go: code NOT_FOUND",
+      "finding": "engine/operator/mint.go: code NOT_FOUND",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code NOT_FOUND",
+      "finding": "engine/operator/operator.go: code NOT_FOUND",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code OPERATOR_BOOTSTRAP_REFUSED",
+      "finding": "engine/operator/operator.go: code OPERATOR_BOOTSTRAP_REFUSED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code OPERATOR_NOT_APPROVED",
+      "finding": "engine/operator/operator.go: code OPERATOR_NOT_APPROVED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code OPERATOR_REVOKED",
+      "finding": "engine/operator/operator.go: code OPERATOR_REVOKED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code OPERATOR_UNKNOWN",
+      "finding": "engine/operator/operator.go: code OPERATOR_UNKNOWN",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/operator.go: code TOKEN_REQUEST_REPLAYED",
+      "finding": "engine/operator/operator.go: code TOKEN_REQUEST_REPLAYED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/register.go: component admin",
+      "finding": "engine/operator/register.go: component admin",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/stepup.go: code STEP_UP_REQUIRED",
+      "finding": "engine/operator/stepup.go: code STEP_UP_REQUIRED",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
-      "finding": "internal/operator/stepup.go: noun form",
+      "finding": "engine/operator/stepup.go: noun form",
       "audit": "section 3: internal/operator, a client's bindings of routes and codes"
     },
     {
@@ -907,19 +903,19 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/protocol/probes.go: route /livez",
+      "finding": "engine/protocol/probes.go: route /livez",
       "audit": "finding 58"
     },
     {
-      "finding": "internal/protocol/probes.go: route /readyz",
+      "finding": "engine/protocol/probes.go: route /readyz",
       "audit": "finding 58"
     },
     {
-      "finding": "internal/protocol/verify.go: component agent",
+      "finding": "engine/protocol/verify.go: component agent",
       "audit": "finding 59"
     },
     {
-      "finding": "internal/protocol/verify.go: noun agent",
+      "finding": "engine/protocol/verify.go: noun agent",
       "audit": "finding 59"
     },
     {
@@ -927,7 +923,7 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/server/admin_standup.go: component orchestrator",
+      "finding": "engine/server/admin_standup.go: component orchestrator",
       "audit": "section 3: internal/server"
     },
     {
@@ -943,147 +939,147 @@
       "audit": "section 3: internal/server"
     },
     {
-      "finding": "internal/server/commands.go: component orchestrator",
+      "finding": "engine/server/commands.go: component orchestrator",
       "audit": "finding 31"
     },
     {
-      "finding": "internal/server/commands.go: language go",
+      "finding": "engine/server/commands.go: language go",
       "audit": "finding 31"
     },
     {
-      "finding": "internal/server/component.go: component admin",
+      "finding": "engine/server/component.go: component admin",
       "audit": "finding 72"
     },
     {
-      "finding": "internal/server/component.go: component content",
+      "finding": "engine/server/component.go: component content",
       "audit": "finding 72"
     },
     {
-      "finding": "internal/server/component.go: component orchestrator",
+      "finding": "engine/server/component.go: component orchestrator",
       "audit": "finding 72"
     },
     {
-      "finding": "internal/server/component.go: language go",
+      "finding": "engine/server/component.go: language go",
       "audit": "finding 72"
     },
     {
-      "finding": "internal/server/hubconfig.go: component agent",
+      "finding": "engine/server/hubconfig.go: component agent",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component content",
+      "finding": "engine/server/hubconfig.go: component content",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component domain",
+      "finding": "engine/server/hubconfig.go: component domain",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component execution",
+      "finding": "engine/server/hubconfig.go: component execution",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component fabric",
+      "finding": "engine/server/hubconfig.go: component fabric",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component gateway",
+      "finding": "engine/server/hubconfig.go: component gateway",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component notification",
+      "finding": "engine/server/hubconfig.go: component notification",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component orchestrator",
+      "finding": "engine/server/hubconfig.go: component orchestrator",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component programme-service",
+      "finding": "engine/server/hubconfig.go: component programme-service",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: component prompt-worker",
+      "finding": "engine/server/hubconfig.go: component prompt-worker",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: noun agent",
+      "finding": "engine/server/hubconfig.go: noun agent",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/hubconfig.go: noun domain",
+      "finding": "engine/server/hubconfig.go: noun domain",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/lifecycle.go: component orchestrator",
+      "finding": "engine/server/lifecycle.go: component orchestrator",
       "audit": "finding 31"
     },
     {
-      "finding": "internal/server/lifecycle.go: language cloudflare",
+      "finding": "engine/server/lifecycle.go: language cloudflare",
       "audit": "finding 31"
     },
     {
-      "finding": "internal/server/passphrase.go: component content",
+      "finding": "engine/server/passphrase.go: component content",
       "audit": "finding 30"
     },
     {
-      "finding": "internal/server/provision.go: component orchestrator",
+      "finding": "engine/server/provision.go: component orchestrator",
       "audit": "finding 55"
     },
     {
-      "finding": "internal/server/provision.go: language go",
+      "finding": "engine/server/provision.go: language go",
       "audit": "finding 55"
     },
     {
-      "finding": "internal/server/quiesce.go: component content",
+      "finding": "engine/server/quiesce.go: component content",
       "audit": "section 3: internal/server"
     },
     {
-      "finding": "internal/server/quiesce.go: component gateway",
+      "finding": "engine/server/quiesce.go: component gateway",
       "audit": "section 3: internal/server"
     },
     {
-      "finding": "internal/server/quiesce.go: component orchestrator",
+      "finding": "engine/server/quiesce.go: component orchestrator",
       "audit": "section 3: internal/server"
     },
     {
-      "finding": "internal/server/tenantstart.go: component agent",
+      "finding": "engine/server/tenantstart.go: component agent",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: component content",
+      "finding": "engine/server/tenantstart.go: component content",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: component domain",
+      "finding": "engine/server/tenantstart.go: component domain",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: component gateway",
+      "finding": "engine/server/tenantstart.go: component gateway",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: component orchestrator",
+      "finding": "engine/server/tenantstart.go: component orchestrator",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: noun agent",
+      "finding": "engine/server/tenantstart.go: noun agent",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/server/tenantstart.go: noun domain",
+      "finding": "engine/server/tenantstart.go: noun domain",
       "audit": "finding 28"
     },
     {
-      "finding": "internal/startenv/envdump/envdump.go: component testing",
+      "finding": "engine/startenv/envdump/envdump.go: component testing",
       "audit": "finding 56"
     },
     {
-      "finding": "internal/startenv/envdump/envdump.go: language go",
+      "finding": "engine/startenv/envdump/envdump.go: language go",
       "audit": "finding 56"
     },
     {
-      "finding": "internal/startenv/startenv.go: language go",
+      "finding": "engine/startenv/startenv.go: language go",
       "audit": "finding 56"
     },
     {
@@ -1095,31 +1091,31 @@
       "audit": "section 3: tenantcmd, changecmd"
     },
     {
-      "finding": "internal/test/test.go: component admin",
+      "finding": "engine/test/test.go: component admin",
       "audit": "finding 13"
     },
     {
-      "finding": "internal/test/test.go: route /v1/admin/operators/register",
+      "finding": "engine/test/test.go: route /v1/admin/operators/register",
       "audit": "finding 13"
     },
     {
-      "finding": "internal/test/test.go: route /v1/admin/overview",
+      "finding": "engine/test/test.go: route /v1/admin/overview",
       "audit": "finding 13"
     },
     {
-      "finding": "internal/test/test.go: route /v1/register",
+      "finding": "engine/test/test.go: route /v1/register",
       "audit": "finding 13"
     },
     {
-      "finding": "internal/test/test.go: route /v1/services",
+      "finding": "engine/test/test.go: route /v1/services",
       "audit": "finding 13"
     },
     {
-      "finding": "internal/testhome/testhome.go: component testing",
+      "finding": "engine/testhome/testhome.go: component testing",
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "internal/testhome/testhome.go: language go",
+      "finding": "engine/testhome/testhome.go: language go",
       "audit": "not itemised by the audit; found by this check"
     },
     {
@@ -1155,144 +1151,212 @@
       "audit": "not itemised by the audit; found by this check"
     },
     {
-      "finding": "pkg/tenant/preflight.go: language cloudflare",
+      "finding": "engine/tenant/preflight.go: language cloudflare",
       "audit": "finding 54"
     },
     {
-      "finding": "pkg/tenant/preflight.go: language go",
+      "finding": "engine/tenant/preflight.go: language go",
       "audit": "finding 54"
     },
     {
-      "finding": "pkg/tenant/preflight.go: language node",
+      "finding": "engine/tenant/preflight.go: language node",
       "audit": "finding 54"
     },
     {
-      "finding": "pkg/tenant/preflight.go: language rust",
+      "finding": "engine/tenant/preflight.go: language rust",
       "audit": "finding 54"
     },
     {
-      "finding": "pkg/tenant/rebuild/config.go: component content",
+      "finding": "engine/tenant/rebuild/config.go: component content",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/export.go: component content",
+      "finding": "engine/tenant/rebuild/export.go: component content",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/export.go: component generation",
+      "finding": "engine/tenant/rebuild/export.go: component generation",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/export.go: component orchestrator",
+      "finding": "engine/tenant/rebuild/export.go: component orchestrator",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/pins.go: component generation",
+      "finding": "engine/tenant/rebuild/pins.go: component generation",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/rebuild.go: language go",
+      "finding": "engine/tenant/rebuild/rebuild.go: language go",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/stores.go: noun programme",
+      "finding": "engine/tenant/rebuild/stores.go: noun programme",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/rebuild/stores.go: noun standard",
+      "finding": "engine/tenant/rebuild/stores.go: noun standard",
       "audit": "finding 57"
     },
     {
-      "finding": "pkg/tenant/restart.go: component orchestrator",
+      "finding": "engine/tenant/restart.go: component orchestrator",
       "audit": "section 3: pkg/tenant"
     },
     {
-      "finding": "pkg/tenant/route/content_log.go: route /v1/content/repositories",
+      "finding": "engine/tenant/route/content_log.go: route /v1/content/repositories",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /metrics",
+      "finding": "engine/tenant/route/route.go: route /metrics",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/agents",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/agents",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/approvals",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/approvals",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/audit",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/audit",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/audit/export",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/audit/export",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/complete",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/complete",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/credentials/challenge",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/credentials/challenge",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/credentials/token",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/credentials/token",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/model",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/model",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/model/providers",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/model/providers",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/operators",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/operators",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/operators/register",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/operators/register",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/operators/token",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/operators/token",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/overview",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/overview",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/resources",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/resources",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/workflows",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/workflows",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/admin/ws",
+      "finding": "engine/tenant/route/route.go: route /v1/admin/ws",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/route/route.go: route /v1/model/complete",
+      "finding": "engine/tenant/route/route.go: route /v1/model/complete",
       "audit": "finding 26"
     },
     {
-      "finding": "pkg/tenant/tenant.go: component generation",
+      "finding": "engine/tenant/tenant.go: component generation",
       "audit": "finding 52"
     },
     {
-      "finding": "pkg/tenant/tenant.go: component orchestrator",
+      "finding": "engine/tenant/tenant.go: component orchestrator",
       "audit": "finding 52"
     },
     {
-      "finding": "pkg/tenant/tenant.go: language go",
+      "finding": "engine/tenant/tenant.go: language go",
       "audit": "finding 52"
+    },
+    {
+      "finding": "commands.go: component agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: component domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "commands.go: noun policy",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/dispatch/instructions.go: noun platform",
+      "audit": "not itemised by the audit; the generate step's declared input platform (architecture/engine), the name the engine places the platform blueprint under, which equals the family noun"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: component agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: component domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: component gateway",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun agent",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun block",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun blueprint",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun domain",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun family",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun pattern",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun platform",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
+    },
+    {
+      "finding": "engine/ops/catalogue.go: noun position",
+      "audit": "not itemised by the audit; in the tools before this pin moved from CLI 4d54da8 (the root command table and the engine's operation catalogue), recorded when it moved"
     }
   ]
 }
