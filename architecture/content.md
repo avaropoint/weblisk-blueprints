@@ -6702,7 +6702,7 @@ verifies:
   assertion: 'A registration token whose cap names content:attest, content:request, content:comment, content:retain and content:hold, and a work pass carrying them, are each refused with 403 FORBIDDEN at every route that records something about an entry: those capabilities are person only and count on a pass alone.'
   applies_to: [content]
   exchange:
-    start: &id001 {orchestrator: mock, config: content-git}
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-overreach
       request:
@@ -6842,7 +6842,7 @@ verifies:
   assertion: On a repository configured opaque, whose ceiling is internal, a write declaring confidential is refused with 403 CONTENT_CUSTODY_CEILING_EXCEEDED naming both levels; nothing is appended to the log, and the path still holds nothing, so the same bytes are then written at internal with an if_match of the empty string.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - id: before
       as: test-content-client
@@ -6875,7 +6875,7 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: opaque-docs, path: ceiling.md, bytes: aGVsbG8K, if_match: '', scope: internal}
-      expect: &id002
+      expect:
         status: [200, 201]
 - id: proposal-above-ceiling-refused
   covers: [proposalrequest-scope-exceeds-repository-ceiling]
@@ -6883,7 +6883,7 @@ verifies:
   assertion: On a repository configured opaque, whose ceiling is internal, a proposal declaring confidential is refused with 403 CONTENT_CUSTODY_CEILING_EXCEEDED, and no proposal is recorded at the path.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-proposer
       request:
@@ -6915,7 +6915,7 @@ verifies:
   assertion: A pass whose cap names content:propose and not content:write is refused PUT /v1/content/entry with 403 FORBIDDEN, and nothing is appended to the log.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - id: before
       as: test-content-client
@@ -6948,7 +6948,7 @@ verifies:
   assertion: A pass whose cap names content:propose and not content:decide is refused POST /v1/content/proposals/{id}/decision with 403 FORBIDDEN, on a proposal it may read, and the proposal stays open.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-proposer
       request:
@@ -6987,7 +6987,7 @@ verifies:
   assertion: A pass whose cap names content:decide and not content:write applies another person's proposal, which is recorded applied and whose bytes are then the entry's; the same pass is refused PUT /v1/content/entry with 403 FORBIDDEN.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-proposer
       request:
@@ -7045,7 +7045,7 @@ verifies:
   assertion: PUT /v1/content/entry is refused with 403 FORBIDDEN on a registration token and on a channel token whatever their cap, with a statement in the body and without; with 401 PASS_REQUIRED on a person's operator token; and with 401 PASS_AUDIENCE_MISMATCH on a pass addressed to another component. Nothing is appended to the log.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - id: before
       as: test-content-client
@@ -7122,7 +7122,7 @@ verifies:
   assertion: PUT /v1/content/entry with if_match the empty string creates the entry at a path that holds none, and the same request again, now that the path holds one, is refused with 409 CONTENT_PRECONDITION_FAILED.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7130,7 +7130,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: once.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-writer
       request:
         method: PUT
@@ -7148,7 +7149,7 @@ verifies:
   assertion: DELETE /v1/content/entry with if_match the empty string, on an entry that exists, is refused with 400 CONTENT_PRECONDITION_NOT_APPLICABLE, and nothing is appended to the log.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7156,7 +7157,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: del.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - id: before
       as: test-content-client
       request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
@@ -7188,7 +7190,7 @@ verifies:
   assertion: A proposal with no if_match is refused with 400 CONTENT_IF_MATCH_REQUIRED, whether its action is create, modify or delete.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7196,7 +7198,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: nm.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7244,7 +7247,7 @@ verifies:
   assertion: A proposal to create with a digest as if_match, and a proposal to modify or delete with the empty string, are each refused with 400 CONTENT_PRECONDITION_NOT_APPLICABLE.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7252,7 +7255,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: na.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7303,7 +7307,7 @@ verifies:
   assertion: A proposal to create, with if_match the empty string, at a path that holds an entry is refused with 409 CONTENT_PRECONDITION_FAILED, and no proposal is recorded at the path.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7311,7 +7315,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: taken.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7342,7 +7347,7 @@ verifies:
   assertion: A proposal to modify whose if_match is not the entry's digest (the entry holds hello, the proposal names world's digest) is refused with 409 CONTENT_PRECONDITION_FAILED, and no proposal is recorded at the path.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7350,7 +7355,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: moved.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7381,7 +7387,7 @@ verifies:
   assertion: A proposal whose action is not create, modify or delete, whose bytes are missing on create or modify, whose bytes or scope are present on delete, or whose bytes are not valid base64, is refused with 400 INVALID_REQUEST, and no proposal is recorded at either path.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7389,7 +7395,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: shape.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7502,7 +7509,7 @@ verifies:
   assertion: 'POST /v1/content/proposals returns a ContentProposal in state open, and the entry it would change still holds the bytes it was made against: a second proposal against the same digest is accepted, which it could not be had the entry moved.'
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7510,7 +7517,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: open.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - as: test-proposer
       request:
         method: POST
@@ -7545,7 +7553,7 @@ verifies:
   assertion: A proposal listed in a ProposalPage carries no bytes, and the same proposal read by id carries them.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-proposer
       request:
@@ -7581,7 +7589,7 @@ verifies:
   assertion: GET /v1/content/repositories/{repository}/log/head is served to a caller holding content:describe and not content:read, and the head names no path.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - id: head
       as: test-content-client
@@ -7597,7 +7605,7 @@ verifies:
   assertion: After a write moves the tip, POST /v1/content/repositories/{repository}/log/checkpoint appends a checkpoint covering that tip and leaves nothing unsealed; asked again with the tip unmoved, it appends nothing.
   applies_to: [content]
   exchange:
-    start: *id001
+    start: {orchestrator: mock, config: content-git}
     steps:
     - as: test-writer
       request:
@@ -7605,7 +7613,8 @@ verifies:
         path: /v1/content/entry
         token: pass
         body: {repository: docs, path: seal.md, bytes: aGVsbG8K, if_match: ''}
-      expect: *id002
+      expect:
+        status: [200, 201]
     - id: tip
       as: test-content-client
       request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
