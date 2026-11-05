@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.4.0
+version: 1.5.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -283,7 +283,17 @@ toolchain:
   run: [<arg>, ...]               # one component; the starter appends its flags
   vet: [<arg>, ...]               # optional: a static check the build gate also runs
   env: {<name>: <value>}          # set for prepare, build and test only, never for a component
+  switching:                      # optional: the toolchain obtains the version the module declares itself
+    probe: [<arg>, ...]           # asks the host's policy, in the host's own environment
+    never: <regex>                # an answer matching it means the toolchain never switches
 ```
+
+`switching` is for a toolchain that, given a module declaring a newer
+version than the one installed, obtains and uses that version itself. Where
+it is declared and its probe's answer does not match `never`, a host whose
+installed toolchain is older than `version` is not refused for it: the
+toolchain that builds is not the one installed. Where it is absent, or the
+answer matches `never`, the installed version is the one that builds.
 
 #### The diagnostics block
 

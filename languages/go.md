@@ -488,7 +488,14 @@ toolchain:
   run: ["bin/{service}"]
   vet: [go, vet, ./...]
   env: {GOFLAGS: "-gcflags=all=-e"}
+  switching: {probe: [go, env, GOTOOLCHAIN], never: '^local$'}
 ```
+
+`switching` is Go's toolchain selection: since Go 1.21, `GOTOOLCHAIN=auto`
+(the default) makes `go` download and use the version `go.mod` declares when
+the installed one is older, so a host with an older `go` on `PATH` still
+builds the module. Only `GOTOOLCHAIN=local` makes the installed toolchain the
+one that builds.
 
 ```yaml
 diagnostics:
