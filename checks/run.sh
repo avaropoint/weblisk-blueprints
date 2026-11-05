@@ -117,6 +117,26 @@ grep -q "^directory-push-1: the signature does not verify over the statement reb
 expect 1 "fixed-form control: a push signed by another key fails" python3 checks/fixed-form.py --file "$tmp/key.json"
 grep -q "^directory-push-1: OpenSSL does not verify the signature" "$tmp/out" || { echo "FAIL fixed-form control: the wrong key was not what was reported"; fails=$((fails + 1)); }
 
+# Which key signs what agrees with the registry, and the structure check that
+# reads a component's source for an unregistered prefix is given exactly the
+# registry. Copies naming an invented registration prefix, dropping the
+# registration row, and giving the check one prefix too few must each fail.
+expect 0 "signing-keys: every key's rows name registered statements, and the prefix check is given the registry" python3 checks/signing-keys.py
+python3 - "$tmp" <<'PY'
+import re, sys
+t = open("protocol/identity.md", encoding="utf-8").read()
+row = re.search(r"^\| A registering component's key \|[^\n]*registration manifest[^\n]*\n", t, re.M).group(0)
+open(sys.argv[1] + "/sk-invented.md", "w", encoding="utf-8").write(t.replace(row, row.replace("[Sign JSON](#sign-json), over `canonicalize(manifest)` exactly as sent", "`weblisk/register/v1`"), 1))
+open(sys.argv[1] + "/sk-norow.md", "w", encoding="utf-8").write(t.replace(row, "", 1))
+open(sys.argv[1] + "/sk-args.md", "w", encoding="utf-8").write(t.replace("registered: [weblisk/auth/v1, ", "registered: [", 1))
+PY
+expect 1 "signing-keys control: a registration signed under an invented prefix fails" python3 checks/signing-keys.py --file "$tmp/sk-invented.md"
+grep -q "weblisk/register/v1, which the registry does not list" "$tmp/out" || { echo "FAIL signing-keys control: the invented prefix was not what was reported"; fails=$((fails + 1)); }
+expect 1 "signing-keys control: no row signing the registration fails" python3 checks/signing-keys.py --file "$tmp/sk-norow.md"
+grep -q "registration manifest under Sign JSON" "$tmp/out" || { echo "FAIL signing-keys control: the missing row was not what was reported"; fails=$((fails + 1)); }
+expect 1 "signing-keys control: a prefix check given one prefix too few fails" python3 checks/signing-keys.py --file "$tmp/sk-args.md"
+grep -q "lacks \['weblisk/auth/v1'\]" "$tmp/out" || { echo "FAIL signing-keys control: the missing prefix was not what was reported"; fails=$((fails + 1)); }
+
 # Requirement and check ids carried as comments: every id covered, and the
 # push's refusal of an unsigned body has its check. A copy with one check's
 # covers removed must fail, naming the id it left uncovered.

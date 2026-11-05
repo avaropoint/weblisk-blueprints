@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.3.0
+version: 3.4.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -618,9 +618,9 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/auth/v1` | An identity, proving that it holds its key to a service that is not a hub | [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) |
 | `weblisk/credential-auth/v1` | A credential, to obtain an operator token | [`architecture/admin`](../architecture/admin.md#minting-a-token-with-the-credential) |
 | `weblisk/step-up/v1` | An operator's identity, over a hub's `hub_id`, the nonce of the token request it rides on and the act that asked, re-confirming the person for a destructive act. A passkey's assertion is made over the same bytes as its WebAuthn challenge | [`architecture/admin`](../architecture/admin.md#re-confirming-for-a-destructive-act) |
-| `weblisk/log-key/v2` | A log owner's long-lived key, introducing the key that signs the log's checkpoints | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
+| `weblisk/log-key/v2` | A log owner's long-lived key, introducing the key that signs the log's checkpoints. Where the owner is a registering component, that key is its registered key, `<name>.key`, the one it registers with ([Which key signs what](#which-key-signs-what)) | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
 | `weblisk/log-checkpoint/v2` | A log key, over the log's tip | [`architecture/storage`](../architecture/storage.md#sealing-a-chained-log) |
-| `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
+| `weblisk/log-succession/v1` | A log owner's outgoing and incoming long-lived keys, each over the change from one to the other. Where the owner is a registering component, they are its registered key before and after a rotation ([Which key signs what](#which-key-signs-what)) | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
 | `weblisk/content-change/v2` | A person's sign-records credential, over a change to a content entry | [`architecture/content`](../architecture/content.md#the-change-statement) |
 | `weblisk/holder-probe/v1` | An identity held by a secret source, proving that the reference reaches it. Nothing accepts it as anything else | [`protocol/secret-source`](secret-source.md#an-identity-held-by-a-source) |
 | `weblisk/hub-proof/v1` | A hub, by the key its `hub_id` is the fingerprint of, over an address it is reached at and a client's challenge, proving that the hub at that address holds that key | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
@@ -666,6 +666,84 @@ The document that defines a prefix, the last column above, states what a
 conforming implementation does until that prefix has vectors, and never
 requires the signature before then. A rule there that needs one holds from
 the day they are published.
+
+### Which key signs what
+
+The registry above says what each kind of statement is. This table says, for
+each key a hub's components hold, everything that key signs, in which form and
+where it is defined. A row is the whole of what its key signs: nothing a key
+signs is missing from its rows, and a key signs nothing outside them. A person's
+keys (an identity, a credential, a sign-records credential, a namespace
+holder's) are named in the registry's *Signed by* column and are no component's,
+and a hub's federation key is the federation protocol's
+([Federation Key Rotation](#federation-key-rotation)).
+<!-- wl:id which-key-signs-what -->
+
+| Key | Kept as | Signs | Form | Defined in |
+|---|---|---|---|---|
+| A registering component's key | `<name>.key` ([Key Files](#key-files)); its fingerprint is the component's identity id | its registration manifest | [Sign JSON](#sign-json), over `canonicalize(manifest)` exactly as sent | [`protocol/spec`](spec.md#post-v1register), [Registration Signature Flow](#registration-signature-flow) |
+| A registering component's key | as above | its current manifest at a rotation, the outgoing key and the incoming key each | [Sign JSON](#sign-json) | [`protocol/spec`](spec.md#post-v1rotate-key) |
+| A registering component's key | as above | the task results it returns and the messages it sends, where it returns or sends any | [Sign JSON](#sign-json) | [`protocol/spec`](spec.md#post-v1execute), [Agent-to-Agent Message Signing](#agent-to-agent-message-signing) |
+| A registering component's key, where the component owns a sealed log | as above | the key entry that introduces each log key into each log | `weblisk/log-key/v2` | [`architecture/storage`](../architecture/storage.md#the-log-key) |
+| A registering component's key, where the component owns a sealed log | as above, before and after a rotation | the succession entry, the outgoing key and the incoming key each | `weblisk/log-succession/v1` | [`architecture/storage`](../architecture/storage.md#a-change-of-long-lived-key) |
+| A log key | memory only, never a file ([`architecture/storage`](../architecture/storage.md#the-log-key)) | the log's checkpoints | `weblisk/log-checkpoint/v2` | [`architecture/storage`](../architecture/storage.md#the-log-key) |
+| The orchestrator's signing key | `orchestrator.key` | every WLT it issues, the service directory it pushes and serves, the channel grants it issues, and, while it is still the key the hub was created with, the hub's proof below | [Token Format](#token-format); `weblisk/directory/v2`; [Sign JSON](#sign-json); `weblisk/hub-proof/v1` | [Token Creation](#token-creation), [`protocol/spec`](spec.md#post-v1services), [`protocol/spec`](spec.md#post-v1channel) |
+| The hub key, once the orchestrator's key has rotated away from it | `hub.key` | the proof that the hub at an address holds it, and nothing else ([Key Files](#key-files)) | `weblisk/hub-proof/v1` | [`architecture/admin`](../architecture/admin.md#proving-the-hub-at-an-address) |
+
+**A sealed log's long-lived key is the component's registered key.** Where a
+registering component owns a sealed log, as
+[`architecture/content`](../architecture/content.md#who-signs) does, the "log
+owner's long-lived key" of [`architecture/storage`](../architecture/storage.md#the-log-key)
+is not a second key. It is the one key the component registers with, whose
+public half the service directory lists, which is why a verifier takes the
+log's authority from the tenant. One key therefore signs the component's
+registration under Sign JSON and the log's key and succession entries as
+fixed-form statements. <!-- wl:id log-authority-is-registered-key -->
+
+**Domain separation is per statement; a restriction is per key.** The prefix
+keeps every kind of statement apart from every other, whichever key signs it,
+and needs no signer to refuse anything. A signer MAY also refuse what its key
+does not sign, and where code other than the code that built the bytes can
+reach it, it SHOULD. Where a signer refuses, it refuses by its key's rows in
+this table: it signs every statement those rows give, in the form they give,
+and refuses the rest. A list of prefixes belongs to one key and is never
+applied to another, and it is never drawn from one document's statements
+alone. A log key's signer may admit `weblisk/log-checkpoint/v2` and nothing
+else; a signer over a component's registered key that admits only the log
+statements refuses the component's own registration, and the component never
+joins a hub. <!-- wl:id restriction-is-per-key -->
+
+**A registration is never a fixed-form statement.** No prefix is registered
+for a registration, a rotation, a task result or a message, and none may be
+invented for one: each is Sign JSON over the value as sent, and the
+orchestrator verifies a registration over `canonicalize(manifest)` and nothing
+else, so a signature over any other bytes does not verify. A prefix this
+registry does not list is not a statement anyone signs. <!-- wl:id registration-is-sign-json -->
+
+**Generating a signer.** A generator reads a component's rows here, never the
+statements of the one document it is building from. A component that holds one
+key for several rows signs each row's form where that row's bytes are built:
+its registrar signs the canonical manifest it built itself, and its log signs
+the statements it built itself. Both hold the same key, and neither asks the
+other to sign.
+
+**Declared checks.** The structure check below reads a component's source
+for a statement prefix this registry does not list; its `registered` list is
+the registry's first column, and `checks/signing-keys.py` holds the two equal.
+
+```yaml
+verifies:
+- id: no-unregistered-statement-prefix
+  covers: [fixed-form-statement-implementation-signs-begins, registration-rotation-task-result-message-signed]
+  check: structure
+  assertion: No component's source holds a statement prefix the Fixed-Form Statements registry does not list. A prefix invented for a registration, such as weblisk/register/v1, is a statement nobody may sign; a registration is Sign JSON over the manifest as sent (Which key signs what).
+  structure:
+    query: unregistered-statement-prefix
+    args:
+      registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
+    scope: component
+    expect: none
+```
 
 ### Proving an identity to a service that is not a hub
 
@@ -1681,6 +1759,8 @@ Implementation MUST:
 - [ ] Every fixed-form statement an implementation signs begins with a prefix the [Fixed-Form Statements](#fixed-form-statements) registry lists, followed by one `0x00` byte, and a verifier refuses a prefix the registry does not list <!-- wl:check fixed-form-statement-implementation-signs-begins -->
 - [ ] An operator token minted on a credential's answer alone carries no `step_up_at`, and one minted on a request whose `weblisk/step-up/v1` re-confirmation verified carries its time of issue; a pass carries its person's token's `step_up_at` unchanged ([Payload (Claims)](#payload-claims)) <!-- wl:check step-up-at-set-once covers step-up-at-only-on-reconfirmation -->
 - [ ] A verb, route or function that signs for another program builds the bytes itself and never signs the caller's, and a secret source is asked to sign only bytes its caller built itself ([Fixed-Form Statements](#fixed-form-statements)) <!-- wl:check verb-route-function-signs-another-program -->
+- [ ] A registration, a rotation, a task result and a message are each signed under [Sign JSON](#sign-json), never as a fixed-form statement, and no implementation signs under a prefix the registry does not list ([Which key signs what](#which-key-signs-what)) <!-- wl:check registration-rotation-task-result-message-signed covers registration-is-sign-json -->
+- [ ] A signer that refuses what its key does not sign admits every statement [Which key signs what](#which-key-signs-what) gives that key, in the form its row gives: a component's registered key signs its registration manifest under Sign JSON as well as any `weblisk/log-key/v2` and `weblisk/log-succession/v1` statement, and only a log key's signer admits `weblisk/log-checkpoint/v2` alone ([Which key signs what](#which-key-signs-what)) <!-- wl:check signer-refuses-what-key-not-sign covers which-key-signs-what log-authority-is-registered-key restriction-is-per-key -->
 - [ ] A proof of an identity to a service that is not a hub is the `weblisk/auth/v1` signature [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) gives, over a nonce spent and expiring as that section says; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one <!-- wl:check proof-identity-service-not-hub-weblisk -->
 - [ ] Parse the weblisk-key-v1 format correctly, every field [Private Key Format](#private-key-format) gives <!-- wl:check parse-weblisk-key-v1-format-correctly -->
 - [ ] Never store passphrase on disk — only hold in memory during decrypt ([Key Categories](#key-categories), rule 4) <!-- wl:check never-store-passphrase-disk-hold-memory -->

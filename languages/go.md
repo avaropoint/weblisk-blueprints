@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.2.1
+version: 5.3.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -1071,6 +1071,21 @@ structure:
             (#eq? @_p "os") (#match? @_f "^(Getenv|LookupEnv)$"))
           arguments: (argument_list (interpreted_string_literal) @exclude))
       value: '^"(.*)"$'
+    unregistered-statement-prefix:
+      text: >-
+        A string literal shaped as a fixed-form statement prefix, "weblisk/",
+        a name, "/v" and a number, that is none of ${registered}, the
+        prefixes protocol/identity's Fixed-Form Statements registry lists. An
+        import path is excluded. Such a literal is a statement nobody may
+        sign, as an invented "weblisk/register/v1" was: a registration is
+        Sign JSON over the manifest as sent, never a fixed-form statement
+        (protocol/identity, Which key signs what).
+      query: |
+        ([(interpreted_string_literal) (raw_string_literal)] @value
+          (#match? @value "^[\"`]weblisk/[a-z0-9-]+/v[0-9]+[\"`]$")
+          (#not-match? @value "^[\"`](${registered})[\"`]$"))
+        (import_spec path: (interpreted_string_literal) @exclude)
+      value: '^["`](.*)["`]$'
     error-code-registered:
       text: >-
         A key of a map literal in the contract package: the central registry

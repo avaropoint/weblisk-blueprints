@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.4.1
+version: 5.5.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -1270,8 +1270,10 @@ in the registration response:
 
 ```
 1. Load configuration and open storage
-2. Load or generate the ML-DSA-65 key pair, and mint the log key it
-   introduces into each change log (architecture/storage, The log key)
+2. Load or generate the ML-DSA-65 key pair, the one key it registers with
+   in step 6 and introduces log keys with, and mint the log key it
+   introduces into each change log (architecture/storage, The log key;
+   protocol/identity, Which key signs what)
 3. Check every change log from its latest checkpoint (A log that does not
    verify), then settle every reserved change in each log that passed, then
    reconcile the configured repositories against the registry — establish the
@@ -3314,6 +3316,31 @@ lost has no succession entry.
 A verifier holding only the directory's key then reports every earlier
 authority `unvouched`, and the service's latest checkpoint still seals
 everything before it.
+
+**The registered key signs the registration too.** The key that introduces
+the log keys is the key the service registers with, so it signs two forms:
+the registration manifest under Sign JSON, over its canonical form as sent
+([`protocol/spec`](../protocol/spec.md#post-v1register)), and the key and
+succession entries as fixed-form statements. The rows it signs are
+[`protocol/identity`](../protocol/identity.md#which-key-signs-what)'s for a
+registering component's key. A signer over it that refuses what the key does
+not sign refuses by those rows, and never by the log's statements alone: one
+that admits only `weblisk/log-key/v2` and `weblisk/log-succession/v1` refuses
+the service's own registration, and the service exits at start and never
+joins its hub. No prefix is registered for a registration, and none is
+invented for one. <!-- wl:id registered-key-signs-registration -->
+
+```yaml
+verifies:
+- id: registers-with-log-authority-key
+  covers: [service-registers-key-introduces-log-keys]
+  check: join
+  assertion: Started beside a real orchestrator, the content service signs its registration with the key that introduces its log keys, under Sign JSON over the manifest as sent, and registers without exiting. Where it exits at start instead, the likely cause is a signer over that key that admits only the log statements, or a registration signed as an invented fixed-form statement (protocol/identity, Which key signs what); L4-01 sees the same exit and names no cause.
+  join:
+    start: {orchestrator: built}
+    observe: [listens, no-exit, registered, listed]
+    within: lease
+```
 
 ### The change statement
 
@@ -5617,6 +5644,7 @@ security:
 - [ ] A write, removal, proposal or decision on a token that carries no `identity_id` is refused with `CONTENT_IDENTITY_REQUIRED`, and nothing is recorded ([Who a change was for](#who-a-change-was-for)) <!-- wl:check write-removal-proposal-decision-token-carries -->
 - [ ] A token that is not a pass and whose `cap` holds `content:write`, a registered component's or a channel's, is refused `PUT /v1/content/entry` with `FORBIDDEN`, as though it did not hold it, whether or not the request carries a `statement`; a person's operator token is refused there with `PASS_REQUIRED` whatever its `cap`, and a pass addressed to another component with `PASS_AUDIENCE_MISMATCH` ([Who may move an entry](#who-may-move-an-entry), [The pass](../protocol/identity.md#the-pass)) <!-- wl:check token-not-pass-cap-holds-content -->
 - [ ] The service's own manifest declares none of `content:write`, `content:decide`, `content:replicate`, `content:connect` and `content:declassify`, and its registration succeeds ([Registration and Standalone Operation](#registration-and-standalone-operation)) <!-- wl:check services-own-manifest-declares-none-content -->
+- [ ] The service registers with the key that introduces its log keys, signing its manifest under Sign JSON over its canonical form as sent; no signer over that key refuses the registration, no registration is signed as a fixed-form statement, and started beside a real orchestrator the service registers and does not exit ([Who signs](#who-signs), [Startup Sequence](#startup-sequence), [`protocol/identity`](../protocol/identity.md#which-key-signs-what)) <!-- wl:check service-registers-key-introduces-log-keys covers registered-key-signs-registration -->
 - [ ] The manifest's `pass_routes` declare every route the guard table guards and `GET /v1/admin/records/content/snapshot` with `[admin:*]`, and no other, and its `capabilities` do not name `admin:*`, each with the capabilities its rows give it, `POST /v1/content/repositories/{repository}/remotes` with both `content:replicate` and `content:connect`, and `POST /v1/content/repositories` with `content:declare` and the three body requirements for `disposition: establish`, `scope_floor` and `self_decision_ceiling`, and `GET /v1/content/proposals` with the `inbox` that section shows; the directory entry the orchestrator publishes carries them unchanged ([Registration and Standalone Operation](#registration-and-standalone-operation), [`protocol/types`](../protocol/types.md#passroute)) <!-- wl:check manifests-pass-routes-declare-route-guard -->
 - [ ] A declaration carrying `self_decision_ceiling` from a caller holding `content:declare` and not `content:decide` is refused, and no repository is recorded ([Declaration Flow](#declaration-flow) step 4) <!-- wl:check declaration-carrying-self-decision-ceiling -->
 - [ ] A decider whose token's `cap` names `content:decide` and not `content:write` applies a proposal, and the write is recorded; the same token is refused with `FORBIDDEN` at `PUT /v1/content/entry` ([Decision Flow](#decision-flow) step 2) <!-- wl:check decider-tokens-cap-names-content-decide -->
