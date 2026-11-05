@@ -4,7 +4,7 @@
  "counts": {
   "S": 469,
   "J": 94,
-  "B": 2576,
+  "B": 2591,
   "E": 93,
   "F": 57
  },
@@ -4041,6 +4041,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:client-presents-attestations-standing-signed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:concurrent-reads-different-entries-answered-once": {
    "class": "E",
    "class_by": "rule 5: a record (audit entry)"
@@ -4318,6 +4322,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/content:no-request-lowers-paths-recorded-scope": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:no-route-withdraws-cancels-erases-attestation": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -12270,6 +12278,58 @@
    "class_by": "rule 6: nothing above matched"
   },
   "schemas/concepts:required-by-cited": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:agg-outside-sum-avg-min-max": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:bands-entry-naming-role-outside-closed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:column-type-absent-not-column-types": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:default-evaluated-new-record-cannot-resolved": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:error-anywhere-column-makes-columns-aggregate": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:fenced-block-info-string-wl-table": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:field-visible-cannot-read-names-column": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:formula-rollup-cell-written-out-formula": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:header-cells-bind-columns-position-table": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:opening-document-holding-data-table-saving": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:relation-cell-holds-target-rows-keys": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:row-first-cell-total-read-footer": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/data-table:signature-appended-never-edited-place-second": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

@@ -947,7 +947,9 @@
    "placing-releasing-legal-hold-require-step",
    "removing-entry-before-latest-disposal-date",
    "registers-retention-declared-adopted-programme",
-   "no-record-about-entry-removed-route"
+   "no-record-about-entry-removed-route",
+   "client-presents-attestations-standing-signed",
+   "no-route-withdraws-cancels-erases-attestation"
   ],
   "architecture/data-security.md": [
    "weblisk-directory-inaccessible-agents-web",
@@ -2873,6 +2875,21 @@
    "blueprint-implementable-document-alone-no-follow",
    "blueprint-content-hash-compliance-report-matches",
    "compliance-report-signed-trusted-validating"
+  ],
+  "schemas/data-table.md": [
+   "fenced-block-info-string-wl-table",
+   "opening-document-holding-data-table-saving",
+   "column-type-absent-not-column-types",
+   "header-cells-bind-columns-position-table",
+   "formula-rollup-cell-written-out-formula",
+   "error-anywhere-column-makes-columns-aggregate",
+   "relation-cell-holds-target-rows-keys",
+   "agg-outside-sum-avg-min-max",
+   "field-visible-cannot-read-names-column",
+   "bands-entry-naming-role-outside-closed",
+   "default-evaluated-new-record-cannot-resolved",
+   "signature-appended-never-edited-place-second",
+   "row-first-cell-total-read-footer"
   ],
   "schemas/kinds.md": [
    "declared-kinds-specializes-names-declared-kind",
