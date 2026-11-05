@@ -754,6 +754,38 @@ else
 	fails=$((fails + 1))
 fi
 
+# requires is acyclic beyond the known list, which can only shrink; a fixture
+# of two blueprints requiring each other must report exactly its two edges,
+# and a list still naming an edge this corpus no longer has on a cycle
+# exactly that.
+expect 0 "acyclic: every requires on a cycle is known, none new" python3 checks/acyclic.py
+mkdir -p "$tmp/acy/x"
+printf '<!-- blueprint\ntype: pattern\nname: a\nrequires: [x/b]\n-->\n' >"$tmp/acy/x/a.md"
+printf '<!-- blueprint\ntype: pattern\nname: b\nrequires: [x/a]\n-->\n' >"$tmp/acy/x/b.md"
+python3 - "$tmp" <<'PY'
+import json, sys
+json.dump({"known": []}, open(sys.argv[1] + "/acy-none.json", "w"))
+k = json.load(open("checks/acyclic.json", encoding="utf-8"))
+k["known"].append(["architecture/observability", "architecture/agent"])
+json.dump(k, open(sys.argv[1] + "/acy-gone.json", "w"))
+PY
+expect 1 "acyclic control: a cycle not in the list fails" python3 checks/acyclic.py --root "$tmp/acy" --known "$tmp/acy-none.json"
+if [ "$(wc -l <"$tmp/out")" -eq 2 ] && grep -q "^x/a requires x/b" "$tmp/out" && grep -q "^x/b requires x/a" "$tmp/out"; then
+	echo "ok   acyclic control: exactly the fixture's two edges"
+else
+	echo "FAIL acyclic control: want exactly the fixture's two edges"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "acyclic control: an edge no longer on a cycle still listed fails" python3 checks/acyclic.py --known "$tmp/acy-gone.json"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "^architecture/observability -> architecture/agent no longer lies on a cycle" "$tmp/out"; then
+	echo "ok   acyclic control: exactly one finding, architecture/observability"
+else
+	echo "FAIL acyclic control: want exactly one finding, architecture/observability"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+
 # Every standard's applies_in names a code of the shipped ISO 3166 list; a
 # copy of the standards where one names ZZ must be reported with exactly it.
 expect 0 "places: every applies_in names an ISO 3166 code of the shipped list" python3 checks/places.py

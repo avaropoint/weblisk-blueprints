@@ -1,8 +1,8 @@
 <!-- blueprint
 type: protocol
 name: federation
-version: 2.0.3
-requires: [protocol/spec, protocol/identity, protocol/types, architecture/hub]
+version: 2.0.4
+requires: [protocol/spec, protocol/identity, protocol/types]
 platform: any
 tier: free
 adoption: opt-in
@@ -79,16 +79,6 @@ requires:
           fields_used: [name, type, version, public_key, capabilities]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/hub
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: HubManifest
-          fields_used: [name, public_key, federation_url]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

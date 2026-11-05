@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 3.0.4
-requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
+version: 3.0.5
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
 -->
@@ -77,16 +77,6 @@ requires:
       types:
         - name: AgentEndpoints
           fields_used: [execute, message, livez, readyz, describe]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/admin
-    version: ">=2.0.0 <6.0.0"
-    bindings:
-      patterns:
-        - behavior: admin-separation
-          parameters: [separation_model, operator_auth]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
