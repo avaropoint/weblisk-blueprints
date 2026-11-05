@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.12.0
+version: 4.12.1
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -3496,6 +3496,23 @@ types:
         type: LeaseRenewal
         required: false
         description: "The last renewal received (protocol/types, LeaseRenewal). Absent until the first renewal, when the entry reads `not_ready`"
+```
+
+### AgentFilter
+
+How [ListAgents](#store-agent-registry) is asked for entries. It filters by
+what the registry stores, and so never by a lease's state, which is derived
+when an entry is read ([Data Structures](#data-structures)).
+
+```yaml
+types:
+  AgentFilter:
+    fields:
+      type:
+        name: Type
+        type: string
+        required: false
+        description: "Only entries whose `manifest.type` is this, as the manifest wrote it (empty = all)"
 ```
 
 ### AuditFilter
