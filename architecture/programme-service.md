@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: programme-service
-version: 2.5.0
-requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage]
+version: 2.6.0
+requires: [protocol/types, protocol/identity, patterns/workflow, patterns/messaging, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, architecture/execution, architecture/notification, architecture/storage, patterns/repository]
 platform: any
 tier: free
 adoption: opt-in
@@ -167,13 +167,24 @@ requires:
         # obligation and every register are read from content, never copied
         - name: ContentEntry
           fields_used: [path, identity, scope]
+        # Who wrote a register row, and on which run (Hearing a row): the
+        # proposal it applied
+        - name: ContentProposal
+          fields_used: [id, actor, agent, run]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
         - name: ContentRepository
           fields_used: [id, scope_path, records]
         # Who wrote a register row, and on which run (Hearing a row)
         - name: ContentChange
           fields_used: [path, actor, proposal, statement]
-        - name: ContentProposal
-          fields_used: [id, actor, agent, run]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

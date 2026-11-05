@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.4.0
-requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage]
+version: 1.5.0
+requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage, patterns/repository]
 platform: any
 tier: free
 adoption: opt-in
@@ -166,12 +166,21 @@ requires:
     version: ">=4.0.0 <6.0.0"
     bindings:
       types:
-        # The organisation's records repository, found by records and scope_path
-        - name: ContentRepository
-          fields_used: [id, scope_path, records]
         # The register is read as an entry, never copied
         - name: ContentEntry
           fields_used: [path, identity, scope]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # The organisation's records repository, found by records and scope_path
+        - name: ContentRepository
+          fields_used: [id, scope_path, records]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -2322,6 +2322,13 @@
    "messages-persisted-up-history-limit",
    "invalid-frames-return-error-frames"
   ],
+  "patterns/repository.md": [
+   "architecture-content-backend-fills-records-bind",
+   "backend-blueprint-declares-report-carries",
+   "backend-blueprint-declares-no-report-leaves",
+   "placement-holds-backends-name-locator-under",
+   "custodyattestations-repository-remote"
+  ],
   "patterns/retry.md": [
    "transient-errors-trigger-retry-exponential",
    "permanent-errors-fail-immediately-without-retry",

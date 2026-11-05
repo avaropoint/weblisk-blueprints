@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.4.0
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/admin]
+version: 3.5.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/admin, patterns/repository]
 platform: any
 tier: free
 adoption: opt-in
@@ -137,14 +137,23 @@ requires:
       types:
         - name: ContentEntry
           fields_used: [path, identity, scope, modified_at, provenance]
+        - name: AccessStatement
+          fields_used: [repository, access_complete]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
         - name: ContentRepository
           fields_used: [id, scope_path, custody, effective_custody, attestations, ceiling]
         - name: CustodyAttestations
           fields_used: [enumerable_principals, attributable_writes, tamper_evident]
         - name: ContentObservation
           fields_used: [repository, path, recorded_digest, current_digest, state, observed_at]
-        - name: AccessStatement
-          fields_used: [repository, access_complete]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: data-security
-version: 1.3.3
-requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/content, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract]
+version: 1.4.0
+requires: [protocol/types, protocol/spec, protocol/identity, protocol/federation, architecture/gateway, architecture/observability, architecture/enforcement, patterns/scope, patterns/policy, patterns/privacy, patterns/contract, patterns/repository]
 platform: any
 tier: free
 -->
@@ -121,8 +121,8 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/content
-    version: ">=2.0.0 <6.0.0"
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ContentRepository

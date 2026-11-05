@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: content-git
-version: 2.2.1
-requires: [architecture/content, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
+version: 2.3.0
+requires: [patterns/repository, patterns/content-identity, protocol/identity, patterns/secrets, patterns/principal-identity]
 platform: any
 tier: free
 adoption: opt-in
@@ -66,8 +66,8 @@ all of what this blueprint says about it.
 
 ```yaml
 requires:
-  - blueprint: architecture/content
-    version: ">=3.0.0 <6.0.0"
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
     bindings:
       types:
         - name: ContentChange
