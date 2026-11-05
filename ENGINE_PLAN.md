@@ -161,7 +161,12 @@ repair prompts are composed from these and the steps' declared inputs alone
 `tenant-state`, `plan-shape`, `plan-entry`, `declarations`, `repair-set`,
 `failure`, `edit-form`, `rejection`) were written from the literals they
 replace. The accept step's reading and conflict question wait on E3, which
-decides their shape as advice; Studio's 16 prompts are S1's.
+decides their shape as advice. Studio's prompts, counted again at S1
+(2026-11-05), are 24 literals, the audit's 16 less one retired with its route
+plus 9 it missed, and none belongs to a build step: each is assistant,
+authoring, drafting, review or scheduling work, which is a programme's
+`skills:` run by the tenant's prompt worker and never an instruction. So none
+moved to `instructions/`; they leave Studio with the prompt worker (S2).
 
 ---
 
@@ -220,8 +225,17 @@ held at the commit `checks/engine-neutrality.json` pins, and
 [`checks/front-end-parity.py`](checks/front-end-parity.py), which replaces
 `command-surface.py`. Not yet built: the fake corpus in `vectors/engine/`, the
 renamed-corpus run, the stream parity test, and neutrality over Studio's
-source; parity between manifests says NOT RUN until both front ends publish
-one.
+source. Both front ends publish a manifest (S1): the CLI's `weblisk commands
+--json` and Studio's `GET /api/operations`, each pinned in
+[`checks/front-ends.json`](checks/front-ends.json). They are the engine's
+one manifest and agree with each other. Held to the `local` and `tenant-api`
+operations, as S1 is, each differs from the catalogue by the same 66 measured
+gaps, the file's `expected_gaps`: the engine still publishes today's spellings
+(`providers`, `walk`, `validate`, `status`, `doctor`, `operator *`, `agents *`)
+and names its builds and changes `cli-in-tenant`, where the catalogue has
+`provider list`, `identity *`, `<family> walk`, `tenant status` and those
+operations as `tenant-api`. Each gap closes in the engine (E2 to E4, T1), not
+in a front end, and leaves the list when it does.
 
 This replaces MISSION.md's line that what Studio does about standards, adoption
 and evidence "needs no command-line equivalent". Under decision 3, everything

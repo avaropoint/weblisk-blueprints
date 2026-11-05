@@ -18,8 +18,20 @@ Parity). Replaces command-surface.py, whose check is its second leg.
    leg NOT RUN (exit 3), never ok. --manifests A B compares two manifest files
    instead, which is how the control runs it.
 
+   A manifest is read in either shape: entries carrying `operation`, as
+   architecture/engine.md's manifest block writes it, or `noun` and `verb`, as
+   the engine publishes it today; and either whole (Studio's operations route)
+   or as the `operations` of `weblisk commands --json`, which carries its
+   front-end-only commands beside them. --executors E,F (or the pins'
+   `executors`) holds the leg to the operations of those executors, in the
+   catalogue and in each manifest: a phase is done for the executors it
+   covers (ENGINE_PLAN S1: local and tenant-api). With pinned manifests, what
+   the leg finds is held to the pins' `expected_gaps`, exactly, as
+   cli-verbs.json holds the CLI's drift: an entry leaves the list when its gap
+   closes, and a new gap fails.
+
   front-end-parity.py [--root DIR]
-  front-end-parity.py --parity [--manifests A.json B.json] [--root DIR]
+  front-end-parity.py --parity [--manifests A.json B.json] [--executors E,F] [--root DIR]
 """
 import json, os, re, sys
 import yaml
@@ -109,25 +121,46 @@ def matches(op, template):
     return len(a) == len(b) and all(t.startswith("<") and t.endswith(">") or t == w for w, t in zip(a, b))
 
 
+def op_name(o):
+    if o.get("operation"):
+        return o["operation"]
+    return f"{o['noun']} {o['verb']}".strip() if o.get("verb") else o["noun"]
+
+
+def row_executors(row):
+    ex = row.get("executor")
+    return set(ex if isinstance(ex, list) else [ex])
+
+
 def check_parity(ops):
+    pins, expected = None, None
     if "--manifests" in argv:
         i = argv.index("--manifests")
         manifests = {os.path.basename(p): json.load(open(p, encoding="utf-8")) for p in argv[i + 1 : i + 3]}
     else:
-        pins = json.load(open(os.path.join(HERE, "front-ends.json"), encoding="utf-8"))["front_ends"]
-        missing = [f for f, pin in pins.items() if not pin.get("manifest")]
+        pins = json.load(open(os.path.join(HERE, "front-ends.json"), encoding="utf-8"))
+        missing = [f for f, pin in pins["front_ends"].items() if not pin.get("manifest")]
         if missing:
             print(f"front-end-parity: NOT RUN: no manifest pinned for {', '.join(missing)} "
                   f"(checks/front-ends.json); parity cannot be said until each front end publishes one")
             sys.exit(3)
-        manifests = {f: json.load(open(os.path.join(HERE, pin["manifest"]), encoding="utf-8")) for f, pin in pins.items()}
+        manifests = {f: json.load(open(os.path.join(HERE, pin["manifest"]), encoding="utf-8"))
+                     for f, pin in pins["front_ends"].items()}
+        expected = pins.get("expected_gaps")
+    scope = None
+    if "--executors" in argv:
+        scope = set(argv[argv.index("--executors") + 1].split(","))
+    elif pins and pins.get("executors"):
+        scope = set(pins["executors"])
+    in_scope = {t: r for t, r in ops.items() if scope is None or row_executors(r) & scope}
     faults, sets = [], {}
     for name, m in manifests.items():
-        sets[name] = {o["operation"] for o in m["operations"]}
+        entries = m["operations"] if "operations" in m else m["manifest"]["operations"]
+        sets[name] = {op_name(o) for o in entries if scope is None or "executor" not in o or o["executor"] in scope}
         for o in sorted(sets[name]):
             if not any(matches(o, t) for t in ops):
                 faults.append(f"{name}: {o} is not an operation of the catalogue")
-        for t in sorted(ops):
+        for t in sorted(in_scope):
             if "<" not in t and t not in sets[name]:
                 faults.append(f"{name}: the catalogue's {t} is missing")
     names = sorted(sets)
@@ -138,13 +171,22 @@ def check_parity(ops):
                     faults.append(f"{a} has {o}, which {b} lacks")
                 for o in sorted(sets[b] - sets[a]):
                     faults.append(f"{b} has {o}, which {a} lacks")
-    return faults
+    if expected is None:
+        return faults, ""
+    print("\n".join(faults))
+    held = []
+    for line in sorted(set(faults) - set(expected)):
+        held.append(f"unexpected gap: {line}")
+    for line in sorted(set(expected) - set(faults)):
+        held.append(f"expected gap gone: {line}")
+    return held, f"the manifests agree with each other; their gaps from the catalogue{' for ' + ', '.join(sorted(scope)) if scope else ''} are the {len(expected)} expected (checks/front-ends.json)"
 
 
 ops, faults = check_catalogue()
 if "--parity" in argv:
-    faults += check_parity(ops)
-    print("\n".join(faults) or f"front-end-parity: {len(ops)} catalogue operations; the manifests agree")
+    held, said = check_parity(ops)
+    faults += held
+    print("\n".join(faults) or f"front-end-parity: {len(ops)} catalogue operations; " + (said or "the manifests agree"))
     sys.exit(1 if faults else 0)
 surface, said = check_surface()
 faults += surface

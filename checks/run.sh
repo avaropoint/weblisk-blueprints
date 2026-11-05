@@ -1234,10 +1234,13 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
-# Parity between the front ends' manifests. No front end publishes one yet,
-# so the leg says NOT RUN, never ok, and REQUIRE_ALL_VERIFIERS=1 makes that a
-# failure. Its control: two manifests of the catalogue agree, and one missing
-# an operation and holding one of its own is reported, both ways.
+# Parity between the front ends' manifests, as checks/front-ends.json pins
+# them: each other's equal, and their gaps from the catalogue, for the
+# executors the pins name, exactly the pins' expected_gaps. With no manifest
+# pinned the leg says NOT RUN, never ok, and REQUIRE_ALL_VERIFIERS=1 makes
+# that a failure. Its controls: two manifests of the catalogue agree, in
+# either entry shape; and one missing an operation and holding one of its
+# own is reported, both ways.
 python3 checks/front-end-parity.py --parity >"$tmp/out" 2>&1
 got=$?
 if [ "$got" -eq 3 ]; then
@@ -1245,7 +1248,7 @@ if [ "$got" -eq 3 ]; then
 	notrun=$((notrun + 1))
 	[ "${REQUIRE_ALL_VERIFIERS:-0}" = 1 ] && fails=$((fails + 1))
 elif [ "$got" -eq 0 ]; then
-	echo "ok   front-end-parity: the front ends' manifests agree"
+	echo "ok   $(tail -1 "$tmp/out")"
 else
 	echo "FAIL front-end-parity --parity (exit $got, want 0)"
 	sed 's/^/     /' "$tmp/out"
@@ -1260,8 +1263,29 @@ json.dump({"operations": [{"operation": o} for o in ops]}, open(sys.argv[1], "w"
 ops = [o for o in ops if o != "audit"] + ["posture threshold set"]
 json.dump({"operations": [{"operation": o} for o in ops]}, open(sys.argv[2], "w"))
 MANIFESTS
-cp "$tmp/cli.json" "$tmp/cli2.json"
-expect 0 "front-end-parity control: two manifests of the catalogue agree" python3 checks/front-end-parity.py --parity --manifests "$tmp/cli.json" "$tmp/cli2.json"
+# The pinned gaps are held exactly: a copy of the pins missing one gap
+# reports it as unexpected, and fails.
+mkdir -p "$tmp/fe/checks"
+cp -R checks/front-end-parity.py checks/front-ends checks/cli-verbs.json "$tmp/fe/checks/"
+python3 - "$tmp/fe/checks/front-ends.json" <<'DROPGAP'
+import json, sys
+p = json.load(open("checks/front-ends.json"))
+p["expected_gaps"] = p["expected_gaps"][1:]
+json.dump(p, open(sys.argv[1], "w"))
+DROPGAP
+expect 1 "front-end-parity control: a gap missing from the pins fails" python3 "$tmp/fe/checks/front-end-parity.py" --parity --root .
+grep -q "^unexpected gap: " "$tmp/out" || { echo "FAIL front-end-parity control: the missing gap was not reported as unexpected"; fails=$((fails + 1)); }
+# The same operations written as the engine publishes them, noun and verb.
+python3 - "$tmp/cli.json" "$tmp/cli2.json" <<'NOUNVERB'
+import json, sys
+ops = json.load(open(sys.argv[1]))["operations"]
+out = []
+for o in ops:
+    w = o["operation"].split(" ", 1)
+    out.append({"noun": w[0], "verb": w[1]} if len(w) == 2 else {"noun": w[0]})
+json.dump({"operations": out}, open(sys.argv[2], "w"))
+NOUNVERB
+expect 0 "front-end-parity control: two manifests of the catalogue agree, one written as noun and verb" python3 checks/front-end-parity.py --parity --manifests "$tmp/cli.json" "$tmp/cli2.json"
 expect 1 "front-end-parity control: a front end missing one operation and holding its own fails" python3 checks/front-end-parity.py --parity --manifests "$tmp/cli.json" "$tmp/studio.json"
 if [ "$(wc -l <"$tmp/out")" -eq 4 ] && grep -q '^studio.json: posture threshold set is not an operation of the catalogue$' "$tmp/out" && grep -q "^studio.json: the catalogue's audit is missing$" "$tmp/out" \
 	&& grep -q '^cli.json has audit, which studio.json lacks$' "$tmp/out" && grep -q '^studio.json has posture threshold set, which cli.json lacks$' "$tmp/out"; then
