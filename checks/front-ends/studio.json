@@ -1,0 +1,3468 @@
+{
+  "manifest_version": 2,
+  "envelope": [
+    "operation",
+    "invocation",
+    "seq",
+    "at",
+    "type",
+    "body"
+  ],
+  "common_events": [
+    "started",
+    "step",
+    "progress",
+    "question",
+    "warning",
+    "finished"
+  ],
+  "operations": [
+    {
+      "noun": "tenant",
+      "verb": "create",
+      "executor": "cli-in-tenant",
+      "summary": "Turn a name into a running tenant, with a first operator credential",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--provider",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--model",
+          "kind": "flag",
+          "value": "m"
+        },
+        {
+          "name": "--operator",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--resume",
+          "kind": "flag"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "tenant",
+      "verb": "accept",
+      "executor": "cli-in-tenant",
+      "summary": "Ask a running tenant whether it works, and report every answer",
+      "inputs": [
+        {
+          "name": "--url",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "tenant",
+      "verb": "export",
+      "executor": "cli-in-tenant",
+      "summary": "Write what this tenant is rebuilt from into a bundle",
+      "inputs": [
+        {
+          "name": "--out",
+          "kind": "flag",
+          "value": "path",
+          "required": true
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--stopped",
+          "kind": "flag"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "artifact",
+        "check"
+      ]
+    },
+    {
+      "noun": "tenant",
+      "verb": "rebuild",
+      "executor": "cli-in-tenant",
+      "summary": "Stand the same tenant up again from a bundle",
+      "inputs": [
+        {
+          "name": "<bundle>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path",
+          "required": true
+        },
+        {
+          "name": "--root",
+          "kind": "flag",
+          "value": "backend=path",
+          "repeatable": true
+        },
+        {
+          "name": "--keys",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "artifact",
+        "check"
+      ]
+    },
+    {
+      "noun": "change",
+      "verb": "plan",
+      "executor": "cli-in-tenant",
+      "summary": "Plan an upgrade or an adoption, written to .weblisk/changes/<id>.json",
+      "inputs": [
+        {
+          "name": "<ref>",
+          "kind": "positional",
+          "repeatable": true
+        },
+        {
+          "name": "--upgrade",
+          "kind": "flag"
+        },
+        {
+          "name": "--adopt",
+          "kind": "flag"
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--no-refresh",
+          "kind": "flag"
+        },
+        {
+          "name": "--driver",
+          "kind": "flag",
+          "value": "kind.backend=driver",
+          "repeatable": true
+        },
+        {
+          "name": "--replace-edited",
+          "kind": "flag",
+          "value": "path=why",
+          "repeatable": true
+        },
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--url",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--strict",
+          "kind": "flag"
+        },
+        {
+          "name": "--resolve-only",
+          "kind": "flag"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "gap"
+      ]
+    },
+    {
+      "noun": "change",
+      "verb": "apply",
+      "executor": "cli-in-tenant",
+      "summary": "Regenerate what a planned change names, at the corpus it read",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--without-approval",
+          "kind": "flag"
+        },
+        {
+          "name": "--shadow-suite",
+          "kind": "flag"
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "change",
+      "verb": "show",
+      "executor": "cli-in-tenant",
+      "summary": "One change",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "change",
+      "verb": "list",
+      "executor": "cli-in-tenant",
+      "summary": "The changes this tenant holds",
+      "inputs": [
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "build",
+      "verb": "status",
+      "executor": "cli-in-tenant",
+      "summary": "What a generation in this directory did, and whether its inputs moved upstream",
+      "inputs": [
+        {
+          "name": "<root>",
+          "kind": "positional"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        },
+        {
+          "name": "--upstream",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "build",
+      "verb": "verify",
+      "executor": "cli-in-tenant",
+      "summary": "Establish a component's recorded build against its checks",
+      "inputs": [
+        {
+          "name": "<component>",
+          "kind": "positional"
+        },
+        {
+          "name": "--dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "cache",
+      "verb": "status",
+      "executor": "cli-in-tenant",
+      "summary": "What this tenant has banked, and what resuming here would reuse",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "cache",
+      "verb": "prune",
+      "executor": "cli-in-tenant",
+      "summary": "Remove generation-cache entries not written within a duration",
+      "inputs": [
+        {
+          "name": "--older-than",
+          "kind": "flag",
+          "value": "duration"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "providers",
+      "verb": "",
+      "executor": "local",
+      "summary": "What this machine can generate with, and which a build would take",
+      "inputs": [
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "component",
+      "verb": "init",
+      "executor": "cli-in-tenant",
+      "summary": "Generate a component into this tenant",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<instance>",
+          "kind": "positional"
+        },
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "component",
+      "verb": "start",
+      "executor": "cli-in-tenant",
+      "summary": "Build and run a component",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<instance>",
+          "kind": "positional"
+        },
+        {
+          "name": "--detach",
+          "kind": "flag"
+        },
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "component",
+      "verb": "stop",
+      "executor": "cli-in-tenant",
+      "summary": "Stop a detached component",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<instance>",
+          "kind": "positional"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "component",
+      "verb": "status",
+      "executor": "cli-in-tenant",
+      "summary": "Whether a component is running, where, and since when",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<instance>",
+          "kind": "positional"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "component",
+      "verb": "logs",
+      "executor": "cli-in-tenant",
+      "summary": "Stream a detached component's log",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<instance>",
+          "kind": "positional"
+        },
+        {
+          "name": "--tail",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--follow",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "init",
+      "executor": "cli-in-tenant",
+      "summary": "Generate the orchestrator",
+      "inputs": [
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--provider",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--model",
+          "kind": "flag",
+          "value": "m"
+        },
+        {
+          "name": "--resume",
+          "kind": "flag"
+        },
+        {
+          "name": "--verify-signatures",
+          "kind": "flag"
+        },
+        {
+          "name": "--allowed-signers",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--encrypt-keys",
+          "kind": "flag"
+        },
+        {
+          "name": "--verify-only",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "start",
+      "executor": "cli-in-tenant",
+      "summary": "Build and run the orchestrator",
+      "inputs": [
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--detach",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "stop",
+      "executor": "cli-in-tenant",
+      "summary": "Ask a detached orchestrator to shut down",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "logs",
+      "executor": "cli-in-tenant",
+      "summary": "Stream a detached orchestrator's log",
+      "inputs": [
+        {
+          "name": "--tail",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--follow",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "status",
+      "executor": "cli-in-tenant",
+      "summary": "Whether this tenant's orchestrator is running, where, and since when",
+      "inputs": [
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "verify",
+      "executor": "cli-in-tenant",
+      "summary": "Test a running orchestrator against the protocol specification",
+      "inputs": [
+        {
+          "name": "--url",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "server",
+      "verb": "provision",
+      "executor": "cli-in-tenant",
+      "summary": "Register the first operator at this tenant's orchestrator",
+      "inputs": [
+        {
+          "name": "--operator",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "agent",
+      "verb": "create",
+      "executor": "cli-in-tenant",
+      "summary": "Generate a work agent",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "agent",
+      "verb": "start",
+      "executor": "cli-in-tenant",
+      "summary": "Build and run a generated agent",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "agent",
+      "verb": "verify",
+      "executor": "cli-in-tenant",
+      "summary": "Test a running agent against the protocol specification",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--url",
+          "kind": "flag",
+          "value": "url"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "agent",
+      "verb": "list",
+      "executor": "cli-in-tenant",
+      "summary": "Generated agents and available domain blueprints",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "domain",
+      "verb": "create",
+      "executor": "cli-in-tenant",
+      "summary": "Generate a domain controller",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        },
+        {
+          "name": "--from",
+          "kind": "flag",
+          "value": "source"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "domain",
+      "verb": "start",
+      "executor": "cli-in-tenant",
+      "summary": "Build and run a domain controller",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "gateway",
+      "verb": "create",
+      "executor": "cli-in-tenant",
+      "summary": "Generate the application gateway",
+      "inputs": [
+        {
+          "name": "--platform",
+          "kind": "flag",
+          "value": "p"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "gateway",
+      "verb": "start",
+      "executor": "cli-in-tenant",
+      "summary": "Build and run the application gateway",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "pattern",
+      "verb": "apply",
+      "executor": "cli-in-tenant",
+      "summary": "Apply a cross-cutting pattern",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--resource",
+          "kind": "flag",
+          "value": "target"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "model",
+        "artifact",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "blueprint",
+      "verb": "sources",
+      "executor": "local",
+      "summary": "Which blueprints a build here reads, and how current",
+      "inputs": [
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "blueprint",
+      "verb": "update",
+      "executor": "local",
+      "summary": "Re-fetch every blueprint clone now",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "validate",
+      "verb": "",
+      "executor": "local",
+      "summary": "Validate blueprint compliance, or report what one repository holds",
+      "inputs": [
+        {
+          "name": "<dir>",
+          "kind": "positional"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        },
+        {
+          "name": "--deps",
+          "kind": "flag"
+        },
+        {
+          "name": "--security-overrides",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "walk",
+      "verb": "",
+      "executor": "local",
+      "summary": "Every part of a file, by its family, and the findings",
+      "inputs": [
+        {
+          "name": "<file>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        },
+        {
+          "name": "--family",
+          "kind": "flag",
+          "value": "ref@n"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "check"
+      ]
+    },
+    {
+      "noun": "schema",
+      "verb": "export",
+      "executor": "local",
+      "summary": "A family's header schema, or a block type's, as JSON Schema",
+      "inputs": [
+        {
+          "name": "<family>",
+          "kind": "positional"
+        },
+        {
+          "name": "--block",
+          "kind": "flag",
+          "value": "type"
+        },
+        {
+          "name": "--corpus",
+          "kind": "flag",
+          "value": "dir"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "doctor",
+      "verb": "",
+      "executor": "local",
+      "summary": "Validate project health and configuration",
+      "inputs": [],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "init",
+      "executor": "local",
+      "summary": "Create an identity",
+      "inputs": [
+        {
+          "name": "--name",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--holder",
+          "kind": "flag",
+          "value": "source"
+        },
+        {
+          "name": "--holder-opt",
+          "kind": "flag",
+          "value": "key=value",
+          "repeatable": true
+        },
+        {
+          "name": "--vault",
+          "kind": "flag",
+          "value": "vault"
+        },
+        {
+          "name": "--account",
+          "kind": "flag",
+          "value": "account"
+        },
+        {
+          "name": "--force",
+          "kind": "flag"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "artifact"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "store",
+      "executor": "local",
+      "summary": "Map an identity already held by a source",
+      "inputs": [
+        {
+          "name": "--reference",
+          "kind": "flag",
+          "value": "where",
+          "required": true
+        },
+        {
+          "name": "--holder",
+          "kind": "flag",
+          "value": "source"
+        },
+        {
+          "name": "--holder-opt",
+          "kind": "flag",
+          "value": "key=value",
+          "repeatable": true
+        },
+        {
+          "name": "--account",
+          "kind": "flag",
+          "value": "account"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "artifact"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "path",
+      "executor": "local",
+      "summary": "Where an identity lives",
+      "inputs": [
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "pubkey",
+      "executor": "local",
+      "summary": "This identity's public half",
+      "inputs": [
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "sign",
+      "executor": "local",
+      "summary": "Prove possession, for signing in to a service",
+      "inputs": [
+        {
+          "name": "--audience",
+          "kind": "flag",
+          "value": "name",
+          "required": true
+        },
+        {
+          "name": "--nonce",
+          "kind": "flag",
+          "value": "value"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "register",
+      "executor": "tenant-api",
+      "summary": "Register at a hub: the person's own act",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url",
+          "required": true
+        },
+        {
+          "name": "--name",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--role",
+          "kind": "flag",
+          "value": "role"
+        },
+        {
+          "name": "--tls-pin",
+          "kind": "flag",
+          "value": "pin"
+        },
+        {
+          "name": "--bootstrap",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--no-store",
+          "kind": "flag"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "connect",
+      "executor": "tenant-api",
+      "summary": "Obtain a token from a running tenant with this device's credential",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url",
+          "required": true
+        },
+        {
+          "name": "--name",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--no-register",
+          "kind": "flag"
+        },
+        {
+          "name": "--cap",
+          "kind": "flag",
+          "value": "name,..."
+        },
+        {
+          "name": "--remember-passphrase",
+          "kind": "flag"
+        },
+        {
+          "name": "--passphrase-holder",
+          "kind": "flag",
+          "value": "source"
+        },
+        {
+          "name": "--no-store",
+          "kind": "flag"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "token",
+      "executor": "tenant-api",
+      "summary": "Inspect or refresh the operator token",
+      "inputs": [
+        {
+          "name": "--refresh",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--cap",
+          "kind": "flag",
+          "value": "name,..."
+        },
+        {
+          "name": "--no-store",
+          "kind": "flag"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "rotate",
+      "executor": "tenant-api",
+      "summary": "Rotate the key pair and tell every hub the identity is registered at",
+      "inputs": [
+        {
+          "name": "--resume",
+          "kind": "flag"
+        },
+        {
+          "name": "--abandon",
+          "kind": "flag",
+          "value": "hub_id"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "artifact",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "attest",
+      "executor": "tenant-api",
+      "summary": "Attest a credential another program holds",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--credential-key",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--device-label",
+          "kind": "flag",
+          "value": "text"
+        },
+        {
+          "name": "--days",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--batch",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Who this tenant knows, pending included",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url",
+          "required": true
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operator",
+      "verb": "approve",
+      "executor": "tenant-api",
+      "summary": "Admit an operator this tenant is holding",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url",
+          "required": true
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "status",
+      "verb": "",
+      "executor": "tenant-api",
+      "summary": "System overview",
+      "inputs": [
+        {
+          "name": "--watch",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "event"
+      ]
+    },
+    {
+      "noun": "resource",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Every kind the tenant declares, and whether each is available",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "resource",
+      "verb": "show",
+      "executor": "tenant-api",
+      "summary": "One kind's fields, operations, verbs and events",
+      "inputs": [
+        {
+          "name": "<kind>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "A declared kind's items",
+      "inputs": [
+        {
+          "name": "--where",
+          "kind": "flag",
+          "value": "field=value",
+          "repeatable": true
+        },
+        {
+          "name": "--limit",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--all",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "show",
+      "executor": "tenant-api",
+      "summary": "One item of a declared kind",
+      "inputs": [
+        {
+          "name": "<uid>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "create",
+      "executor": "tenant-api",
+      "summary": "Create an item of a declared kind",
+      "inputs": [
+        {
+          "name": "--set",
+          "kind": "flag",
+          "value": "field=value",
+          "repeatable": true
+        },
+        {
+          "name": "--from",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "update",
+      "executor": "tenant-api",
+      "summary": "Update an item of a declared kind; the write carries If-Match",
+      "inputs": [
+        {
+          "name": "<uid>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--set",
+          "kind": "flag",
+          "value": "field=value",
+          "repeatable": true
+        },
+        {
+          "name": "--from",
+          "kind": "flag",
+          "value": "file"
+        },
+        {
+          "name": "--if-match",
+          "kind": "flag",
+          "value": "etag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "delete",
+      "executor": "tenant-api",
+      "summary": "Delete an item of a declared kind; the write carries If-Match",
+      "inputs": [
+        {
+          "name": "<uid>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--if-match",
+          "kind": "flag",
+          "value": "etag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "<verb>",
+      "executor": "tenant-api",
+      "summary": "A verb the kind declares",
+      "inputs": [
+        {
+          "name": "<uid>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--yes",
+          "kind": "flag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "<kind>",
+      "verb": "watch",
+      "executor": "tenant-api",
+      "summary": "A declared kind's events as they arrive",
+      "inputs": [
+        {
+          "name": "<uid>",
+          "kind": "positional"
+        },
+        {
+          "name": "--after",
+          "kind": "flag",
+          "value": "position"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "event"
+      ]
+    },
+    {
+      "noun": "agents",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Registered agents",
+      "inputs": [
+        {
+          "name": "--type",
+          "kind": "flag",
+          "value": "type"
+        },
+        {
+          "name": "--lease",
+          "kind": "flag",
+          "value": "state"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "agents",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One agent",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--metrics-range",
+          "kind": "flag",
+          "value": "range"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "agents",
+      "verb": "deregister",
+      "executor": "tenant-api",
+      "summary": "Force-deregister an agent",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--confirm",
+          "kind": "flag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "domains",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Domain controllers",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "domains",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One domain controller",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "workflows",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Recent workflow executions",
+      "inputs": [
+        {
+          "name": "--domain",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--status",
+          "kind": "flag",
+          "value": "status"
+        },
+        {
+          "name": "--limit",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "workflows",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One workflow execution",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "approvals",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "The decision inbox, through the admin gateway",
+      "inputs": [
+        {
+          "name": "--owner",
+          "kind": "flag",
+          "value": "owner"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "approvals",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One decision, read at its owner",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "approvals",
+      "verb": "accept",
+      "executor": "tenant-api",
+      "summary": "Decide one at its owner, never in bulk",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "approvals",
+      "verb": "reject",
+      "executor": "tenant-api",
+      "summary": "Reject one at its owner",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--reason",
+          "kind": "flag",
+          "value": "reason",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operators",
+      "verb": "list",
+      "executor": "tenant-api",
+      "summary": "Registered operators",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operators",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One operator",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operators",
+      "verb": "approve",
+      "executor": "tenant-api",
+      "summary": "Admit a pending operator",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operators",
+      "verb": "revoke",
+      "executor": "tenant-api",
+      "summary": "Revoke an operator",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--confirm",
+          "kind": "flag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "operators",
+      "verb": "role",
+      "executor": "tenant-api",
+      "summary": "Change an operator's role",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "<role>",
+          "kind": "positional"
+        },
+        {
+          "name": "--role",
+          "kind": "flag",
+          "value": "role"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "peers",
+      "executor": "tenant-api",
+      "summary": "Federation peers",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "pending",
+      "executor": "tenant-api",
+      "summary": "Pending peering requests",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "accept",
+      "executor": "tenant-api",
+      "summary": "Accept a peering request",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "reject",
+      "executor": "tenant-api",
+      "summary": "Reject a peering request",
+      "inputs": [
+        {
+          "name": "<id>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "revoke",
+      "executor": "tenant-api",
+      "summary": "Revoke peer trust",
+      "inputs": [
+        {
+          "name": "<peer>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--confirm",
+          "kind": "flag"
+        },
+        {
+          "name": "--step-up",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "describe",
+      "executor": "tenant-api",
+      "summary": "One peer",
+      "inputs": [
+        {
+          "name": "<name>",
+          "kind": "positional",
+          "required": true
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "federations",
+      "verb": "contracts",
+      "executor": "tenant-api",
+      "summary": "Active federation contracts",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    },
+    {
+      "noun": "audit",
+      "verb": "",
+      "executor": "tenant-api",
+      "summary": "Query the audit log",
+      "inputs": [
+        {
+          "name": "--actor",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--action",
+          "kind": "flag",
+          "value": "type"
+        },
+        {
+          "name": "--since",
+          "kind": "flag",
+          "value": "duration"
+        },
+        {
+          "name": "--limit",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--export",
+          "kind": "flag",
+          "value": "format"
+        },
+        {
+          "name": "--follow",
+          "kind": "flag"
+        },
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--identity",
+          "kind": "flag",
+          "value": "label"
+        },
+        {
+          "name": "--keys-dir",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item",
+        "event"
+      ]
+    },
+    {
+      "noun": "test",
+      "verb": "conformance",
+      "executor": "tenant-api",
+      "summary": "Run protocol conformance tests",
+      "inputs": [
+        {
+          "name": "--orch",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--level",
+          "kind": "flag",
+          "value": "n"
+        },
+        {
+          "name": "--test",
+          "kind": "flag",
+          "value": "id"
+        },
+        {
+          "name": "--verbose",
+          "kind": "flag"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "test",
+      "verb": "run",
+      "executor": "tenant-api",
+      "summary": "Run the conformance suite the corpus declares for one component, sealed or live, and give each criterion its verdict",
+      "inputs": [
+        {
+          "name": "--component",
+          "kind": "flag",
+          "value": "name",
+          "required": true
+        },
+        {
+          "name": "--kind",
+          "kind": "flag",
+          "value": "kind"
+        },
+        {
+          "name": "--blueprint",
+          "kind": "flag",
+          "value": "ref"
+        },
+        {
+          "name": "--tree",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--live",
+          "kind": "flag",
+          "value": "url"
+        },
+        {
+          "name": "--lang",
+          "kind": "flag",
+          "value": "ref"
+        },
+        {
+          "name": "--hub-service",
+          "kind": "flag",
+          "value": "name"
+        },
+        {
+          "name": "--lease",
+          "kind": "flag",
+          "value": "duration"
+        },
+        {
+          "name": "--corpus",
+          "kind": "flag",
+          "value": "path"
+        },
+        {
+          "name": "--json",
+          "kind": "flag"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "check",
+        "gap",
+        "verdict"
+      ]
+    },
+    {
+      "noun": "test",
+      "verb": "mock-orchestrator",
+      "executor": "local",
+      "summary": "Start a lightweight mock orchestrator",
+      "inputs": [
+        {
+          "name": "--port",
+          "kind": "flag",
+          "value": "n"
+        }
+      ],
+      "events": [
+        "started",
+        "step",
+        "progress",
+        "question",
+        "warning",
+        "finished",
+        "item"
+      ]
+    }
+  ]
+}
