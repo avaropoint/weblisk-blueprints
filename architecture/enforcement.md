@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: enforcement
-version: 3.0.2
-requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/orchestrator, architecture/gateway]
+version: 3.1.0
+requires: [protocol/types, patterns/scope, patterns/policy, patterns/safety, patterns/approval, patterns/contract, patterns/privacy, architecture/gateway]
 platform: any
 tier: free
 -->
@@ -115,6 +115,11 @@ requires:
           fields_used: [name, type, capabilities, publishes, subscriptions]
         - name: AgentMessage
           fields_used: [from, to, action, payload, signature, trace_id, span_id]
+      endpoints:
+        # What a model backend may be sent now; the orchestrator serves it
+        # (Protocol Paths)
+        - path: /v1/model/ceiling
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -178,16 +183,6 @@ requires:
           fields_used: [apply_masking]
         - name: data-minimization
           fields_used: [apply_minimization]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <5.0.0"
-    bindings:
-      endpoints:
-        - path: /v1/model/ceiling
-          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

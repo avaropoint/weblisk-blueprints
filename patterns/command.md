@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: command
-version: 2.0.2
-requires: [protocol/types, architecture/agent, patterns/logging, patterns/secrets]
+version: 2.0.3
+requires: [protocol/types, patterns/logging, patterns/secrets]
 platform: any
 tier: free
 -->
@@ -55,12 +55,6 @@ requires:
           fields_used: [name, type, capabilities]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

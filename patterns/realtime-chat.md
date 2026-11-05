@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: realtime-chat
-version: 2.0.2
-requires: [protocol/types, architecture/gateway]
+version: 2.0.3
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -33,16 +33,6 @@ requires:
       types:
         - name: AgentManifest
           fields_used: [name, version, url]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/gateway
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: GatewayConfig
-          fields_used: [routes, websocket]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

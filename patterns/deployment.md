@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: deployment
-version: 2.1.1
-requires: [protocol/types, architecture/orchestrator]
+version: 2.1.2
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -38,16 +38,6 @@ requires:
           fields_used: [ready]
         - name: ErrorResponse
           fields_used: [error, code, category]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=2.0.0 <5.0.0"
-    bindings:
-      types:
-        - name: OrchestratorConfig
-          fields_used: [port, env, log_level, storage_dsn]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -219,6 +209,11 @@ Configuration is resolved in order (later overrides earlier):
 ```
 
 ### Configuration Parameters
+
+The orchestrator's parameters are the fields of its start-up configuration,
+`OrchestratorConfig`, which [`architecture/orchestrator`](../architecture/orchestrator.md)
+declares: environment tier is `env`, listen port `port`, log level `log_level`
+and storage DSN `storage_dsn`.
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|

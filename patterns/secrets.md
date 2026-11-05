@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: secrets
-version: 3.1.2
-requires: [protocol/types, protocol/identity, protocol/secret-source, architecture/agent, architecture/storage]
+version: 3.1.3
+requires: [protocol/types, protocol/identity, protocol/secret-source]
 platform: any
 tier: free
 -->
@@ -58,26 +58,6 @@ requires:
           fields_used: [name, capabilities]
         - name: ErrorResponse
           fields_used: [code, error, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentConfig
-          fields_used: [name, secrets]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/storage
-    version: ">=1.0.0 <3.0.0"
-    bindings:
-      types:
-        - name: StoreInterface
-          fields_used: [get, put, delete]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

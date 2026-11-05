@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: observability
-version: 2.0.2
-requires: [protocol/types, architecture/orchestrator, architecture/agent]
+version: 2.1.0
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -43,6 +43,8 @@ requires:
           fields_used: [trace_id, span_id, parent_span_id, sampled]
         - name: Span
           fields_used: [trace_id, span_id, parent_span_id, name, kind, component, start, end, status, attributes]
+        # wl_agents_registered counts the directory's entries, and
+        # wl_agents_status counts them by lease state (Orchestrator Metrics)
         - name: ServiceDirectory
           fields_used: [services]
         - name: ServiceEntry
@@ -57,31 +59,12 @@ requires:
           fields_used: [name, type, version]
         - name: TaskRequest
           fields_used: [id, action]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    # 3.0.0 is the first version whose AgentEntry holds a lease rather than an
-    # online, offline or degraded status
-    version: ">=3.0.0 <5.0.0"
-    bindings:
-      types:
-        # wl_agents_registered counts the registry's entries, and
-        # wl_agents_status counts them by lease state (Orchestrator Metrics)
-        - name: AgentEntry
-          fields_used: [lease, last_renewal]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=2.0.0 <4.0.0"
-    bindings:
-      types:
-        # Where an agent serves the probes Health Endpoint points to
-        - name: AgentEndpoints
-          fields_used: [livez, readyz]
+      endpoints:
+        # The probes every component serves, which Health Endpoint points to
+        - path: /livez
+          methods: [GET]
+        - path: /readyz
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

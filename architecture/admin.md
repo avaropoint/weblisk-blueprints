@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.8.0
-requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
+version: 5.8.1
+requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
 -->
@@ -161,9 +161,11 @@ requires:
         # decided
         - name: InboxRoute
           fields_used: [query, items, withheld, decide_method, decide_path]
-        # The gateway's own manifest, which declares none of these routes
+        # The gateway's own manifest, which declares none of these routes;
+        # and a domain controller's required agents and workflows, which
+        # Domain detail lists
         - name: AgentManifest
-          fields_used: [name, type, version, description, url, capabilities, public_key, publishes, subscriptions, pass_routes]
+          fields_used: [name, type, version, description, url, capabilities, public_key, publishes, subscriptions, pass_routes, required_agents, workflows]
         # The operator lifecycle this document specifies, across a change of
         # identity key
         - name: Operator
@@ -258,22 +260,12 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/domain
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: DomainManifest
-          fields_used: [name, type, workflows, required_agents]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: architecture/gateway
     version: ">=1.0.0 <4.0.0"
     bindings:
       types:
         - name: GatewayConfig
-          fields_used: [routes, tls, rate_limits]
+          fields_used: [tls, rate_limits]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -284,16 +276,6 @@ requires:
       types:
         - name: WLS
           fields_used: [sub, sid, roles, sec, mfa]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/threat-model
-    version: ">=1.0.0 <2.0.0"
-    bindings:
-      types:
-        - name: ThreatBoundary
-          fields_used: [boundary, controls, mitigations]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: change-service
-version: 1.0.0
-requires: [protocol/types, protocol/identity, protocol/spec, patterns/principal-identity, architecture/admin, architecture/engine, architecture/model-service, architecture/storage, schemas/change, schemas/run-statement, schemas/build-lock, schemas/config]
+version: 1.0.1
+requires: [protocol/types, protocol/identity, protocol/spec, patterns/principal-identity, architecture/admin, architecture/engine, architecture/model-service, architecture/storage, schemas/change, schemas/run-statement]
 platform: any
 tier: free
 adoption: opt-in
@@ -205,13 +205,54 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
+
+  - blueprint: architecture/engine
+    version: ">=1.3.0 <2.0.0"
+    bindings:
+      types:
+        # The envelope every engine event carries, which this service
+        # announces on GET /v1/admin/ws as it runs an operation (Events)
+        - name: Events
+          fields_used: [operation, invocation, seq, at, type, body]
+        # What an operation asks a person, relayed to the client that asked
+        # for it and answered back to the invocation (Questions)
+        - name: Questions
+          fields_used: [kind, about, choices]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: schemas/change
+    bindings:
+      types:
+        # What a plan says will be done to each node it reaches, and why
+        # (Verdicts), as the change this service writes records it
+        - name: Verdicts
+          fields_used: [verdict, because]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: schemas/run-statement
+    bindings:
+      types:
+        # The statement this service writes once for each run, in its DSSE
+        # envelope, and serves at GET /v1/admin/build/statements/{statement}
+        - name: RunStatement
+          fields_used: [_type, predicateType, subject, predicate]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
 ```
 
-`architecture/engine`, `schemas/change`, `schemas/run-statement`,
-`schemas/build-lock` and `schemas/config` are required for what they declare
-and bind no type here: the operations, the build steps, the event envelope and
-the record are read through the engine the service imports, and the files it
-writes have the shapes those schemas give.
+The operations, the build steps and the record are read through the engine
+the service imports. The build lock it writes has the shape
+[`schemas/build-lock`](../schemas/build-lock.md) gives, and the configuration
+it reads the shape [`schemas/config`](../schemas/config.md) gives; neither
+declares a type a contract could bind, so neither is required here.
 
 ---
 

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: versioning
-version: 3.0.2
-requires: [protocol/types, architecture/agent]
+version: 3.0.3
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -39,17 +39,6 @@ requires:
           fields_used: [name, version]
         - name: ErrorResponse
           fields_used: [error, code, category]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentContext
-          fields_used: [agent_name, version]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

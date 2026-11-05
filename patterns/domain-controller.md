@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: domain-controller
-version: 2.0.2
-requires: [protocol/types, protocol/identity, architecture/domain, architecture/lifecycle, patterns/observability]
+version: 2.1.0
+requires: [protocol/types, protocol/identity, patterns/observability]
 platform: any
 tier: free
 -->
@@ -38,16 +38,6 @@ variant parts.
 
 ## Dependencies
 
-  - blueprint: patterns/principal-identity
-    version: ">=1.0.0 <3.0.0"
-    bindings:
-      types:
-        - name: Identity
-          fields_used: [id, public_key]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
 ```yaml
 requires:
   - blueprint: protocol/types
@@ -64,6 +54,10 @@ requires:
           fields_used: [action, payload, trace_id]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
+        # The manifest a domain controller registers: its required agents
+        # and workflows are AgentManifest's (Domain Manifest)
+        - name: AgentManifest
+          fields_used: [name, type, version, capabilities, required_agents, workflows]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -74,22 +68,6 @@ requires:
       types:
         - name: WLToken
           fields_used: [token, claims]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/domain
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: DomainManifest
-          fields_used: [name, type, version, capabilities, required_agents, workflows]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/lifecycle
-    version: ">=1.0.0 <2.0.0"
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

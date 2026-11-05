@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 3.0.3
-requires: [protocol/identity, protocol/types, architecture/agent, architecture/admin, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
+version: 3.0.5
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
 platform: any
 tier: free
 -->
@@ -81,22 +81,12 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/admin
-    version: ">=2.0.0 <6.0.0"
-    bindings:
-      patterns:
-        - behavior: admin-separation
-          parameters: [separation_model, operator_auth]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
   - blueprint: patterns/auth-session
     version: ">=1.0.0 <4.0.0"
     bindings:
       patterns:
-        - behavior: session-lifecycle
-          parameters: [creation, validation, renewal, termination, csrf_binding]
+        - behavior: session-authentication
+          parameters: [session_duration, cookie_name, csrf_header]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -105,8 +95,8 @@ requires:
     version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: token-signing
-          parameters: [algorithm, claims, verification]
+        - behavior: token-authentication
+          parameters: [access_token_duration, refresh_token_duration, scopes]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -115,8 +105,8 @@ requires:
     version: ">=1.0.0 <3.0.0"
     bindings:
       patterns:
-        - behavior: user-lookup
-          parameters: [user_id, roles, groups, email_verified]
+        - behavior: user-lifecycle
+          parameters: [default_role, require_email_verification]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

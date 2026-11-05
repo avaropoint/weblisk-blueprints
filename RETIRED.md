@@ -332,7 +332,6 @@ itself is always allowed.
   - {spelling: HealthStatus, match: exact}
   allow:
   - {path: skills/rust/SKILL.md, why: until skills/ is next revised, until: skills/rust/SKILL@1.0.0}
-  - {path: UNBOUND_BINDINGS.md, why: a record of a past measurement}
 - retired:
   - {spelling: Health, match: sense}
 - retired:

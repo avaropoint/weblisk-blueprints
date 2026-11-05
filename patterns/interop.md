@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: interop
-version: 2.0.2
-requires: [protocol/types, architecture/agent]
+version: 2.1.0
+requires: [protocol/types]
 platform: any
 tier: free
 -->
@@ -48,7 +48,8 @@ the framework's native interface.
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <7.0.0"
+    # 2.0.0 is the first whose lease renewal carries readiness
+    version: ">=2.0.0 <7.0.0"
     bindings:
       types:
         - name: TaskRequest
@@ -59,16 +60,9 @@ requires:
           fields_used: [event_id, topic, source, payload]
         - name: AgentManifest
           fields_used: [name, type, version, url, capabilities]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=2.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: AgentState
-          fields_used: [state]
+        # What the adapter renews its lease with (Health Mapping)
+        - name: LeaseRenewal
+          fields_used: [ready]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
