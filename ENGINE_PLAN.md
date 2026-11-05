@@ -154,9 +154,14 @@ and [`instructions/`](instructions/README.md), whose first files are the five
 `generation.md` 2.0.0 gave as written and the step instructions `plan`,
 `translate`, `generate`, `repair` and `advise`. The per-kind repair
 instructions (`instructions/repair/<kind>.md`) are not written: the repair
-kinds are not yet declared, and one `repair` instruction stands for all of
-them until they are. Replacing the CLI's prompt literals and Studio's 16
-prompts with these is migration (E4, S1).
+kinds are not yet declared, and until they are, instruction `failure` tells
+the kinds apart by the failure input's `kind`. The CLI's plan, generate and
+repair prompts are composed from these and the steps' declared inputs alone
+(E4): the instructions that read each input (`requirements`, `package-plan`,
+`tenant-state`, `plan-shape`, `plan-entry`, `declarations`, `repair-set`,
+`failure`, `edit-form`, `rejection`) were written from the literals they
+replace. The accept step's reading and conflict question wait on E3, which
+decides their shape as advice; Studio's 16 prompts are S1's.
 
 ---
 
@@ -210,7 +215,8 @@ because `older-instruction`, are [`schemas/change`](schemas/change.md#verdicts)'
 
 **Landed in [`architecture/engine.md`](architecture/engine.md#the-tools-own-conformance)**, with its checks:
 [`checks/engine-neutrality.py`](checks/engine-neutrality.py), whose `known`
-list is the CLI audit's restated knowledge as it stands at CLI `4d54da8`, and
+list began as the CLI audit's restated knowledge at CLI `4d54da8` and is
+held at the commit `checks/engine-neutrality.json` pins, and
 [`checks/front-end-parity.py`](checks/front-end-parity.py), which replaces
 `command-surface.py`. Not yet built: the fake corpus in `vectors/engine/`, the
 renamed-corpus run, the stream parity test, and neutrality over Studio's

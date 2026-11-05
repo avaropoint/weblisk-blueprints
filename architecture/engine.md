@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.1.0
+version: 1.2.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -549,7 +549,7 @@ steps:
   - id: plan
     does: Fixes the files, packages, names and order, wherever the corpus can fix them
     model: called
-    inputs: [requirements, package-plan, blueprints, tenant-state]
+    inputs: [requirements, package-plan, blueprints, tenant-state, rejection]
     declares: >-
       A layout per language and platform: packages, the file-per-section rule,
       the entry point (schemas/language); boundary names; module-path
@@ -579,7 +579,7 @@ steps:
   - id: generate
     does: Writes each planned file
     model: called
-    inputs: [plan-entry, declarations, file-set, platform, checklists, blueprints, tenant-state, tests]
+    inputs: [plan-entry, declarations, file-set, platform, checklists, blueprints, tenant-state, tests, rejection]
     declares: >-
       The prompt contract (architecture/generation), the instructions, and the
       rules the model must not settle: missing names, ties, scope
@@ -600,7 +600,7 @@ steps:
   - id: repair
     does: Edits files until the suite passes, class by class
     model: called
-    inputs: [failure, governing-section, repair-set, declarations, blueprints]
+    inputs: [failure, governing-section, repair-set, declarations, blueprints, rejection]
     declares: >-
       The instruction per repair kind; the governing section given with each
       failure; which files a diagnostic implicates, per language; the class
@@ -641,7 +641,8 @@ at any step, is printed as advice and is never counted toward acceptance. <!-- w
 The engine MUST refuse a model's answer that writes outside what its step
 permits: a test path from a generate or repair answer, a name the plan fixes
 changed, or a file outside the repair set. A refused answer is asked again
-with its reason, as any answer that is not acceptable is. <!-- wl:id model-output-bounded -->
+with its reason, the step's input `rejection`, as any answer that is not
+acceptable is. <!-- wl:id model-output-bounded -->
 
 A conflict between two corpus texts that a model reports MUST be recorded as
 a corpus finding, and settled only by a corpus change a person makes. It is
