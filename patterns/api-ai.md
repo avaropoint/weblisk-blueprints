@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: api-ai
-version: 4.0.2
-requires: [protocol/types, patterns/scope, architecture/agent, architecture/gateway, architecture/orchestrator]
+version: 4.1.0
+requires: [protocol/types, patterns/scope]
 platform: any
 tier: free
 -->
@@ -37,6 +37,11 @@ requires:
           fields_used: [name, type, version, capabilities]
         - name: ErrorResponse
           fields_used: [error, code, category, retryable]
+      endpoints:
+        # Read before every send. The orchestrator serves it (Protocol
+        # Paths); see Destination Ceilings
+        - path: /v1/model/ceiling
+          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -51,33 +56,6 @@ requires:
           fields_used: [backend, model, ceiling]
         - name: DestinationRefusal
           fields_used: [destination, ceiling, items]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/agent
-    version: ">=1.0.0 <4.0.0"
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/gateway
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: Route
-          fields_used: [path, methods, rate_limit]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=2.14.0 <5.0.0"
-    bindings:
-      endpoints:
-        # Read before every send. See Destination Ceilings
-        - path: /v1/model/ceiling
-          methods: [GET]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

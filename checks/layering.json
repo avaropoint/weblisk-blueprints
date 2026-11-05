@@ -2,18 +2,6 @@
  "measured_at": "wt/decisions, 2026-11-04",
  "note": "Each pattern here still requires a framework blueprint, against the owner's decision of 2026-11-04 that the framework requires the patterns and a pattern never requires the framework (schemas/common.md, Field Constraints). An entry is removed when its pattern stops requiring that blueprint, usually by binding a type protocol/types or the pattern itself declares, or by the framework blueprint binding the pattern instead; entries are never added.",
  "known": {
-  "patterns/api-ai": [
-   "architecture/agent",
-   "architecture/gateway",
-   "architecture/orchestrator"
-  ],
-  "patterns/auth-session": [
-   "architecture/client",
-   "architecture/gateway"
-  ],
-  "patterns/auth-token": [
-   "architecture/gateway"
-  ],
   "patterns/command": [
    "architecture/agent"
   ],
@@ -33,15 +21,9 @@
   "patterns/offline": [
    "architecture/client"
   ],
-  "patterns/realtime-chat": [
-   "architecture/gateway"
-  ],
   "patterns/secrets": [
    "architecture/agent",
    "architecture/storage"
-  ],
-  "patterns/user-management": [
-   "architecture/gateway"
   ],
   "patterns/versioning": [
    "architecture/agent"

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: user-management
-version: 2.0.2
-requires: [protocol/types, patterns/auth-session, patterns/auth-token, architecture/gateway]
+version: 2.0.3
+requires: [protocol/types, patterns/auth-session, patterns/auth-token]
 platform: any
 tier: free
 -->
@@ -80,16 +80,6 @@ requires:
       types:
         - name: RefreshToken
           fields_used: [user_id, token, expires_at]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/gateway
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: Route
-          fields_used: [path, rate_limit]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
