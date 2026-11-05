@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.5.0
+version: 3.6.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -630,6 +630,7 @@ bytes itself, in one of those two forms, may ask a secret source to sign them
 | `weblisk/namespace-grant/v2` | A namespace's holder, letting another identity publish under it or withdrawing that | [`patterns/namespace`](../patterns/namespace.md#grant) |
 | `weblisk/namespace-transfer/v2` | A namespace's outgoing and incoming holders, each over a transfer or rotation; the outgoing holder alone over a retirement | [`patterns/namespace`](../patterns/namespace.md#transfer) |
 | `weblisk/catalog-release/v2` | A namespace's holder or `publish` grantee, over the index of one release | [`patterns/namespace`](../patterns/namespace.md#catalog-release) |
+| `weblisk/change-decision/v1` | A person's sign-records credential, over a decision to approve or reject one change's plan | [`architecture/change-service`](../architecture/change-service.md#verifying-a-decision) |
 
 A kind of statement is registered here before any implementation signs it. A
 prefix names one layout for good. A changed layout gets a new prefix and a new
@@ -649,8 +650,8 @@ It holds vectors for `weblisk/auth/v1`, `weblisk/credential-auth/v1`,
 `weblisk/step-up/v1`, `weblisk/log-key/v2`, `weblisk/log-checkpoint/v2`,
 `weblisk/log-succession/v1`, `weblisk/content-change/v2`,
 `weblisk/directory/v2`, `weblisk/namespace-claim/v2`,
-`weblisk/namespace-grant/v2`, `weblisk/namespace-transfer/v2` and
-`weblisk/catalog-release/v2`. None is published
+`weblisk/namespace-grant/v2`, `weblisk/namespace-transfer/v2`,
+`weblisk/catalog-release/v2` and `weblisk/change-decision/v1`. None is published
 yet for `weblisk/content-attestation/v1`, `weblisk/holder-probe/v1` or
 `weblisk/hub-proof/v1`, so no implementation may yet sign under any of them.
 
@@ -741,7 +742,7 @@ verifies:
   structure:
     query: unregistered-statement-prefix
     args:
-      registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/content-attestation/v1, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
+      registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/content-attestation/v1, weblisk/change-decision/v1, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
     scope: component
     expect: none
 ```

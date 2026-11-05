@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.8.0
+version: 1.9.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -172,6 +172,8 @@ Not capabilities — values a kind declares.
 | `comment` | — | comment id | authored | — | *(none)* |
 | `retention-schedule` | — | schedule id | authored | — | *(none)* |
 | `legal-hold` | — | hold id | authored | — | *(none)* |
+| `change` | — | change id | authored | — | *(none)* |
+| `build-run` | — | build run id | observed | — | *(none)* |
 
 ### What the table says, in words
 
@@ -310,6 +312,17 @@ and a capability that a scorer reads with nothing to say what is proven
 would count every attestation toward everything. They are declared so that
 [`architecture/content`](../architecture/content.md#resources) can name them.
 
+**`change` and `build-run` are the change service's records, and govern
+nothing by being declared.** A change is one act of changing what a tenant is
+built from ([`change.md`](change.md)), authored by the person who asked for
+it and decided by a person; a build run is one engine invocation the change
+service ran, observed as a run is. Each is named by an id the change service
+mints. Neither is versioned or a chain member: what a build did is its run
+statement ([`run-statement.md`](run-statement.md)), and a `build-run` is not
+an execution `run`, which is a workflow's. They are declared so that
+[`architecture/change-service`](../architecture/change-service.md#resources)
+can name them.
+
 **`integration` has no capabilities**, and that is correct rather than an
 omission. It is a boundary, not a subject: a service consumed to do a task
 governs nothing, and saying so explicitly is what stops an ordinary consumption
@@ -344,6 +357,7 @@ component_kinds:
     prompt-worker:     {count: {min: 0, max: 1}, registers: true}
     programme-service: {count: {min: 0, max: 1}, registers: true}
     fabric-service:    {count: {min: 0, max: 1}, registers: true}
+    change-service:    {count: {min: 0, max: 1}, registers: true}
     gateway:           {count: {min: 0, max: 1}, registers: true}
     agent:             {count: {min: 0}, registers: true, named: true}
     domain:            {count: {min: 0}, registers: true, named: true}

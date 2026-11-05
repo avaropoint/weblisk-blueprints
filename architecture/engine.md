@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.2.0
+version: 1.3.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -85,7 +85,9 @@ versions. <!-- wl:id vocabularies-versioned -->
 ### Three hosts
 
 The engine runs in three hosts and is the same in each: the CLI, Studio, and
-the tenant, where it is the tenant's change service. Where an operation's act
+the tenant, where it is the tenant's change service
+([`architecture/change-service`](change-service.md)), which says which
+operations it hosts and at which route. Where an operation's act
 happens is its executor: `local`, `tenant-api` or `cli-in-tenant`
 ([`schemas/change`](../schemas/change.md#executors)).
 
@@ -348,33 +350,39 @@ operations:
     events: [item, check]
     records: process state, which is a note
     driven_by: [architecture/cli, schemas/config]
-  # Builds and changes: tenant-api once the tenant runs its change service,
-  # cli-in-tenant until then (architecture/cli, Until a tenant runs a change service).
+  # Builds and changes: tenant-api, hosted by the tenant's change service
+  # (architecture/change-service, The operation catalogue), and cli-in-tenant
+  # until a tenant runs one (architecture/cli, Until a tenant runs a change service).
   - ops: [change plan]
     executor: tenant-api
     events: [item, gap]
     records: the change, at .weblisk/changes/<id>.json
-    driven_by: [architecture/generation, schemas/change, architecture/change-management, schemas/programme]
+    driven_by: [architecture/generation, schemas/change, architecture/change-management, schemas/programme, architecture/change-service]
   - ops: [change list, change show]
     executor: tenant-api
     events: [item]
     records: nothing
-    driven_by: [schemas/change]
+    driven_by: [schemas/change, architecture/change-service]
   - ops: [change approve, change reject]
     executor: tenant-api
     events: []
     records: the approval or rejection on the change
-    driven_by: [architecture/cli, protocol/types]
+    driven_by: [architecture/cli, protocol/types, architecture/change-service]
   - ops: [change apply]
     executor: tenant-api
     events: [model, artifact, check, gap, verdict]
     records: run statements with their actions and criteria; outcomes on the change
-    driven_by: [architecture/engine, architecture/generation, schemas/run-statement]
+    driven_by: [architecture/engine, architecture/generation, schemas/run-statement, architecture/change-service]
+  - ops: [change stop]
+    executor: tenant-api
+    events: []
+    records: the build run ended stopped, and its run statement's result stopped
+    driven_by: [architecture/change-service, schemas/run-statement]
   - ops: [change verify]
     executor: tenant-api
     events: [check, verdict]
     records: a verify run; verify on the change
-    driven_by: [architecture/engine]
+    driven_by: [architecture/engine, architecture/change-service]
   - ops: [change revert]
     executor: tenant-api
     events: [item, gap]
@@ -389,7 +397,7 @@ operations:
     executor: tenant-api
     events: [item]
     records: nothing
-    driven_by: [schemas/run-statement]
+    driven_by: [schemas/run-statement, architecture/change-service]
   - ops: [acceptance propose, acceptance decide]
     executor: tenant-api
     events: [item]

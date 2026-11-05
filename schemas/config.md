@@ -119,6 +119,16 @@ fabric:
   port: integer                    # Listen port of the fabric service (default: 9808)
   key_passphrase: string           # (rule 23)
 
+# Optional — the change service, the engine hosted in the tenant
+# (architecture/change-service). Its presence declares it
+change_service:
+  port: integer                    # Listen port (default: 9809)
+  key_passphrase: string           # (rule 23)
+  start_window: duration           # How long a restarted component has to answer (default: 120s)
+  question_timeout: duration       # How long a build run waits on an answer (default: 30m)
+  approval_expiry: duration        # How long a change awaits a decision (default: 336h)
+  event_retention: duration        # How long a finished build run's events are kept (default: 9600h)
+
 # Optional — federation configuration
 federation:
   enabled: boolean                 # Enable federation (default: false)
@@ -350,6 +360,26 @@ notification, the prompt worker, the programme service, then the fabric
 service, each once what it needs running first has started
 ([`architecture/cli`](../architecture/cli.md#weblisk-server-start)).
 
+### change_service
+
+`change_service` is optional, and declares the tenant's change service, built
+from [`architecture/change-service`](../architecture/change-service.md): its
+presence declares it, and an absent or null section declares none. What each
+value means is that blueprint's
+([Configuration](../architecture/change-service.md#configuration)). A change
+that builds the change service writes this section as one that builds a
+service a programme runs on writes its own, and `weblisk server start` starts
+it after every other service.
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `port` | integer | no | `9809` | Listen port |
+| `key_passphrase` | string | no | — | Where its service key's passphrase is held ([Service key passphrases](#service-key-passphrases)) |
+| `start_window` | duration | no | `120s` | How long a component it restarted has to answer live, then ready |
+| `question_timeout` | duration | no | `30m` | How long a build run waits for its requester's answer |
+| `approval_expiry` | duration | no | `336h` | How long a change's approval request stays open undecided |
+| `event_retention` | duration | no | `9600h` | How long a finished build run's events are kept |
+
 ### federation
 
 | Field | Type | Required | Default | Description |
@@ -372,7 +402,7 @@ service, each once what it needs running first has started
 
 `key_passphrase`, on `orchestrator`, `admin_gateway`, `content`, each of the
 services a programme runs on (`execution`, `notification`, `prompt_worker`,
-`programme_service` and `fabric`) and each `agents[]` entry, names where that component's service key passphrase is held,
+`programme_service` and `fabric`), `change_service` and each `agents[]` entry, names where that component's service key passphrase is held,
 as a secret source reference in the flag form
 `<source>:<reference>` ([`protocol/secret-source`](../protocol/secret-source.md#the-holder-reference)).
 It is never the passphrase: the value is a pointer, and may be committed,
@@ -397,6 +427,7 @@ one reference; one passphrase then opens each of their keys.
 | 9806 | Prompt worker |
 | 9807 | Programme service |
 | 9808 | Fabric service |
+| 9809 | Change service |
 | 9443 | Admin gateway, admin listener |
 | 9700–9709 | Domain controllers |
 | 9710–9749 | Work agents |

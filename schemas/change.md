@@ -38,12 +38,16 @@ Each change verb's executor, and so where the act happens:
 
 | Verb | Executor | What the tenant does |
 |---|---|---|
-| `change plan` | `tenant-api` | the change service runs the CLI (`cli-in-tenant`) to resolve and plan, and writes the change |
+| `change plan` | `tenant-api` | the change service runs the engine it hosts to resolve and plan, and writes the change |
 | `change list`, `change show` | `tenant-api` | reads changes |
 | `change approve`, `change reject` | `tenant-api` | records the person's signed decision at the change service, the owner of the request, as the change's `approval` or `rejection` |
-| `change apply` | `tenant-api` | the change service runs the CLI on the tenant host, under the tenant's `generation` credential, with the tenant's model (D26) |
-| `change verify` | `tenant-api` | the change service runs the CLI's verification and records the result |
+| `change apply` | `tenant-api` | the change service runs the engine in the tenant, with the tenant's model (D26), and restarts what it built |
+| `change verify` | `tenant-api` | the change service runs the suite and records the result |
 | `change revert` | `tenant-api` | plans a new change of kind `revert` |
+| `change stop` | `tenant-api` | ends the build run under way `stopped`; the change keeps its state |
+
+Each route, who may call it and the decision's signed statement are
+[`architecture/change-service`](../architecture/change-service.md)'s.
 
 Until a tenant runs a change service, four of these verbs run as
 `cli-in-tenant` instead, and an apply stands on the operator's word where an
@@ -99,16 +103,18 @@ change:
   approval:                        # present from state approved on
     by: <identity id>
     position: <position id>        # equals approver_position, which the approver holds
-    signature: <base64url ML-DSA-65 over the plan digest>
+    signature: <base64url ML-DSA-65 over the weblisk/change-decision/v1 statement>
     plan_digest: sha256:<hex>
-    at: <instant>
+    at: <instant>                  # the statement's signed_at
+    attestation: <Attestation>     # the sign-records attestation the signature verifies under
     development: <bool>            # the tenant's hub.environment is development (schemas/config)
   rejection:                       # state rejected only: the person's signed refusal
     by: <identity id>
     reason: <text>
-    signature: <base64url ML-DSA-65 over the plan digest>
+    signature: <base64url ML-DSA-65 over the weblisk/change-decision/v1 statement>
     plan_digest: sha256:<hex>
     at: <instant>
+    attestation: <Attestation>
   without_approval: true           # applied with no approval, on the operator's word
   applied_run: <run id>            # the run statement apply wrote
   outcomes:                        # one per component apply built or tried to, in build order

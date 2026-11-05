@@ -169,7 +169,7 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 	owner1 := newKey("log-owner-1", "a log owner's long-lived key, the log's first authority; where the owner registers, the very key it registers with (protocol/identity, Which key signs what)")
 	owner2 := newKey("log-owner-2", "the same owner's next long-lived key, the authority after the succession")
 	logKey := newKey("log-key-1", "a log key the first authority introduces, which signs checkpoints")
-	records := newKey("sign-records", "a person's sign-records credential (weblisk/content-change/v2)")
+	records := newKey("sign-records", "a person's sign-records credential (weblisk/content-change/v2, weblisk/change-decision/v1)")
 	orchestrator := newKey("orchestrator", "an orchestrator's current signing key, which signs the service directory it pushes (weblisk/directory/v2)")
 	component := newKey("component", "a registered component's key, as the pushed directory names it; it signs no fixed-form statement here, and where its component owns a sealed log it is that log's long-lived key, the part log-owner-1 plays")
 	holder1 := newKey("holder-1", "a person's identity that claims a namespace and signs as its holder (patterns/namespace)")
@@ -209,6 +209,13 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 	index1 := "sha256:" + sha(policy+" "+at(policy, 1)+"\n"+hazards+" "+at(hazards, 1)+"\n")
 	index2 := "sha256:" + sha(policy+" "+at(policy, 2)+"\n"+hazards+" retired\n"+stopWork+" "+at(stopWork, 2)+"\n")
 
+	// A change and its plan digest (architecture/change-service, Verifying a
+	// decision), each the SHA-256 of a stated text.
+	changeID := sha("weblisk test vector change: an adoption")[:32]
+	planDigest := "sha256:" + sha("weblisk test vector plan: an adoption")
+	cd := func(decision, position, at string) []field {
+		return []field{{"change id", changeID}, {"decision", decision}, {"plan_digest", planDigest}, {"position", position}, {"signed_at", at}}
+	}
 	cc := func(role, path, op, bef, aft, scope, prop string) []field {
 		return []field{{"log id", contentLogID}, {"role", role}, {"path", path}, {"operation", op},
 			{"before", bef}, {"after", aft}, {"scope", scope}, {"proposal", prop}, {"signed_at", "2026-01-01T00:00:00.000Z"}}
@@ -295,6 +302,10 @@ func makeFixed(verifiedWith []string) ([]byte, map[string]*key, []vector) {
 			release("1", index1, "", "2026-01-01T00:06:00.000Z"), holder1, nil},
 		{"catalog-release-2", releaseP, "a publish grantee publishes release 2, naming release 1's index as previous",
 			release("2", index2, index1, "2026-01-01T00:07:00.000Z"), service, nil},
+		{"change-decision-approve", "weblisk/change-decision/v1", "a person approves a change that names no approver position: position is empty",
+			cd("approve", "", "2026-01-01T00:08:00.000Z"), records, nil},
+		{"change-decision-reject-as-position", "weblisk/change-decision/v1", "a person rejects a knowledge change as the position its plan names",
+			cd("reject", "document-controller", "2026-01-01T00:09:00.000Z"), records, nil},
 	}
 
 	out := file{

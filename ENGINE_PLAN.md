@@ -271,7 +271,7 @@ fallback recreates the drift in new code.
 | **E3, the switch** | verdicts from the suite only | `selfverify` and `corpus_conflict` as verdicts, the phrase checks, `mechanicalChecks`, `methodless`, both hand suites | a full build accepts or refuses on the suite alone |
 | **E4, the thinning** | the plan from `layout`; diagnostics, ports, order, routes and toolchains read from the corpus; instructions read from `instructions/` | each Go copy, as its table lands | `engine-neutrality.py`'s `known` list is empty |
 | **S1, Studio on the engine** | Studio imports the engine; the operations route and the event stream | the subprocess calls; Studio's verdict code and prompt literals | `front-end-parity.py` passes for `local` and `tenant-api` operations |
-| **T1, the change service** | the engine hosted in the tenant as its change service, with the `/v1/admin/changes` and `/v1/admin/build` routes | `cli-in-tenant` as the way any client builds | the parity test passes for every operation |
+| **T1, the change service** | the engine hosted in the tenant as its change service, with the `/v1/admin/changes` and `/v1/admin/build` routes, as [`architecture/change-service`](architecture/change-service.md) specifies them | `cli-in-tenant` as the way any client builds | the parity test passes for every operation |
 | **S2, Studio as a client** | each tenant route Studio needs | each local store and service copy, one area at a time | each area reads only from the tenant |
 | **F, the terminal front end** | the CLI's pane presentation over the same streams | — | the parity test passes under a pseudo-terminal |
 
