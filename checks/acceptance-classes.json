@@ -4,7 +4,7 @@
  "counts": {
   "S": 469,
   "J": 94,
-  "B": 2604,
+  "B": 2606,
   "E": 93,
   "F": 57
  },
@@ -7794,6 +7794,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/testing:conformance-sign-off-requires-level-4": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:fixture-config-start": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:fixture-config-written": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
