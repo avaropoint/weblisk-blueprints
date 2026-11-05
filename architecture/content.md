@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.5.0
+version: 5.6.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/orchestrator]
 platform: any
 tier: free
@@ -378,7 +378,7 @@ signed egress record it owes, and holds every remote until then. See
 | Method | Path | Operation | Auth | Purpose |
 |--------|------|-----------|------|---------|
 | GET | /v1/content | List | yes | List entries beneath a path, cursor-paginated |
-| GET | /v1/content/entry | Read | yes | Read one entry's bytes and identity |
+| GET | /v1/content/entry | Read | yes | Read one entry's bytes and identity, or, with `version`, an earlier version's ([Reading an earlier version](#reading-an-earlier-version)) |
 | PUT | /v1/content/entry | Write | yes | Write one entry; `if_match` required |
 | DELETE | /v1/content/entry | Remove | yes | Remove one entry and retire its identity |
 | GET | /v1/content/stat | Stat | yes | Identity and metadata without transferring bytes |
@@ -396,7 +396,33 @@ signed egress record it owes, and holds every remote until then. See
 | GET | /v1/content/repositories/{repository}/log | Log | yes | A repository's change log, its lines exactly as stored, from a sequence number. Whole or refused, never filtered |
 | GET | /v1/content/repositories/{repository}/log/head | LogHead | yes | The log's id, its tip, its latest checkpoint and the key entry that introduced its key, and how many entries are unsealed. Names no path |
 | POST | /v1/content/repositories/{repository}/log/checkpoint | SealLog | yes | Seal the log now, where the tip has moved since the last checkpoint, and return its head |
-| GET | /v1/admin/records/content/snapshot | RecordSnapshot | yes | Every store this service owns — the repository registry, change logs, proposals, pseudonym map, anchors and record mirror — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). On a pass that can use `admin:*`. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
+| POST | /v1/content/attestations | Attest | yes | Record one person's attestation of one version of an entry ([Entry attestations](#entry-attestations)) |
+| GET | /v1/content/attestations | Attestations | yes | Attestations in scope, newest first, cursor-paginated, each under its entry's own read check |
+| GET | /v1/content/attestations/{id} | GetAttestation | yes | One attestation |
+| POST | /v1/content/attestation-requests | RequestAttestation | yes | Ask named people to attest one version ([Attestation requests](#attestation-requests)) |
+| GET | /v1/content/attestation-requests | AttestationRequests | yes | Attestation requests in scope, newest first, cursor-paginated. `asked=me` narrows to those that asked the caller |
+| GET | /v1/content/attestation-requests/{id} | GetAttestationRequest | yes | One attestation request, with who was asked and who has answered |
+| POST | /v1/content/attestation-requests/{id}/withdraw | WithdrawAttestationRequest | yes | Withdraw an open request, with a reason |
+| POST | /v1/content/document-requests | RequestDocument | yes | Ask named people to supply an entry ([Document requests](#document-requests)) |
+| GET | /v1/content/document-requests | DocumentRequests | yes | Document requests in scope, newest first, cursor-paginated. `asked=me` narrows to those that asked the caller |
+| GET | /v1/content/document-requests/{id} | GetDocumentRequest | yes | One document request |
+| POST | /v1/content/document-requests/{id}/withdraw | WithdrawDocumentRequest | yes | Withdraw an open request, with a reason |
+| POST | /v1/content/comments | Comment | yes | Open a thread on an entry, or reply to one ([Comments](#comments)) |
+| GET | /v1/content/comments | Comments | yes | Comments on one entry, or replies to one root, cursor-paginated, under the entry's own read check |
+| GET | /v1/content/comments/{id} | GetComment | yes | One comment |
+| POST | /v1/content/comments/{id}/resolve | ResolveComment | yes | Resolve a thread |
+| POST | /v1/content/comments/{id}/reopen | ReopenComment | yes | Reopen a resolved thread |
+| POST | /v1/content/comments/{id}/retract | RetractComment | yes | Its author withdraws a comment's body from every answer |
+| POST | /v1/content/retention | DeclareRetention | yes | Declare a retention schedule over a path prefix of a repository ([Retention and holds](#retention-and-holds)) |
+| GET | /v1/content/retention | RetentionSchedules | yes | Retention schedules, declared here and declared by adopted programme specs |
+| GET | /v1/content/retention/{id} | GetRetentionSchedule | yes | One retention schedule |
+| POST | /v1/content/retention/{id}/retire | RetireRetention | yes | Retire a schedule declared here, with a reason |
+| POST | /v1/content/holds | PlaceHold | yes | Place a legal hold over a path prefix of a repository. Takes a step-up |
+| GET | /v1/content/holds | Holds | yes | Legal holds, in force and released |
+| GET | /v1/content/holds/{id} | GetHold | yes | One legal hold |
+| POST | /v1/content/holds/{id}/release | ReleaseHold | yes | Release a hold, with a reason. Takes a step-up |
+| GET | /v1/content/disposals | Disposals | yes | For one repository, each entry a schedule covers, with its disposal date or why it has none, and the holds covering it. Removes nothing |
+| GET | /v1/admin/records/content/snapshot | RecordSnapshot | yes | Every store this service owns — the repository registry, change logs, proposals, pseudonym map, anchors and record mirror, and the records about entries: attestations, attestation and document requests, comments, retention schedules and legal holds — at one instant between writes, as a ustar archive led by a `RecordSnapshot` ([`architecture/storage`](storage.md#the-snapshot-route)). On a pass that can use `admin:*`. No route restores the store ([`architecture/storage`](storage.md#putting-a-store-back)) |
 | POST | /v1/services | Services | yes | Accept the signed service directory the orchestrator pushes, as [`protocol/spec`](../protocol/spec.md#post-v1services) specifies. See [Registration and Standalone Operation](#registration-and-standalone-operation) |
 | GET | /livez | Livez | no | Liveness, for the supervisor that restarts the service. Served with or without an orchestrator |
 | GET | /readyz | Readyz | no | Readiness, for the supervisor waiting on its start. Served with or without an orchestrator |
@@ -515,6 +541,113 @@ interfaces:
       methods: [POST]
       description: Issue a checkpoint now, where the tip has moved since the
         last one, and return the log's head
+      served_by: content-service
+
+    - path: /v1/content/attestations
+      methods: [GET, POST]
+      description: POST records one person's attestation of one version of
+        an entry, signed or witnessed. GET lists attestations in scope, each
+        under its entry's own read check
+      served_by: content-service
+
+    - path: /v1/content/attestations/{id}
+      methods: [GET]
+      description: One attestation
+      served_by: content-service
+
+    - path: /v1/content/attestation-requests
+      methods: [GET, POST]
+      description: POST asks named positions or operators to attest one
+        version, resolving positions to holders as it asks. GET lists requests
+      served_by: content-service
+
+    - path: /v1/content/attestation-requests/{id}
+      methods: [GET]
+      description: One request, with who was asked and who has answered
+      served_by: content-service
+
+    - path: /v1/content/attestation-requests/{id}/withdraw
+      methods: [POST]
+      description: Withdraw an open request
+      served_by: content-service
+
+    - path: /v1/content/document-requests
+      methods: [GET, POST]
+      description: POST asks named positions or operators to supply an
+        entry, answered by a proposal. GET lists requests
+      served_by: content-service
+
+    - path: /v1/content/document-requests/{id}
+      methods: [GET]
+      description: One document request
+      served_by: content-service
+
+    - path: /v1/content/document-requests/{id}/withdraw
+      methods: [POST]
+      description: Withdraw an open request
+      served_by: content-service
+
+    - path: /v1/content/comments
+      methods: [GET, POST]
+      description: POST opens a thread on an entry or replies to one. GET
+        lists comments on one entry, under its own read check
+      served_by: content-service
+
+    - path: /v1/content/comments/{id}
+      methods: [GET]
+      description: One comment
+      served_by: content-service
+
+    - path: /v1/content/comments/{id}/resolve
+      methods: [POST]
+      description: Resolve a thread
+      served_by: content-service
+
+    - path: /v1/content/comments/{id}/reopen
+      methods: [POST]
+      description: Reopen a resolved thread
+      served_by: content-service
+
+    - path: /v1/content/comments/{id}/retract
+      methods: [POST]
+      description: Its author withdraws a comment's body from every answer
+      served_by: content-service
+
+    - path: /v1/content/retention
+      methods: [GET, POST]
+      description: POST declares a retention schedule. GET lists schedules,
+        those adopted programme specs declare among them
+      served_by: content-service
+
+    - path: /v1/content/retention/{id}
+      methods: [GET]
+      description: One retention schedule
+      served_by: content-service
+
+    - path: /v1/content/retention/{id}/retire
+      methods: [POST]
+      description: Retire a schedule declared here
+      served_by: content-service
+
+    - path: /v1/content/holds
+      methods: [GET, POST]
+      description: POST places a legal hold, with a step-up. GET lists holds
+      served_by: content-service
+
+    - path: /v1/content/holds/{id}
+      methods: [GET]
+      description: One legal hold
+      served_by: content-service
+
+    - path: /v1/content/holds/{id}/release
+      methods: [POST]
+      description: Release a hold, with a step-up
+      served_by: content-service
+
+    - path: /v1/content/disposals
+      methods: [GET]
+      description: Each covered entry of one repository with its disposal
+        date or why it has none, and the holds covering it. Removes nothing
       served_by: content-service
 
     - path: /v1/services
@@ -672,6 +805,40 @@ interfaces:
       description: A proposal left open — applied, rejected or stale — naming
         who decided it and, when applied, the separation recorded. Never
         carries the proposed bytes
+
+    - topic: content.attested
+      direction: publish
+      description: A person attested a version of an entry. Names the
+        attestation, repository, path, version, statements, standing and
+        the request it answers. Never carries the entry's bytes
+
+    - topic: content.attestation_requested
+      direction: publish
+      description: People were asked to attest a version. Names the request,
+        the entry, its version, the positions and identities asked, and due
+
+    - topic: content.attestation_request_ended
+      direction: publish
+      description: An attestation request left open, complete or withdrawn
+
+    - topic: content.document_requested
+      direction: publish
+      description: People were asked to supply an entry. Names the request,
+        the repository and path, who was asked, and due
+
+    - topic: content.document_request_ended
+      direction: publish
+      description: A document request left open, fulfilled or withdrawn
+
+    - topic: content.commented
+      direction: publish
+      description: A comment was made. Names the comment, its thread, the
+        entry and the identities it mentions. Never carries its body
+
+    - topic: content.hold_changed
+      direction: publish
+      description: A legal hold was placed or released, naming its matter,
+        repository and prefix
 ```
 
 ---
@@ -697,11 +864,11 @@ prefix, for a fault only that backend can meet, as
 each with the status its Category gives under the rule above, and no backend
 may register a code the table below registers.
 
-Four codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
+Five codes take another status than their Category's. `CONTENT_STATEMENT_INVALID`
 is 400: the token was accepted and the statement it carried was not, so a
 client told to authenticate again would send the same statement.
-`CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN` and
-`CONTENT_REMOTE_UNKNOWN` are 404, because the request was well formed and
+`CONTENT_REPOSITORY_UNKNOWN`, `CONTENT_PROPOSAL_UNKNOWN`,
+`CONTENT_REMOTE_UNKNOWN` and `CONTENT_RECORD_UNKNOWN` are 404, because the request was well formed and
 names nothing the caller may see.
 
 `CONTENT_STATEMENT_INVALID` is this surface's wire form of
@@ -749,6 +916,14 @@ code here is enough, because a client does the same thing for both.
 | `CONTENT_REMOTE_EXISTS` | conflict | The remote id is taken in that repository, by a remote that is not `establishing` or whose recorded arguments differ from this request's | Refuse, naming the recorded destination. An identical retry against an `establishing` remote is a resumption, not this |
 | `CONTENT_REMOTE_UNKNOWN` | validation | No remote of that id in that repository | Refuse |
 | `CONTENT_REMOTE_UNSUPPORTED` | policy | The destination's backend cannot receive a remote, or cannot receive one of the repository's backend | Refuse. Nothing is recorded |
+| `CONTENT_VERSION_UNAVAILABLE` | conflict | A read naming a `version` the change log never recorded at the path, or that the backend cannot read because it keeps no earlier versions, or whose bytes read do not digest to it. See [Reading an earlier version](#reading-an-earlier-version) | Refuse, naming which. Never answer the current bytes in its place |
+| `CONTENT_STATEMENT_UNKNOWN` | validation | An attestation or an attestation request naming a word `attestation_statements` does not declare. See [Entry attestations](#entry-attestations) | Refuse, naming the word. Nothing is recorded |
+| `CONTENT_NOT_ASKED` | policy | An attestation answering a request, or a proposal naming a document request, from a person the request did not ask. See [Attestation requests](#attestation-requests), [Document requests](#document-requests) | Refuse. Nothing is recorded |
+| `CONTENT_ATTESTATION_OUT_OF_ORDER` | conflict | An answer to a `sequential` attestation request before every holder listed ahead of the person has answered. See [Attestation requests](#attestation-requests) | Refuse, naming who has yet to answer. Nothing is recorded |
+| `CONTENT_REQUEST_CLOSED` | conflict | An answer to an attestation or document request that is no longer `open`. See [Attestation requests](#attestation-requests), [Document requests](#document-requests) | Refuse, naming its state. Nothing is recorded |
+| `CONTENT_HELD` | policy | A removal, a decision to apply a removal, or, where the backend keeps no earlier versions, a modifying write, of an entry a legal hold in force covers. See [Retention and holds](#retention-and-holds) | Refuse, naming the hold. Nothing is written, and a proposal stays `open`. An erasure refused this way is reported incomplete |
+| `CONTENT_RETAINED` | policy | A removal, or a decision to apply one, of an entry before the disposal date its retention schedules give it. See [Retention and holds](#retention-and-holds) | Refuse, naming the schedule and the date. Nothing is written, and a proposal stays `open` |
+| `CONTENT_RECORD_UNKNOWN` | validation | An attestation, request, comment, schedule or hold id that names nothing the caller may read | Refuse |
 | `ENFORCEMENT_DATA_CONTRACT_VIOLATION` | enforcement | Path is outside the agent's declared operational data contract | Refuse via the storage proxy |
 
 ---
@@ -1183,16 +1358,21 @@ Its routes are guarded by the `content:` family that document declares:
 
 | Capability | Guards |
 |---|---|
-| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/walk`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log` |
+| `content:read` | `GET /v1/content`, `GET /v1/content/entry`, `GET /v1/content/stat`, `GET /v1/content/walk`, `GET /v1/content/proposals`, `GET /v1/content/proposals/{id}`, `GET /v1/content/repositories/{repository}/log`, `GET /v1/content/attestations`, `GET /v1/content/attestations/{id}`, `GET /v1/content/attestation-requests`, `GET /v1/content/attestation-requests/{id}`, `GET /v1/content/document-requests`, `GET /v1/content/document-requests/{id}`, `GET /v1/content/comments`, `GET /v1/content/comments/{id}` |
 | `content:write` | `PUT /v1/content/entry`, `DELETE /v1/content/entry`. Person only |
 | `content:propose` | `POST /v1/content/proposals` |
 | `content:decide` | `POST /v1/content/proposals/{id}/decision`; `POST /v1/content/repositories` carrying `scope_floor` or `self_decision_ceiling` — required **in addition to** `content:declare` ([Declaration Flow](#declaration-flow) step 4). Person only |
-| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/remotes`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint` |
+| `content:describe` | `GET /v1/content/repositories`, `GET /v1/content/repositories/{repository}/remotes`, `GET /v1/content/repositories/{repository}/log/head`, `POST /v1/content/repositories/{repository}/log/checkpoint`, `GET /v1/content/retention`, `GET /v1/content/retention/{id}`, `GET /v1/content/holds`, `GET /v1/content/holds/{id}`, `GET /v1/content/disposals` |
 | `content:declare` | `POST /v1/content/repositories` |
 | `content:establish` | `POST /v1/content/repositories` with `disposition: establish` — required **in addition to** `content:declare`, because creating a store is more than declaring one |
 | `content:reconcile` | `POST /v1/content/reconcile` |
 | `content:replicate` | `POST /v1/content/repositories/{repository}/remotes`, with `content:connect`; `DELETE /v1/content/repositories/{repository}/remotes/{remote}`. Person only |
 | `content:connect` | `POST /v1/content/repositories/{repository}/remotes` — required **in addition to** `content:replicate`, because it gives the tenant a credential that reaches outside its store. Person only |
+| `content:attest` | `POST /v1/content/attestations`. Person only |
+| `content:request` | `POST /v1/content/attestation-requests`, `POST /v1/content/attestation-requests/{id}/withdraw`, `POST /v1/content/document-requests`, `POST /v1/content/document-requests/{id}/withdraw`. Person only |
+| `content:comment` | `POST /v1/content/comments`, `POST /v1/content/comments/{id}/resolve`, `POST /v1/content/comments/{id}/reopen`, `POST /v1/content/comments/{id}/retract`. Person only |
+| `content:retain` | `POST /v1/content/retention`, `POST /v1/content/retention/{id}/retire`. Person only |
+| `content:hold` | `POST /v1/content/holds`, `POST /v1/content/holds/{id}/release`, each with a step-up. Person only |
 | `content:declassify` | No route yet: every lowering of a recorded scope is refused until one is specified, a person's own decision made with a step-up and a second person's only where the tenant declares one ([A scope only rises](#a-scope-only-rises)). Person only |
 
 **Its snapshot route is guarded by `admin:*`, which it never holds.**
@@ -1254,9 +1434,10 @@ the list changes with it.
 declares become the `cap` of the token the orchestrator issues the service at
 registration ([`protocol/spec`](../protocol/spec.md), `POST /v1/register`), so
 they are what the service may do as a caller as well as what it serves. Its
-manifest therefore declares every capability in the table except the five
+manifest therefore declares every capability in the table except the ten
 that are person only: `content:write`, `content:decide`, `content:replicate`,
-`content:connect` and `content:declassify`. It checks those on the requests it serves and never
+`content:connect`, `content:declassify`, `content:attest`, `content:request`,
+`content:comment`, `content:retain` and `content:hold`. It checks those on the requests it serves and never
 holds them, and registration refuses a manifest that declares one, with
 `CAPABILITY_PERSON_ONLY`. For the same reason no channel grant to this service
 can carry one, because a grant is the intersection of what the requester
@@ -3600,6 +3781,382 @@ the service's seal.
 
 ---
 
+## Records About Entries
+
+An entry is text. What people do **about** an entry is not part of its
+bytes, and MUST NOT become part of them: they sign that they read it, ask
+somebody for it, discuss it, keep it, or hold it against destruction. A
+signature or a comment written into a document changes its digest, and that
+repudiates every signature made on the version before. This service keeps
+those acts as records beside the entries they are about, in record stores it
+owns ([`architecture/storage`](storage.md)).
+
+They are the customer's records, and a console never keeps them in their
+place. A console that keeps them itself becomes the system of record for a
+fact about the organisation, and two consoles of one tenant could then
+disagree about who signed what. Neither could settle that.
+
+| record | what it is | section |
+|---|---|---|
+| entry attestation | one person's signed statement about one version of an entry | [Entry attestations](#entry-attestations) |
+| attestation request | a request that named people attest one version | [Attestation requests](#attestation-requests) |
+| document request | a request that named people supply an entry | [Document requests](#document-requests) |
+| comment | a thread of remarks on an entry | [Comments](#comments) |
+| retention schedule | how long entries under a path are kept, from what moment, and on whose authority | [Retention and holds](#retention-and-holds) |
+| legal hold | a matter under which entries under a path are not destroyed, whatever a schedule says | [Retention and holds](#retention-and-holds) |
+
+Every one of them holds to these rules:
+
+1. **It names its entry by repository, path and version.** `version` is a
+   `ContentIdentity` the repository's change log recorded for that path,
+   never the path alone. A path moves and is reused. A version is the bytes
+   somebody acted on. Retention schedules and holds name a path prefix, since
+   they govern entries that do not exist yet. They take no version.
+2. **It is read under the entry's own read check.** A caller whom the
+   enforcement storage proxy would refuse a read of the entry is refused the
+   record in the same way. A list leaves the record out and does not count
+   it, so a refused read does not reveal that the record exists. A schedule
+   or a hold is read under `content:describe` at its repository.
+3. **It is a person's act, on a pass.** Each record names its `actor`, the
+   pass's `identity_id`, set by the service and never taken from the body.
+   Each act appends an `AuditEntry`. A registration token or a work pass on
+   a route that creates one is refused with `FORBIDDEN`. These records are
+   made by people, and agent work proposes changes to entries
+   ([Proposals](#proposals)); it does not sign, request, comment, retain or
+   hold.
+4. **It is never deleted.** A record leaves its open state through a verb,
+   and the record stays. A retired schedule, a released hold, a retracted
+   comment and a withdrawn request each remain readable. Each says who ended
+   it, when, and why.
+5. **It carries no bytes of the entry.** It holds digests, spans and its own
+   text. Reading an attested version is a read of the entry
+   ([Reading an earlier version](#reading-an-earlier-version)).
+6. **It is in the snapshot.** `GET /v1/admin/records/content/snapshot`
+   carries every store named here, as it carries the change logs.
+
+### Reading an earlier version
+
+`GET /v1/content/entry` takes an optional query parameter `version`: an
+identity that the repository's change log recorded for the path, written
+`<algorithm>:<digest>`. Absent, the read is of the current bytes, as always.
+Present, the service answers the bytes of that version, or refuses:
+
+- **It answers** where the placement's backend keeps earlier versions of its
+  entries and can read them, as the blueprint that specifies the backend
+  declares ([`patterns/content-git`](../patterns/content-git.md) is one), and
+  where the bytes it reads digest to `version`. The read check is the
+  scope the log recorded for that version
+  ([The recorded scope](#the-recorded-scope)), not the path's current one.
+- **It refuses** with `CONTENT_VERSION_UNAVAILABLE` in every other case,
+  naming which applies. The change log never recorded that version at the
+  path. Or the backend keeps no earlier versions. Or the bytes it read do not
+  digest to `version`. It never answers the current bytes in the version's
+  place, and never answers bytes it could not verify.
+
+**Restoring is a write.** No route restores a version. A person restores one
+by reading it and writing those bytes with `if_match` set to the current
+digest ([Write Flow](#write-flow)). The log then records a `modify` whose
+`after` equals an earlier `before`, and that is the whole account. A console
+keeps no copy of overwritten or deleted bytes in order to offer a restore.
+Where the backend keeps no history, the earlier bytes are gone, and the
+console says so.
+
+### Entry attestations
+
+An entry attestation is one person's statement about one version of an entry:
+that they have read it, understood it, agreed to it, complied with it, or
+received it. It is the record a read-and-understood campaign collects, and
+the record behind a document's sign-off. It is not a change. The entry's bytes
+and its log are untouched, and attesting needs no right to write.
+
+**The statements are a closed set, declared here.**
+
+```yaml
+attestation_statements:
+  read:         {says: I have read this version}
+  understood:   {says: I understand what this version requires of me}
+  agreed:       {says: I agree to what this version states}
+  complies:     {says: what I am responsible for complies with this version}
+  acknowledged: {says: I have received this version}
+```
+
+An attestation names one or more of these words in `statements`. Any other
+word is refused with `CONTENT_STATEMENT_UNKNOWN`. A client renders the `says`
+of each word it asks a person to sign, and never its own wording, because the
+words a person signs are part of what they signed. A tenant cannot add a word
+or change a `says`. Each word is part of the signed statement below, so a
+second meaning for one word would make two signatures over the same bytes
+mean different things.
+
+**What it covers.** `covers` is `entry` or `span`:
+
+- `entry` covers every byte of the version.
+- `span` covers `span.length` bytes of that version, starting `span.offset`
+  bytes in. `covers_ref` is the client's label for that
+  part, such as a section's id or a record's uid. It is recorded and never
+  resolved.
+
+The service computes `covers_digest` over the covered bytes of the version
+it read. It never takes `covers_digest` from the request. A span that does
+not lie within the version is refused with `INVALID_REQUEST`. A narrower
+cover never changes `version`: it stays the whole entry's identity, which is
+the key the change log, the fabric and the working tree join on.
+
+**It is made against the version the person read.** The request names
+`version`. It is admitted where `version` is the entry's current identity, or
+where the request answers an [attestation request](#attestation-requests)
+that names that version. Any other version is refused with
+`CONTENT_PRECONDITION_FAILED`, naming the current identity, as a write whose
+`if_match` has moved is refused. Nobody attests to bytes they were not shown.
+
+**Signed, or witnessed.** An attestation may carry a `statement`, an
+`AttestationSignature` by the person's sign-records credential over this
+fixed-form statement
+([`protocol/identity`](../protocol/identity.md#fixed-form-statements)):
+
+```
+"weblisk/content-attestation/v1" 0x00 <log id> 0x00 <path> 0x00 <version> 0x00 <covers> 0x00 <span> 0x00 <covers_digest> 0x00 <statements> 0x00 <request> 0x00 <signed_at>
+
+<log id>         the repository's log id, as 64 lowercase hex characters
+<path>           the entry's path
+<version>        the version attested, written <algorithm>:<digest>
+<covers>         entry or span
+<span>           <offset>+<length> in decimal bytes; empty when covers is entry
+<covers_digest>  the digest of the covered bytes, written <algorithm>:<digest>
+<statements>     the words, sorted, joined by a comma
+<request>        the attestation request it answers; empty when none
+<signed_at>      when the person signed, as protocol/conventions:instant writes it
+```
+
+The service rebuilds these bytes from the record it is about to keep, and
+verifies the signature over them by the six checks of
+[The change statement](#the-change-statement), with the same refusal,
+`CONTENT_STATEMENT_INVALID`. A recorded attestation with a statement that
+verifies has `standing` `signed`. One without a statement has `standing`
+`witnessed`: the hub saw the person, on their own pass, make it, and nobody
+can later show that the person's own key did. **No test vectors are published
+for `weblisk/content-attestation/v1` yet**, so no implementation may sign
+under it ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)).
+Until vectors are published, every attestation is `witnessed` and is
+reported that way.
+
+**It is kept in a chained, sealed store.** The `entry-attestations` store is
+append-only and is chained and sealed as
+[`architecture/storage`](storage.md#sealing-a-chained-log) seals a log. An
+attestation altered after the fact breaks that chain. A change of the
+service's key is that log's succession, so nothing re-seals an attestation
+one by one. An attestation is never withdrawn. A person who no longer stands
+behind a version attests the next one, or does not.
+
+**What it discharges is not its to say.** An attestation names no obligation
+and no occurrence. Whether it records an occurrence of an obligation, and
+whether it is the sign-off `approved_by` asks for, is derived by the service
+that reads it ([`architecture/programme-service`](programme-service.md#known-gaps)).
+A client never sends that claim, because a claim anybody may send is not
+evidence.
+
+### Attestation requests
+
+An attestation request asks named people to attest one version of an entry:
+
+- `repository`, `path` and `version`;
+- the `statements` each asked person must make, and `covers` with `span`
+  where it is narrower than the entry;
+- `asked`: positions at an organisation, operators by identity id, or both;
+- `order`: `any`, or `sequential` for people who must attest in the order
+  `asked` lists them;
+- `due`, an instant, which is optional;
+- `message`, text the asked people are shown, which is optional.
+
+**Who was asked is fixed when it is asked.** Each position is resolved to its
+holders from the organisation's position-holders register
+([`schemas/position`](../schemas/position.md#who-holds-a-position)) when
+the request is made. The resolution is recorded as `holders`, so a later
+change of holder does not change who was asked. A position with no holder
+is recorded `unresolved` and the request reports it, never as complete. A
+request that asks nobody resolvable is refused with `INVALID_REQUEST`.
+
+**It completes on its own record.** The request is `complete` once every
+holder in `holders` has an attestation that answers it, against its
+`version`, making every word in its `statements`. An answer from someone the
+request did not ask is refused with `CONTENT_NOT_ASKED`. In `sequential`
+order, an answer before the earlier holders have answered is refused with
+`CONTENT_ATTESTATION_OUT_OF_ORDER`. An answer to a request that is no longer
+`open` is refused with `CONTENT_REQUEST_CLOSED`.
+
+**The entry may move on, and the request stays put.** A request is about one
+version. If the entry is changed while the request is open, the request
+reports `entry_moved` `true` and stays open on its version. Whether to
+withdraw it and ask again is a person's decision. It never moves to the new
+version, because the people who already answered signed the old one. Being
+past `due` is derived on each read as `overdue`, and changes no state.
+
+**Telling the people asked is not this service's job.** It publishes
+`content.attestation_requested`. Telling the holders of a position is
+notification's ([`architecture/notification`](notification.md)), which tells
+positions, and an operator named by identity id alone is told by nobody
+until notification can name one ([What is still open](#what-is-still-open)).
+
+**Only people the tenant knows can be asked.** Every holder answers on their
+own pass, so every asked person is an operator of this tenant. A signer
+outside the organisation, with no operator identity, cannot be asked
+([What is still open](#what-is-still-open)).
+
+### Document requests
+
+A document request asks named people to supply an entry: the `repository`
+and `path` the answer goes to, `asked` as an attestation request names it,
+and an optional `due`, `message` and `family`. `family` is the document
+family the answer is expected to be written to, and the answer is walked
+against it ([Walking an Entry](#walking-an-entry)).
+
+**The answer is a proposal.** A person who was asked answers with
+`POST /v1/content/proposals`, naming the request in `document_request`, at
+the request's repository and path. A proposal naming a request is refused
+with `CONTENT_NOT_ASKED` from anyone the request did not ask, and with
+`CONTENT_REQUEST_CLOSED` once the request is no longer `open`. The proposal is
+decided as any other proposal is ([Decision Flow](#decision-flow)), with its
+separation of duties. Applying it marks the request `fulfilled` and records
+the proposal. Rejecting it leaves the request `open`.
+
+Nothing arrives except as a proposal, so nothing a request brings in is ever
+written without a person's decision. A request that would let an outside
+party send bytes needs a route that admits a person with no operator
+identity, and none is specified ([What is still open](#what-is-still-open)).
+
+### Comments
+
+A comment is a remark on an entry. A thread opens with a root comment, which
+names `repository`, `path` and the `version` it was written against, and an
+optional `anchor`. The anchor is either a `span` of that version or a `quote`
+of the text it is about, or both. Each reply names its root as `parent`. A
+reply to a reply is refused with `INVALID_REQUEST`, so a thread is one level
+deep.
+
+- **It is said once.** A comment's `body` is never edited. A correction is a
+  reply.
+- **Mentions are recorded, not delivered.** `mentions` names identity ids,
+  and each must be an operator who may read the entry, or the comment is
+  refused with `INVALID_REQUEST`. The service publishes `content.commented`
+  naming them. It tells nobody itself.
+- **A thread is resolved or open.** Only a root carries the state. `resolve`
+  and `reopen` act on the root, and each records who acted and when.
+- **A comment is retracted, not deleted.** Its author may `retract` it, and
+  anyone else is refused with `FORBIDDEN`. From
+  then on its `body` is absent from every answer, and its `retracted_by` and
+  `retracted_at` say so. Its place in the thread remains.
+- **A comment is never evidence.** Its kind has no capability
+  ([`schemas/kinds`](../schemas/kinds.md#declared-kinds)). A thread cannot be
+  cited as proof that anything was reviewed. An attestation can.
+
+### Retention and holds
+
+**A retention schedule** says how long entries are kept. It names a
+`repository`, a path `prefix` (empty for the whole repository), `keep`,
+`from`, and optionally `authority` and `reason`. These fields carry exactly
+the meanings and vocabularies a register's `retention` has
+([`schemas/programme`](../schemas/programme.md#retention)). A `keep` outside
+that vocabulary is refused with `INVALID_REQUEST`. A schedule is `active` until
+a person `retire`s it with a reason.
+
+A register that an adopted programme declares with `retention` has a schedule
+too, which nobody wrote here. The service reports it among the schedules,
+with `declared_by` naming the spec that declares it. It cannot be retired
+here, because it changes when the spec changes.
+
+**A legal hold** says entries are not destroyed. It names a `matter`, a
+`reason`, a `repository` and a path `prefix`. Placing and releasing one are
+destructive in the sense
+[`architecture/admin`](admin.md#contracts)'s `destructive-action-step-up`
+means: each takes a step-up, and a release records its `release_reason`.
+
+**What they refuse.** Where an entry is covered:
+
+1. **Under a hold**, a removal of it is refused with `CONTENT_HELD`, naming
+   the hold. So is a decision to apply a proposal that removes it. A
+   removal made to erase a person's data is refused in the same way: a hold
+   overrides erasure ([`patterns/privacy`](../patterns/privacy.md)), and the
+   refusal names the hold so the erasure is reported incomplete, never
+   silently done. A write that modifies the entry is admitted only where the
+   backend keeps earlier versions it can read, because only there does the
+   held version survive the write. Elsewhere the write is refused with
+   `CONTENT_HELD`.
+2. **Under a schedule**, a removal before the entry's disposal date is
+   refused with `CONTENT_RETAINED`, naming the schedule and the date. Where
+   several schedules cover an entry, its disposal date is the latest any of
+   them gives.
+3. **Where `from` cannot be resolved**, which happens when it names an event
+   not yet recorded, the entry has no disposal date. It is reported
+   `unresolvable` and kept. Keeping a record too long can be undone, and
+   destroying it early cannot.
+
+**This service never disposes of anything.** `GET /v1/content/disposals`
+answers, for a repository, each covered entry with its disposal date, or
+`unresolvable` with why, and whether a hold covers it. A disposal is a
+person's removal, recorded in the change log like any other.
+
+Schedules and holds govern this service's entries. The records other services
+keep, such as runs, notifications and audit logs, follow their own blueprints'
+retention. No schedule here reaches them ([What is still open](#what-is-still-open)).
+
+### What is not kept here
+
+- **Evidence is an entry.** An evidence file is an entry in a repository, its
+  provenance is its change log, and what it proves is a relationship in the
+  fabric (`proves`, [`architecture/fabric`](fabric.md)). It is never a field
+  of a record here. A record that names a control beside an evidence file
+  holds a relationship somewhere relationships are not kept.
+- **A section's restriction.** An entry's scope is the whole entry's
+  ([An Entry's Scope](#an-entrys-scope)). Restricting one section of an entry
+  to fewer readers is not specified ([What is still open](#what-is-still-open)).
+- **Conversation.** People's chat is not a record about an entry, and no
+  tenant service keeps it.
+
+### Who may do what to these records
+
+| act | capability | person only | step-up |
+|---|---|---|---|
+| attest | `content:attest` | yes | no |
+| ask for an attestation or a document, and withdraw the request | `content:request` | yes | no |
+| comment, reply, resolve, reopen, retract | `content:comment` | yes | no |
+| declare and retire a retention schedule | `content:retain` | yes | no |
+| place and release a legal hold | `content:hold` | yes | yes |
+| read attestations, requests and comments | `content:read`, and the entry's own read check | no | no |
+| read schedules, holds and disposals | `content:describe` | no | no |
+
+Each act is guarded by one capability in
+[`protocol/types`](../protocol/types.md#capability). The person-only ones are
+never declared on this service's manifest, as
+[Registration and Standalone Operation](#registration-and-standalone-operation)
+says of the others.
+
+### What is still open
+
+- **No test vectors for `weblisk/content-attestation/v1`.** Until they are
+  published, every attestation is `witnessed`, and none is `signed`.
+- **A signer outside the tenant.** Attesting, and answering a document
+  request, need an operator's pass. A route that admits a person with no
+  operator identity, for a one-time act on one record, would also be a public
+  door into the tenant. Whether a tenant has one, which component serves it,
+  and how that person is identified, is not decided.
+- **Telling one person.** Notification tells the holders of positions. A
+  request that names an operator directly, and a mention in a comment, are
+  recorded and told to nobody until notification can name a person.
+- **Who may change the statement words.** The set is the corpus's and closed.
+  Whether a tenant may add words of its own, which would make the meaning of
+  a signed word depend on the tenant, is not decided.
+- **Programme service reading attestations.** The programme service does not
+  yet read entry attestations, so an attestation records no occurrence and
+  raises no sign-off ([`architecture/programme-service`](programme-service.md#known-gaps)).
+- **Retention beyond content.** A schedule or a hold here governs this
+  service's entries only. The records other services keep follow their own
+  retention, and no hold reaches them.
+- **A section's restriction.** A narrower readership for one section of an
+  entry either splits the entry or answers a read with bytes that are not the
+  entry's, which this service never does. Neither is chosen.
+
+---
+
 ## Types
 
 ```yaml
@@ -4586,6 +5143,12 @@ types:
         type: string
         required: false
         description: Asserted. Why, in the proposer's words
+      document_request:
+        type: string
+        required: false
+        description: The document request this answers. Admitted only from a
+          person the request asked, at its repository and path, while it is
+          open (Document requests)
 
   ContentProposal:
     description: A change to one entry, recorded and not made. Returned by
@@ -4656,6 +5219,10 @@ types:
         type: string
         required: false
         description: Asserted, as the request stated it
+      document_request:
+        type: string
+        required: false
+        description: The document request it answers, as its request named it
       proposed_at:
         type: timestamp
         required: true
@@ -5001,6 +5568,597 @@ types:
         required: false
         description: The seq where that check failed. Present exactly when
           chain is broken or unreadable
+  ByteSpan:
+    description: A range of an entry version's bytes, length bytes from offset
+    fields:
+      offset: {type: integer, required: true, description: How many bytes of the version precede the first byte covered}
+      length: {type: integer, required: true, description: How many bytes are covered. At least 1, and offset plus length is at most the version's size}
+
+  AttestationSignature:
+    description: A person's signature over an entry attestation, by their sign-records credential, over the weblisk/content-attestation/v1 statement (Entry attestations). Verified as a ChangeStatement is
+    fields:
+      signer: {type: string, required: false, description: "Recorded. The identity id whose statement this is: the token's identity_id. Set by the service and never taken from a request"}
+      signed_at: {type: timestamp, required: true, description: When the person signed. Within 300 seconds of the service's clock when received}
+      attestation: {type: Attestation, required: true, description: The attestation binding the signing key to the signer's identity, with purpose sign-records}
+      signature: {type: string, required: true, description: ML-DSA-65 signature by the attestation's credential_public_key over the weblisk/content-attestation/v1 statement, base64url}
+
+  AttestationSubmission:
+    description: The body of POST /v1/content/attestations
+    fields:
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      version: {type: string, required: true, description: "The identity attested, <algorithm>:<digest>: the entry's current identity, or the version of the request this answers"}
+      statements: {type: "[]string", required: true, description: One or more words of attestation_statements, each once}
+      covers: {type: string, required: true, enum: [entry, span]}
+      span: {type: ByteSpan, required: false, description: Present exactly when covers is span}
+      covers_ref: {type: string, required: false, description: The client's label for the span. Recorded, never resolved}
+      request: {type: string, required: false, description: The attestation request this answers}
+      statement: {type: AttestationSignature, required: false, description: Absent, the attestation is recorded witnessed}
+
+  EntryAttestation:
+    description: One person's statement about one version of an entry, as recorded. An item of GET /v1/content/attestations
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused}
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      version: {type: string, required: true, description: "The identity attested, <algorithm>:<digest>"}
+      statements: {type: "[]string", required: true}
+      covers: {type: string, required: true, enum: [entry, span]}
+      span: {type: ByteSpan, required: false}
+      covers_ref: {type: string, required: false}
+      covers_digest: {type: string, required: true, description: "The digest of the covered bytes of the version, <algorithm>:<digest>, computed by the service"}
+      request: {type: string, required: false}
+      actor: {type: string, required: true, description: The identity id of the person who attested, from their pass}
+      standing: {type: string, required: true, enum: [signed, witnessed], description: signed where a statement verified, witnessed where none was sent}
+      statement: {type: AttestationSignature, required: false, description: Present exactly when standing is signed}
+      attested_at: {type: timestamp, required: true}
+
+  AttestationPage:
+    description: One page of GET /v1/content/attestations, newest first
+    fields:
+      attestations: {type: "[]EntryAttestation", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  AskedParty:
+    description: Who a request asks, as the person asking named them
+    fields:
+      position: {type: string, required: false, description: A position at the organisation the repository belongs to. Exactly one of position and identity}
+      identity: {type: string, required: false, description: An operator's identity id}
+
+  AskedHolder:
+    description: One person a request asked, fixed when it was asked
+    fields:
+      identity: {type: string, required: false, description: The holder's identity id. Absent where the position had no holder}
+      position: {type: string, required: false, description: The position they were asked as, where they were asked through one}
+      resolution: {type: string, required: true, enum: [resolved, unresolved]}
+      answered_by: {type: string, required: false, description: "The answer: an attestation's id on an attestation request, a proposal's on a document request"}
+
+  AttestationRequestSubmission:
+    description: The body of POST /v1/content/attestation-requests
+    fields:
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      version: {type: string, required: true, description: The version to be attested. The entry's current identity when asked}
+      statements: {type: "[]string", required: true}
+      covers: {type: string, required: true, enum: [entry, span]}
+      span: {type: ByteSpan, required: false}
+      covers_ref: {type: string, required: false}
+      asked: {type: "[]AskedParty", required: true}
+      order: {type: string, required: false, enum: [any, sequential], description: Absent is any}
+      due: {type: timestamp, required: false}
+      message: {type: string, required: false}
+
+  AttestationRequest:
+    description: A request that named people attest one version. An item of GET /v1/content/attestation-requests
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused}
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      version: {type: string, required: true}
+      statements: {type: "[]string", required: true}
+      covers: {type: string, required: true, enum: [entry, span]}
+      span: {type: ByteSpan, required: false}
+      covers_ref: {type: string, required: false}
+      asked: {type: "[]AskedParty", required: true}
+      holders: {type: "[]AskedHolder", required: true, description: Who was asked, resolved when it was asked, in the order asked lists them}
+      order: {type: string, required: true, enum: [any, sequential]}
+      due: {type: timestamp, required: false}
+      message: {type: string, required: false}
+      state: {type: string, required: true, enum: [open, complete, withdrawn]}
+      overdue: {type: bool, required: true, description: Derived on each read. True while open past due}
+      entry_moved: {type: bool, required: true, description: Derived on each read. True where the entry's current identity is not version}
+      actor: {type: string, required: true, description: The identity id of the person who asked}
+      requested_at: {type: timestamp, required: true}
+      ended_by: {type: string, required: false, description: Who withdrew it. Absent on complete, which nobody does}
+      ended_at: {type: timestamp, required: false}
+      reason: {type: string, required: false, description: Why it was withdrawn}
+
+  AttestationRequestPage:
+    description: One page of GET /v1/content/attestation-requests, newest first
+    fields:
+      requests: {type: "[]AttestationRequest", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  RequestWithdrawal:
+    description: The body of a withdraw verb on a request
+    fields:
+      reason: {type: string, required: true}
+
+  DocumentRequestSubmission:
+    description: The body of POST /v1/content/document-requests
+    fields:
+      repository: {type: string, required: true}
+      path: {type: string, required: true, description: Where the answer is written}
+      asked: {type: "[]AskedParty", required: true}
+      family: {type: string, required: false, description: The document family the answer is expected to be written to}
+      due: {type: timestamp, required: false}
+      message: {type: string, required: false}
+
+  DocumentRequest:
+    description: A request that named people supply an entry. An item of GET /v1/content/document-requests
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused}
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      asked: {type: "[]AskedParty", required: true}
+      holders: {type: "[]AskedHolder", required: true}
+      family: {type: string, required: false}
+      due: {type: timestamp, required: false}
+      message: {type: string, required: false}
+      state: {type: string, required: true, enum: [open, fulfilled, withdrawn]}
+      overdue: {type: bool, required: true, description: Derived on each read. True while open past due}
+      proposal: {type: string, required: false, description: The applied proposal that fulfilled it}
+      actor: {type: string, required: true}
+      requested_at: {type: timestamp, required: true}
+      ended_by: {type: string, required: false, description: Who withdrew it, or who decided the proposal that fulfilled it}
+      ended_at: {type: timestamp, required: false}
+      reason: {type: string, required: false}
+
+  DocumentRequestPage:
+    description: One page of GET /v1/content/document-requests, newest first
+    fields:
+      requests: {type: "[]DocumentRequest", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  CommentAnchor:
+    description: What a thread is about, within the version it names
+    fields:
+      span: {type: ByteSpan, required: false}
+      quote: {type: string, required: false, description: The text the thread is about, as the person selected it}
+
+  CommentSubmission:
+    description: The body of POST /v1/content/comments. A root names repository, path and version; a reply names parent and nothing of the entry
+    fields:
+      repository: {type: string, required: false}
+      path: {type: string, required: false}
+      version: {type: string, required: false}
+      anchor: {type: CommentAnchor, required: false}
+      parent: {type: string, required: false, description: The root this replies to}
+      body: {type: string, required: true}
+      mentions: {type: "[]string", required: false, description: Identity ids of operators who may read the entry}
+
+  EntryComment:
+    description: One comment, a thread's root or a reply. An item of GET /v1/content/comments
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused}
+      repository: {type: string, required: true}
+      path: {type: string, required: true}
+      version: {type: string, required: true, description: The version the thread was written against. A reply carries its root's}
+      anchor: {type: CommentAnchor, required: false}
+      parent: {type: string, required: false, description: Absent on a root}
+      body: {type: string, required: false, description: Absent once retracted}
+      mentions: {type: "[]string", required: false}
+      actor: {type: string, required: true}
+      commented_at: {type: timestamp, required: true}
+      state: {type: string, required: true, enum: [open, resolved, reply], description: open or resolved on a root; reply on a reply}
+      resolved_by: {type: string, required: false}
+      resolved_at: {type: timestamp, required: false}
+      retracted_by: {type: string, required: false}
+      retracted_at: {type: timestamp, required: false}
+
+  CommentPage:
+    description: One page of GET /v1/content/comments, oldest first within a thread
+    fields:
+      comments: {type: "[]EntryComment", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  RetentionSubmission:
+    description: The body of POST /v1/content/retention. keep, from, authority and reason mean what a register's retention means (schemas/programme)
+    fields:
+      repository: {type: string, required: true}
+      prefix: {type: string, required: true, description: A path prefix. Empty covers the whole repository}
+      keep: {type: string, required: true}
+      from: {type: string, required: false, description: Absent is created}
+      authority: {type: string, required: false}
+      reason: {type: string, required: false}
+
+  RetentionSchedule:
+    description: How long entries under a prefix are kept. An item of GET /v1/content/retention
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused. A declared schedule's is its spec's ref}
+      repository: {type: string, required: true}
+      prefix: {type: string, required: true}
+      keep: {type: string, required: true}
+      from: {type: string, required: true}
+      authority: {type: string, required: false}
+      reason: {type: string, required: false}
+      declared_by: {type: string, required: false, description: The programme spec that declares it, where it was not written here. Such a schedule cannot be retired here}
+      state: {type: string, required: true, enum: [active, retired]}
+      actor: {type: string, required: false, description: Who declared it. Absent on a declared one}
+      declared_at: {type: timestamp, required: false}
+      retired_by: {type: string, required: false}
+      retired_at: {type: timestamp, required: false}
+      retire_reason: {type: string, required: false}
+
+  RetentionPage:
+    description: One page of GET /v1/content/retention
+    fields:
+      schedules: {type: "[]RetentionSchedule", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  RetentionRetirement:
+    description: The body of the retire verb on a retention schedule
+    fields:
+      reason: {type: string, required: true}
+
+  HoldSubmission:
+    description: The body of POST /v1/content/holds
+    fields:
+      matter: {type: string, required: true, description: What the hold is for, as the organisation names the matter}
+      reason: {type: string, required: true}
+      repository: {type: string, required: true}
+      prefix: {type: string, required: true, description: A path prefix. Empty covers the whole repository}
+
+  LegalHold:
+    description: A matter under which entries under a prefix are not destroyed. An item of GET /v1/content/holds
+    fields:
+      id: {type: string, required: true, description: Minted by the service, 32 lowercase hex characters, never reused}
+      matter: {type: string, required: true}
+      reason: {type: string, required: true}
+      repository: {type: string, required: true}
+      prefix: {type: string, required: true}
+      state: {type: string, required: true, enum: [in-force, released]}
+      placed_by: {type: string, required: true}
+      placed_at: {type: timestamp, required: true}
+      released_by: {type: string, required: false}
+      released_at: {type: timestamp, required: false}
+      release_reason: {type: string, required: false}
+
+  HoldPage:
+    description: One page of GET /v1/content/holds
+    fields:
+      holds: {type: "[]LegalHold", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+
+  HoldRelease:
+    description: The body of the release verb on a legal hold
+    fields:
+      reason: {type: string, required: true}
+
+  Disposal:
+    description: When one covered entry may be removed, and what stops it
+    fields:
+      path: {type: string, required: true}
+      version: {type: string, required: true, description: The entry's current identity}
+      disposal_date: {type: timestamp, required: false, description: The latest date any covering schedule gives. Absent where unresolvable}
+      unresolvable: {type: string, required: false, description: Why no date can be given, naming the schedule and the from it could not resolve}
+      schedules: {type: "[]string", required: true, description: Every active schedule covering it}
+      holds: {type: "[]string", required: true, description: Every hold in force covering it. Not empty means it may not be removed}
+
+  DisposalPage:
+    description: One page of GET /v1/content/disposals for one repository, soonest first, unresolvable last
+    fields:
+      disposals: {type: "[]Disposal", required: true}
+      next_cursor: {type: string, required: false, description: Absent on the last page}
+```
+
+---
+
+## Resources
+
+What a person sees and operates of the [Records About Entries](#records-about-entries),
+declared as [`schemas/resource`](../schemas/resource.md) says. The kinds are
+[`schemas/kinds`](../schemas/kinds.md#declared-kinds)'. Entries, repositories,
+remotes and proposals are served on this service's own routes and are not
+declared as kinds here yet.
+
+```yaml
+resources:
+  - kind: entry-attestation
+    owner: content
+    type: EntryAttestation
+    identity: {field: id, form: minted}
+    label: path
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: path, access: create, present: text}
+      - {name: version, access: create, present: text}
+      - {name: statements, access: create, present: list}
+      - {name: covers, access: create, present: choice}
+      - {name: covers_ref, access: create, present: text}
+      - {name: covers_digest, access: read-only, present: text}
+      - {name: request, access: create, present: reference, kind: attestation-request}
+      - {name: actor, access: read-only, present: text}
+      - {name: standing, access: read-only, present: choice}
+      - {name: attested_at, access: read-only, present: instant}
+    operations:
+      list: {capability: "content:read", binds: Attestations, items: attestations, filters: [repository, path, version, actor, request, standing]}
+      get: {capability: "content:read", binds: GetAttestation}
+      create: {capability: "content:attest", binds: Attest}
+    events: [created]
+
+  - kind: attestation-request
+    owner: content
+    type: AttestationRequest
+    identity: {field: id, form: minted}
+    label: path
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: path, access: create, present: text}
+      - {name: version, access: create, present: text}
+      - {name: statements, access: create, present: list}
+      - {name: covers, access: create, present: choice}
+      - {name: asked, access: create, present: list}
+      - {name: holders, access: read-only, present: list}
+      - {name: order, access: create, present: choice}
+      - {name: due, access: create, present: instant}
+      - {name: message, access: create, present: text}
+      - {name: state, access: read-only, present: choice}
+      - {name: overdue, access: read-only, present: boolean, volatile: true}
+      - {name: entry_moved, access: read-only, present: boolean, volatile: true}
+      - {name: actor, access: read-only, present: text}
+      - {name: requested_at, access: read-only, present: instant}
+      - {name: ended_by, access: read-only, present: text}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: reason, access: read-only, present: text}
+    operations:
+      list: {capability: "content:read", binds: AttestationRequests, items: requests, filters: [repository, path, state, actor, overdue]}
+      get: {capability: "content:read", binds: GetAttestationRequest}
+      create: {capability: "content:request", binds: RequestAttestation}
+    verbs:
+      - name: withdraw
+        capability: "content:request"
+        binds: WithdrawAttestationRequest
+        transition: withdraw
+        body: RequestWithdrawal
+        preconditions:
+          - the request is open
+        in_flight:
+          handling: none
+          says: attestations already made against it stay recorded; no further answer is admitted
+        effect: the request is withdrawn with its reason, who withdrew it and when
+        reversible: false
+    states:
+      initial_state: open
+      entity_type: AttestationRequest
+      state_field: state
+      states:
+        open: {description: some asked holder has not yet answered}
+        complete: {description: every asked holder answered against its version with every statement, terminal: true}
+        withdrawn: {description: a person withdrew it, terminal: true}
+      transitions:
+        - {name: complete, from: open, to: complete, trigger: the last asked holder attests, description: completes on its own record}
+        - {name: withdraw, from: open, to: withdrawn, trigger: manual, description: a person withdraws it}
+    events: [created, withdraw, complete]
+
+  - kind: document-request
+    owner: content
+    type: DocumentRequest
+    identity: {field: id, form: minted}
+    label: path
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: path, access: create, present: text}
+      - {name: asked, access: create, present: list}
+      - {name: holders, access: read-only, present: list}
+      - {name: family, access: create, present: text}
+      - {name: due, access: create, present: instant}
+      - {name: message, access: create, present: text}
+      - {name: state, access: read-only, present: choice}
+      - {name: overdue, access: read-only, present: boolean, volatile: true}
+      - {name: proposal, access: read-only, present: text}
+      - {name: actor, access: read-only, present: text}
+      - {name: requested_at, access: read-only, present: instant}
+      - {name: ended_by, access: read-only, present: text}
+      - {name: ended_at, access: read-only, present: instant}
+      - {name: reason, access: read-only, present: text}
+    operations:
+      list: {capability: "content:read", binds: DocumentRequests, items: requests, filters: [repository, path, state, actor, overdue]}
+      get: {capability: "content:read", binds: GetDocumentRequest}
+      create: {capability: "content:request", binds: RequestDocument}
+    verbs:
+      - name: withdraw
+        capability: "content:request"
+        binds: WithdrawDocumentRequest
+        transition: withdraw
+        body: RequestWithdrawal
+        preconditions:
+          - the request is open
+        in_flight:
+          handling: none
+          says: a proposal already made against it stays open and is decided as any other, and no longer fulfils the request
+        effect: the request is withdrawn with its reason, who withdrew it and when
+        reversible: false
+    states:
+      initial_state: open
+      entity_type: DocumentRequest
+      state_field: state
+      states:
+        open: {description: no proposal answering it has been applied}
+        fulfilled: {description: a proposal answering it was applied, terminal: true}
+        withdrawn: {description: a person withdrew it, terminal: true}
+      transitions:
+        - {name: fulfil, from: open, to: fulfilled, trigger: a proposal naming it is applied, description: completes when its answer is applied}
+        - {name: withdraw, from: open, to: withdrawn, trigger: manual, description: a person withdraws it}
+    events: [created, withdraw, fulfilled]
+
+  - kind: comment
+    owner: content
+    type: EntryComment
+    identity: {field: id, form: minted}
+    label: path
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: path, access: create, present: text}
+      - {name: version, access: create, present: text}
+      - {name: parent, access: create, present: reference, kind: comment}
+      - {name: body, access: create, present: text}
+      - {name: mentions, access: create, present: list}
+      - {name: actor, access: read-only, present: text}
+      - {name: commented_at, access: read-only, present: instant}
+      - {name: state, access: read-only, present: choice}
+      - {name: resolved_by, access: read-only, present: text}
+      - {name: resolved_at, access: read-only, present: instant}
+      - {name: retracted_by, access: read-only, present: text}
+      - {name: retracted_at, access: read-only, present: instant}
+    operations:
+      list: {capability: "content:read", binds: Comments, items: comments, filters: [repository, path, parent, state, actor]}
+      get: {capability: "content:read", binds: GetComment}
+      create: {capability: "content:comment", binds: Comment}
+    verbs:
+      - name: resolve
+        capability: "content:comment"
+        binds: ResolveComment
+        transition: resolve
+        preconditions:
+          - the comment is a thread's root
+        in_flight:
+          handling: none
+          says: nothing runs on a comment
+        effect: the thread is resolved, naming who resolved it and when
+        reversible: {by: reopen}
+      - name: reopen
+        capability: "content:comment"
+        binds: ReopenComment
+        transition: reopen
+        preconditions:
+          - the comment is a thread's root
+        in_flight:
+          handling: none
+          says: nothing runs on a comment
+        effect: the thread is open again
+        reversible: {by: resolve}
+      - name: retract
+        capability: "content:comment"
+        binds: RetractComment
+        preconditions:
+          - the person retracting it is its author
+          - it is not already retracted
+        in_flight:
+          handling: none
+          says: nothing runs on a comment
+        effect: its body is absent from every answer, and who retracted it and when are recorded; its place in the thread remains
+        reversible: false
+    states:
+      initial_state: open
+      entity_type: EntryComment
+      state_field: state
+      states:
+        open: {description: a thread's root that nobody has resolved}
+        resolved: {description: a thread's root somebody resolved}
+        reply: {description: a reply, which carries no state of its own}
+      transitions:
+        - {name: resolve, from: open, to: resolved, trigger: manual, description: a person resolves the thread}
+        - {name: reopen, from: resolved, to: open, trigger: manual, description: a person reopens the thread}
+    events: [created, resolve, reopen, retract]
+
+  - kind: retention-schedule
+    owner: content
+    type: RetentionSchedule
+    identity: {field: id, form: minted}
+    label: prefix
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: prefix, access: create, present: text}
+      - {name: keep, access: create, present: text}
+      - {name: from, access: create, present: text}
+      - {name: authority, access: create, present: text}
+      - {name: reason, access: create, present: text}
+      - {name: declared_by, access: read-only, present: text}
+      - {name: state, access: read-only, present: choice}
+      - {name: actor, access: read-only, present: text}
+      - {name: declared_at, access: read-only, present: instant}
+      - {name: retired_by, access: read-only, present: text}
+      - {name: retired_at, access: read-only, present: instant}
+      - {name: retire_reason, access: read-only, present: text}
+    operations:
+      list: {capability: "content:describe", binds: RetentionSchedules, items: schedules, filters: [repository, state, declared_by]}
+      get: {capability: "content:describe", binds: GetRetentionSchedule}
+      create: {capability: "content:retain", binds: DeclareRetention}
+    verbs:
+      - name: retire
+        capability: "content:retain"
+        binds: RetireRetention
+        transition: retire
+        body: RetentionRetirement
+        preconditions:
+          - the schedule was declared here, not by a programme spec
+        in_flight:
+          handling: none
+          says: entries it covered keep the dates other schedules give them, and an entry no other schedule covers has none
+        effect: the schedule is retired with its reason, who retired it and when, and no longer refuses a removal
+        reversible: false
+    states:
+      initial_state: active
+      entity_type: RetentionSchedule
+      state_field: state
+      states:
+        active: {description: it gives the entries it covers a disposal date}
+        retired: {description: a person retired it, terminal: true}
+      transitions:
+        - {name: retire, from: active, to: retired, trigger: manual, description: a person retires it}
+    events: [created, retire]
+
+  - kind: legal-hold
+    owner: content
+    type: LegalHold
+    identity: {field: id, form: minted}
+    label: matter
+    fields:
+      - {name: id, access: read-only, present: text}
+      - {name: matter, access: create, present: text}
+      - {name: reason, access: create, present: text}
+      - {name: repository, access: create, present: text}
+      - {name: prefix, access: create, present: text}
+      - {name: state, access: read-only, present: choice}
+      - {name: placed_by, access: read-only, present: text}
+      - {name: placed_at, access: read-only, present: instant}
+      - {name: released_by, access: read-only, present: text}
+      - {name: released_at, access: read-only, present: instant}
+      - {name: release_reason, access: read-only, present: text}
+    operations:
+      list: {capability: "content:describe", binds: Holds, items: holds, filters: [repository, state, matter]}
+      get: {capability: "content:describe", binds: GetHold}
+      create: {capability: "content:hold", step_up: true, binds: PlaceHold}
+    verbs:
+      - name: release
+        capability: "content:hold"
+        step_up: true
+        binds: ReleaseHold
+        transition: release
+        body: HoldRelease
+        preconditions:
+          - the hold is in force
+        in_flight:
+          handling: none
+          says: removals refused under it are not retried; a person removes what is due again
+        effect: the hold is released with its reason, who released it and when, and no longer refuses a removal or a write
+        reversible: false
+    states:
+      initial_state: in-force
+      entity_type: LegalHold
+      state_field: state
+      states:
+        in-force: {description: entries under its prefix are not destroyed}
+        released: {description: a person released it, terminal: true}
+      transitions:
+        - {name: release, from: in-force, to: released, trigger: manual, description: a person releases it}
+    events: [created, release]
 ```
 
 ---
@@ -5719,3 +6877,18 @@ security:
 - [ ] A service started over a change log whose lines after its latest checkpoint were altered settles no reservation in it, refuses writes, removals, decisions to apply, reconciles and checkpoints on that repository with `CONTENT_LOG_BROKEN` naming the `seq`, still serves its entries and its log, names it `not_ready` in its lease's `checks`, and reports `chain` `broken` with that `broken_at` in its `LogHead` ([A log that does not verify](#a-log-that-does-not-verify), [Types](#types)) <!-- wl:check service-started-over-change-log-lines -->
 - [ ] Rotating the service's registered key appends a succession entry to every change log that has an authority, and a verifier that brings only the key the tenant's service directory now lists verifies checkpoints sealed before the rotation ([Who signs](#who-signs), [`architecture/storage`](storage.md#a-change-of-long-lived-key)) <!-- wl:check rotating-services-registered-key-appends -->
 - [ ] `GET /v1/admin/records/content/snapshot` on a pass that can use `admin:*` answers every store this service owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses a registration token and a pass without `admin:*`, and no route restores the store while the service runs ([Endpoints](#endpoints), [`architecture/storage`](storage.md#putting-a-store-back)) <!-- wl:check get-v1-admin-records-content-snapshot -->
+- [ ] `GET /v1/content/entry` with a `version` the log recorded at the path, on a backend that keeps earlier versions, answers those bytes, whose digest is `version`; with a `version` the log never recorded there, or on a backend that keeps none, it is refused with `CONTENT_VERSION_UNAVAILABLE` naming which, and never answered with the current bytes ([Reading an earlier version](#reading-an-earlier-version)) <!-- wl:check get-v1-content-entry-version-log -->
+- [ ] An attestation naming a version that is neither the entry's current identity nor its request's version is refused with `CONTENT_PRECONDITION_FAILED` naming the current identity, and one naming a word `attestation_statements` does not declare is refused with `CONTENT_STATEMENT_UNKNOWN`; nothing is recorded and the entry's digest and change log are unchanged ([Entry attestations](#entry-attestations)) <!-- wl:check attestation-naming-version-entrys-current -->
+- [ ] A recorded attestation's `covers_digest` is the digest of the covered bytes of the version the service read, whatever the request sent, its `actor` is the pass's `identity_id`, and an attestation made without a statement is recorded with `standing` `witnessed` ([Entry attestations](#entry-attestations)) <!-- wl:check recorded-attestations-covers-digest-digest -->
+- [ ] An attestation, an attestation request, a document request and a comment about an entry the caller may not read are refused as a read of that entry is, and a list leaves each out without counting it ([Records About Entries](#records-about-entries) rule 2) <!-- wl:check attestation-attestation-request-document-request -->
+- [ ] A registration token or a work pass on `POST /v1/content/attestations`, `/attestation-requests`, `/document-requests`, `/comments`, `/retention` or `/holds` is refused with `FORBIDDEN`, and the manifest declares none of `content:attest`, `content:request`, `content:comment`, `content:retain` or `content:hold` ([Records About Entries](#records-about-entries) rule 3, [Registration and Standalone Operation](#registration-and-standalone-operation)) <!-- wl:check registration-token-work-pass-post-v1 -->
+- [ ] An attestation request naming a position records its holders when it is asked, and a later change to the position-holders register leaves `holders` unchanged; a position with no holder is recorded `unresolved` and the request never reads `complete` ([Attestation requests](#attestation-requests)) <!-- wl:check attestation-request-naming-position-records -->
+- [ ] An answer from a person the request did not ask is refused with `CONTENT_NOT_ASKED`, an answer to a `sequential` request ahead of an earlier holder with `CONTENT_ATTESTATION_OUT_OF_ORDER`, and an answer to a withdrawn or complete request with `CONTENT_REQUEST_CLOSED`; the request reads `complete` exactly when every resolved holder has attested its version with every required statement ([Attestation requests](#attestation-requests)) <!-- wl:check answer-person-request-not-ask-refused -->
+- [ ] A change to an entry while a request about it is open leaves the request open on its version with `entry_moved` `true`; no answer is admitted against the new version for it ([Attestation requests](#attestation-requests)) <!-- wl:check change-entry-while-request-about-open -->
+- [ ] A proposal naming a document request is refused with `CONTENT_NOT_ASKED` from a person it did not ask, and applying one from a person it asked marks it `fulfilled` with the proposal recorded, while rejecting it leaves it `open` ([Document requests](#document-requests)) <!-- wl:check proposal-naming-document-request-refused-content -->
+- [ ] A reply to a reply is refused with `INVALID_REQUEST`; retracting a comment is refused with `FORBIDDEN` for anyone but its author, and once retracted its `body` is absent from every answer while the comment stays in its thread; no route edits a comment's body ([Comments](#comments)) <!-- wl:check reply-reply-refused-invalid-request-retracting -->
+- [ ] Under a legal hold in force, removing a covered entry, and deciding to apply a proposal that removes one, are refused with `CONTENT_HELD` naming the hold, and a modifying write is refused the same way on a backend that keeps no earlier versions and admitted on one that does; after `release` both are admitted ([Retention and holds](#retention-and-holds)) <!-- wl:check under-legal-hold-force-removing-covered -->
+- [ ] Placing and releasing a legal hold each require a step-up and `content:hold`, and a hold is listed after its release with who released it, when and why ([Retention and holds](#retention-and-holds), [Resources](#resources)) <!-- wl:check placing-releasing-legal-hold-require-step -->
+- [ ] Removing an entry before the latest disposal date its active schedules give is refused with `CONTENT_RETAINED` naming the schedule and the date; a schedule whose `from` names an event not yet recorded gives no date, and `GET /v1/content/disposals` reports the entry `unresolvable` and removes nothing ([Retention and holds](#retention-and-holds)) <!-- wl:check removing-entry-before-latest-disposal-date -->
+- [ ] A register's `retention` declared in an adopted programme spec is listed among the schedules with `declared_by` naming the spec, and `retire` on it is refused ([Retention and holds](#retention-and-holds), [Resources](#resources)) <!-- wl:check registers-retention-declared-adopted-programme -->
+- [ ] No record about an entry is removed by any route: a withdrawn request, a retracted comment, a retired schedule and a released hold each still read back, and `GET /v1/admin/records/content/snapshot` carries every such store ([Records About Entries](#records-about-entries) rules 4 and 6) <!-- wl:check no-record-about-entry-removed-route -->

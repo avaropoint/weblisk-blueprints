@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.6.1
+version: 6.7.0
 requires: []
 platform: any
 tier: free
@@ -258,6 +258,7 @@ projects and grants, [`architecture/orchestrator`](../architecture/orchestrator.
 | `EXECUTION_POSITION_UNRESOLVED` | 503 | transient | Who holds the positions a wait names cannot be read, so no decider can be shown to hold one. Nothing is decided |
 | `EXECUTION_MUTED` | 409 | permanent | A decision on a wait of a muted run, which reaches nobody |
 | `EXECUTION_PASS_UNAVAILABLE` | 503 | transient | A request of a run must be carried on a work pass under its definition's work authorisation and none can be obtained. The step is not dispatched |
+| `EXECUTION_CONSOLE_ABANDONED` | 409 | permanent | Not a refusal: a console run with no turn recorded for its idle limit is ended `failed` with it, so a console whose person left is never shown as running ([`architecture/execution`](../architecture/execution.md#a-run-a-console-ran)) |
 | `EXECUTION_START_LOOP` | 409 | permanent | A run asked to start a definition that the asking run's chain already holds a run of. Nothing starts, as a `for` row on such a chain starts nothing ([`architecture/execution`](../architecture/execution.md#starting-one-run-now)) |
 
 **Record snapshot codes** (produced by every service that owns a record
@@ -494,6 +495,11 @@ refused ([`protocol/spec`](spec.md#post-v1register)).
 - `content:reconcile` (content) — run custody reconciliation on a shared repository
 - `content:replicate` (content) — declare a remote of a repository, and retire one. Declaring one also needs `content:connect`. *Person only*
 - `content:connect` (content) — bind an integration to a destination outside the tenant's store, a remote's among them. It creates nothing in the content service: the credential is the integration's, and the content service holds none. Required in addition to `content:replicate` to declare a remote. *Person only*
+- `content:attest` (content) — attest a version of an entry: one person's statement that they read, understood, agreed to, comply with or received it ([`architecture/content`](../architecture/content.md#entry-attestations)). *Person only*
+- `content:request` (content) — ask named people to attest a version of an entry or to supply one, and withdraw the request ([`architecture/content`](../architecture/content.md#attestation-requests)). *Person only*
+- `content:comment` (content) — comment on an entry, reply, resolve and reopen a thread, and retract one's own comment ([`architecture/content`](../architecture/content.md#comments)). *Person only*
+- `content:retain` (content) — declare and retire a retention schedule over a repository's paths ([`architecture/content`](../architecture/content.md#retention-and-holds)). *Person only*
+- `content:hold` (content) — place and release a legal hold over a repository's paths, each with a step-up ([`architecture/content`](../architecture/content.md#retention-and-holds)). *Person only*
 - `content:declassify` (content) — lower a path's recorded scope. It guards no route yet: [`architecture/content`](../architecture/content.md) refuses every lowering until a route for it is specified: one person's decision made with a step-up, and a second person's too only where the tenant declares one. *Person only*
 
 *Person only* marks a capability that no service and no agent may hold.
@@ -586,6 +592,7 @@ person-only capabilities.
 - `execution:read` (execution) — read runs, their steps, waits and timers, registered starts, and the definitions execution fetched
 - `execution:operate` (execution) — cancel a run, and retry a failed one. A registration token reaches only runs of definitions its own identity owns
 - `execution:register` (execution) — register, change, pause, resume, run now and withdraw the caller's own starts. A component's, on its registration token; no role carries it
+- `execution:record` (execution) — open, record the turns of and end a run of the model work a person's own console does for them while they are present ([`architecture/execution`](../architecture/execution.md#a-run-a-console-ran)). *Person only*
 - `execution:decide` (execution) — decide a wait: complete or decline a person's task, accept or reject an approval, as a holder of a position the wait awaits. *Person only*
 
 Which route needs which is [`architecture/execution`](../architecture/execution.md#endpoints)'s.
@@ -1711,8 +1718,8 @@ types:
         name: DefinitionKind
         type: string
         required: true
-        description: "What sort of thing `definition` names"
-        enum: [workflow, task, agent-instruction]
+        description: "What sort of thing `definition` names. `console` is model work a person's console did for them while they were present, which execution recorded and did not run ([`architecture/execution`](../architecture/execution.md#a-run-a-console-ran))"
+        enum: [workflow, task, agent-instruction, console]
       agent:
         name: Agent
         type: string
@@ -1872,6 +1879,21 @@ types:
         type: text
         required: false
         description: "What the step said: a model's answer, or a decision as the run stated it"
+      asked:
+        name: Asked
+        type: string
+        required: false
+        description: "For a model's turn in a `console` run: what the person said for it"
+      reported:
+        name: Reported
+        type: bool
+        required: false
+        description: "True where the step is what a console reported it did, not what execution observed: every step of a `console` run"
+      withheld:
+        name: Withheld
+        type: "[]string"
+        required: false
+        description: "The fields left out of this answer because the reader may not read them, such as a `console` run's `asked`, `content` and `calls.arguments` to anyone but its person"
       reason:
         name: Reason
         type: text
