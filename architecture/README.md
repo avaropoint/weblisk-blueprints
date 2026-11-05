@@ -28,6 +28,7 @@ The whole chain, standard to rebuild, is mapped in the
 | [programme-service.md](programme-service.md) | Programme service — the operations, workflows and notices an adopted programme installs, who may switch them, and what execution, notification and the prompt worker are handed |
 | [notification.md](notification.md) | Notification — tells the people who hold a notice's positions, each their own way, and reports a notice that reached nobody as such |
 | [model-service.md](model-service.md) | Model service — the one place a tenant component asks the tenant's model for unattended work: the model gateway's service route, its audit and the usage each completion reports |
+| [change-service.md](change-service.md) | Change service — the engine hosted in the tenant: plans, decisions, applies and verifies changes on the tenant's own model, restarts what it rebuilt and itself, and is how every client builds |
 | [tenancy.md](tenancy.md) | Many hubs on shared infrastructure, without the host joining any tenant's trust boundary; and what any tenant is rebuilt from |
 | [mcp.md](mcp.md) | Model Context Protocol surface — how an external AI agent reaches a hub's capabilities |
 

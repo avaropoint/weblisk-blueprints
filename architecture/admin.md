@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.6.0
+version: 5.7.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/orchestrator, architecture/observability, patterns/logging, architecture/domain, architecture/gateway, architecture/client, architecture/threat-model]
 platform: any
 tier: free
@@ -1501,7 +1501,7 @@ contracts:
         # <!-- wl:id operator-role-admin-family -->
         - The `operator` role MUST carry `admin:read`, `admin:approve` and `admin:strategy` — it is the role every `operator+` endpoint in this document is gated on
         # <!-- wl:id capability-roles-table -->
-        - Each `content:` and `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
+        - Each `content:`, `programme:` and `change:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `llm:chat`, `model:attest`, `fabric:read`, `fabric:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` MUST be carried by the roles the Operator Roles table gives it, and by no other. Roles are held by operators, who are people, and by nothing else, so a role may carry a capability `protocol/types` marks person only
         # <!-- wl:id admin-wildcard-excludes -->
         - The wildcard `admin:*` MUST NOT be read as carrying `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise` or a `notification:` capability, which are outside the `admin` family
         # <!-- wl:id every-capability-held -->
@@ -2290,10 +2290,10 @@ otherwise unreadable to the people it names. <!-- wl:id operators-resolve-identi
 
 | Role | Capabilities | Description |
 |------|-------------|-------------|
-| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:` and `programme:` capability, `content:declassify` and `programme:switch` among them, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `fabric:observe`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, authorise work that runs with nobody present, and read whom notices told. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
-| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest`, `fabric:observe`, `work:authorise`, `notification:read`, `notification:receive` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
-| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:receive` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything but their own notification preference |
-| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:read`, `notification:receive` | Read-only plus full audit log access with export capability, and whom notices told |
+| **admin** | `admin:*`, `llm:chat`, `model:attest`, every `content:`, `programme:` and `change:` capability, `content:declassify` and `programme:switch` among them, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `integration:manage`, `fabric:read`, `fabric:attest`, `fabric:observe`, `telemetry:read`, `action:invoke`, `scope:admit`, `work:authorise`, `notification:read` and `notification:receive` | Full access — manage operators, agents, federation, strategies, declare and establish content repositories, declare their remotes, ask the tenant's model, record model provider agreements, confirm or reject relationships, install and switch programmes, make and bind integrations, read the tenant's runtime, invoke operator actions, admit a component's operational scope, authorise work that runs with nobody present, and read whom notices told. The only role that carries `content:declassify`, `llm:chat`, `integration:manage`, `telemetry:read`, `action:invoke` or `scope:admit` |
+| **operator** | `admin:read`, `admin:approve`, `admin:strategy`, `content:read`, `content:describe`, `content:write`, `content:propose`, `content:decide`, `content:reconcile`, every `programme:` capability, `execution:read`, `execution:operate`, `execution:decide`, `integration:read`, `fabric:read`, `fabric:attest`, `fabric:observe`, `work:authorise`, `notification:read`, `notification:receive`, `change:read`, `change:plan`, `change:decide`, `change:operate` | Day-to-day operations — view everything, approve recommendations, manage strategies, write documents, decide proposals, run programmes and authorise the work they run unattended, read whom notices told, and confirm or reject relationships |
+| **viewer** | `admin:read`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:receive`, `change:read` | Read-only — view dashboards, logs, status, documents, programmes, integrations and relationships. Cannot modify anything but their own notification preference |
+| **auditor** | `admin:read`, `admin:audit`, `content:read`, `content:describe`, `programme:read`, `execution:read`, `integration:read`, `fabric:read`, `notification:read`, `notification:receive`, `change:read` | Read-only plus full audit log access with export capability, and whom notices told |
 
 A role in this table holds across the tenant. A role an operator holds at one
 organisation or one project is a grant, the orchestrator's record
@@ -2328,6 +2328,14 @@ decides nothing that names a position the person does not hold
 ([`architecture/execution`](execution.md#who-holds-a-position)).
 `execution:register` is a component's, for its own starts, and no role
 carries it.
+
+`change:apply` builds code by asking the tenant's model, which spends what the
+tenant pays for it, so `admin` carries it and no other role does, as for
+`llm:chat`. `change:decide` is person only, and `operator` carries it as it
+carries `content:decide`: approving a change is day-to-day work, and the
+decision is the person's own signature
+([`architecture/change-service`](change-service.md#approval)). Every role
+reads changes and builds with `change:read`.
 
 `programme:switch` decides whether a programme's operations reach people, so
 it is person only; `operator` carries it with the rest of the `programme:`
@@ -2585,7 +2593,7 @@ presents a token it received
 | Alerts | Alerting agent ([`agents/alerting`](../agents/alerting.md)) | the alerting agent is deployed |
 | Runbooks | Execution, into which incident runbooks merge ([`architecture/programme-service`](programme-service.md#execution)) | an execution component whose blueprint specifies the routes and a pass for them is deployed. None does yet; [`agents/incident-response`](../agents/incident-response.md) specifies them today and accepts no pass for them (the gap below) |
 | Rate limits | The component applying [`patterns/rate-limiting`](../patterns/rate-limiting.md) | that component is deployed |
-| Changes and builds: `/v1/admin/changes…` and `/v1/admin/build` | The tenant's change service ([Changes and builds](#changes-and-builds)) | a change service whose blueprint specifies the routes and a pass for them is deployed. None does yet |
+| Changes and builds: `/v1/admin/changes…` and `/v1/admin/build…` | The tenant's change service ([`architecture/change-service`](change-service.md#endpoints); [Changes and builds](#changes-and-builds)) | a change service is deployed. [`architecture/change-service`](change-service.md) specifies every route and the pass it accepts for each |
 
 **An endpoint whose provider is not deployed MUST report itself unavailable, and
 MUST NOT return an empty result.** An empty decision inbox and an owner that
@@ -2599,9 +2607,9 @@ operator the system is quiet when it is simply not there. <!-- wl:id provider-ab
 > [`architecture/execution`](execution.md#endpoints) specifies the two
 > workflow routes on a pass carrying `admin:read`, and is the provider once
 > deployed. The inbox lists the owners that declare an inbox route
-> ([`protocol/types`](../protocol/types.md#inboxroute)): content and
-> execution specify one; the change service and a `patterns/safety` gate,
-> whose `ApprovalRequest`s it would also list, specify none yet. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
+> ([`protocol/types`](../protocol/types.md#inboxroute)): content,
+> execution and the change service specify one; a `patterns/safety` gate,
+> whose `ApprovalRequest`s it would also list, specifies none yet. [`protocol/federation`](../protocol/federation.md) declares no `/v1/admin/`
 > route. Three blueprints do specify routes under `/v1/admin/` that another
 > component serves: `GET /v1/admin/alerts`, `/v1/admin/alerts/{id}` and
 > `/v1/admin/alerts/stats` in [`agents/alerting`](../agents/alerting.md), the
@@ -2780,33 +2788,36 @@ platform asks no second person of its own.
 
 ### Changes and builds
 
-| Path | Method | Role | Purpose |
-|------|--------|------|---------|
-| `/v1/admin/changes` | GET | viewer+ | List changes; `?awaiting=me` lists those this person may decide |
-| `/v1/admin/changes` | POST | operator+ | Plan a change: `kind`, `request`, `strict`. Answers the change with its plan |
-| `/v1/admin/changes/{id}` | GET | viewer+ | One change: plan, verdicts, conflicts introduced and cleared, approval, run |
-| `/v1/admin/changes/{id}/approve` | POST | as [`architecture/cli`](cli.md#who-may-approve-a-change) says | Approve, signed by the person over the plan digest |
-| `/v1/admin/changes/{id}/reject` | POST | as for approve | Reject, with a reason |
-| `/v1/admin/changes/{id}/apply` | POST | operator+ | Apply an approved change |
-| `/v1/admin/changes/{id}/verify` | POST | operator+ | Verify an applied change |
-| `/v1/admin/build` | GET | viewer+ | The tenant's build lock and its runs, each with its run statement's id and digest |
+| Path | Method | Capability | Purpose |
+|------|--------|------------|---------|
+| `/v1/admin/changes` | GET | `change:read` | List changes; `?awaiting=me` lists those this person may decide, and is the change service's inbox route |
+| `/v1/admin/changes` | POST | `change:plan` | Plan a change, or a revert of one |
+| `/v1/admin/changes/{id}` | GET | `change:read` | One change: plan, verdicts, conflicts introduced and cleared, decision, run |
+| `/v1/admin/changes/{id}/decision` | POST | `change:decide` | Approve or reject, signed by the person over the plan, as [`architecture/cli`](cli.md#who-may-approve-a-change) says who may |
+| `/v1/admin/changes/{id}/apply` | POST | `change:apply`, after step-up | Apply a change |
+| `/v1/admin/changes/{id}/verify` | POST | `change:operate` | Verify an applied change |
+| `/v1/admin/build…` | GET, POST | as [`architecture/change-service`](change-service.md#endpoints) gives each | The tenant's build lock, its run statements and transcripts, and its build runs: their status, their events, stopping one and answering its question |
 
 A change is [`schemas/change`](../schemas/change.md)'s, the lock
 [`schemas/build-lock`](../schemas/build-lock.md)'s. Their provider is the
-tenant's **change service**, which holds `.weblisk/changes/` and the lock and
-runs the CLI on the tenant's own host (`cli-in-tenant`) to plan, apply and
-verify, under the tenant's `generation` service credential and with the
-tenant's model (D26). A client — Studio, or the CLI on a person's machine —
-reaches it only through these routes (`tenant-api`), and never needs, opens or
+tenant's **change service** ([`architecture/change-service`](change-service.md)),
+the engine hosted in the tenant, which holds `.weblisk/changes/` and the lock
+and plans, applies and verifies in the tenant, with the tenant's model (D26).
+That blueprint is the one home of every route of this group, its capability,
+its step-up and what it answers; the table above names them for a reader of
+this surface. A client — Studio, or the CLI on a person's machine — reaches
+it only through these routes (`tenant-api`), and never needs, opens or
 writes the tenant's tree. A change awaiting approval is an `ApprovalRequest`
 ([`protocol/types`](../protocol/types.md#approvalrequest)) the change service
 holds, so the decision inbox lists it beside every other decision and it is
 decided at its owner. The gateway applies nothing: it MUST NOT run the CLI or
 write a change, a lock or a statement. <!-- wl:id gateway-applies-no-change -->
 
-No blueprint specifies the change service yet, and the `generation` credential
-waits on the credential layer, so the gateway answers these routes
-`ADMIN_GROUP_UNAVAILABLE`, as for any provider not deployed.
+While no change service is registered, the gateway answers these routes
+`ADMIN_GROUP_UNAVAILABLE`, as for any provider not deployed. The `generation`
+credential that would sign the change service's run statements waits on the
+credential layer, and until it exists they are written unsigned
+([`schemas/run-statement`](../schemas/run-statement.md#signing)).
 
 ### Federation Management
 
@@ -3893,7 +3904,7 @@ content; it says the read was rate-limited and when it can ask again
 
 ### Admin gateway
 
-- [ ] The admin gateway carries `/v1/admin/changes`, its sub-routes and `/v1/admin/build` to the change service on a pass and answers them `ADMIN_GROUP_UNAVAILABLE` while none is deployed; no request to them makes the gateway run the CLI or write a change, a lock or a statement ([Changes and builds](#changes-and-builds)) <!-- wl:check gateway-carries-changes covers gateway-applies-no-change -->
+- [ ] The admin gateway carries `/v1/admin/changes`, `/v1/admin/build` and their sub-routes to the change service on a pass and answers them `ADMIN_GROUP_UNAVAILABLE` while none is registered; no request to them makes the gateway run the CLI or write a change, a lock or a statement ([Changes and builds](#changes-and-builds)) <!-- wl:check gateway-carries-changes covers gateway-applies-no-change -->
 - [ ] Started with its registration key or its TLS key readable or writable by its group or by other accounts, the admin gateway refuses to run and names the file, for a key the operator supplied as for one the CLI made ([Registration, lease and identity](#registration-lease-and-identity)) <!-- wl:check gateway-open-key-refused covers gateway-refuses-open-key -->
 - [ ] Each of the admin gateway's listeners serves exactly the rows [Endpoints](#endpoints) gives it: the internal listener answers no admin route, and the admin listener none of the agent endpoints <!-- wl:check listeners-serve-their-rows covers listeners-disjoint gateway-manifest-and-listener -->
 - [ ] The admin listener answers no plain-HTTP request, negotiates TLS 1.3 alone and offers X25519MLKEM768, preferring it, and a TLS 1.2 client is refused the handshake ([Certificate](#certificate); [Two listeners](#two-listeners)) <!-- wl:check admin-listener-tls covers admin-listener-guarded admin-listener-tls13 admin-https-only -->

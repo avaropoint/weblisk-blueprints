@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.6.1
+version: 6.7.0
 requires: []
 platform: any
 tier: free
@@ -460,8 +460,10 @@ examples, such as `inventory:check`, are listings and are not listed here. An ow
 [`architecture/programme-service`](../architecture/programme-service.md), which
 no tenant runs yet, and `notification` is
 [`architecture/notification`](../architecture/notification.md), which no
+tenant runs yet, and `change` is
+[`architecture/change-service`](../architecture/change-service.md), which no
 tenant runs yet. Two owners have no blueprint in this
-corpus yet: `integrations` and `telemetry`. The names of these four guard no
+corpus yet: `integrations` and `telemetry`. The names of these five guard no
 running route until a component built from their owner's blueprint runs. Five names have a nominated owner
 whose blueprint does not yet say what they admit: `file:read`, `file:write` and
 `http:get` (enforcement) and `http:receive` and `realtime:publish` (gateway).
@@ -733,6 +735,22 @@ gives it to the roles that read people's records and not to `viewer`.
 message are one person's own, and every role carries it. The service declares
 the first two and checks the third without holding it, as `content` does its
 own person-only capabilities.
+
+**Change capabilities:**
+- `change:read` (change) — read the tenant's changes, its build lock, its run statements and their transcripts, and its build runs and their events
+- `change:plan` (change) — plan a change, and a revert of one. Runs no model and writes nothing but the change
+- `change:decide` (change) — approve or reject a change, by a signed decision over its plan. *Person only*
+- `change:apply` (change) — apply a change: build, verify and restart what its plan names, asking the tenant's model. A destructive act
+- `change:operate` (change) — verify an applied change, run the tenant's suite and live checks, start, stop and read the logs of a component, stop a build run and answer its question
+
+Which route needs which is
+[`architecture/change-service`](../architecture/change-service.md#endpoints)'s.
+`change:decide` is person only for the reason `content:decide` is: a machine
+that could hold it could approve the code it is about to build. `change:apply`
+spends what the tenant pays for its model, as `llm:chat` does, so
+[`architecture/admin`](../architecture/admin.md#operator-roles)'s roles table
+gives it where it gives `llm:chat`. The service declares the other four, and
+checks `change:decide` without holding it.
 
 ### PassRoute
 

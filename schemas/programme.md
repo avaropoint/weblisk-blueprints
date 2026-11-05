@@ -1961,7 +1961,10 @@ in the tenant, and which blueprint that service is built from:
 | a position named anywhere — `approved_by`, `responsible`, `approvers`, `escalate.to`, a notice's `to` | the register of who holds each position, in content | [`schemas/position`](position.md) |
 
 And every tenant runs the orchestrator and the admin gateway, which every
-other service registers with and every person's request arrives through.
+other service registers with and every person's request arrives through. A
+programme needs no change service: it is what builds every service in the
+table below once a tenant runs it
+([`architecture/change-service`](../architecture/change-service.md)).
 
 ### The services, in the order they are built
 
@@ -1979,6 +1982,7 @@ needs running first. A build plan is ordered by it.
 | 7 | `prompt-worker` | [`architecture/prompt-worker`](../architecture/prompt-worker.md) | `execution`, `model-service`, `content` |
 | 8 | `programme-service` | [`architecture/programme-service`](../architecture/programme-service.md) | `content`, `execution`, `notification` |
 | 9 | `fabric-service` | [`architecture/fabric`](../architecture/fabric.md) | `orchestrator`, `content` |
+| 10 | `change-service` | [`architecture/change-service`](../architecture/change-service.md) | `orchestrator` |
 | — | a domain service | the programme's `domains/<id>.md` | `execution`, and every agent its blueprint names in `depends_on` |
 | — | a published agent | `agents/<agent>.md` | every agent its blueprint names in `depends_on` |
 

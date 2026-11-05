@@ -147,6 +147,10 @@
       "audit": "section 3: dispatch"
     },
     {
+      "finding": "internal/dispatch/change.go: code CHANGE_STALE",
+      "audit": "not covered by the 2026-11-03 audit: the literal became a corpus name when architecture/change-service 1.0.0 declared it"
+    },
+    {
       "finding": "internal/dispatch/checklist.go: component admin",
       "audit": "finding 14"
     },
@@ -1209,6 +1213,10 @@
     {
       "finding": "pkg/tenant/route/content_log.go: route /v1/content/repositories",
       "audit": "finding 26"
+    },
+    {
+      "finding": "pkg/tenant/route/route.go: route /v1/admin/changes",
+      "audit": "not covered by the 2026-11-03 audit: the literal became a corpus name when architecture/change-service 1.0.0 declared it"
     },
     {
       "finding": "pkg/tenant/route/route.go: route /metrics",

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 4.13.0
+version: 4.14.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -539,7 +539,11 @@ approval or run an apply. Until one does:
 
 When a tenant's change service exists these four run as `tenant-api`, as the
 [executors table](../schemas/change.md#executors) gives them, and a change that
-was applied on the operator's word stays recorded as one.
+was applied on the operator's word stays recorded as one. From then on the
+operator's word is `without_approval`, which the change service admits on a
+development tenant alone
+([`architecture/change-service`](change-service.md#applying-without-an-approval-in-development-only)).
+The first change service a tenant runs is itself built by such a change.
 
 ### Who may approve a change
 
@@ -1738,8 +1742,10 @@ that omits the door means.
   in [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)'s
   order — execution, notification, the prompt worker, the programme service
   and the fabric service ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on)),
-  each on its section's port or its conventional one; then domains, agents,
-  and the application gateway last. `weblisk server stop` stops them in the
+  each on its section's port or its conventional one; then the change
+  service, which `change_service` declares
+  ([`schemas/config`](../schemas/config.md#change_service)); then domains,
+  agents, and the application gateway last. `weblisk server stop` stops them in the
   reverse order, and `weblisk server status` reports each declared one.
 - **Certificate.** Before it starts the admin gateway, it makes a new
   certificate from the gateway's own TLS key where the certificate the CLI
