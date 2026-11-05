@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: storage
-version: 2.4.0
-requires: [protocol/types, protocol/identity, patterns/principal-identity, architecture/orchestrator, architecture/domain, architecture/gateway, agents/workflow, agents/task, agents/lifecycle]
+version: 2.5.0
+requires: [protocol/types, protocol/identity, patterns/principal-identity]
 platform: any
 tier: free
 -->
@@ -15,11 +15,12 @@ not HOW storage is implemented. Language and platform documents
 ([go.md](../languages/go.md), [cloudflare.md](../platforms/cloudflare.md))
 map this interface to concrete backends.
 
-> **Scope boundary:** This file defines **system-level store interfaces**
-> across the orchestrator and infrastructure agents (agent registry,
-> strategies, observations, workflow executions, task records, etc.).
-> For the **agent-level schema declaration format** (types, constraints,
-> relationships, migrations), see
+> **Scope boundary:** This file defines the **contract every store is held
+> to**. Which stores exist, which component owns each, and each store's
+> operations and row types are declared by the owner, in its own `## Storage`
+> section ([`schemas/common`](../schemas/common.md#storage-section)), and are
+> not catalogued here. For the **agent-level schema declaration format**
+> (types, constraints, relationships, migrations), see
 > [`patterns/storage`](../patterns/storage.md).
 
 ---
@@ -27,8 +28,11 @@ map this interface to concrete backends.
 ## Overview
 
 The abstract storage contract for every piece of persistent data in a tenant.
-It defines WHAT must be stored, which component owns each store, and the
-operations each store provides — by name, exactly.
+It defines what every store owes — durability, preconditions, pagination,
+retention, chained and sealed logs, capture — and holds each owner to the
+operation names it declares. Which stores exist, who owns each and what each
+provides, by name, exactly, is each owner's own declaration, in its own
+`## Storage` section.
 
 It defines no implementation. Whether a store is a JSONL file, SQLite or a
 managed service is the platform blueprint's answer, and every backend owes the
@@ -45,18 +49,9 @@ requires:
     version: ">=1.0.0 <7.0.0"
     bindings:
       types:
-        - name: AgentManifest
-          fields_used: [name, type, version, capabilities]
-        - name: Strategy
-          fields_used: [id, name, targets, priority, status]
-        - name: Observation
-          fields_used: [id, agent_name, target, measurements, findings]
-        - name: Recommendation
-          fields_used: [id, observation_id, action, priority, status]
-        - name: Feedback
-          fields_used: [id, recommendation_id, signal, metric_before, metric_after]
+        # The entry every chained log's hash chain links (Chained Logs)
         - name: AuditEntry
-          fields_used: [id, timestamp, actor, action, target, status, previous_hash]
+          fields_used: [id, timestamp, previous_hash]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -89,58 +84,6 @@ requires:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
-  - blueprint: architecture/orchestrator
-    version: ">=3.0.0 <5.0.0"
-    bindings:
-      types:
-        - name: AgentEntry
-          fields_used: [manifest, agent_id, token, registered_at, last_seen, lease, last_renewal]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: architecture/domain
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: DomainWorkflow
-          fields_used: [name, phases]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: agents/workflow
-    version: ">=1.0.0 <4.0.0"
-    bindings:
-      types:
-        - name: WorkflowExecution
-          fields_used: [id, workflow, status, phases, started_at]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: agents/task
-    version: ">=1.0.0 <5.0.0"
-    bindings:
-      types:
-        - name: TaskRecord
-          fields_used: [id, agent, action, status, priority]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-  - blueprint: agents/lifecycle
-    version: ">=1.0.0 <3.0.0"
-    bindings:
-      types:
-        - name: AgentMetrics
-          fields_used: [total_observations, accuracy, adoption_rate, impact_score]
-        - name: EntityContext
-          fields_used: [entity_name, entity_type, metadata]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
 ```
 
 ---
@@ -165,8 +108,8 @@ only boundary storage does not control on both sides.
            Backend (named by the platform blueprint)
 ```
 
-**Responsibilities.** Declaring what must be stored, which component owns each
-store, and the operations each provides by name. Preconditions on write, ordered
+**Responsibilities.** The contract every store is held to, and the rule that
+each owner declares its own stores and their operations by name. Preconditions on write, ordered
 traversal by cursor, and the rule that absence is not an error.
 
 **Not responsibilities.** Naming a backend — that is the platform blueprint's
@@ -178,17 +121,20 @@ Encrypting data in motion, which is `architecture/data-security`.
 ## Responsibilities
 
 ### Owns
-- Abstract store interface definitions for all persistent system data
+- The contract every store is held to: `StoreInterface` and the behaviours
+  under [Contracts](#contracts)
 - Storage backend selection and tier progression rules (JSONL → compressed → columnar)
 - File layout conventions for `.weblisk/data/` directory structure
 - Pagination contract (cursor-based, opaque cursors)
-- Retention policy definitions (observations: 90d, feedback: 180d, audit: 90d)
+- The retention contract (`retention`); each store's period is its owner's
 - Concurrency safety requirements for all store operations
 - The hash chain every chained log uses, and how a chained log is sealed: its
   key and checkpoint entries, the statements they sign, and how a verifier
   checks them offline
 
 ### Does NOT Own
+- Which stores exist, which component owns each, and each store's operations
+  and row types (owned by that component, in its own `## Storage` section)
 - Concrete storage implementations (owned by platform documents: go.md, cloudflare.md, node.md)
 - Whether a given log is sealed, and what its own entries hold (owned by the
   blueprint that owns the log)
@@ -204,15 +150,17 @@ Encrypting data in motion, which is `architecture/data-security`.
 
 ## Interfaces
 
-The storage interface is defined as a set of typed store operations
-per data domain. Each store section below declares its full API
-surface. Summary of stores:
+The storage interface is a set of typed store operations, and each store's
+operations are declared by the component that owns the store, in its own
+`## Storage` section ([`schemas/common`](../schemas/common.md#storage-section)),
+with its owner, its durability and the types its operations take. This
+document declares none of them; it declares the contract they are all held to.
 
-**Every operation name in this table is a declared name and is binding.** An
-implementation MUST provide the operation under exactly the name written here.
-It MUST NOT shorten it, drop the noun, add a qualifier, or substitute a
-synonym: `GetAgent` is not `Get`, `AppendObservation` is not `Add`, and
-`ClaimNamespace` is not `Claim`. See
+**Every operation name an owner declares is a declared name and is binding.**
+An implementation MUST provide the operation under exactly the name its owner's
+blueprint writes. It MUST NOT shorten it, drop the noun, add a qualifier, or
+substitute a synonym: `GetAgent` is not `Get`, `AppendObservation` is not
+`Add`, and `ClaimNamespace` is not `Claim`. See
 [`schemas/common`](../schemas/common.md#declared-names).
 
 The noun is part of the name deliberately. A store is not the only thing in the
@@ -222,39 +170,23 @@ readability: these names are what every calling file is written against, so an
 implementation that renames one makes every caller wrong, and a regeneration
 that renames one makes every caller stale. One measured orchestrator build
 regenerated ten compliant files because a plan had used `Get`, `Put` and `List`
-where this table says `GetAgent`, `PutAgent` and `ListAgents`.
-
-| Store | Owner | Operations |
-|-------|-------|------------|
-| Agent Registry | Orchestrator | PutAgent, GetAgent, DeleteAgent, ListAgents |
-| Strategies | Lifecycle Agent | PutStrategy, GetStrategy, ListStrategies |
-| Observations | Lifecycle Agent | AppendObservation, QueryObservations, CountObservations |
-| Recommendations | Lifecycle Agent | PutRecommendation, GetRecommendation, ListRecommendations, UpdateStatus |
-| Feedback | Lifecycle Agent | AppendFeedback, QueryFeedback |
-| Agent Metrics | Lifecycle Agent | GetMetrics, UpdateMetrics |
-| Entity Context | Lifecycle Agent | SetContext, GetContext |
-| Workflow Executions | Workflow Agent | PutExecution, GetExecution, ListExecutions, UpdatePhase |
-| Task Records | Task Agent | PutTask, GetTask, ListTasks, UpdateStatus |
-| Audit Log | Orchestrator | AppendAudit, QueryAudit |
-| Channels | Orchestrator | PutChannel, GetChannel, DeleteChannel, CleanExpired |
-| Namespace Registry | Orchestrator | ClaimNamespace, ReleaseNamespace, GetOwner, ListNamespaces |
-| Users | Gateway | CreateUser, GetUser, GetUserByEmail, UpdateUser, DeleteUser, ListUsers, VerifyCredential, SetCredential |
-| Sessions | Gateway | CreateSession, GetSession, UpdateSession, DeleteSession, DeleteUserSessions, CleanExpired |
+where the orchestrator's Agent Registry says `GetAgent`, `PutAgent` and `ListAgents`.
 
 ---
 
 ## Data Flow
 
-1. Agent receives a task via `POST /v1/execute` and produces results
-2. Results (observations, recommendations) are returned to the calling infrastructure agent
-3. Lifecycle Agent appends observations to the observation store (JSONL)
-4. Lifecycle Agent creates recommendation entries in the recommendation store
-5. On approval, the recommendation status is updated; audit entry is appended
-6. Feedback entries are appended after measurement workflows complete
-7. Agent metrics are incrementally updated from feedback signals
-8. Workflow Agent records execution state to enable resumption after restart
-9. Task Agent records task lifecycle (queued → dispatched → running → completed/failed)
-10. Orchestrator appends audit entries for every registration, deregistration, and channel operation
+1. A component opens the stores its own blueprint declares, once, when it
+   starts ([A store is opened once](#a-store-is-opened-once))
+2. A request's lookups are answered from what each store holds in memory
+3. A write is made with the precondition its caller supplied, and is reported
+   only once it is durable (`durable-records`)
+4. An append to a chained log is chained under the store's lock and answered
+   once a flush covers it ([Appends share a flush](#appends-share-a-flush))
+5. A list or query is read page by page, by opaque cursor (`cursor-pagination`)
+6. Records whose lifetime has ended are removed by their owner (`retention`)
+7. A running service is captured through its snapshot route, and restored only
+   while stopped ([Backing Up a Record Store](#backing-up-a-record-store))
 
 ---
 
@@ -371,15 +303,14 @@ contracts:
 
 ## A Component Implements Only the Stores It Owns
 
-Every store below names an **Owner**. That attribution is normative: an
-implementation provides the stores its own blueprint owns and **MUST NOT**
-provide the others.
+Every store is declared by its **owner**, in the owner's own `## Storage`
+section. That attribution is normative: an implementation provides the stores
+its own blueprint declares and **MUST NOT** provide the others.
 
-This document describes all fourteen stores in one place because they share one
-contract, one durability rule and one pagination model — not because any one
-component holds them. The Orchestrator owns four: Agent Registry, Namespace
-Registry, Channels, and the Audit Log. Seven belong to the Lifecycle Agent, one
-each to the Workflow and Task agents, and two to the Gateway.
+The stores share one contract, one durability rule and one pagination model,
+which this document holds; they are declared apart because each is held by one
+component, and a component generated from its own blueprint should find there
+every store it keeps and no other.
 
 An orchestrator that also implements the workflow-execution store has taken on
 state another component owns. Two writers then exist for one record, the audit
@@ -415,7 +346,7 @@ own embedded equivalent, and its platform blueprint names it.
 
 Any other backend is available and none is required. An embedded
 key-value store, SQLite, a relational database, an object store — all are
-valid the moment they satisfy the operations below. That choice belongs
+valid the moment they satisfy the operations each owner declares. That choice belongs
 to whoever commissions the implementation, is stated at that point, and
 is not a property of the platform. Cloudflare is the one row where the
 default differs, and only because the runtime has no filesystem to write
@@ -457,292 +388,29 @@ without changing the store interface.
 5. Tier transitions are transparent to the store interface — callers
    never see the underlying format.
 
-**File layout:**
+**File layout:** one directory per owner, one file per store its blueprint
+declares.
 
 ```
 .weblisk/data/
-  orchestrator/
-    agents.jsonl              # Agent registry (active)
-    audit.jsonl               # Audit log (active)
-    audit.2025-04.jsonl.zst   # A closed segment (8 MiB or month end), compressed
-  lifecycle/
-    strategies.jsonl
-    observations.jsonl
-    observations.2025-03.parquet  # Historical (columnar)
-    recommendations.jsonl
-    feedback.jsonl
-    agent_metrics.jsonl
-    entity_context.jsonl
-  workflow/
-    executions.jsonl
-  task/
-    tasks.jsonl
-    queue.jsonl
-  gateway/
-    users.jsonl
-    sessions.jsonl
-    credentials.jsonl          # Separate file, mode 0600
-  <agent-name>/
-    <agent-specific>.jsonl
+  <owner>/
+    <store>.jsonl                 # A store (active)
+    <log>.jsonl                   # A chained log (active segment)
+    <log>.2025-04.jsonl.zst       # A closed segment (8 MiB or month end), compressed
+    <store>.2025-03.parquet       # Historical (columnar)
 ```
 
 ---
 
-## Store: Agent Registry
+## Chained Logs
 
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutAgent | `(name string, entry AgentEntry) → error` | Store or update an agent registration |
-| GetAgent | `(name string) → (AgentEntry, error)` | Retrieve agent by name |
-| DeleteAgent | `(name string) → error` | Remove agent from registry |
-| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type. A lease's state is derived from the entry's `lease` when read, never stored ([`architecture/orchestrator`](orchestrator.md#data-structures)), so the store neither holds it nor filters by it |
-
-`AgentEntry` is [`architecture/orchestrator`](orchestrator.md#agententry)'s,
-the store's owner, and is defined there alone.
-
----
-
-## Store: Strategies
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutStrategy | `(strategy Strategy) → error` | Create or update a strategy |
-| GetStrategy | `(id string) → (Strategy, error)` | Retrieve by ID |
-| ListStrategies | `(status string) → ([]Strategy, error)` | List, optionally filtered by status |
-
----
-
-## Store: Observations
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md) (stores), domains (produce via events)
-**Durability:** MUST survive restarts. SHOULD retain at least 90 days.
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| AppendObservation | `(obs Observation) → error` | Append to observation log |
-| QueryObservations | `(filter ObsFilter) → ([]Observation, error)` | Query by agent, target, strategy, time range |
-| CountObservations | `(filter ObsFilter) → (int, error)` | Count matching observations |
-
-### ObsFilter
-
-```yaml
-types:
-  ObsFilter:
-    fields:
-      agent_name:
-        name: AgentName
-        type: string
-        description: "Filter by agent (empty = all)"
-      target:
-        name: Target
-        type: string
-        description: "Filter by target path/URL (empty = all)"
-      strategy_id:
-        name: StrategyID
-        type: string
-        description: "Filter by strategy (empty = all)"
-      since:
-        name: Since
-        type: timestamp
-        description: "Observations after this time"
-      until:
-        name: Until
-        type: timestamp
-        description: "Observations before this time"
-      cursor:
-        name: Cursor
-        type: string
-        description: "Pagination cursor (opaque)"
-      limit:
-        name: Limit
-        type: int
-        description: "Max results per page (default: 100)"
-```
-
----
-
-## Store: Recommendations
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutRecommendation | `(rec Recommendation) → error` | Create or update a recommendation |
-| GetRecommendation | `(id string) → (Recommendation, error)` | Retrieve by ID |
-| ListRecommendations | `(filter RecFilter) → ([]Recommendation, error)` | Query by status, agent, strategy |
-| UpdateStatus | `(id string, status string, reason string) → error` | Transition recommendation status |
-
-### RecFilter
-
-```yaml
-types:
-  RecFilter:
-    fields:
-      status:
-        name: Status
-        type: string
-        description: "`pending`, `accepted`, `rejected`, `applied` (empty = all)"
-      agent_name:
-        name: AgentName
-        type: string
-        description: "Filter by recommending agent"
-      strategy_id:
-        name: StrategyID
-        type: string
-        description: "Filter by strategy"
-      priority:
-        name: Priority
-        type: string
-        description: "Filter by priority level"
-      cursor:
-        name: Cursor
-        type: string
-        description: "Pagination cursor"
-      limit:
-        name: Limit
-        type: int
-        description: "Max results (default: 100)"
-```
-
----
-
-## Store: Feedback
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
-**Durability:** MUST survive restarts. SHOULD retain at least 180 days.
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| AppendFeedback | `(fb Feedback) → error` | Record feedback entry |
-| QueryFeedback | `(recommendationID string) → ([]Feedback, error)` | Feedback for a specific recommendation |
-
----
-
-## Store: Agent Metrics
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| GetMetrics | `(agentName string) → (AgentMetrics, error)` | Current metrics for an agent |
-| UpdateMetrics | `(agentName string, update MetricsUpdate) → error` | Incrementally update metrics |
-
-### MetricsUpdate
-
-```yaml
-types:
-  MetricsUpdate:
-    fields:
-      add_observations:
-        name: AddObservations
-        type: int
-        description: "Increment observation count"
-      add_findings:
-        name: AddFindings
-        type: int
-        description: "Increment finding count"
-      add_recommendations:
-        name: AddRecommendations
-        type: int
-        description: "Increment recommendation count"
-      feedback_signal:
-        name: FeedbackSignal
-        type: string
-        description: "`positive`, `negative`, `neutral` (for rate recalculation)"
-```
-
----
-
-## Store: Entity Context
-
-**Owner:** [Lifecycle Agent](../agents/lifecycle.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| SetContext | `(ctx EntityContext) → error` | Store or replace entity context |
-| GetContext | `() → (EntityContext, error)` | Retrieve current entity context |
-
----
-
-## Store: Workflow Executions
-
-**Owner:** [Workflow Agent](../agents/workflow.md)
-**Durability:** MUST survive restarts (allows workflow resumption)
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutExecution | `(exec WorkflowExecution) → error` | Create or update execution |
-| GetExecution | `(id string) → (WorkflowExecution, error)` | Retrieve by ID |
-| ListExecutions | `(workflowName string, limit int) → ([]WorkflowExecution, error)` | Recent executions for a workflow |
-| UpdatePhase | `(execID string, phase PhaseResult) → error` | Update a single phase result |
-
----
-
-## Store: Task Records
-
-**Owner:** [Task Agent](../agents/task.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutTask | `(task TaskRecord) → error` | Create or update a task record |
-| GetTask | `(id string) → (TaskRecord, error)` | Retrieve by ID |
-| ListTasks | `(filter TaskFilter) → ([]TaskRecord, error)` | Query by status, agent, priority |
-| UpdateStatus | `(id string, status string) → error` | Transition task status |
-
-### TaskFilter
-
-```yaml
-types:
-  TaskFilter:
-    fields:
-      status:
-        name: Status
-        type: string
-        description: "`queued`, `dispatched`, `running`, `completed`, `failed`, `cancelled` (empty = all)"
-      agent_name:
-        name: AgentName
-        type: string
-        description: "Filter by assigned agent"
-      priority:
-        name: Priority
-        type: string
-        description: "`critical`, `high`, `normal`, `low` (empty = all)"
-      since:
-        name: Since
-        type: timestamp
-        description: "Tasks created after this time"
-      cursor:
-        name: Cursor
-        type: string
-        description: "Pagination cursor"
-      limit:
-        name: Limit
-        type: int
-        description: "Max results (default: 100)"
-```
-
----
-
-## Store: Audit Log
-
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts. SHOULD retain at least 90 days.
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| AppendAudit | `(entry AuditEntry) → error` | Append audit entry (computes hash chain) |
-| QueryAudit | `(filter AuditFilter) → ([]AuditEntry, error)` | Query audit log |
-| VerifyChain | `(since timestamp, until timestamp) → (valid bool, brokenAt string, error)` | Verify hash chain integrity over a time range |
+An audit log is a chained log: every entry is chained to the one before it, and
+the log is only ever appended to. Which logs a component keeps, and the
+operations it keeps them through, are its own blueprint's — the orchestrator's
+audit log is [`architecture/orchestrator`](orchestrator.md#store-audit-log)'s,
+and the rules below name its operations, `AppendAudit` and `VerifyChain`. The
+rules bind every chained log alike, a [sealed](#sealing-a-chained-log) one
+included.
 
 ### Hash Chain Integrity
 
@@ -857,290 +525,7 @@ ever. Segments bound every one of them, and give
 archives whole closed segments only. How a verifier reads a log whose earliest
 segments have been archived is not settled here.
 
-### AuditFilter
-
-```yaml
-types:
-  AuditFilter:
-    fields:
-      actor:
-        name: Actor
-        type: string
-        description: "Filter by actor (empty = all)"
-      action:
-        name: Action
-        type: string
-        description: "Filter by action type (empty = all)"
-      since:
-        name: Since
-        type: timestamp
-        description: "After this time"
-      cursor:
-        name: Cursor
-        type: string
-        description: "Pagination cursor"
-      limit:
-        name: Limit
-        type: int
-        description: "Max results (default: 100)"
-```
-
 ---
-
-## Store: Channels
-
-**Owner:** Orchestrator
-**Durability:** MAY be in-memory (channels are short-lived, 1h TTL)
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutChannel | `(id string, channel ChannelEntry) → error` | Store active channel |
-| GetChannel | `(id string) → (ChannelEntry, error)` | Retrieve by ID |
-| DeleteChannel | `(id string) → error` | Remove channel |
-| CleanExpired | `() → (int, error)` | Remove all expired channels, return count |
-
----
-
-## Store: Namespace Registry
-
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| ClaimNamespace | `(namespace string, agent string) → error` | Record exclusive ownership (409 if already owned by another) |
-| ReleaseNamespace | `(namespace string) → error` | Release on agent deregistration |
-| GetOwner | `(namespace string) → (string, error)` | Look up which agent owns a namespace |
-| ListNamespaces | `() → (map[string]string, error)` | All namespace → agent mappings |
-
-**This store records ownership. It does not decide who may ask.**
-
-`system.*` is reserved, and the rule is a REGISTRATION rule:
-[`protocol/spec`](../protocol/spec.md) rejects an agent claiming it with 403
-"reserved for orchestrator". The orchestrator itself claims `system` at startup —
-[`architecture/orchestrator`](orchestrator.md)'s startup sequence — through this
-same store.
-
-An implementation that puts the reservation check inside `ClaimNamespace`
-therefore refuses the one component that is supposed to own it. That happened:
-a generated orchestrator failed its startup two seconds in with
-
-```
-startup: reserve namespace "system": namespace "system" is reserved
-```
-
-and its own health check, as the spec then had it, honestly reported
-`namespaces: degraded`, because the orchestrator did not own the namespace it
-is required to own. Under today's spec the same fault is the orchestrator's
-`GET /readyz` answering not ready ([`protocol/types`](../protocol/types.md#readiness)).
-
-The general form is worth stating because it will recur: **a store records, a
-policy decides.** Enforcement that belongs to a request path, placed in the
-store beneath it, applies to every caller including the ones the rule exists to
-serve.
-
----
-
-## Store: Users
-
-**Owner:** [Gateway](gateway.md)
-**Durability:** MUST survive restarts
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| CreateUser | `(user UserRecord) → error` | Create a new user (409 if user_id exists) |
-| GetUser | `(userID string) → (UserRecord, error)` | Retrieve user by ID |
-| GetUserByEmail | `(email string) → (UserRecord, error)` | Retrieve user by email address |
-| UpdateUser | `(userID string, update UserUpdate) → error` | Update user fields |
-| DeleteUser | `(userID string) → error` | Soft-delete user (mark inactive) |
-| ListUsers | `(filter UserFilter) → ([]UserRecord, error)` | List users with optional filter |
-| VerifyCredential | `(userID string, credential string) → (bool, error)` | Verify password hash (timing-safe) |
-| SetCredential | `(userID string, credential string) → error` | Store bcrypt/argon2id hash |
-
-### UserRecord
-
-```yaml
-types:
-  UserRecord:
-    fields:
-      user_id:
-        name: UserID
-        type: string
-        description: "Unique user identifier (32 hex chars)"
-      email:
-        name: Email
-        type: string
-        description: "User email address (unique)"
-      display_name:
-        name: DisplayName
-        type: string
-        description: "Human-readable name"
-      roles:
-        name: Roles
-        type: "[]string"
-        description: "Assigned role names"
-      groups:
-        name: Groups
-        type: "[]string"
-        description: "Group memberships"
-      email_verified:
-        name: EmailVerified
-        type: bool
-        description: "Whether email has been verified"
-      mfa_enabled:
-        name: MFAEnabled
-        type: bool
-        description: "Whether MFA is configured"
-      status:
-        name: Status
-        type: string
-        description: "`active`, `inactive`, `locked`"
-      created_at:
-        name: CreatedAt
-        type: timestamp
-      last_login_at:
-        name: LastLoginAt
-        type: timestamp
-        description: "Absent if never"
-```
-
-### UserUpdate
-
-```yaml
-types:
-  UserUpdate:
-    fields:
-      display_name:
-        name: DisplayName
-        type: "*string"
-        description: "New display name (nil = no change)"
-      roles:
-        name: Roles
-        type: "*[]string"
-        description: "Replace roles (nil = no change)"
-      groups:
-        name: Groups
-        type: "*[]string"
-        description: "Replace groups (nil = no change)"
-      email_verified:
-        name: EmailVerified
-        type: "*bool"
-        description: "Set verification status (nil = no change)"
-      mfa_enabled:
-        name: MFAEnabled
-        type: "*bool"
-        description: "Set MFA status (nil = no change)"
-      status:
-        name: Status
-        type: "*string"
-        description: "Change status (nil = no change)"
-```
-
-### UserFilter
-
-```yaml
-types:
-  UserFilter:
-    fields:
-      status:
-        name: Status
-        type: string
-        description: "`active`, `inactive`, `locked` (empty = all)"
-      role:
-        name: Role
-        type: string
-        description: "Filter by role membership"
-      group:
-        name: Group
-        type: string
-        description: "Filter by group membership"
-      cursor:
-        name: Cursor
-        type: string
-        description: "Pagination cursor"
-      limit:
-        name: Limit
-        type: int
-        description: "Max results (default: 100)"
-```
-
-**Credential storage:** Passwords MUST be hashed with Argon2id
-(recommended) or bcrypt (minimum cost 12). Raw passwords are NEVER
-stored. The `VerifyCredential` operation performs a timing-safe
-comparison against the stored hash.
-
----
-
-## Store: Sessions
-
-**Owner:** [Gateway](gateway.md)
-**Durability:** MUST survive restarts (production); MAY be in-memory (development)
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| CreateSession | `(session SessionRecord) → error` | Create a new session |
-| GetSession | `(sessionID string) → (SessionRecord, error)` | Retrieve session by ID |
-| UpdateSession | `(sessionID string, update SessionUpdate) → error` | Update session fields (e.g., last activity) |
-| DeleteSession | `(sessionID string) → error` | Invalidate session |
-| DeleteUserSessions | `(userID string) → (int, error)` | Invalidate all sessions for a user (logout everywhere) |
-| CleanExpired | `() → (int, error)` | Remove all expired sessions, return count |
-
-GetSession MUST NOT return a record whose `expires_at` has passed. It answers
-as it does for an unknown session ID, whether or not CleanExpired has run.
-
-### SessionRecord
-
-```yaml
-types:
-  SessionRecord:
-    fields:
-      session_id:
-        name: SessionID
-        type: string
-        description: "Unique session identifier (32 hex chars)"
-      user_id:
-        name: UserID
-        type: string
-        description: "Owning user"
-      client_fingerprint:
-        name: ClientFingerprint
-        type: string
-        description: "Client binding hash (see client.md)"
-      roles:
-        name: Roles
-        type: "[]string"
-        description: "Cached roles at session creation"
-      created_at:
-        name: CreatedAt
-        type: timestamp
-      expires_at:
-        name: ExpiresAt
-        type: timestamp
-      last_activity_at:
-        name: LastActivityAt
-        type: timestamp
-        description: "Updated on each request"
-      ip_address:
-        name: IPAddress
-        type: string
-        description: "Client IP at session creation"
-```
-
-### SessionUpdate
-
-```yaml
-types:
-  SessionUpdate:
-    fields:
-      last_activity_at:
-        name: LastActivityAt
-        type: timestamp
-        description: "Update last activity timestamp"
-      expires_at:
-        name: ExpiresAt
-        type: timestamp
-        description: "Extend or shorten session expiry"
-```
 
 ---
 
@@ -1771,8 +1156,8 @@ security:
   offsets, timestamps, or encoded keys.
 - **Migrations**: Schema changes are versioned. The mechanism that applies a
   version change belongs to the backend, so the platform blueprint states it.
-- **Retention**: Stores with retention policies (observations: 90d,
-  feedback: 180d, audit: 90d) SHOULD rotate files by month and
+- **Retention**: A store whose owner gives it a retention period SHOULD
+  rotate files by month and
   delete or archive expired segments. A chained log rotates by size as well
   as by month, and retention takes only whole closed segments
   ([A chained log is kept in segments](#a-chained-log-is-kept-in-segments)).
@@ -1791,27 +1176,17 @@ security:
 ## Verification Checklist
 
 - [ ] A component implements exactly the stores its own blueprint owns, and none belonging to another component ([A Component Implements Only the Stores It Owns](#a-component-implements-only-the-stores-it-owns)) <!-- wl:check component-implements-exactly-stores-own -->
-- [ ] Every store operation exists under exactly the name in the store summary table — not shortened, requalified or renamed ([Interfaces](#interfaces)) <!-- wl:check store-operation-exists-under-exactly-name -->
-- [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent ([Store: Namespace Registry](#store-namespace-registry)) <!-- wl:check stores-record-they-not-enforce-request -->
-- [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness)) <!-- wl:check freshly-started-orchestrator-owns-system -->
-- [ ] Every store whose section says it MUST survive restarts survives a restart of its process, and only Channels, and Sessions in development, may be in-memory ([Contracts](#contracts), `durable-records`; [Store: Channels](#store-channels); [Store: Sessions](#store-sessions)) <!-- wl:check store-section-says-survive-restarts-survives -->
-- [ ] Observations are retained for at least the period [Store: Observations](#store-observations) gives <!-- wl:check observations-retained-least-period-store -->
-- [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives <!-- wl:check audit-entries-retained-least-period-store -->
+- [ ] Every store operation exists under exactly the name its owner's `## Storage` section declares — not shortened, requalified or renamed ([Interfaces](#interfaces)) <!-- wl:check store-operation-exists-under-exactly-name -->
+- [ ] Every store whose owner's `## Storage` section says it MUST survive restarts survives a restart of its process, and only a store its owner declares may be in-memory is ([Contracts](#contracts), `durable-records`) <!-- wl:check store-section-says-survive-restarts-survives -->
 - [ ] Audit log is append-only with hash chain integrity ([Hash Chain Integrity](#hash-chain-integrity)) <!-- wl:check audit-log-append-hash-chain-integrity -->
 - [ ] No append to an audit log or a sealed log is answered before a flush covering it has completed, a flush that fails fails every append it was to cover, and the store's lock is not held while a flush runs, so an append arriving during one is chained and written without waiting for it ([Contracts](#contracts), `durable-records`; [Appends share a flush](#appends-share-a-flush)) <!-- wl:check no-append-audit-log-sealed-log -->
 - [ ] Every store opens its file for appending once and appends through that handle: no append opens, stats or re-reads the file, and a rewrite reopens the handle once, after its rename ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once)) <!-- wl:check store-opens-file-appending-once-appends -->
 - [ ] No request reads a store's file to answer: every lookup a request makes is answered by key from what the store holds in memory, without scanning its records ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once)) <!-- wl:check no-request-reads-stores-file-answer -->
 - [ ] A request whose only write is one audit entry is answered within one flush plus 5 ms at p99 with 100,000 entries in the log, as with none ([Contracts](#contracts), `durable-records`; [A store is opened once](#a-store-is-opened-once)) <!-- wl:check request-write-audit-entry-answered-within -->
 - [ ] A chained log is kept in segments of at most 8 MiB, closed at that size or the month's end, never written again once closed, and verifies across every boundary as one chain ([Contracts](#contracts), `durable-records`; [A chained log is kept in segments](#a-chained-log-is-kept-in-segments)) <!-- wl:check chained-log-kept-segments-most-8 -->
-- [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [Contracts](#contracts) `retention`) <!-- wl:check expired-channels-cleaned-up-automatically -->
 - [ ] All list operations support cursor-based pagination ([Contracts](#contracts) `cursor-pagination`) <!-- wl:check list-operations-support-cursor-based-pagination -->
 - [ ] Concurrent reads/writes do not corrupt data ([Contracts](#contracts) `concurrent-access`) <!-- wl:check concurrent-reads-writes-not-corrupt-data -->
-- [ ] Agent metrics are incrementally updated (not recomputed) ([Store: Agent Metrics](#store-agent-metrics)) <!-- wl:check agent-metrics-incrementally-updated -->
-- [ ] Workflow executions support resumption after restart ([Store: Workflow Executions](#store-workflow-executions)) <!-- wl:check workflow-executions-support-resumption -->
 - [ ] No external database server required for default operation ([Design Principles](#design-principles) 5, [What a Backend Must Be](#what-a-backend-must-be)) <!-- wl:check no-external-database-server-required-default -->
-- [ ] User passwords are hashed as [Store: Users](#store-users) requires of credential storage; raw passwords are never stored <!-- wl:check user-passwords-hashed-store-users-requires -->
-- [ ] Session expiry is enforced: CleanExpired removes stale sessions; GetSession rejects expired records ([Store: Sessions](#store-sessions)) <!-- wl:check session-expiry-enforced-cleanexpired-removes -->
-- [ ] DeleteUserSessions invalidates all sessions for a user (logout everywhere) ([Store: Sessions](#store-sessions)) <!-- wl:check deleteusersessions-invalidates-sessions-user -->
 - [ ] Audit log entries include a `previous_hash` field forming a hash chain, its first entry included, as [Hash Chain Integrity](#hash-chain-integrity) says <!-- wl:check audit-log-entries-include-previous-hash -->
 - [ ] A sealed log stores each entry as its RFC 8785 bytes and one line feed, and every `previous_digest` after the first is the SHA-256 of the stored line before it ([What a sealed log holds](#what-a-sealed-log-holds)) <!-- wl:check sealed-log-stores-entry-rfc-8785 -->
 - [ ] A checkpoint verifies with nothing but the log's lines, one long-lived key's fingerprint from outside the log and an ML-DSA-65 verifier, over a `weblisk/log-checkpoint/v2` statement rebuilt from `seq`, `tip` and `issued_at` ([Verifying a sealed log](#verifying-a-sealed-log)) <!-- wl:check checkpoint-verifies-nothing-logs-lines-long -->

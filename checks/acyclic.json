@@ -1,24 +1,5 @@
 {
- "measured_at": "wt/layering, 2026-11-05",
- "note": "Each edge here lies on a cycle of requires, which can only shrink. Measured at main 2007b64, 71 edges among 25 blueprints were one strongly connected component; wt/layering took the patterns out (checks/layering.json) and turned the framework edges whose direction was not in doubt. What was left was two questions only the owner could settle. The owner decided the first on 2026-11-05: architecture/admin declares the operator surface, its behaviours, the /v1/admin/* endpoints and token-exchange, and architecture/orchestrator binds it, so admin no longer requires the orchestrator. What is left is whether architecture/storage catalogues every component's stores with their row types bound, or each owner declares its own. An edge is removed when it no longer lies on a cycle; edges are never added.",
- "known": [
-  ["agents/lifecycle", "architecture/lifecycle"],
-  ["architecture/domain", "architecture/orchestrator"],
-  ["architecture/lifecycle", "architecture/domain"],
-  ["architecture/orchestrator", "architecture/storage"],
-  ["architecture/storage", "agents/lifecycle"],
-  ["architecture/storage", "architecture/domain"],
-  ["architecture/storage", "architecture/orchestrator"]
- ],
- "decisions": {
-  "store catalogue": {
-   "edges": [["architecture/storage", "architecture/orchestrator"], ["architecture/storage", "architecture/domain"], ["architecture/storage", "agents/lifecycle"], ["architecture/orchestrator", "architecture/storage"], ["architecture/domain", "architecture/orchestrator"], ["architecture/lifecycle", "architecture/domain"], ["agents/lifecycle", "architecture/lifecycle"]],
-   "question": "architecture/storage defines which component owns each store and binds its row types (AgentEntry, DomainWorkflow, AgentMetrics, EntityContext; also WorkflowExecution and TaskRecord off the cycle), while those components require storage for its contract. Does storage catalogue its consumers' stores?",
-   "options": [
-    "no: each owner declares its stores in its own Storage section (schemas/common), binding storage's contract; storage keeps the contract (StoreInterface, sealed logs, durable records, snapshots) and drops its requires of orchestrator, domain, gateway and agents/*",
-    "yes, untyped: storage keeps the catalogue as prose linking each owner, and drops the requires and bindings",
-    "yes, typed: the row types move to protocol/types, which storage and the owners both bind"
-   ]
-  }
- }
+ "measured_at": "wt/cycles, 2026-11-05",
+ "note": "Each edge here lies on a cycle of requires, which can only shrink. Measured at main 2007b64, 71 edges among 25 blueprints were one strongly connected component; wt/layering took the patterns out (checks/layering.json) and turned the framework edges whose direction was not in doubt, leaving nine on two questions the owner decided on 2026-11-05: architecture/admin declares the operator surface and architecture/orchestrator binds it, and each component declares its own stores, architecture/storage keeping only the contract. With both applied (wt/cycles) no requires lies on a cycle, and the list is empty. An edge is removed when it no longer lies on a cycle; edges are never added.",
+ "known": []
 }

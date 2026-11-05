@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: lifecycle
-version: 2.1.3
+version: 2.2.0
 port: 9782
-requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle]
+requires: [protocol/spec, protocol/types, architecture/agent, architecture/lifecycle, architecture/storage]
 extends: [patterns/messaging, patterns/scope, patterns/policy]
 depends_on: []
 platform: any
@@ -103,6 +103,18 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: architecture/storage
+    # 2.5.0 is where each owner declares its own stores
+    version: ">=2.5.0 <3.0.0"
+    bindings:
+      behaviors:
+        - name: durable-records
+        - name: cursor-pagination
+        - name: retention
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: patterns/messaging
     version: ">=1.0.0 <4.0.0"
     bindings:
@@ -324,6 +336,98 @@ types:
         type: timestamp
         auto: true
         description: Last update timestamp
+```
+
+### ObsFilter
+
+```yaml
+types:
+  ObsFilter:
+    fields:
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by agent (empty = all)"
+      target:
+        name: Target
+        type: string
+        description: "Filter by target path/URL (empty = all)"
+      strategy_id:
+        name: StrategyID
+        type: string
+        description: "Filter by strategy (empty = all)"
+      since:
+        name: Since
+        type: timestamp
+        description: "Observations after this time"
+      until:
+        name: Until
+        type: timestamp
+        description: "Observations before this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor (opaque)"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results per page (default: 100)"
+```
+
+### RecFilter
+
+```yaml
+types:
+  RecFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`pending`, `accepted`, `rejected`, `applied` (empty = all)"
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by recommending agent"
+      strategy_id:
+        name: StrategyID
+        type: string
+        description: "Filter by strategy"
+      priority:
+        name: Priority
+        type: string
+        description: "Filter by priority level"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
+
+### MetricsUpdate
+
+```yaml
+types:
+  MetricsUpdate:
+    fields:
+      add_observations:
+        name: AddObservations
+        type: int
+        description: "Increment observation count"
+      add_findings:
+        name: AddFindings
+        type: int
+        description: "Increment finding count"
+      add_recommendations:
+        name: AddRecommendations
+        type: int
+        description: "Increment recommendation count"
+      feedback_signal:
+        name: FeedbackSignal
+        type: string
+        description: "`positive`, `negative`, `neutral` (for rate recalculation)"
 ```
 
 ## Identity
@@ -907,6 +1011,69 @@ storage:
 Retention for observations, recommendations and feedback is the corresponding
 `config` value. Which backend satisfies these stores is the platform blueprint's
 answer, per `architecture/storage`.
+
+Each store, and the operations it provides by name
+([`architecture/storage`](../architecture/storage.md#interfaces)). Observations
+are produced by domains, through events, and stored here.
+
+### Store: Strategies
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutStrategy | `(strategy Strategy) → error` | Create or update a strategy |
+| GetStrategy | `(id string) → (Strategy, error)` | Retrieve by ID |
+| ListStrategies | `(status string) → ([]Strategy, error)` | List, optionally filtered by status |
+
+### Store: Observations
+
+**Durability:** MUST survive restarts. SHOULD retain at least 90 days.
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| AppendObservation | `(obs Observation) → error` | Append to observation log |
+| QueryObservations | `(filter ObsFilter) → ([]Observation, error)` | Query by agent, target, strategy, time range |
+| CountObservations | `(filter ObsFilter) → (int, error)` | Count matching observations |
+
+### Store: Recommendations
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutRecommendation | `(rec Recommendation) → error` | Create or update a recommendation |
+| GetRecommendation | `(id string) → (Recommendation, error)` | Retrieve by ID |
+| ListRecommendations | `(filter RecFilter) → ([]Recommendation, error)` | Query by status, agent, strategy |
+| UpdateStatus | `(id string, status string, reason string) → error` | Transition recommendation status |
+
+### Store: Feedback
+
+**Durability:** MUST survive restarts. SHOULD retain at least 180 days.
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| AppendFeedback | `(fb Feedback) → error` | Record feedback entry |
+| QueryFeedback | `(recommendationID string) → ([]Feedback, error)` | Feedback for a specific recommendation |
+
+### Store: Agent Metrics
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| GetMetrics | `(agentName string) → (AgentMetrics, error)` | Current metrics for an agent |
+| UpdateMetrics | `(agentName string, update MetricsUpdate) → error` | Incrementally update metrics |
+
+### Store: Entity Context
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| SetContext | `(ctx EntityContext) → error` | Store or replace entity context |
+| GetContext | `() → (EntityContext, error)` | Retrieve current entity context |
+
 ## Configuration
 
 ```yaml
@@ -1381,3 +1548,5 @@ scaling:
 - [ ] Constraints enforced — append-only data, no auto-approve critical ([Constraints](#constraints), [Implementation Notes](#implementation-notes)) <!-- wl:check constraints-enforced-append-data-no-auto -->
 - [ ] Security: all endpoints require valid token ([Security](#security)) <!-- wl:check security-endpoints-require-valid-token -->
 - [ ] Retention cleanup runs for observations and recommendations ([Implementation Notes](#implementation-notes), [Configuration](#configuration)) <!-- wl:check retention-cleanup-runs-observations -->
+- [ ] Observations are retained for at least the period [Store: Observations](#store-observations) gives <!-- wl:check observations-retained-least-period-store -->
+- [ ] Agent metrics are incrementally updated (not recomputed) ([Store: Agent Metrics](#store-agent-metrics)) <!-- wl:check agent-metrics-incrementally-updated -->

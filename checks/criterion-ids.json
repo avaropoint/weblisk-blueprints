@@ -140,7 +140,9 @@
    "override-audit-records-fields-manual-overrides",
    "constraints-enforced-append-data-no-auto",
    "security-endpoints-require-valid-token",
-   "retention-cleanup-runs-observations"
+   "retention-cleanup-runs-observations",
+   "observations-retained-least-period-store",
+   "agent-metrics-incrementally-updated"
   ],
   "agents/listings.md": [
    "agent-responds-post-v1-describe-valid",
@@ -257,7 +259,8 @@
    "override-audit-records-fields-manual-overrides",
    "constraints-enforced-max-concurrent-max-phases",
    "security-endpoints-require-valid-token",
-   "phase-agent-self-dispatched-invoker-domain"
+   "phase-agent-self-dispatched-invoker-domain",
+   "workflow-executions-support-resumption"
   ],
   "architecture/admin.md": [
    "auth-services-reused",
@@ -1188,7 +1191,10 @@
    "external-route-carries-no-version-internal",
    "response-carries-x-weblisk-target-naming",
    "request-log-entry-span-records-route",
-   "gauge-gateway-route-target-reports-application"
+   "gauge-gateway-route-target-reports-application",
+   "user-passwords-hashed-store-users-requires",
+   "session-expiry-enforced-cleanexpired-removes",
+   "deleteusersessions-invalidates-sessions-user"
   ],
   "architecture/generation.md": [
    "component-tenants-build-plan-names-generated",
@@ -1523,7 +1529,11 @@
    "admingrantcreate-admingrantrevoke-refused",
    "adminagentget-answers-etag-not-change",
    "adminleaseevents-announces-updated-renewal",
-   "get-v1-admin-records-orchestrator-snapshot"
+   "get-v1-admin-records-orchestrator-snapshot",
+   "stores-record-they-not-enforce-request",
+   "freshly-started-orchestrator-owns-system",
+   "audit-entries-retained-least-period-store",
+   "expired-channels-cleaned-up-automatically"
   ],
   "architecture/programme-service.md": [
    "route-endpoints-get-livez-get-readyz",
@@ -1613,26 +1623,16 @@
   "architecture/storage.md": [
    "component-implements-exactly-stores-own",
    "store-operation-exists-under-exactly-name",
-   "stores-record-they-not-enforce-request",
-   "freshly-started-orchestrator-owns-system",
    "store-section-says-survive-restarts-survives",
-   "observations-retained-least-period-store",
-   "audit-entries-retained-least-period-store",
    "audit-log-append-hash-chain-integrity",
    "no-append-audit-log-sealed-log",
    "store-opens-file-appending-once-appends",
    "no-request-reads-stores-file-answer",
    "request-write-audit-entry-answered-within",
    "chained-log-kept-segments-most-8",
-   "expired-channels-cleaned-up-automatically",
    "list-operations-support-cursor-based-pagination",
    "concurrent-reads-writes-not-corrupt-data",
-   "agent-metrics-incrementally-updated",
-   "workflow-executions-support-resumption",
    "no-external-database-server-required-default",
-   "user-passwords-hashed-store-users-requires",
-   "session-expiry-enforced-cleanexpired-removes",
-   "deleteusersessions-invalidates-sessions-user",
    "audit-log-entries-include-previous-hash",
    "sealed-log-stores-entry-rfc-8785",
    "checkpoint-verifies-nothing-logs-lines-long",
@@ -3072,5 +3072,18 @@
    "taking-update-adjustment-unchanged-control-takes"
   ]
  },
- "retired": {}
+ "retired": {
+  "architecture/storage.md": [
+   "agent-metrics-incrementally-updated",
+   "audit-entries-retained-least-period-store",
+   "deleteusersessions-invalidates-sessions-user",
+   "expired-channels-cleaned-up-automatically",
+   "freshly-started-orchestrator-owns-system",
+   "observations-retained-least-period-store",
+   "session-expiry-enforced-cleanexpired-removes",
+   "stores-record-they-not-enforce-request",
+   "user-passwords-hashed-store-users-requires",
+   "workflow-executions-support-resumption"
+  ]
+ }
 }

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.10.0
+version: 4.11.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -142,18 +142,19 @@ declaration:
     - blueprint: architecture/storage
       # 2.2.0 is where durable-records says appends share a flush and the
       # store's lock is not held across it; 2.3.0 where a store is opened
-      # once, answers lookups from memory and keeps a chained log in segments
-      version: ">=2.3.0 <3.0.0"
+      # once, answers lookups from memory and keeps a chained log in segments;
+      # 2.5.0 where this orchestrator declares its own stores (Storage)
+      version: ">=2.5.0 <3.0.0"
       bindings:
         types:
-          - name: AuditFilter
-            fields_used: [actor, action, since, cursor, limit]
           - name: RecordSnapshot
             fields_used: [snapshot, service, taken_at, store_format, files]
         behaviors:
           - name: backup-restore
           # The audit log: every exchange appends to it. See Audit Logging
           - name: durable-records
+          # Expired channels are removed (Store: Channels)
+          - name: retention
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -2996,8 +2997,9 @@ until it renews (protocol/spec §POST /v1/register, step 8).
 
 ## Data Structures
 
-See [Storage](storage.md) for the canonical abstract store interfaces
-and [protocol/types.md](../protocol/types.md) for type definitions.
+See [Storage](#storage) for the stores this orchestrator owns,
+[`architecture/storage`](storage.md) for the contract they are held to, and
+[protocol/types.md](../protocol/types.md) for type definitions.
 
 **Key implementation notes:**
 
@@ -3030,6 +3032,91 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 ---
 
+## Storage
+
+The stores this orchestrator owns, and the operations each provides, by name
+([`architecture/storage`](storage.md#interfaces)). It provides these four and no
+other component's ([`architecture/storage`](storage.md#a-component-implements-only-the-stores-it-owns)).
+
+### Store: Agent Registry
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutAgent | `(name string, entry AgentEntry) → error` | Store or update an agent registration |
+| GetAgent | `(name string) → (AgentEntry, error)` | Retrieve agent by name |
+| DeleteAgent | `(name string) → error` | Remove agent from registry |
+| ListAgents | `(filter AgentFilter) → ([]AgentEntry, error)` | List agents, optionally filtered by type. A lease's state is derived from the entry's `lease` when read, never stored ([Data Structures](#data-structures)), so the store neither holds it nor filters by it |
+
+`AgentEntry` is this orchestrator's ([AgentEntry](#agententry)), and is defined
+there alone.
+
+### Store: Audit Log
+
+**Durability:** MUST survive restarts. SHOULD retain its entries for at least 90 days.
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| AppendAudit | `(entry AuditEntry) → error` | Append audit entry (computes hash chain) |
+| QueryAudit | `(filter AuditFilter) → ([]AuditEntry, error)` | Query audit log ([AuditFilter](#auditfilter)) |
+| VerifyChain | `(since timestamp, until timestamp) → (valid bool, brokenAt string, error)` | Verify hash chain integrity over a time range |
+
+### Store: Channels
+
+**Durability:** MAY be in-memory (channels are short-lived, 1h TTL)
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutChannel | `(id string, channel ChannelEntry) → error` | Store active channel |
+| GetChannel | `(id string) → (ChannelEntry, error)` | Retrieve by ID |
+| DeleteChannel | `(id string) → error` | Remove channel |
+| CleanExpired | `() → (int, error)` | Remove all expired channels, return count |
+
+### Store: Namespace Registry
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| ClaimNamespace | `(namespace string, agent string) → error` | Record exclusive ownership (409 if already owned by another) |
+| ReleaseNamespace | `(namespace string) → error` | Release on agent deregistration |
+| GetOwner | `(namespace string) → (string, error)` | Look up which agent owns a namespace |
+| ListNamespaces | `() → (map[string]string, error)` | All namespace → agent mappings |
+
+**This store records ownership. It does not decide who may ask.**
+
+`system.*` is reserved, and the rule is a REGISTRATION rule:
+[`protocol/spec`](../protocol/spec.md) rejects an agent claiming it with 403
+"reserved for orchestrator". The orchestrator itself claims `system` at startup —
+this orchestrator's [Startup Sequence](#startup-sequence) — through this
+same store.
+
+An implementation that puts the reservation check inside `ClaimNamespace`
+therefore refuses the one component that is supposed to own it. That happened:
+a generated orchestrator failed its startup two seconds in with
+
+```
+startup: reserve namespace "system": namespace "system" is reserved
+```
+
+and its own health check, as the spec then had it, honestly reported
+`namespaces: degraded`, because the orchestrator did not own the namespace it
+is required to own. Under today's spec the same fault is the orchestrator's
+`GET /readyz` answering not ready ([`protocol/types`](../protocol/types.md#readiness)).
+
+The general form is worth stating because it will recur: **a store records, a
+policy decides.** Enforcement that belongs to a request path, placed in the
+store beneath it, applies to every caller including the ones the rule exists to
+serve.
+
+The audit log is a chained log: its hash chain, how its appends share a flush,
+how it is held open and kept in segments are
+[`architecture/storage`](storage.md#chained-logs)'s, and bind it as they bind
+every chained log.
+
+---
+
 ## Configuration
 
 | Setting | Flag | Configuration key | Default |
@@ -3051,8 +3138,8 @@ and [protocol/types.md](../protocol/types.md) for type definitions.
 
 An entry in the orchestrator's agent registry, as
 [Registration Flow](#registration-flow-post-v1register) step 6 stores it. The
-orchestrator owns it, and [`architecture/storage`](storage.md#store-agent-registry)
-binds it for the store that keeps it; it is defined here alone.
+orchestrator owns it, and its [Agent Registry](#store-agent-registry) store
+keeps it; it is defined here alone.
 
 ```yaml
 types:
@@ -3093,6 +3180,36 @@ types:
         type: LeaseRenewal
         required: false
         description: "The last renewal received (protocol/types, LeaseRenewal). Absent until the first renewal, when the entry reads `not_ready`"
+```
+
+### AuditFilter
+
+How [QueryAudit](#store-audit-log) is asked for entries.
+
+```yaml
+types:
+  AuditFilter:
+    fields:
+      actor:
+        name: Actor
+        type: string
+        description: "Filter by actor (empty = all)"
+      action:
+        name: Action
+        type: string
+        description: "Filter by action type (empty = all)"
+      since:
+        name: Since
+        type: timestamp
+        description: "After this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
 ```
 
 ### ModelConfig
@@ -3666,3 +3783,7 @@ agents hold, which is theirs.
 - [ ] `AdminAgentGet` answers an `ETag` that does not change when only the agent's `last_seen`, `lease` or `last_renewal` changes, and `AdminAgentDeregister` given an `If-Match` that is not that `ETag` is refused `RESOURCE_PRECONDITION_FAILED` and deregisters nothing ([Resources this orchestrator owns](#resources-this-orchestrator-owns)) <!-- wl:check adminagentget-answers-etag-not-change -->
 - [ ] `AdminLeaseEvents` announces `updated` for a renewal that changes `ready`, nothing for a renewal that changes nothing, and nothing when a lease lapses; `AdminAgentEvents` announces `created` for a first registration, `deleted` for a deregistration the agent asked for, and `deregister` for `AdminAgentDeregister` ([Resources this orchestrator owns](#resources-this-orchestrator-owns), [System Events](#system-events)) <!-- wl:check adminleaseevents-announces-updated-renewal -->
 - [ ] `GET /v1/admin/records/orchestrator/snapshot` answers a request that can use `admin:*` with every store this orchestrator owns at one instant between writes, as [`architecture/storage`](storage.md#the-snapshot-route) gives it, refuses any other with `FORBIDDEN` and an agent token with `CREDENTIAL_REQUIRED`, appends an `AuditEntry` for each snapshot it answers, and no route restores the store ([Administrative endpoints](#administrative-endpoints), [Auth Middleware](#auth-middleware) steps 6 and 8, [`architecture/storage`](storage.md#putting-a-store-back)) <!-- wl:check get-v1-admin-records-orchestrator-snapshot -->
+- [ ] Stores record; they do not enforce request-path policy. `ClaimNamespace` accepts `system` from the orchestrator, and `protocol/spec`'s registration flow is what refuses it from an agent ([Store: Namespace Registry](#store-namespace-registry)) <!-- wl:check stores-record-they-not-enforce-request -->
+- [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness)) <!-- wl:check freshly-started-orchestrator-owns-system -->
+- [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives <!-- wl:check audit-entries-retained-least-period-store -->
+- [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [`architecture/storage`](storage.md#contracts), `retention`) <!-- wl:check expired-channels-cleaned-up-automatically -->
