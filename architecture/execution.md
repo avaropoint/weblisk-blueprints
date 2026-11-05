@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: execution
-version: 1.4.0
+version: 1.5.0
 requires: [protocol/types, protocol/identity, patterns/workflow, patterns/scheduling, patterns/task-dispatch, patterns/approval, patterns/messaging, architecture/orchestrator, architecture/admin, architecture/domain, architecture/storage]
 platform: any
 tier: free
@@ -228,9 +228,9 @@ requires:
         - path: /v1/work/authorisations
           methods: [GET]
       behaviors:
-        # What a pass this service accepts rests on. Relied on, never called
-        - name: token-exchange
-          usage: Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
+        # Called for every request of a run (Unattended authority)
+        - name: work-exchange
+          usage: Called for every request a run carries, one work pass per request, under the work authorisation its definition names
       events:
         - topic: system.agent.registered
           fields_used: [agent_name, manifest]
@@ -240,9 +240,13 @@ requires:
       removed: halt-immediately
 
   - blueprint: architecture/admin
-    version: ">=5.0.0 <6.0.0"
+    # 5.9.0 is where it declares the token exchange
+    version: ">=5.9.0 <6.0.0"
     bindings:
       behaviors:
+        # What a pass this service accepts rests on. Relied on, never called
+        - name: token-exchange
+          usage: Every pass this service accepts was minted by the exchange, for an operator token the orchestrator judged live then, carrying no capability the person could not use then
         # The one door a person's request arrives through, and the inbox it
         # composes from this service's open waits
         - name: admin-gateway-authorization

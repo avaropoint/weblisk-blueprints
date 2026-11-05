@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.8.0
+version: 6.9.0
 requires: []
 platform: any
 tier: free
@@ -4666,6 +4666,76 @@ types:
 [`protocol/identity`](identity.md#types)'s, and defined there alone, for
 [agent key rotation](identity.md#rotation-flow). A blueprint that uses it binds
 it from `protocol/identity`.
+
+---
+
+## Clients
+
+The taxonomy every client is classified by, and the tag a response's fields
+carry for one. [`architecture/client`](../architecture/client.md) specifies how
+a client of each type is authenticated, bound and trusted;
+[`patterns/offline`](../patterns/offline.md) what a client may keep offline.
+
+### ClientType
+
+Enumeration of supported client types.
+
+| Value | Description |
+|-------|-------------|
+| `browser` | Web browser with cookie-based session (WLS) |
+| `native-mobile` | Mobile application with secure storage (WLC) |
+| `native-desktop` | Desktop application with secure storage (WLC) |
+| `api-server` | Server-to-server with mTLS |
+| `iot-device` | Constrained device with device certificate |
+
+### TrustLevel
+
+Enumeration of trust classifications.
+
+| Value | Description |
+|-------|-------------|
+| `untrusted` | User-controlled, XSS-vulnerable environment (browsers) |
+| `semi-trusted` | App-signed, sandboxed but user-controlled (native apps) |
+| `trusted` | Operator-controlled infrastructure (mTLS servers) |
+| `constrained` | Limited capability, physical access risk (IoT) |
+
+### ClientCapability
+
+Enumeration of capabilities a client may declare.
+
+| Value | Description |
+|-------|-------------|
+| `offline` | Client supports offline operation and local persistence |
+| `push` | Client supports push notifications |
+| `biometric` | Client has biometric authentication hardware |
+| `secure-enclave` | Client has hardware-backed secure storage |
+| `attestation` | Client supports device/app attestation |
+
+### DataBoundaryTag
+
+Metadata attached to outbound response fields.
+
+```yaml
+types:
+  DataBoundaryTag:
+    fields:
+      scope:
+        type: string
+        required: true
+        description: "Scope classification level"
+      ttl:
+        type: int
+        required: true
+        description: "Maximum client-side retention in seconds"
+      offline_permitted:
+        type: bool
+        required: true
+        description: "Whether client may persist this data offline"
+      encryption_required:
+        type: string
+        required: false
+        description: "Required encryption level for persistence (`none`, `aes-256-gcm`, `hardware-backed`)"
+```
 
 ---
 

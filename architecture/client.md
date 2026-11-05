@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 2.0.2
+version: 2.1.0
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -46,11 +46,19 @@ This architecture ensures that:
 ```yaml
 requires:
   - blueprint: protocol/types
-    version: ">=1.0.0 <7.0.0"
+    # 6.9.0 is where the client taxonomy is declared there
+    version: ">=6.9.0 <7.0.0"
     bindings:
       types:
         - name: AgentManifest
           fields_used: [name, url, public_key]
+        # The client taxonomy: a ClientRecord's client_type, capabilities and
+        # trust_level, and the tag on each outbound field
+        - name: ClientType
+        - name: TrustLevel
+        - name: ClientCapability
+        - name: DataBoundaryTag
+          fields_used: [scope, ttl, offline_permitted, encryption_required]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -964,40 +972,10 @@ The gateway tracks per-session anomalies:
 
 ## Types
 
-### ClientType
-
-Enumeration of supported client types.
-
-| Value | Description |
-|-------|-------------|
-| `browser` | Web browser with cookie-based session (WLS) |
-| `native-mobile` | Mobile application with secure storage (WLC) |
-| `native-desktop` | Desktop application with secure storage (WLC) |
-| `api-server` | Server-to-server with mTLS |
-| `iot-device` | Constrained device with device certificate |
-
-### TrustLevel
-
-Enumeration of trust classifications.
-
-| Value | Description |
-|-------|-------------|
-| `untrusted` | User-controlled, XSS-vulnerable environment (browsers) |
-| `semi-trusted` | App-signed, sandboxed but user-controlled (native apps) |
-| `trusted` | Operator-controlled infrastructure (mTLS servers) |
-| `constrained` | Limited capability, physical access risk (IoT) |
-
-### ClientCapability
-
-Enumeration of capabilities a client may declare.
-
-| Value | Description |
-|-------|-------------|
-| `offline` | Client supports offline operation and local persistence |
-| `push` | Client supports push notifications |
-| `biometric` | Client has biometric authentication hardware |
-| `secure-enclave` | Client has hardware-backed secure storage |
-| `attestation` | Client supports device/app attestation |
+The client taxonomy — `ClientType`, `TrustLevel`, `ClientCapability` and
+`DataBoundaryTag` — is [`protocol/types`](../protocol/types.md#clients)'s, bound
+under [Dependencies](#dependencies), so that a pattern a client builds on reads
+it without requiring this blueprint. The types below are this blueprint's own.
 
 ### ClientRecord
 
@@ -1055,32 +1033,6 @@ types:
         type: object
         required: false
         description: "Platform attestation data"
-```
-
-### DataBoundaryTag
-
-Metadata attached to outbound response fields.
-
-```yaml
-types:
-  DataBoundaryTag:
-    fields:
-      scope:
-        type: string
-        required: true
-        description: "Scope classification level"
-      ttl:
-        type: int
-        required: true
-        description: "Maximum client-side retention in seconds"
-      offline_permitted:
-        type: bool
-        required: true
-        description: "Whether client may persist this data offline"
-      encryption_required:
-        type: string
-        required: false
-        description: "Required encryption level for persistence (`none`, `aes-256-gcm`, `hardware-backed`)"
 ```
 
 ---

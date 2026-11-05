@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: notification
-version: 1.3.1
-requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage]
+version: 1.5.0
+requires: [protocol/types, protocol/identity, patterns/notification, patterns/retry, patterns/privacy, patterns/scope, architecture/content, architecture/orchestrator, architecture/admin, agents/email-send, architecture/storage, patterns/repository]
 platform: any
 tier: free
 adoption: opt-in
@@ -166,12 +166,21 @@ requires:
     version: ">=4.0.0 <6.0.0"
     bindings:
       types:
-        # The organisation's records repository, found by records and scope_path
-        - name: ContentRepository
-          fields_used: [id, scope_path, records]
         # The register is read as an entry, never copied
         - name: ContentEntry
           fields_used: [path, identity, scope]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        # The organisation's records repository, found by records and scope_path
+        - name: ContentRepository
+          fields_used: [id, scope_path, records]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -185,17 +194,18 @@ requires:
       behaviors:
         - name: work-exchange
           usage: Called for every request this service makes of content under a notice's authorisation, one work pass per request
-        - name: token-exchange
-          usage: Relied on, never called. Every pass this service accepts was minted by the exchange for a person the orchestrator judged live then
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
       removed: halt-immediately
 
   - blueprint: architecture/admin
-    version: ">=4.0.0 <6.0.0"
+    # 5.9.0 is where it declares the token exchange
+    version: ">=5.9.0 <6.0.0"
     bindings:
       behaviors:
+        - name: token-exchange
+          usage: Relied on, never called. Every pass this service accepts was minted by the exchange for a person the orchestrator judged live then
         - name: admin-gateway-authorization
           usage: Relied on, never called. A person's request reaches this service only on a route its manifest declares among pass_routes, on a pass naming every capability that route declares
     on_change:

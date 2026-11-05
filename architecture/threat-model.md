@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: threat-model
-version: 1.6.1
-requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract]
+version: 1.7.0
+requires: [protocol/types, protocol/identity, protocol/federation, architecture/gateway, architecture/client, architecture/content, architecture/data-security, architecture/admin, architecture/observability, architecture/enforcement, patterns/contract, patterns/repository]
 platform: any
 tier: free
 -->
@@ -186,10 +186,19 @@ requires:
     version: ">=2.0.0 <6.0.0"
     bindings:
       types:
-        - name: ContentRepository
-          fields_used: [custody, attestations, ceiling]
         - name: AccessStatement
           fields_used: [access_complete, principals]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
+        - name: ContentRepository
+          fields_used: [custody, attestations, ceiling]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump

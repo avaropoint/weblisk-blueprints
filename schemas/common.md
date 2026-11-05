@@ -131,9 +131,18 @@ one it adopted would be the tool's guess.
   itself, or binds one `protocol/types` declares, and the framework blueprint
   binds the pattern. So `architecture/agent`'s `AgentConfig` binds
   `patterns/retry`'s `RetryConfig`, and `patterns/retry` binds nothing of the
-  agent's. The patterns that still require the framework are
-  [`checks/layering.json`](../checks/layering.json)'s `known`, which
-  [`checks/layering.py`](../checks/layering.py) holds to shrink only.
+  agent's. [`checks/layering.py`](../checks/layering.py) holds the rule;
+  its known list, [`checks/layering.json`](../checks/layering.json), is empty
+  and can only shrink.
+- `requires` is acyclic (decided by the owner, 2026-11-05): **no blueprint
+  requires, through any chain of `requires` across the corpus, itself.** Where
+  two blueprints each need the other's declarations, one of them declares the
+  shared part, or it moves to a pattern or to `protocol/types` that both
+  bind; a cycle is never kept by binding in both directions.
+  [`checks/acyclic.py`](../checks/acyclic.py) holds the rule over every
+  blueprint in the corpus; its known list,
+  [`checks/acyclic.json`](../checks/acyclic.json), is empty and can only
+  shrink.
 - `extends`: Each entry must be a pattern (`patterns/*`). The pattern must exist.
 - `port`: Integer in range 9700–9999. Must not conflict with other assigned ports.
 - `tier`: Only `free` or `pro`. Defaults to `free` if omitted (but SHOULD be explicit).

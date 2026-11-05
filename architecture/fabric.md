@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: fabric
-version: 3.3.1
-requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/orchestrator]
+version: 3.5.0
+requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/scope, architecture/content, architecture/storage, architecture/enforcement, architecture/admin, patterns/repository]
 platform: any
 tier: free
 adoption: opt-in
@@ -137,14 +137,23 @@ requires:
       types:
         - name: ContentEntry
           fields_used: [path, identity, scope, modified_at, provenance]
+        - name: AccessStatement
+          fields_used: [repository, access_complete]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+
+  - blueprint: patterns/repository
+    version: ">=1.0.0 <2.0.0"
+    bindings:
+      types:
         - name: ContentRepository
           fields_used: [id, scope_path, custody, effective_custody, attestations, ceiling]
         - name: CustodyAttestations
           fields_used: [enumerable_principals, attributable_writes, tamper_evident]
         - name: ContentObservation
           fields_used: [repository, path, recorded_digest, current_digest, state, observed_at]
-        - name: AccessStatement
-          fields_used: [repository, access_complete]
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -179,8 +188,10 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
-  - blueprint: architecture/orchestrator
-    version: ">=2.15.0 <5.0.0"
+  - blueprint: architecture/admin
+    # 5.9.0 is where it declares the token exchange, which the orchestrator
+    # serves
+    version: ">=5.9.0 <6.0.0"
     bindings:
       behaviors:
         # What a pass this service accepts rests on. See This service honours
@@ -2015,8 +2026,9 @@ an operator token is refused before this, on every route, with
 which the orchestrator computed at the exchange from what the operator's role
 carried then, never beyond the token's `cap`, and only for a token it judged
 live then
-([`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange),
-`token-exchange`). This service asks nothing again. So a removed operator, a
+([`architecture/admin`](admin.md#contracts), `token-exchange`, which
+[`architecture/orchestrator`](orchestrator.md#token-exchange-post-v1tokenexchange)
+serves). This service asks nothing again. So a removed operator, a
 revoked credential and a role lowered below `fabric:attest` reach this service
 at the person's next act, and a pass minted before lives at most 30 seconds.
 A read on a pass is bounded the same way, and its audit entry names the

@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: workflow
-version: 3.0.3
+version: 3.1.0
 port: 9780
-requires: [protocol/spec, protocol/types, architecture/agent]
+requires: [protocol/spec, protocol/types, architecture/agent, architecture/storage]
 extends: [patterns/workflow, patterns/messaging, patterns/scope, patterns/policy, patterns/safety]
 depends_on: []
 platform: any
@@ -99,6 +99,16 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: architecture/storage
+    # 2.5.0 is where each owner declares its own stores
+    version: ">=2.5.0 <3.0.0"
+    bindings:
+      behaviors:
+        - name: durable-records
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: patterns/messaging
     version: ">=1.0.0 <4.0.0"
     bindings:
@@ -915,6 +925,21 @@ The agent appends on each state change — started, phase complete, finished. Th
 definition cache is derived from the source domain and is held in memory,
 invalidated on domain re-registration. Which backend satisfies the store is the
 platform blueprint's answer, per `architecture/storage`.
+
+The store provides these operations, by name
+([`architecture/storage`](../architecture/storage.md#interfaces)).
+
+### Store: Workflow Executions
+
+**Durability:** MUST survive restarts (allows workflow resumption)
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutExecution | `(exec WorkflowExecution) → error` | Create or update execution |
+| GetExecution | `(id string) → (WorkflowExecution, error)` | Retrieve by ID |
+| ListExecutions | `(workflowName string, limit int) → ([]WorkflowExecution, error)` | Recent executions for a workflow |
+| UpdatePhase | `(execID string, phase PhaseResult) → error` | Update a single phase result |
+
 ## Configuration
 
 ```yaml
@@ -1454,3 +1479,4 @@ scaling:
 - [ ] Constraints enforced — max_concurrent, max_phases, no cycle bypass ([Constraints](#constraints)) <!-- wl:check constraints-enforced-max-concurrent-max-phases -->
 - [ ] Security: all endpoints require valid token ([Security](#security)) <!-- wl:check security-endpoints-require-valid-token -->
 - [ ] A phase whose agent is `self` is dispatched to the invoker domain through the task agent, never by a direct message ([Phase Dispatch](#phase-dispatch), [Constraints](#constraints), [Implementation Notes](#implementation-notes)) <!-- wl:check phase-agent-self-dispatched-invoker-domain -->
+- [ ] Workflow executions support resumption after restart ([Store: Workflow Executions](#store-workflow-executions)) <!-- wl:check workflow-executions-support-resumption -->

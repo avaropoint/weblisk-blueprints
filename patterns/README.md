@@ -58,6 +58,7 @@ frontmatter. A pattern is a dependency that provides a known contract.
 | [rate-limiting.md](rate-limiting.md) | Token bucket, sliding window — gateway and agent rate limits |
 | [retry.md](retry.md) | Retry strategies, circuit breaker, timeout management |
 | [content-git.md](content-git.md) | Content backend in git — one commit per change, pseudonymous authors, sha256 joins, nothing git-signed |
+| [repository.md](repository.md) | The shapes the content service and its backends share — repository, custody, census, remote, change |
 
 ## Workflows & Orchestration
 

@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: gateway
-version: 3.0.5
-requires: [protocol/identity, protocol/types, architecture/agent, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai]
+version: 3.1.0
+requires: [protocol/identity, protocol/types, architecture/agent, architecture/observability, patterns/auth-session, patterns/auth-token, patterns/user-management, patterns/rate-limiting, patterns/api-ai, architecture/storage]
 platform: any
 tier: free
 -->
@@ -117,6 +117,18 @@ requires:
       patterns:
         - behavior: rate-limit-enforcement
           parameters: [algorithm, key_type, requests, window]
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
+  - blueprint: architecture/storage
+    # 2.5.0 is where each owner declares its own stores
+    version: ">=2.5.0 <3.0.0"
+    bindings:
+      behaviors:
+        - name: durable-records
+        - name: cursor-pagination
+        - name: retention
     on_change:
       compatible: validate-and-adopt
       breaking: version-bump
@@ -852,6 +864,52 @@ types:
 
 ---
 
+## Storage
+
+The stores this gateway owns, and the operations each provides, by name
+([`architecture/storage`](storage.md#interfaces)). Their row and update types
+are under [Types](#types). It provides these two and no other component's
+([`architecture/storage`](storage.md#a-component-implements-only-the-stores-it-owns)).
+Credentials are kept in a file of their own, mode 0600.
+
+### Store: Users
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| CreateUser | `(user UserRecord) → error` | Create a new user (409 if user_id exists) |
+| GetUser | `(userID string) → (UserRecord, error)` | Retrieve user by ID |
+| GetUserByEmail | `(email string) → (UserRecord, error)` | Retrieve user by email address |
+| UpdateUser | `(userID string, update UserUpdate) → error` | Update user fields |
+| DeleteUser | `(userID string) → error` | Soft-delete user (mark inactive) |
+| ListUsers | `(filter UserFilter) → ([]UserRecord, error)` | List users with optional filter |
+| VerifyCredential | `(userID string, credential string) → (bool, error)` | Verify password hash (timing-safe) |
+| SetCredential | `(userID string, credential string) → error` | Store bcrypt/argon2id hash |
+
+**Credential storage:** Passwords MUST be hashed with Argon2id
+(recommended) or bcrypt (minimum cost 12). Raw passwords are NEVER
+stored. The `VerifyCredential` operation performs a timing-safe
+comparison against the stored hash.
+
+### Store: Sessions
+
+**Durability:** MUST survive restarts (production); MAY be in-memory (development)
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| CreateSession | `(session SessionRecord) → error` | Create a new session |
+| GetSession | `(sessionID string) → (SessionRecord, error)` | Retrieve session by ID |
+| UpdateSession | `(sessionID string, update SessionUpdate) → error` | Update session fields (e.g., last activity) |
+| DeleteSession | `(sessionID string) → error` | Invalidate session |
+| DeleteUserSessions | `(userID string) → (int, error)` | Invalidate all sessions for a user (logout everywhere) |
+| CleanExpired | `() → (int, error)` | Remove all expired sessions, return count |
+
+GetSession MUST NOT return a record whose `expires_at` has passed. It answers
+as it does for an unknown session ID, whether or not CleanExpired has run.
+
+---
+
 ## Types
 
 ```yaml
@@ -873,6 +931,167 @@ types:
         type: timestamp
         format: rfc3339
         description: When the session ends, checked on use rather than by a sweep
+```
+
+### UserRecord
+
+```yaml
+types:
+  UserRecord:
+    fields:
+      user_id:
+        name: UserID
+        type: string
+        description: "Unique user identifier (32 hex chars)"
+      email:
+        name: Email
+        type: string
+        description: "User email address (unique)"
+      display_name:
+        name: DisplayName
+        type: string
+        description: "Human-readable name"
+      roles:
+        name: Roles
+        type: "[]string"
+        description: "Assigned role names"
+      groups:
+        name: Groups
+        type: "[]string"
+        description: "Group memberships"
+      email_verified:
+        name: EmailVerified
+        type: bool
+        description: "Whether email has been verified"
+      mfa_enabled:
+        name: MFAEnabled
+        type: bool
+        description: "Whether MFA is configured"
+      status:
+        name: Status
+        type: string
+        description: "`active`, `inactive`, `locked`"
+      created_at:
+        name: CreatedAt
+        type: timestamp
+      last_login_at:
+        name: LastLoginAt
+        type: timestamp
+        description: "Absent if never"
+```
+
+### UserUpdate
+
+```yaml
+types:
+  UserUpdate:
+    fields:
+      display_name:
+        name: DisplayName
+        type: "*string"
+        description: "New display name (nil = no change)"
+      roles:
+        name: Roles
+        type: "*[]string"
+        description: "Replace roles (nil = no change)"
+      groups:
+        name: Groups
+        type: "*[]string"
+        description: "Replace groups (nil = no change)"
+      email_verified:
+        name: EmailVerified
+        type: "*bool"
+        description: "Set verification status (nil = no change)"
+      mfa_enabled:
+        name: MFAEnabled
+        type: "*bool"
+        description: "Set MFA status (nil = no change)"
+      status:
+        name: Status
+        type: "*string"
+        description: "Change status (nil = no change)"
+```
+
+### UserFilter
+
+```yaml
+types:
+  UserFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`active`, `inactive`, `locked` (empty = all)"
+      role:
+        name: Role
+        type: string
+        description: "Filter by role membership"
+      group:
+        name: Group
+        type: string
+        description: "Filter by group membership"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
+```
+
+### SessionRecord
+
+```yaml
+types:
+  SessionRecord:
+    fields:
+      session_id:
+        name: SessionID
+        type: string
+        description: "Unique session identifier (32 hex chars)"
+      user_id:
+        name: UserID
+        type: string
+        description: "Owning user"
+      client_fingerprint:
+        name: ClientFingerprint
+        type: string
+        description: "Client binding hash (see client.md)"
+      roles:
+        name: Roles
+        type: "[]string"
+        description: "Cached roles at session creation"
+      created_at:
+        name: CreatedAt
+        type: timestamp
+      expires_at:
+        name: ExpiresAt
+        type: timestamp
+      last_activity_at:
+        name: LastActivityAt
+        type: timestamp
+        description: "Updated on each request"
+      ip_address:
+        name: IPAddress
+        type: string
+        description: "Client IP at session creation"
+```
+
+### SessionUpdate
+
+```yaml
+types:
+  SessionUpdate:
+    fields:
+      last_activity_at:
+        name: LastActivityAt
+        type: timestamp
+        description: "Update last activity timestamp"
+      expires_at:
+        name: ExpiresAt
+        type: timestamp
+        description: "Extend or shorten session expiry"
 ```
 
 ---
@@ -1154,3 +1373,6 @@ place — and it does not put two versions in service at once.
 - [ ] Every response carries `X-Weblisk-Target` naming the resolved internal path, and it survives response sanitization ([Which version answered MUST be observable](#which-version-answered-must-be-observable)) <!-- wl:check response-carries-x-weblisk-target-naming -->
 - [ ] Every request log entry and span records route, target and component, so a trace names which version served it ([Which version answered MUST be observable](#which-version-answered-must-be-observable)) <!-- wl:check request-log-entry-span-records-route -->
 - [ ] The gauge `gateway_route_target` reports the application API versions the map currently targets, and `GET /livez` and `GET /readyz` answer `live` or `ready` alone ([Which version answered MUST be observable](#which-version-answered-must-be-observable), [`protocol/types`](../protocol/types.md#health)) <!-- wl:check gauge-gateway-route-target-reports-application -->
+- [ ] User passwords are hashed as [Store: Users](#store-users) requires of credential storage; raw passwords are never stored <!-- wl:check user-passwords-hashed-store-users-requires -->
+- [ ] Session expiry is enforced: `CleanExpired` removes stale sessions; `GetSession` rejects expired records ([Store: Sessions](#store-sessions)) <!-- wl:check session-expiry-enforced-cleanexpired-removes -->
+- [ ] `DeleteUserSessions` invalidates all sessions for a user (logout everywhere) ([Store: Sessions](#store-sessions)) <!-- wl:check deleteusersessions-invalidates-sessions-user -->

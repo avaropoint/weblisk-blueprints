@@ -2,9 +2,9 @@
 type: agent
 kind: infrastructure
 name: task
-version: 4.1.1
+version: 4.2.0
 port: 9781
-requires: [protocol/spec, protocol/types, architecture/agent]
+requires: [protocol/spec, protocol/types, architecture/agent, architecture/storage]
 extends: [patterns/task-dispatch, patterns/messaging, patterns/retry, patterns/scope, patterns/policy]
 depends_on: []
 platform: any
@@ -103,6 +103,17 @@ requires:
       breaking: version-bump
       removed: halt-immediately
 
+  - blueprint: architecture/storage
+    # 2.5.0 is where each owner declares its own stores
+    version: ">=2.5.0 <3.0.0"
+    bindings:
+      behaviors:
+        - name: durable-records
+        - name: cursor-pagination
+    on_change:
+      compatible: validate-and-adopt
+      breaking: version-bump
+      removed: halt-immediately
   - blueprint: patterns/messaging
     version: ">=1.0.0 <4.0.0"
     bindings:
@@ -221,6 +232,38 @@ types:
         type: unique
         fields: [task_id]
 
+```
+
+### TaskFilter
+
+```yaml
+types:
+  TaskFilter:
+    fields:
+      status:
+        name: Status
+        type: string
+        description: "`queued`, `dispatched`, `running`, `completed`, `failed`, `cancelled` (empty = all)"
+      agent_name:
+        name: AgentName
+        type: string
+        description: "Filter by assigned agent"
+      priority:
+        name: Priority
+        type: string
+        description: "`critical`, `high`, `normal`, `low` (empty = all)"
+      since:
+        name: Since
+        type: timestamp
+        description: "Tasks created after this time"
+      cursor:
+        name: Cursor
+        type: string
+        description: "Pagination cursor"
+      limit:
+        name: Limit
+        type: int
+        description: "Max results (default: 100)"
 ```
 
 ## Identity
@@ -793,6 +836,21 @@ In-flight tracking and the dispatch queue are reconstructable from the `tasks`
 store and are therefore held in memory rather than persisted. Which backend
 satisfies the store is the platform blueprint's answer, per
 `architecture/storage`.
+
+The store provides these operations, by name
+([`architecture/storage`](../architecture/storage.md#interfaces)).
+
+### Store: Task Records
+
+**Durability:** MUST survive restarts
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutTask | `(task TaskRecord) → error` | Create or update a task record |
+| GetTask | `(id string) → (TaskRecord, error)` | Retrieve by ID |
+| ListTasks | `(filter TaskFilter) → ([]TaskRecord, error)` | Query by status, agent, priority |
+| UpdateStatus | `(id string, status string) → error` | Transition task status |
+
 ## Configuration
 
 ```yaml
