@@ -2,10 +2,10 @@
  "derived_by": "checks/acceptance-classes.py",
  "rules": "architecture/generation#how-a-criterion-gets-its-class",
  "counts": {
-  "S": 463,
-  "J": 70,
-  "B": 2531,
-  "E": 89,
+  "S": 466,
+  "J": 103,
+  "B": 2582,
+  "E": 91,
   "F": 57
  },
  "criteria": {
@@ -325,126 +325,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "agents/hub:agent-responds-post-v1-describe-valid": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:availability-probes-run-schedule-active-listings": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:behavioral-change-notifications-reach-active": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:behavioral-fingerprints-sampled-schedule-change": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:blue-green-shadow-phase-validates-events": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:configuration-values-validated-against-declared": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:crawl-discovers-indexes-provider-listings": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:critical-alerts-bypass-mute-suppression": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:critical-changes-trigger-immediate-listing": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:cross-hub-notifications-use-federation-protocol": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:deduplication-prevents-repeated-alerts-within": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:dependency-contracts-declare-version-ranges": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:full-text-search-returns-ranked-paginated": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:invalid-signatures-rejected-logged": {
-   "class": "E",
-   "class_by": "rule 5: a record (logged)"
-  },
-  "agents/hub:key-rotation-requires-valid-dual-signature": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:listing-indexed-under-namespace-signer-holds": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:listings-signature-verified-before-indexing": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:ml-dsa-65-signatures-verified-listings": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:muted-listings-suppress-non-critical-alerts": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:override-audit-records-fields-manual-overrides": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:revoked-keys-rejected-immediately": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:rolling-aggregates-computed-correctly-window": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:scaling-consumer-group-ensures-per-event": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:scaling-operation-locks-prevent-duplicate": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:search-cache-invalidated-index-changes": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:shutdown-drains-flight-operations-before-exit": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:sla-breach-detection-triggers-alerts-within": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:stale-listings-pruned-after-grace-period": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:startup-sequence-initializes-5-subsystems-step": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "agents/hub:state-machine-validates-entity-transitions": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "agents/incident-response:agent-registers-orchestrator-receives-wlt-token": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -646,6 +526,126 @@
    "class_by": "rule 6: nothing above matched"
   },
   "agents/lifecycle:subscribes-workflow-failed-scope-records-failure": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:agent-responds-post-v1-describe-valid": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:availability-probes-run-schedule-active-listings": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:behavioral-change-notifications-reach-active": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:behavioral-fingerprints-sampled-schedule-change": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:blue-green-shadow-phase-validates-events": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:configuration-values-validated-against-declared": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:crawl-discovers-indexes-provider-listings": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:critical-alerts-bypass-mute-suppression": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:critical-changes-trigger-immediate-listing": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:cross-hub-notifications-use-federation-protocol": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:deduplication-prevents-repeated-alerts-within": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:dependency-contracts-declare-version-ranges": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:full-text-search-returns-ranked-paginated": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:invalid-signatures-rejected-logged": {
+   "class": "E",
+   "class_by": "rule 5: a record (logged)"
+  },
+  "agents/listings:key-rotation-requires-valid-dual-signature": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:listing-indexed-under-namespace-signer-holds": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:listings-signature-verified-before-indexing": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:ml-dsa-65-signatures-verified-listings": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:muted-listings-suppress-non-critical-alerts": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:override-audit-records-fields-manual-overrides": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:revoked-keys-rejected-immediately": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:rolling-aggregates-computed-correctly-window": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:scaling-consumer-group-ensures-per-event": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:scaling-operation-locks-prevent-duplicate": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:search-cache-invalidated-index-changes": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:shutdown-drains-flight-operations-before-exit": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:sla-breach-detection-triggers-alerts-within": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:stale-listings-pruned-after-grace-period": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:startup-sequence-initializes-5-subsystems-step": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "agents/listings:state-machine-validates-entity-transitions": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -1034,8 +1034,8 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/admin:approval-not-faked": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:approval-served": {
    "class": "E",
@@ -1270,8 +1270,8 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/admin:catalogue-composed": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:challenge-refusals": {
    "class": "S",
@@ -1510,8 +1510,8 @@
    "class_by": "rule 1: control ref architecture/admin:operator-credential-attestation (architecture/threat-model, vector 4.1)"
   },
   "architecture/admin:declaration-complete": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:declassify-by-role": {
    "class": "S",
@@ -1594,44 +1594,44 @@
    "class_by": "rule 1: control ref architecture/admin:operator-roles (architecture/threat-model, vector 4.3)"
   },
   "architecture/admin:feed-closed-at-expiry": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-delivers": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-filtered-by-read": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-on-operator-token": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-replay-or-gap": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-rounds-carried": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-subscription-error": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-token-bound": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-unavailable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:feed-unavailable-answered": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-feed, bound by another service of schemas/programme"
   },
   "architecture/admin:forwarded-source-trusted": {
    "class": "B",
@@ -1966,8 +1966,8 @@
    "class_by": "rule 1: control ref architecture/admin:first-operator-claim (architecture/threat-model, vector 4.7)"
   },
   "architecture/admin:list-parameters": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:listeners-disjoint": {
    "class": "B",
@@ -2286,60 +2286,60 @@
    "class_by": "rule 1: control ref architecture/admin:operator-roles (architecture/threat-model, vector 4.3)"
   },
   "architecture/admin:resource-approval-undecidable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-bound-route-one-rule": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-carried-to-owner": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:admin-gateway-authorization (architecture/threat-model, vector 2.16)"
   },
   "architecture/admin:resource-catalogue-composed": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-catalogue-status": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-declaration-complete": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-if-match-required": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-list-parameters": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-owner-declared-only": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-owner-etag": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-sensitive-never-answered": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-undeclared-refused": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-write-audited": {
-   "class": "E",
-   "class_by": "rule 5: a record (audited)"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:resource-writes-audited": {
-   "class": "E",
-   "class_by": "rule 5: a record (audit entry)"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:retired-key-not-credential": {
    "class": "S",
@@ -2554,16 +2554,16 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/admin:undeclared-refused": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:undeclared-route-unavailable": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:admin-gateway-authorization (architecture/threat-model, vector 2.16)"
   },
   "architecture/admin:uniform-address-carried": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/admin:unknown-cid-refused": {
    "class": "S",
@@ -2578,8 +2578,8 @@
    "class_by": "rule 1: control ref architecture/admin:operator-roles (architecture/threat-model, vector 4.3)"
   },
   "architecture/admin:writes-guarded": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "J",
+   "class_by": "rule 3: behaviour resource-api, bound by another service of schemas/programme"
   },
   "architecture/agent:agent-renews-lease-post-v1-lease": {
    "class": "B",
@@ -2770,6 +2770,254 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/change-management:transitive-dependencies-resolved-full-graph-walk": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:agent-endpoints-take-nothing": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:answer-by-requester": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:apply-needs-step-up": {
+   "class": "S",
+   "class_by": "rule 2: STEP_UP_REQUIRED, which protocol/types gives 401"
+  },
+  "architecture/change-service:apply-refuses-stale-and-conflict": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:apply-stale-conflict": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:build-run-operations": {
+   "class": "S",
+   "class_by": "rule 2: STEP_UP_REQUIRED, which protocol/types gives 401"
+  },
+  "architecture/change-service:build-run-operations-closed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:change-awaits-in-inbox": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:change-error-codes-registered": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:change-in-inbox": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:change-no-path-literals": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:cut-over-after-the-gate": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:cut-over-fallback": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:cut-over-falls-back": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:cut-over-order": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-bound-to-plan": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-conditions": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-conflict-stale": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-position-held": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-refuses-conflict-and-stale": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:decision-verified": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:destructive-acts-here": {
+   "class": "S",
+   "class_by": "rule 2: STEP_UP_REQUIRED, which protocol/types gives 401"
+  },
+  "architecture/change-service:events-journalled-before-announced": {
+   "class": "E",
+   "class_by": "rule 5: a record (event MUST be journalled before it is announced or answered, in the form the engine emitted)"
+  },
+  "architecture/change-service:every-event-on-the-feed": {
+   "class": "E",
+   "class_by": "rule 5: a record (emits MUST be announced on the `build-run` feed as that run's `updated` event)"
+  },
+  "architecture/change-service:every-write-audited": {
+   "class": "E",
+   "class_by": "rule 5: a record (audited)"
+  },
+  "architecture/change-service:hosts-the-engine": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:manifest-as-declared": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:one-stream-two-doors": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:one-writer": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:one-writer-at-a-time": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:only-requester-answers": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:pass-routes-are-the-endpoints": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:pass-routes-match": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:plan-writes-only-change": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:plan-writes-only-the-change": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:position-unresolved": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:questions-confirm-and-choice": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:registers-as-change-service": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:registration-token-refused": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:restart-ends-runs": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:restart-ends-what-was-running": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:restarts-unattended": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:routes-answered": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:run-carries-no-authority": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:run-no-authority": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:run-questions": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:runs-the-engine": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:self-approval": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:self-approval-development-only": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:self-cut-over-by-handoff": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:self-handoff": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:serves-the-endpoints": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:starts-unattended": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:stop-and-resume": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:stop-without-step-up": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:tenant-model": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:tenant-model-only": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:without-approval": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:without-approval-development-only": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:writes-audited": {
+   "class": "E",
+   "class_by": "rule 5: a record (audited)"
+  },
+  "architecture/change-service:writes-inside-tenant": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/change-service:writes-only-the-tenant": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -3753,6 +4001,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:answer-person-request-not-ask-refused": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:applying-create-proposal-after-entry-appeared": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -3769,9 +4021,21 @@
    "class": "J",
    "class_by": "rule 3: type ContentChange, bound by another service of schemas/programme"
   },
+  "architecture/content:attestation-attestation-request-document-request": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:attestation-declared-configuration": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/content#attestation-properties (architecture/threat-model, vector 3.15)"
+  },
+  "architecture/content:attestation-naming-version-entrys-current": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:attestation-request-naming-position-records": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
   },
   "architecture/content:audit-entry-request-pass-carried-names": {
    "class": "E",
@@ -3818,6 +4082,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/content:census-over-store-holding-entry-declares": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:change-entry-while-request-about-open": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -4017,6 +4285,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:get-v1-content-entry-version-log": {
+   "class": "J",
+   "class_by": "rule 3: endpoint /v1/content/entry, bound by another service of schemas/programme"
+  },
   "architecture/content:get-v1-content-over-directory-holds": {
    "class": "J",
    "class_by": "rule 3: endpoint /v1/content, bound by another service of schemas/programme"
@@ -4089,6 +4361,10 @@
    "class": "J",
    "class_by": "rule 3: registration section architecture/content#registration-and-standalone-operation"
   },
+  "architecture/content:no-record-about-entry-removed-route": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:no-request-lowers-paths-recorded-scope": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -4153,6 +4429,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:placing-releasing-legal-hold-require-step": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:plain-remote-destination-demonstrates-shared": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/content#derived-scope-ceiling (architecture/threat-model, vector 3.12)"
@@ -4166,6 +4446,10 @@
    "class_by": "rule 1: control ref architecture/storage#sealing-a-chained-log (architecture/threat-model, vector 4.6)"
   },
   "architecture/content:proposal-bytes-not-valid-utf-8": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:proposal-naming-document-request-refused-content": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -4229,6 +4513,22 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:recorded-attestations-covers-digest-digest": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:registered-key-signs-registration": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:registers-retention-declared-adopted-programme": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:registration-token-work-pass-post-v1": {
+   "class": "J",
+   "class_by": "rule 3: registration section architecture/content#registration-and-standalone-operation"
+  },
   "architecture/content:remote-census-counts-earlier-version-path": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -4269,6 +4569,10 @@
    "class": "S",
    "class_by": "rule 1: control ref architecture/content#derived-scope-ceiling (architecture/threat-model, vector 3.12)"
   },
+  "architecture/content:removing-entry-before-latest-disposal-date": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/content:removing-entry-labelled-pii-records-repository": {
    "class": "J",
    "class_by": "rule 3: type ContentChange, bound by another service of schemas/programme"
@@ -4282,6 +4586,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/content:repeated-establish-identical-arguments-against-2": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:reply-reply-refused-invalid-request-retracting": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -4345,6 +4653,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/content:service-registers-key-introduces-log-keys": {
+   "class": "J",
+   "class_by": "rule 3: registration section architecture/content#registration-and-standalone-operation"
+  },
   "architecture/content:service-started-over-change-log-lines": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -4406,6 +4718,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/content:unclassified-version-recorded-after-remotes": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/content:under-legal-hold-force-removing-covered": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5089,6 +5405,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/execution:post-v1-execution-console-runs-pass": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/execution:post-v1-execution-runs-run-cancel": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5109,6 +5429,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/execution:reading-console-run-anyone-person-opened": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/execution:record-turn-agent-running-step-dispatched": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5116,6 +5440,10 @@
   "architecture/execution:registering-owners-start-twice-under-key": {
    "class": "J",
    "class_by": "rule 3: type Schedule, bound by another service of schemas/programme"
+  },
+  "architecture/execution:retryrun-console-run-refused-invalid-state": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
   },
   "architecture/execution:route-endpoints-put-delete-schedule-three": {
    "class": "B",
@@ -5162,6 +5490,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/execution:time-run-spends-waiting-counts-towards": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/execution:turn-recorded-console-run-becomes-model": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -11161,6 +11493,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "protocol/identity:log-authority-is-registered-key": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "protocol/identity:never-accept-private-key-other-key": {
    "class": "S",
    "class_by": "rule 1: control ref protocol/identity#service-key-protection (architecture/threat-model, vector 3.3)"
@@ -11217,11 +11553,23 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "protocol/identity:registration-is-sign-json": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:registration-rotation-task-result-message-signed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "protocol/identity:reject-identity-key-attestation-record-signature": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:removing-operator-revokes-none-work": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:restriction-is-per-key": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -11234,6 +11582,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:sign-verify-pure-ml-dsa-65": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:signer-refuses-what-key-not-sign": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -11270,6 +11622,10 @@
    "class_by": "rule 1: control ref protocol/identity#verify-signature (architecture/threat-model, vector 2.12)"
   },
   "protocol/identity:verify-token-alg-header-exactly-ml": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:which-key-signs-what": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
