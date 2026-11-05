@@ -17,6 +17,10 @@
 > [`schemas/change`](schemas/change.md) (section 6). What remains here is the
 > measurement, the gaps still open, the migration and the decisions.
 >
+> **Landed for E3**: the classes the switch reads, their derivation and the
+> build gate in [`architecture/generation`](architecture/generation.md#acceptance),
+> with the register [`checks/acceptance-classes.json`](checks/acceptance-classes.json).
+>
 > Written 2026-11-03 against corpus `42ccc8d`, from the owner's decisions of
 > that date, [`ACCEPTANCE_PLAN.md`](ACCEPTANCE_PLAN.md) (adopted the same day),
 > and three drift audits of the CLI, of Studio and of the development tenant's
