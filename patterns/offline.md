@@ -1,8 +1,8 @@
 <!-- blueprint
 type: pattern
 name: offline
-version: 2.1.1
-requires: [protocol/types, architecture/client, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
+version: 2.2.0
+requires: [protocol/types, patterns/storage, patterns/state-machine, patterns/scope, patterns/privacy]
 platform: any
 tier: free
 -->
@@ -68,20 +68,12 @@ requires:
     version: ">=2.0.0 <5.0.0"
     bindings:
   - blueprint: protocol/types
-    version: ">=1.0.0 <7.0.0"
+    # 6.9.0 is where the client taxonomy is declared there
+    version: ">=6.9.0 <7.0.0"
     bindings:
       types:
         - name: ErrorResponse
           fields_used: [code, error, detail]
-    on_change:
-      compatible: validate-and-adopt
-      breaking: version-bump
-      removed: halt-immediately
-
-  - blueprint: architecture/client
-    version: ">=1.0.0 <3.0.0"
-    bindings:
-      types:
         - name: ClientType
           fields_used: [browser, native-mobile, native-desktop, api-server, iot-device]
         - name: TrustLevel
