@@ -840,12 +840,12 @@ so one of the two answers is never recorded. A `relation` with no `target` is
 refused: it offers no choices, so the field is unanswerable and the record
 cannot be completed.
 
-**`type` is deliberately not validated against a list here.** The column types
-are declared once, in the renderer's own registry, and a second list in a schema
-would be a second source of truth that drifts. The types that registry declares
-are `text`, `longtext`, `number`, `int`, `currency`, `percent`, `date`, `bool`,
-`select`, `link`, `formula`, `user`, `signature`, `attachment`, `relation` and
-`rollup`. **An unrecognised type renders as text** — a degradation a reader can
+**`type` is deliberately not validated against a list here.** The column types,
+what each owns and what its cell holds are declared once, in
+[`schemas/data-table`](data-table.md#column-types), the format a register's
+rows are written in, and a second list here would be a second source of truth
+that drifts. **An unrecognised type is read as text**
+([`schemas/data-table`](data-table.md#columns)) — a degradation a reader can
 see, not a silent failure.
 
 A `relation` cell stores the target row's **key**, never its rendered value, so

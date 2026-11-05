@@ -93,6 +93,7 @@ declarations with no `kind`, which no file is walked against.
 | [run-statement.md](run-statement.md) | What one generation run read and wrote, the model the backend reported, and what each output traces to: an in-toto statement with a SLSA Provenance predicate; every action a build step took, with the instruction and input digests it is reused by, and every criterion the run owed, with its digest, tests and verdict. Its vectors are [`vectors/run-statement/`](../vectors/run-statement/README.md) | The CLI writing a run's record; the fabric's `generation-statements` producer reading it |
 | [change.md](change.md) | One change to what a tenant is built from: its plan and verdicts, the conflicts it introduces and clears, its approval, the executor of each change verb, and when one is well formed. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The CLI and the tenant's change service writing a change; every client rendering one |
 | [build-lock.md](build-lock.md) | The tenant's one lock: resolved versions only, never roots or reasons. Its vectors are [`vectors/change/`](../vectors/change/README.md) | The change service writing `.weblisk/build.lock`; every plan reading it |
+| [data-table.md](data-table.md) | Data tables: the `wl:table` fence and the GFM table under it that carry a register, a risk table or a form inside an organisation's own document — the schema keys, the column types and what each cell holds, formulas, relations, rollups, forms, and the round-trip rules that keep a signature meaning what it meant | Every client that reads or writes a data table; a programme's register columns and templates |
 | [presentation.md](presentation.md) | An organisation's theme, export layouts and filing of its repositories: files in its own repositories that every client reads, and none holds | Every client that renders or files a tenant's content |
 | [resource.md](resource.md) | What a tenant holds or runs that a person may see and operate: the Resources block an owner's blueprint declares each kind in — fields, operations, verbs, authority, states, events, relations — and when one is well formed. Its vectors are [`vectors/resources/`](../vectors/resources/README.md) | Every component a person operates; the admin gateway, the CLI and every console reading the catalogue |
 
@@ -136,6 +137,7 @@ common.md (inherited by all)
 ├── run-statement.md (what one generation run read, wrote and traced — the fabric's declared source)
 ├── change.md (one change to what a tenant is built from — plan, approval, executors, bound by vectors/change/)
 ├── build-lock.md (the tenant's resolved versions, and nothing else)
+├── data-table.md (wl:table — structured data inside a document, read and written by clients)
 ├── presentation.md (an organisation's theme, export layouts and filing — files in its repositories, read by clients)
 └── resource.md (what a person may see and operate of a tenant — declared by each owner, bound by vectors/resources/)
 ```

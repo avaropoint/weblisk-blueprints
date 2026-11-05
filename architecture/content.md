@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.10.0
+version: 5.11.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -4006,6 +4006,61 @@ that reads it ([`architecture/programme-service`](programme-service.md#known-gap
 A client never sends that claim, because a claim anybody may send is not
 evidence.
 
+### What an attestation claims
+
+An attestation is evidence that a person made a statement about a version.
+This section says what that evidence is, and what it is not.
+
+**A standing describes evidence, not legal status.** `signed` means a party
+other than this service can check that the person's own key made the signature
+over these bytes ([Verifying a log without this service](#verifying-a-log-without-this-service)).
+`witnessed` means this service says so, under its seal. Neither is a claim
+that the act is an electronic signature with legal effect. That is a question
+for the law of the places the tenant's standards bind in
+([`schemas/standard`](../schemas/standard.md#applies_in--where-a-standard-has-force))
+and for the tenant's counsel, and the corpus asserts no legal status for
+either standing. A client presents a standing as `signed` or `witnessed`, with
+what each means. It never presents either as legally binding, executed,
+notarised or certified.
+
+**An attestation executes no instrument.** It records what a person stated
+about a version. Some acts are reserved by law to a particular form, and
+electronic-commerce statutes commonly exclude them from electronic signature:
+wills, powers of attorney, negotiable instruments, documents of title and
+transfers of land among them. Which acts are excluded, and where, varies by
+place and changes over time, and it is the tenant's counsel's to say. A client
+does not offer an attestation as the means of executing any of them.
+
+**There is no undo.** An attestation is never withdrawn, cancelled or erased
+([Entry attestations](#entry-attestations)), and a client never presents one
+as cancelled. What a person does afterwards is a new record: an attestation of
+the next version, a comment, or nothing. A record shown as erased would remove
+the evidence that a court, or the parties, would need in order to decide
+whether the act can be set aside. A correction to an entry is the same: it is
+a new version, the attested version stays readable
+([Reading an earlier version](#reading-an-earlier-version)), and the change
+log says who made the correction, when, and why
+([The Change Log](#the-change-log)).
+
+**What it carries toward what regimes commonly ask.** Regimes that grade
+electronic signatures commonly ask for six things. This is what an attestation
+carries toward each, and it is a statement of the evidence, not of
+conformance to any regime:
+
+| asked for | what an attestation carries |
+|---|---|
+| attribution to a person | `actor`, the identity id of the pass the person attested on |
+| association with the record | `version`, and `covers_digest` over the covered bytes |
+| detection of a later change | `covers_digest`: a change to the covered bytes no longer matches it |
+| the meaning of the signature | `statements`, each word with the `says` the person was shown |
+| accurate reproduction over time | the chained, sealed store, and [Verifying a log without this service](#verifying-a-log-without-this-service) |
+| sole control of the means of signing | only a `signed` attestation, made by the person's own sign-records credential, and only for as long as its algorithm holds ([Design Principle 6, strictly](#design-principle-6-strictly)). A `witnessed` one carries none |
+
+No attestation is `signed` until the statement's vectors are published
+([What is still open](#what-is-still-open)), so today none carries the sixth.
+None of the six is a qualified signature, which needs a qualified certificate
+and device that the corpus does not specify.
+
 ### Attestation requests
 
 An attestation request asks named people to attest one version of an entry:
@@ -4193,6 +4248,16 @@ says of the others.
 - **Telling one person.** Notification tells the holders of positions. A
   request that names an operator directly, and a mention in a comment, are
   recorded and told to nobody until notification can name a person.
+- **A decline.** A person asked to attest who refuses has no record to make.
+  A refusal is an act with an author, a moment and a reason, and is evidence of
+  what the organisation did as much as an attestation is. How it is recorded,
+  and whether it ends a request, is not specified.
+- **Consent to transact electronically.** Some regimes rest an electronic
+  signature on the signer's consent to transact electronically. No attestation
+  records it, and whether a tenant must ask for it is the tenant's to decide.
+- **Machine preparation.** Whether an attestation over a version a machine
+  prepared must say so is not decided. Who drafted a version is in the change
+  log ([The Change Log](#the-change-log)); the attestation does not repeat it.
 - **Who may change the statement words.** The set is the corpus's and closed.
   Whether a tenant may add words of its own, which would make the meaning of
   a signed word depend on the tenant, is not decided.
@@ -6256,6 +6321,8 @@ security:
 - [ ] `GET /v1/content/entry` with a `version` the log recorded at the path, on a backend that keeps earlier versions, answers those bytes, whose digest is `version`; with a `version` the log never recorded there, or on a backend that keeps none, it is refused with `CONTENT_VERSION_UNAVAILABLE` naming which, and never answered with the current bytes ([Reading an earlier version](#reading-an-earlier-version)) <!-- wl:check get-v1-content-entry-version-log -->
 - [ ] An attestation naming a version that is neither the entry's current identity nor its request's version is refused with `CONTENT_PRECONDITION_FAILED` naming the current identity, and one naming a word `attestation_statements` does not declare is refused with `CONTENT_STATEMENT_UNKNOWN`; nothing is recorded and the entry's digest and change log are unchanged ([Entry attestations](#entry-attestations)) <!-- wl:check attestation-naming-version-entrys-current -->
 - [ ] A recorded attestation's `covers_digest` is the digest of the covered bytes of the version the service read, whatever the request sent, its `actor` is the pass's `identity_id`, and an attestation made without a statement is recorded with `standing` `witnessed` ([Entry attestations](#entry-attestations)) <!-- wl:check recorded-attestations-covers-digest-digest -->
+- [ ] A client presents an attestation's standing only as `signed` or `witnessed` with what each means, and never as legally binding, executed, notarised or certified ([What an attestation claims](#what-an-attestation-claims)) <!-- wl:check client-presents-attestations-standing-signed -->
+- [ ] No route withdraws, cancels or erases an attestation, and an entry changed after it was attested keeps the attested version readable ([What an attestation claims](#what-an-attestation-claims), [Reading an earlier version](#reading-an-earlier-version)) <!-- wl:check no-route-withdraws-cancels-erases-attestation -->
 - [ ] An attestation, an attestation request, a document request and a comment about an entry the caller may not read are refused as a read of that entry is, and a list leaves each out without counting it ([Records About Entries](#records-about-entries) rule 2) <!-- wl:check attestation-attestation-request-document-request -->
 - [ ] A registration token or a work pass on `POST /v1/content/attestations`, `/attestation-requests`, `/document-requests`, `/comments`, `/retention` or `/holds` is refused with `FORBIDDEN`, and the manifest declares none of `content:attest`, `content:request`, `content:comment`, `content:retain` or `content:hold` ([Records About Entries](#records-about-entries) rule 3, [Registration and Standalone Operation](#registration-and-standalone-operation)) <!-- wl:check registration-token-work-pass-post-v1 -->
 - [ ] An attestation request naming a position records its holders when it is asked, and a later change to the position-holders register leaves `holders` unchanged; a position with no holder is recorded `unresolved` and the request never reads `complete` ([Attestation requests](#attestation-requests)) <!-- wl:check attestation-request-naming-position-records -->
