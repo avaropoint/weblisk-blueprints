@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.3.0
+version: 2.4.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -356,6 +356,19 @@ fixtures:
           custody: opaque
       reconcile_interval: 0s
       checkpoint_interval: 0s
+  # The declared admin gateway is the test-gateway fixture. Its identity is
+  # the fingerprint (protocol/identity, Key Fingerprint) of the public key
+  # that fixture's seed derives, written out because no placeholder yields
+  # a fingerprint.
+  admin-gateway-declared:
+    hub:
+      name: conformance-hub
+      version: 1.0.0
+    orchestrator:
+      admin_addresses: ["https://localhost:19443"]
+      admin_gateway_identity: "384157d7e6a5d5839ac228be14e3b3386bba4f6b64cc5fdaae39991366049a74"
+    admin_gateway:
+      allowlist: ["127.0.0.1", "::1"]
   task:
     id: conformance-task-1
     from: user

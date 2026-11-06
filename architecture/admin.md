@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.9.0
+version: 5.10.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -3872,3 +3872,202 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] `subject_token` is judged as an operator route judges a token, `token-status-on-use` included, and a pass, registration, channel or attestation token offered as it is answered `issued: false` with `CREDENTIAL_REQUIRED` ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-judges-subject-as-operator-route covers exchange-judges-subject -->
 - [ ] A pass the exchange mints carries a `cap` within both `scope` and what the person may use at that moment, `aud` the audience and `act` the gateway; where nothing is left it mints none and answers `issued: false` with `FORBIDDEN` ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-pass-within-scope-and-person covers exchange-pass-cap exchange-pass-claims -->
 - [ ] The exchange mints a pass and nothing else, keeps and presents `subject_token` nowhere, and audits each exchange whether it is refused or not ([Contracts](#contracts), `token-exchange`) <!-- wl:check exchange-mints-pass-audits-each covers exchange-mints-only-pass exchange-audited -->
+
+### Declared checks
+
+The checks below settle this document's security and contract criteria by
+data the engine runs, never by a reading of the code
+([`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#declared-checks)). This is the
+admin gateway's own blueprint. A criterion the orchestrator meets, because it
+serves the route, is owed by it only through a check whose `applies_to` names
+it ([`architecture/engine`](engine.md#what-a-component-owes)). Each check
+covers a criterion only where it proves the whole of it, because a criterion
+that any declared check covers is no longer translated.
+
+They reach only what a sealed run can arrange. A hub is claimed by the
+bootstrap secret, which the orchestrator writes to `.weblisk/bootstrap` and
+nowhere a check can read it. An operator token is minted only over the
+fixed-form `weblisk/credential-auth/v1`, which no `sign` makes. So a sealed run
+holds no operator, no credential, no attestation token, and no operator token
+whose operator this hub records. Every criterion that needs one is left to its
+translated test. What remains is the routes that take no token, the exchange's
+judgement of its caller and its body, and what the admin gateway carries
+without a token.
+
+The exchange check starts the orchestrator with the `test-orchestrator` key, so
+a test token verifies there. It also uses the `admin-gateway-declared`
+configuration ([`architecture/testing`](testing.md#fixtures-as-data)), which
+declares the `test-gateway` fixture's key as the admin gateway's. No
+placeholder yields a fingerprint, so the checks write out each one they need.
+`384157d7…9a74` is `test-gateway`'s, and `9c52b261…e451` is `test-agent`'s.
+
+```yaml
+verifies:
+- id: token-issuing-routes-take-no-token
+  covers: [unknown-cid-refused, credential-routes-no-token, key-change-route, key-change-unknown]
+  check: exchange
+  applies_to: [orchestrator]
+  assertion: "The routes that issue tokens or change an identity key are reached with no bearer token. POST /v1/admin/credentials/challenge and POST /v1/admin/credentials/token, each naming a cid this hub holds no credential for, are refused 401 CREDENTIAL_UNKNOWN by their handlers, and neither issues a nonce or a token. POST /v1/admin/operators/{name}/key, for an operator this hub has no record of, is refused 401 OPERATOR_UNKNOWN. The operator is judged before its signatures and hub_id, and only a handler can give these answers, never a request refused for carrying no token."
+  exchange:
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/challenge
+        body: {cid: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff}
+      expect:
+        status: 401
+        code: CREDENTIAL_UNKNOWN
+        json: true
+        lacks: [/nonce, /expires_at]
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/token
+        body: {cid: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff, nonce: AAAAAAAAAAAAAAAAAAAAAA, signature: AAAA}
+      expect:
+        status: 401
+        code: CREDENTIAL_UNKNOWN
+        json: true
+        lacks: [/token]
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/operators/conformance-nobody/key
+        body:
+          new_public_key: "${fixture/test-agent/public_key}"
+          hub_id: "0000000000000000000000000000000000000000000000000000000000000000"
+          timestamp: "${now}"
+          current_signature: AAAA
+          new_signature: AAAA
+      expect:
+        status: 401
+        code: OPERATOR_UNKNOWN
+        json: true
+        lacks: [/operator, /token]
+- id: exchange-declared-gateway-and-body
+  covers: [exchange-admits-declared-gateway-alone, exchange-body-refusals, exchange-caller-from-header]
+  check: exchange
+  applies_to: [orchestrator]
+  assertion: "Only the registration of the declared admin gateway's key has a token judged at POST /v1/token/exchange. Another key declaring token:exchange is refused registration with 403 CAPABILITY_GATEWAY_ONLY. The declared gateway's request is answered 200 with issued false and the code its subject_token earns. An agent's registration token, an operator token and a channel token are each refused 403 FORBIDDEN, with no judgement of subject_token. A request with no Authorization header is refused 401, even when its body carries the gateway's token as subject_token and as token, the field Auth Middleware step 2 reads on other routes. On the gateway's token, a body with no subject_token, no audience, no scope, an empty scope, or a scope naming a capability protocol/types does not list is refused 400 INVALID_REQUEST. An audience registered nowhere, or the gateway's own, is refused 404 NOT_FOUND. None of these mints a pass."
+  exchange:
+    start: {keys: test-orchestrator, config: admin-gateway-declared}
+    steps:
+    - as: test-gateway
+      request:
+        method: POST
+        path: /v1/register
+        body: {manifest: {name: test-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://localhost:9713', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}
+        sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+      expect: {status: 200, has: [/token]}
+      capture: {gateway: /token}
+    - as: test-agent
+      request:
+        method: POST
+        path: /v1/register
+        body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}
+        sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+      expect: {status: 200, has: [/token]}
+      capture: {agent: /token}
+    - as: test-domain
+      request:
+        method: POST
+        path: /v1/register
+        body: {manifest: {name: test-domain, type: infrastructure, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, an undeclared key naming token:exchange', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}
+        sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+      expect: {status: 403, code: CAPABILITY_GATEWAY_ONLY, lacks: [/token]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read']}
+      expect:
+        status: 200
+        json: true
+        equals: {/issued: false, /code: INVALID_SIGNATURE}
+        lacks: [/pass]
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${agent}'}
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read']}
+      expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}
+    - as: test-writer
+      request:
+        method: POST
+        path: /v1/token/exchange
+        token: operator
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read']}
+      expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}
+    - as: test-agent
+      request:
+        method: POST
+        path: /v1/token/exchange
+        token: channel-self
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read']}
+      expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        body: {subject_token: '${gateway}', audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read'], token: '${gateway}'}
+      expect: {status: 401, json: true, has: [/error], lacks: [/issued, /pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['content:read']}
+      expect: {status: 400, code: INVALID_REQUEST, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, scope: ['content:read']}
+      expect: {status: 400, code: INVALID_REQUEST, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451}
+      expect: {status: 400, code: INVALID_REQUEST, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: []}
+      expect: {status: 400, code: INVALID_REQUEST, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: 9c52b261cf80cf5f75caddf3ef13013ef5b5d6cb27fb9af7c61b6e942108e451, scope: ['conformance:unlisted']}
+      expect: {status: 400, code: INVALID_REQUEST, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee, scope: ['content:read']}
+      expect: {status: 404, code: NOT_FOUND, lacks: [/pass]}
+    - request:
+        method: POST
+        path: /v1/token/exchange
+        headers: {Authorization: 'Bearer ${gateway}'}
+        body: {subject_token: conformance-not-a-token, audience: 384157d7e6a5d5839ac228be14e3b3386bba4f6b64cc5fdaae39991366049a74, scope: ['content:read']}
+      expect: {status: 404, code: NOT_FOUND, lacks: [/pass]}
+- id: hub-proof-carried-without-token
+  covers: [post-v1-admin-hub-proof]
+  check: exchange
+  applies_to: [admin]
+  assertion: "POST /v1/admin/hub/proof, sent to the admin gateway's admin listener with no bearer token, passes the gateway's step 4 and the orchestrator's Auth Middleware to the orchestrator's handler. It is answered neither 401 nor 403, is not refused as unrouted, and is not answered 503 as a request the gateway could not carry. The gateway is started with the key the configuration declares, so the orchestrator admits its registration."
+  exchange:
+    start: {orchestrator: built, keys: test-gateway, config: admin-gateway-declared}
+    steps:
+    - as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/hub/proof
+        listener: admin
+        body: {address: 'https://localhost:19443', challenge: AAAAAAAAAAAAAAAAAAAAAA}
+      expect:
+        status_not: [401, 403, 404, 405, 503]
+        json: true
+```
