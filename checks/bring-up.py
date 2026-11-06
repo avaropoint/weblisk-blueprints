@@ -9,7 +9,7 @@ it needs running first ("Bringing up accepted dependencies"). It is refused
 when:
 
 - there is not exactly one bring_up block;
-- hub.keys is not test_tokens' signed_by, or names no identity fixture: the
+- keys is not test_tokens' signed_by, or names no identity fixture: the
   harness mints every dependant's token with signed_by's key, and a hub
   started with another would refuse them all;
 - operator names no identity fixture, or a step is made as one no fixture
@@ -63,11 +63,11 @@ def judge(text):
     b = bu[0]
     if not isinstance(b, dict):
         return ["architecture/testing: bring_up is not a mapping"]
-    keys = (b.get("hub") or {}).get("keys") if isinstance(b.get("hub"), dict) else None
+    keys = b.get("keys")
     if keys not in identities:
-        out.append(f"bring_up: hub.keys {keys!r} names no identity fixture")
+        out.append(f"bring_up: keys {keys!r} names no identity fixture")
     elif keys != signed_by:
-        out.append(f"bring_up: hub.keys {keys!r} is not test_tokens' signed_by {signed_by!r}, so no token the harness mints would verify at the hub")
+        out.append(f"bring_up: keys {keys!r} is not test_tokens' signed_by {signed_by!r}, so no token the harness mints would verify at the orchestrator")
     if b.get("operator") not in identities:
         out.append(f"bring_up: operator {b.get('operator')!r} names no identity fixture")
     steps = b.get("steps")

@@ -713,7 +713,7 @@ fi
 # copy whose hub keys are not test_tokens' signer, and one whose step names a
 # capture no earlier step made, must each be reported with exactly that.
 expect 0 "bring-up: the bring_up block is data the engine can perform" python3 checks/bring-up.py
-sed 's/^    keys: test-orchestrator$/    keys: test-agent/' architecture/testing.md >"$tmp/bu-keys.md"
+sed 's/^  keys: test-orchestrator$/  keys: test-agent/' architecture/testing.md >"$tmp/bu-keys.md"
 expect 1 "bring-up control: hub keys other than the token signer fail" python3 checks/bring-up.py --file "$tmp/bu-keys.md"
 if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "signed_by" "$tmp/out"; then
 	echo "ok   bring-up control: exactly one finding, the hub keys"

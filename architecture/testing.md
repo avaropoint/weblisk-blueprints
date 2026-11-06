@@ -524,8 +524,7 @@ engine performs it as mechanics.
 
 ```yaml
 bring_up:
-  hub:
-    keys: test-orchestrator
+  keys: test-orchestrator
   operator: test-operator
   steps:
     - id: bootstrap-secret
@@ -564,7 +563,7 @@ bring_up:
 
 | Key | Means |
 |---|---|
-| `hub.keys` | The identity fixture whose key the orchestrator is started with, written as [Starting a component with a fixture key](#starting-a-component-with-a-fixture-key) writes one, `hub.key` and `hub.pub` included. It is `test_tokens`' `signed_by`, so every token the harness mints for a dependant's checks verifies at the accepted orchestrator as at the mock |
+| `keys` | The identity fixture whose key the orchestrator is started with, written as [Starting a component with a fixture key](#starting-a-component-with-a-fixture-key) writes one, `hub.key` and `hub.pub` included. It is `test_tokens`' `signed_by`, so every token the harness mints for a dependant's checks verifies at the accepted orchestrator as at the mock |
 | `operator` | The identity fixture the first operator is |
 | `steps` | Run in order against the orchestrator once it listens. A step is an `exchange` step ([`schemas/blocks`](../schemas/blocks.md#definitions), `exchange-step`), or a `read` |
 | `read` | Reads `file`, relative to the working directory the orchestrator was started in, once it exists and is not empty, waiting at most `within`; its contents, trimmed, are captured as `capture`. It is how the harness, as whoever started the orchestrator, reads what the orchestrator emitted only to them ([`architecture/admin`](admin.md#bootstrap-flow)) |
@@ -576,7 +575,7 @@ attestation token.
 
 The harness MUST start a component's dependencies from their accepted builds,
 in the services table's order, each in a working directory of its own with
-`WL_DEV=1`: the orchestrator with `hub.keys`' key and no orchestrator address,
+`WL_DEV=1`: the orchestrator with `bring_up.keys`' key and no orchestrator address,
 and every other dependency with the orchestrator's address and no fixture key,
 so it registers as it would in a tenant. Each MUST be listening and answer its
 `live` probe ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz))
@@ -606,7 +605,7 @@ The orchestrator a dependant's checks name as `orchestrator: built` is this
 one: the accepted build, brought up as above. A component that *is* the
 orchestrator, under test, is started as
 [`schemas/blocks`](../schemas/blocks.md#checks) says for the orchestrator
-under test, with `hub.keys`' key and no bring-up beneath it.
+under test, with `bring_up.keys`' key and no bring-up beneath it.
 
 ## Mock Orchestrator
 
@@ -1422,7 +1421,7 @@ security:
 - [ ] Each `token` value of an exchange step other than `none` and `captured` is minted as its `test_tokens` entry gives it, signed by the `test-orchestrator` fixture's key, with exactly that entry's claims ([Test tokens as data](#test-tokens-as-data)) <!-- wl:check test-tokens-minted covers test-tokens-declared -->
 - [ ] A check naming `start.keys` starts the component with the fixture's key written as `.weblisk/keys/<name>.key`, `kdf = none`, mode 0600, under `WL_DEV=1`, and the component registers with that key's public half; one that registers with another key fails the check ([Starting a component with a fixture key](#starting-a-component-with-a-fixture-key)) <!-- wl:check fixture-key-start covers fixture-key-written -->
 - [ ] A check naming `start.config` starts the component with the fixture's value written as `.weblisk/config.yaml` in its working directory, `${instance}` replaced by that directory's absolute path; a component that reads another configuration fails the check ([Starting a component with a fixture configuration](#starting-a-component-with-a-fixture-configuration)) <!-- wl:check fixture-config-start covers fixture-config-written -->
-- [ ] A dependant's sealed run starts its dependencies from their accepted builds in the services table's order: the orchestrator with `bring_up.hub.keys`' key and no orchestrator address, then each other dependency pointed at it, each listening and answering its `live` probe before the next starts ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check dependencies-brought-up-in-order covers dependencies-started-in-order -->
+- [ ] A dependant's sealed run starts its dependencies from their accepted builds in the services table's order: the orchestrator with `bring_up.keys`' key and no orchestrator address, then each other dependency pointed at it, each listening and answering its `live` probe before the next starts ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check dependencies-brought-up-in-order covers dependencies-started-in-order -->
 - [ ] Before anything else starts beside it, the accepted orchestrator is claimed by `bring_up.operator` with the bootstrap secret read from its own working directory, and its attestation token is captured; a bring-up step that fails leaves the dependant's run unsettled naming the step, and the secret appears in no event, record, evidence or log ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check first-operator-claims-accepted-hub covers first-operator-bootstrapped bootstrap-secret-kept-in-run -->
 - [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes)) <!-- wl:check tests-run-against-http-endpoints-black -->
 
