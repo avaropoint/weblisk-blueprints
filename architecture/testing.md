@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.4.0
+version: 2.5.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free

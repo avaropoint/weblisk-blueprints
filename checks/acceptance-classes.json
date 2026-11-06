@@ -2,9 +2,9 @@
  "derived_by": "checks/acceptance-classes.py",
  "rules": "architecture/generation#how-a-criterion-gets-its-class",
  "counts": {
-  "S": 489,
+  "S": 490,
   "J": 94,
-  "B": 2591,
+  "B": 2622,
   "E": 93,
   "F": 57
  },
@@ -5029,11 +5029,19 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:bring-up-failure-unsettled": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:cli-in-tenant-through-tenant": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:client-asks-tenant": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:compile-failure-is-build": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5049,6 +5057,14 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:contract-and-libraries-once": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:contract-once-per-change": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:criterion-digest-covers-citations": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5058,6 +5074,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:criterion-id-frozen": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:dependant-skipped": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5074,6 +5094,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:fake-and-renamed-corpus": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:fresh-change-replaces-generated-only": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:fresh-replaces-generated-keeps-tenant": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5101,6 +5129,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:generate-compile-then-test": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:guessed-is-reported": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5113,11 +5145,47 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:incremental-by-layer": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:incremental-from-record": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:incremental-rebuilds-reached-layers": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:instruction-revision-recorded": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layer-generated-compiled-tested": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layer-order": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layers-computed-from-corpus": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layers-from-corpus": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layers-in-plan-and-events": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:layers-shown": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:library-unit-once": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5169,6 +5237,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:no-cross-layer-compile": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:no-engine-sentences": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5217,6 +5289,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:refused-dependency-skips-dependants": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:secret-answers-never-recorded": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5249,6 +5325,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:suite-against-accepted-builds": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:suite-is-derived": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5258,6 +5338,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:test-follows-criterion-digest": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:tested-against-accepted": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5306,6 +5390,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:vocabulary-versions-refused": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:whole-hub-integration": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:whole-hub-run-after-last-layer": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -5889,10 +5981,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/generation:component-built-after-another-plans-declared": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/generation:component-not-shown-own-previous-output": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5917,6 +6005,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/generation:contract-unit-before-components": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/generation:corpus-finding-quoted-passages-appear-blueprints": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5930,6 +6022,22 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/generation:default-import-said-missing-es-module": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:development-gate-in-development-only": {
+   "class": "S",
+   "class_by": "rule 2: refused at 401"
+  },
+  "architecture/generation:development-gate-no-regression": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:development-gate-only-in-development": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/generation:development-gate-records-gaps": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -7705,7 +7813,27 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/testing:bootstrap-secret-kept-in-run": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/testing:conformance-sign-off-requires-level-4": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:dependencies-brought-up-in-order": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:dependencies-started-in-order": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:first-operator-bootstrapped": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:first-operator-claims-accepted-hub": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
