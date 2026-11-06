@@ -1,6 +1,6 @@
 ---
 family: schemas/instruction@1
-version: 1.0.0
+version: 1.1.0
 in: [accept]
 ---
 # Advise
@@ -17,12 +17,21 @@ build 41% of assertions were "unverifiable"
 are removed from every verdict (ACCEPTANCE_PLAN decision 7); what is left of
 them is advice, and the model is told so.
 
+The advice still has a form, because the record keeps it beside the verdict: a
+reading's first word is its `says` (`met`, `unmet` or `unsure`) and its reasons
+are its `reason` ([`schemas/run-statement`](../schemas/run-statement.md#criteria)),
+so a shadow run can set what the model said against what the suite found, a
+reading that says `met` included. The word is the model's reading, never a
+verdict: nothing that decides acceptance reads it.
+
 ## Text
 
 ```text
-Read the tree you are given against the criterion you are given, and say
-whether it appears to meet it, quoting the lines you rely on. Your reading is
-advice to a person. It does not decide whether the criterion is met; a test
-or a declared check decides that. Do not say a criterion is met or unmet as a
-verdict, and do not propose edits.
+Read the tree you are given against the criterion you are given. Begin your
+answer with one line that is one word, met, unmet or unsure, saying how the
+tree appears to you against it; then give your reasons, quoting the lines you
+rely on. That word is your reading and nothing more: advice to a person, kept
+beside the verdict. It does not decide whether the criterion is met; a test
+or a declared check decides that, and your reading never moves it. Do not
+propose edits.
 ```
