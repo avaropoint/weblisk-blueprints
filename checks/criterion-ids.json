@@ -428,8 +428,6 @@
    "admin-wildcard-bounded",
    "last-admin-protected",
    "registration-status-read",
-   "operator-stores-durable",
-   "more-instance-answers-hub-token-request-jti",
    "identity-label",
    "gateway-pin-held",
    "console-pin-kept",
@@ -1512,7 +1510,9 @@
    "stores-record-they-not-enforce-request",
    "freshly-started-orchestrator-owns-system",
    "audit-entries-retained-least-period-store",
-   "expired-channels-cleaned-up-automatically"
+   "expired-channels-cleaned-up-automatically",
+   "operator-stores-durable",
+   "more-instance-answers-hub-token-request-jti"
   ],
   "architecture/programme-service.md": [
    "route-endpoints-get-livez-get-readyz",
@@ -3080,6 +3080,10 @@
   ]
  },
  "retired": {
+  "architecture/admin.md": [
+   "more-instance-answers-hub-token-request-jti",
+   "operator-stores-durable"
+  ],
   "architecture/cli.md": [
    "mock-orchestrator-accepts-valid-registrations",
    "template-resolution-follows-priority-weblisk-new",

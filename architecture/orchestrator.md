@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.13.0
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
+version: 4.14.0
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/principal-identity, patterns/scope, patterns/logging]
 platform: any
 tier: free
 -->
@@ -215,6 +215,17 @@ declaration:
             methods: [POST]
             request_type: TokenExchangeRequest
             response_fields: [issued, code, pass, expires_at, capabilities]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: patterns/principal-identity
+      # The type the Credentials store keeps (Storage, The operator stores)
+      version: ">=2.0.0 <3.0.0"
+      bindings:
+        types:
+          - name: Credential
+            fields_used: [credential_public_key, algorithm, form, device_bound, identity_id, attestation, status, last_used_at]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -3369,7 +3380,7 @@ See [Storage](#storage) for the stores this orchestrator owns,
 ## Storage
 
 The stores this orchestrator owns, and the operations each provides, by name
-([`architecture/storage`](storage.md#interfaces)). It provides these four and no
+([`architecture/storage`](storage.md#interfaces)). It provides these seven and no
 other component's ([`architecture/storage`](storage.md#a-component-implements-only-the-stores-it-owns)).
 
 ### Store: Agent Registry
@@ -3448,6 +3459,75 @@ The audit log is a chained log: its hash chain, how its appends share a flush,
 how it is held open and kept in segments are
 [`architecture/storage`](storage.md#chained-logs)'s, and bind it as they bind
 every chained log.
+
+### The operator stores
+
+[`architecture/admin`](admin.md) declares the operator surface, and this
+orchestrator binds it and serves its routes, so the operator records are held
+here. The three stores that keep them are this orchestrator's, and are declared
+here alone.
+
+### Store: Operators
+
+**Durability:** MUST survive restarts <!-- wl:id store-operators-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutOperator | `(op Operator) → error` | Create or update operator |
+| GetOperator | `(name string) → (Operator, error)` | Retrieve by name |
+| RevokeOperator | `(name string) → error` | Set status `revoked`, keeping the record. The name is not reused |
+| ListOperators | `() → ([]Operator, error)` | List all operators, revoked included |
+
+### Store: Credentials
+
+**Durability:** MUST survive restarts. A revoked credential is kept, so its key
+is never accepted again <!-- wl:id store-credentials-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutCredential | `(c Credential) → error` | Create a credential, or replace an active one's attestation |
+| GetCredential | `(id string) → (Credential, error)` | Retrieve by id, the fingerprint of its public key |
+| ListCredentials | `(identityID string) → ([]Credential, error)` | Every credential one identity attested here, revoked included |
+| RevokeCredential | `(id string) → error` | Set status revoked, keeping the record |
+
+`Credential` is [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+type.
+
+### Store: Token request jtis
+
+**Durability:** MUST survive restarts. IF more than one instance answers for
+this hub: MUST be one store every instance checks and writes, its
+`RecordTokenRequest` atomic across them. A record lives until its request's `timestamp` leaves
+the 300-second replay window, at most 600 seconds, and is then deleted <!-- wl:id store-jti-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| RecordTokenRequest | `(identityID string, jti string, until time) → (recorded bool, error)` | One atomic check-and-put: `false` where the pair is already recorded and unexpired, which is `TOKEN_REQUEST_REPLAYED`. An error refuses the request with `STORAGE_ERROR` and issues no token |
+| ExpireTokenRequests | `(now time) → error` | Delete every record whose `until` has passed |
+
+**IF more than one instance answers for this hub, how the record is shared.**
+`server start` refuses a second instance, so a tenant the CLI starts never
+meets this premise ([`architecture/cli`](cli.md#weblisk-server-start),
+`start-one-instance`); it is stated so that the obligation has a mechanism and
+not only an outcome. The record is one table in the backend every instance
+opens, keyed by the pair `(identity_id, jti)` with `until`, and
+`RecordTokenRequest` is one conditional insert on that key: it inserts where no
+row holds the key, or where the row that holds it has an `until` that has
+passed, which it replaces in the same statement, and it answers `recorded`
+from whether a row was written. It is never a read followed by a write, and no
+instance holds a copy of the table it consults instead. A backend that cannot
+make that insert atomic for every process that opens it, as a JSONL file
+cannot, cannot hold this store for more than one instance, and a configuration
+that would start a second instance on it is refused before either starts.
+
+The rules are `attestation-token-issuance`'s, in
+[`architecture/admin`](admin.md#contracts)'s Contracts,
+including the bound `auth-route-rate-limit` puts on what one source can make
+this store hold.
+
+A challenge nonce is not stored here: it lives at most 300 seconds, and an
+orchestrator MAY keep it in memory only, so a restart discards the outstanding
+ones and a client asks again.
 
 ---
 
@@ -4138,3 +4218,5 @@ agents hold, which is theirs.
 - [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness)) <!-- wl:check freshly-started-orchestrator-owns-system -->
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives <!-- wl:check audit-entries-retained-least-period-store -->
 - [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [`architecture/storage`](storage.md#contracts), `retention`) <!-- wl:check expired-channels-cleaned-up-automatically -->
+- [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator ([Store: Operators](#store-operators), [Store: Credentials](#store-credentials) and [Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
+- [ ] IF more than one instance answers for the hub: the token-request `jti` records are one store every instance checks and writes ([Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check more-instance-answers-hub-token-request-jti -->
