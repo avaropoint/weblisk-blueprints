@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.9.0
+version: 6.10.0
 requires: []
 platform: any
 tier: free
@@ -5118,3 +5118,28 @@ security:
 - [ ] Each capability [Capability](#capability) marks *person only* is person only and no other is, `programme:switch`, `integration:manage`, `action:invoke` and `scope:admit` among the first <!-- wl:check capability-capability-marks-person-person -->
 - [ ] The capabilities [Capability](#capability) places outside the `admin` family, `telemetry:read`, `action:invoke` and `scope:admit` among them, are carried by no `admin:*` <!-- wl:check capabilities-capability-places-outside-admin -->
 - [ ] `content:connect` binds an integration to an outside destination and creates no credential ([Capability](#capability)) <!-- wl:check content-connect-binds-integration-outside -->
+
+### Declared checks
+
+The check below settles, at the one component that answers it, what the
+registry's two entries for an admin gateway only capability mean on the wire.
+The orchestrator under test is started alone and sealed, with no admin
+gateway declared, so every key is one the tenant did not declare
+([`protocol/spec`](spec.md#post-v1register), step 1). A registration naming
+`token:exchange` is then refused `CAPABILITY_GATEWAY_ONLY` at 403, never
+`INVALID_REQUEST` at 400, which is how a name the Capability list does not
+hold is refused: so the refusal shows both that the name is listed and that
+it is the one marked admin gateway only.
+
+```yaml
+verifies:
+- id: gateway-only-refused-at-403
+  covers: [gateway-only-registered]
+  check: exchange
+  applies_to: [orchestrator]
+  assertion: "A registration naming token:exchange, from a key the tenant did not declare as its admin gateway's, is refused 403 CAPABILITY_GATEWAY_ONLY and issued no token, and is recorded nowhere: a later admitted registration's directory holds that registration alone."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe declaring token:exchange', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_GATEWAY_ONLY, lacks: [/token]}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/name: test-agent}, lacks: [/services/services/1]}}
+```

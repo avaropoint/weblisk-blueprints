@@ -732,6 +732,11 @@ other to sign.
 **Declared checks.** The structure check below reads a component's source
 for a statement prefix this registry does not list; its `registered` list is
 the registry's first column, and `checks/signing-keys.py` holds the two equal.
+The exchange check after it holds every protected endpoint to step 7 of
+[Token Verification](#token-verification), by the code it answers: a token
+whose signature verifies under the component's orchestrator's key and whose
+`exp` has passed is refused `TOKEN_EXPIRED`, whatever the route takes, since
+verification comes before any judgement of the token's type or capabilities.
 
 ```yaml
 verifies:
@@ -745,6 +750,18 @@ verifies:
       registered: [weblisk/auth/v1, weblisk/credential-auth/v1, weblisk/step-up/v1, weblisk/log-key/v2, weblisk/log-checkpoint/v2, weblisk/log-succession/v1, weblisk/content-change/v2, weblisk/content-attestation/v1, weblisk/change-decision/v1, weblisk/holder-probe/v1, weblisk/hub-proof/v1, weblisk/directory/v2, weblisk/namespace-claim/v2, weblisk/namespace-grant/v2, weblisk/namespace-transfer/v2, weblisk/catalog-release/v2]
     scope: component
     expect: none
+- id: expired-token-refused-by-code
+  covers: [check-token-expiry-verification]
+  check: exchange
+  live: safe
+  assertion: Every protected endpoint refuses a token signed by the component's own orchestrator's key whose exp has passed with 401 TOKEN_EXPIRED, so expiry is what refused it, not the token's type, its capabilities or a key the component does not hold.
+  exchange:
+    start: {orchestrator: mock}
+    for_each: protected-endpoint
+    steps:
+    - as: test-agent
+      request: {endpoint: each, token: expired}
+      expect: {status: 401, json: true, code: TOKEN_EXPIRED}
 ```
 
 ### A signer acting on a pointer
