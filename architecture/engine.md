@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.4.0
+version: 1.5.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -75,6 +75,7 @@ and versions, the way capabilities are closed in code and kinds are open data
 | Capabilities | [`schemas/kinds`](../schemas/kinds.md#capabilities) |
 | Executors | [`schemas/change`](../schemas/change.md#executors) |
 | Build steps | this file, [The build steps](#the-build-steps) |
+| Build order: its roles, unit forms, orders, phases and integration | this file, [Build order](#build-order) |
 | Event types | this file, [Events](#events) |
 
 The engine MUST name, in its manifest, the version of the declaring file of
@@ -109,6 +110,8 @@ Studio has no model of its own. <!-- wl:id model-is-the-acts-owner -->
   that lists every operation
 - The event envelope and the event types every operation shares
 - The build steps, their order, and what the model may and may not do in each
+- The build order: the layers a change's units are built in, what gates each,
+  and what a suite is run against
 - The one conformance suite: what a criterion is, its digest, and when a
   translated test counts
 - How the record makes a build incremental: action reuse, test translation
@@ -236,7 +239,7 @@ catalogue:
 | Type | Carries |
 |---|---|
 | `started` | the inputs as resolved, and the corpus pins read |
-| `step` | which declared step began or ended, with its id from [The build steps](#the-build-steps) |
+| `step` | which declared step began or ended, with its id from [The build steps](#the-build-steps); during a build, the layer and the unit it is about ([Build order](#build-order)), and for a unit not built, `skipped` with what it waited for |
 | `progress` | a count against a known total, or silence observed |
 | `question` | something only a person can give ([Questions](#questions)). The stream waits for an answer |
 | `warning` | something the run continued past, with its reason |
@@ -580,9 +583,10 @@ each needs declared, and what a model may do in each. A step is
 **determined** when everything it decides is read from the corpus, and
 **guessed** when something is left to the engine or the model.
 
-The engine MUST run the steps in the order below, each step beginning only
-after the one before it ended, and MUST emit a `step` event as each begins
-and ends. <!-- wl:id steps-in-order -->
+The engine MUST run the steps in the order below for each unit, each step
+beginning only after the one before it ended, and MUST emit a `step` event as
+each begins and ends. Which unit goes through them when, and how a layer's
+units share the build step, is [Build order](#build-order)'s. <!-- wl:id steps-in-order -->
 
 A step for which the corpus does not declare what it needs MUST be recorded as
 guessed, naming each declaration it lacked; the engine never supplies a
@@ -715,6 +719,239 @@ A tenant's agent work is a different thing. It stays in a programme's
 `skills:` and the prompt worker
 ([`architecture/prompt-worker`](prompt-worker.md)), and nothing in
 `instructions/` is given to a tenant's agent.
+
+---
+
+## Build order
+
+The build steps say what happens to one unit of a tenant's code. This section
+says in which order the units go through them, and when a unit's tests may
+run. It is where the order of
+[`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#order) becomes normative: a
+component is built and tested only once everything it depends on has been
+built and accepted, and it is tested against those accepted builds, never
+against a half-built tree or a stub standing in for one.
+
+Why, measured on one adoption of the development tenant:
+
+- A component's model-route install compiled while another component's tree
+  was half rebuilt, and failed for a reason that was not its own.
+- Each component's rebuild regenerated the shared contract package under the
+  others: one plan rebuilt the orchestrator, then admin and content, because
+  the orchestrator rewrote the package they link against.
+- Content's suite ended at startup before any behaviour of its own was
+  tested: its registration needs an orchestrator, and the sealed run started
+  it beside none.
+
+### Layers
+
+A change's units are arranged in layers. Each layer is computed from the
+corpus and from the change's build set, never from a list in a tool.
+
+```yaml
+build_order:
+  foundation:
+    - role: contract
+      units: one
+      from: union
+      means: >-
+        The layout's contract package (schemas/language, layout.contract),
+        holding every declared name of every component the tenant holds once
+        the change is applied: the union of each one's declared names, of the
+        kinds layout.contract.holds lists. Generated first
+    - role: library
+      units: per-blueprint
+      order: requires
+      means: >-
+        Each library package a component of the tenant requires, one unit per
+        library blueprint, generated after the contract package in the order
+        requires gives: a library after every library it requires
+  components:
+    role: component
+    units: per-component
+    order: [needs, runs_with, depends_on]
+    tie: services
+    means: >-
+      Each component of the build set, layered by what it needs running first:
+      the orchestrator's layer is 1, and a component is in the layer above the
+      deepest component it needs; a kind that runs_with another is a unit of
+      its host's layer; within a layer, the services table's order, then the
+      domain services, then the published agents, each by name
+  phases: [generate, compile, test, accept]
+  integration: whole-hub
+```
+
+| Key | Means |
+|---|---|
+| `foundation` | Layer 0: the units every component links against, in the order listed, each role's units in its own `order` |
+| `components` | Layers 1 and up |
+| `role` | A layout role ([`schemas/language`](../schemas/language.md#the-layout-block)). Every package of the tenant is in exactly one role, so every package is in exactly one layer |
+| `units` | `one`: the role's packages are one unit. `per-blueprint`: one unit per blueprint the layout maps to the role. `per-component`: one unit per component, its own package and its entry |
+| `from: union` | The unit is made from the union of what every component of the tenant declares, never from the declarations of one |
+| `order: requires` | Ordered by `requires` among the role's blueprints, which is acyclic ([`schemas/common`](../schemas/common.md#field-constraints), [`checks/acyclic.py`](../checks/acyclic.py)) |
+| `order: needs` | The services table's *needs running first* ([`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)) |
+| `order: runs_with` | [`schemas/kinds`](../schemas/kinds.md#component-kinds)' `runs_with`: the unit is built in its host's layer and tested in its host's process |
+| `order: depends_on` | A domain service's or a published agent's `depends_on` |
+| `tie: services` | The services table's order decides between two units of one layer |
+| `phases` | What a layer does, in order, before the layer above begins ([Within a layer](#within-a-layer)) |
+| `integration: whole-hub` | After the last layer, the whole hub runs once ([Integration](#integration)) |
+
+The engine MUST compute a change's layers from `build_order`, the layout of
+the tenant's language, the services table, `schemas/kinds`' `component_kinds`
+and the `requires` and `depends_on` of the blueprints the build set reaches,
+and MUST hold no order of its own. A `requires` or `depends_on` cycle among the
+units of one role is refused before any model call, naming the cycle. <!-- wl:id layers-from-corpus -->
+
+Layer 0 MUST be the foundation: the contract package first, then the library
+packages in the order `requires` gives. Then the component layers, from the
+orchestrator's. A unit MUST NOT be generated before, or placed in a layer
+below, a unit it requires, needs, or depends on. <!-- wl:id layer-order -->
+
+`change plan` MUST show a change's layers, each with its units, and for each
+component unit what it needs running first and what it requires; and every
+`step` event of an apply MUST name the layer and the unit it is about. <!-- wl:id layers-shown -->
+
+### Within a layer
+
+Every unit of a layer goes through plan, translate and generate before any
+unit of it reaches build. The build step is then the layer's: every unit of
+the layer is compiled, with the language's `build_package` for a unit with no
+entry and its `build_component` for a component
+([`schemas/language`](../schemas/language.md#the-toolchain-block)), and only
+once the whole layer compiles does any unit's suite run. Repair and accept
+follow, unit by unit.
+
+The engine MUST generate every file of every unit in a layer, and compile the
+layer as a whole, before it runs any test of any unit in that layer. <!-- wl:id generate-compile-then-test -->
+
+A layer that does not compile MUST be recorded as a build verdict: its repair
+works from the toolchain's diagnostics, the build classes first, and no
+conformance check or translated test of the layer runs, or is counted, until
+the layer compiles. A compile failure is never reported as a test failure. <!-- wl:id compile-failure-is-build -->
+
+A toolchain command that compiles more than one layer, such as the
+language's `build` over every package of the module, MUST NOT run while any
+layer of a change is still being built; and a step the engine performs on a
+component's tree outside generation, such as wiring a route the platform
+provides into it, MUST run only once that component's layer and every layer
+below it are complete. <!-- wl:id no-cross-layer-compile -->
+
+### Gating
+
+A layer starts when every unit of every layer below it has ended. A unit in it
+is built only where every unit it depends on was **build-accepted**: its
+conformance `established` or `accepted`, as
+[`architecture/generation`](generation.md#build-acceptance) decides. What a unit
+depends on is the contract package, the libraries its blueprint requires, and
+the components it needs running first.
+
+A unit whose dependency was not build-accepted MUST NOT be generated, compiled
+or tested. Its outcome is `skipped`, naming each dependency it waited for and
+that dependency's own outcome, and every unit that depends on it is skipped
+the same way. <!-- wl:id dependant-skipped -->
+
+The contract package and the library packages are what every component above
+them links against, so a refused one skips every component that requires it. A
+component that nothing above it needs skips nothing.
+
+### Shared code
+
+The contract package is generated once per change, first in layer 0, before any
+component, and is not touched by any later unit of the change. Layer 0 is
+planned as one plan whose files lie only in the foundation's packages, so the
+contract and the libraries agree on every name they share, and is generated
+in its units' order: the contract package's files, then each library's after
+the libraries it requires. Generating it
+reads the declared names of every component the tenant holds, not only those
+the change builds, so a component the change keeps still finds every name it
+was built against.
+
+The engine MUST generate the contract package once per change, first in layer 0, from
+the union of the declared names every component of the tenant needs, and a
+component's plan MUST NOT place a file in the contract package: a name the
+contract holds is imported from it. This replaces a later component adding its
+own declared names to the package beside another's. <!-- wl:id contract-once-per-change -->
+
+A library package is likewise a unit of its own layer, generated from its
+blueprint once per change, and a component's plan MUST NOT place a file in a
+library package. A library has no process, so its suite is the layer compiling
+and any declared check of kind `structure` its blueprint carries; the criteria
+it answers are owed and judged through every component that requires it
+([What a component owes](#what-a-component-owes)). <!-- wl:id library-unit-once -->
+
+### The test environment
+
+A component's suite runs in the sealed environment against its dependencies'
+**accepted builds**: the trees each dependency was build-accepted with, built
+into a scratch directory of their own when the dependant's layer begins, before
+any unit of that layer is generated. Nothing a later layer writes reaches them.
+
+The engine MUST run a component's suite with every component it needs running
+first started from its accepted build, in the services table's order, brought
+up as [`architecture/testing`](testing.md#bringing-up-accepted-dependencies)
+declares, and the component under test pointed at the accepted orchestrator.
+It MUST NOT start a mock or a stub for a dependency that has an accepted build. <!-- wl:id tested-against-accepted -->
+
+| Who is started | When |
+|---|---|
+| the accepted builds of what it needs running first | every suite run of a component that needs anything running first, and every check whose `start` is `orchestrator: built` or names `with` |
+| the mock orchestrator | only a check whose own `start` is `orchestrator: mock`: one that tests a component's client of the orchestrator in isolation, or the orchestrator itself. It is never put in place of the accepted orchestrator for any other check |
+| nothing | a check whose `start` is `orchestrator: none`, such as L4-04's standalone operation |
+
+A dependency that cannot be brought up from its accepted build MUST make the
+dependant's run unsettled, naming the dependency and why; it is never replaced
+by a mock, and the dependant's checks are never run against nothing. <!-- wl:id bring-up-failure-unsettled -->
+
+### Integration
+
+When every component layer has ended, the whole hub runs once, sealed: every
+accepted component started together from its accepted build, in the services
+table's order, brought up as for a suite, and then the checks that span
+components.
+
+After the last layer, the engine MUST start every build-accepted component of
+the change and every component of the tenant it kept, from their accepted
+builds, in the services table's order; each MUST start and answer its `live`
+probe, and every check of kind `topology` and every check whose `start` is
+`orchestrator: built` or names `with` MUST run against them. A failure here is
+recorded on the change as an integration verdict naming the components it
+involves, and moves no component's own build verdict. <!-- wl:id whole-hub-integration -->
+
+### A fresh build
+
+A change of kind `fresh` ([`schemas/change`](../schemas/change.md#shape))
+builds the whole hub again from the corpus as it now is, in the layers above:
+the foundation, then every component of the services table the tenant holds or
+its programmes need, and every domain service and published agent it holds.
+Nothing generated before is kept or reused as a build: it is a rebuild, not a
+repair.
+
+A fresh change MUST replace every file a generation recorded in the tenant's
+code directories, an edited one included, and MUST keep everything under
+`.weblisk/`, which holds the tenant's keys, data, configuration and identity,
+and every file no generation recorded. Its plan MUST list each file it removes,
+and the files it keeps that no generation wrote, before anything is removed.
+Nothing is removed until the change is applied, and then only as each unit's
+layer begins. <!-- wl:id fresh-replaces-generated-keeps-tenant -->
+
+### Incremental
+
+A change rebuilds the units its moved inputs reach and nothing else, and
+re-tests what depends on what it rebuilt.
+
+| What moved | Rebuilt | Re-tested |
+|---|---|---|
+| a declared name the contract holds | the contract package, and every unit that binds the moved name | every component above a rebuilt unit |
+| a library blueprint | that library, every library above it that requires it, and every component that requires one of them | every component that needs a rebuilt one running first |
+| a component's own blueprint | that component | every component that needs it running first |
+| nothing a unit reads | nothing | nothing |
+
+A change MUST rebuild exactly the units its moved inputs reach, through the
+rebuild table of [`architecture/generation`](generation.md#deciding-whether-a-file-must-be-rebuilt)
+read per unit, plus every unit above them that binds what moved; and every
+component that needs a rebuilt unit running first MUST be tested again against
+that unit's new accepted build, in the same change. A unit nothing reached
+keeps its build and its verdict. <!-- wl:id incremental-by-layer -->
 
 ---
 
@@ -1000,6 +1237,15 @@ is consulted, and nothing about the model's answer is.
 - [ ] Given the signer fixture `handoff-answer-wrong-subject`, a `handoff` whose record is another subject's ends the operation refused naming the question, as does one whose record was on the subject before the question, is another identity's, or is not signed; and a correct `handoff` ends `finished` with the same `records` in Studio's stream as in the CLI's ([Questions](#questions)) <!-- wl:check handoff-answer-verified covers signature-handoff-answer front-end-parity -->
 - [ ] A front end shows a verdict, threshold or list only as an operation's events carry it, and the neutrality check over its source reports one computed in it ([The parts, and the line between them](#the-parts-and-the-line-between-them)) <!-- wl:check front-end-computes-nothing covers front-end-decides-nothing -->
 - [ ] `change apply` emits a `step` event as each of resolve, plan, translate, generate, build, repair, accept and record begins and ends, in that order ([The build steps](#the-build-steps)) <!-- wl:check steps-ordered covers steps-in-order -->
+- [ ] Given a corpus whose services table, `component_kinds` and `requires` are changed, a change's layers change with them and with nothing else; a `requires` cycle among one role's blueprints is refused before any model call, naming the cycle; layer 0 holds the contract package and then the libraries by `requires`, then the components by what each needs running first, and no unit is generated before, or sits below, a unit it requires, needs or depends on ([Layers](#layers)) <!-- wl:check layers-computed-from-corpus covers layers-from-corpus layer-order -->
+- [ ] `change plan` lists each layer with its units, and each component unit with what it needs running first and what it requires; every `step` event of an apply names its layer and unit ([Layers](#layers)) <!-- wl:check layers-in-plan-and-events covers layers-shown -->
+- [ ] In an apply's record, every generate action of a layer precedes that layer's compile, and the compile precedes every check and translated test of the layer; a layer that does not compile is recorded as a build verdict with no check counted; and no command compiling more than one layer, and no route wiring of a component, runs before that component's layer and those below it are complete ([Within a layer](#within-a-layer)) <!-- wl:check layer-generated-compiled-tested covers generate-compile-then-test compile-failure-is-build no-cross-layer-compile -->
+- [ ] With a dependency refused, every unit that depends on it, directly or through another, is `skipped` naming what it waited for and that dependency's outcome, and none of them is generated, compiled or tested ([Gating](#gating)) <!-- wl:check refused-dependency-skips-dependants covers dependant-skipped -->
+- [ ] A change generates the contract package once, first in layer 0, holding the declared names of every component the tenant holds after it; a component plan or a library plan placing a file in the contract package, or a component plan placing one in a library package, is refused ([Shared code](#shared-code)) <!-- wl:check contract-and-libraries-once covers contract-once-per-change library-unit-once -->
+- [ ] A dependant's suite starts what it needs running first from their accepted builds, in the services table's order, as `architecture/testing` brings them up, and no mock or stub in their place; a dependency that cannot be brought up leaves the dependant's run unsettled, naming it ([The test environment](#the-test-environment)) <!-- wl:check suite-against-accepted-builds covers tested-against-accepted bring-up-failure-unsettled -->
+- [ ] After the last layer the whole hub is started from accepted builds in order, each answers its `live` probe, and every `topology` check and every check starting `orchestrator: built` or `with` runs against it; a failure there is the change's integration verdict and moves no component's own ([Integration](#integration)) <!-- wl:check whole-hub-run-after-last-layer covers whole-hub-integration -->
+- [ ] A `fresh` change plans every component in layers from the corpus, lists every recorded file it removes and every unrecorded file it keeps, removes nothing under `.weblisk/` and no file no generation wrote, and removes a unit's files only as that unit's layer begins ([A fresh build](#a-fresh-build)) <!-- wl:check fresh-change-replaces-generated-only covers fresh-replaces-generated-keeps-tenant -->
+- [ ] A change in which one library blueprint moved rebuilds that library, the libraries above it that require it and the components that require one of them, re-tests every component that needs a rebuilt one running first against its new accepted build, and rebuilds nothing else ([Incremental](#incremental)) <!-- wl:check incremental-rebuilds-reached-layers covers incremental-by-layer -->
 - [ ] A step whose corpus declaration is missing is recorded as guessed, naming what it lacked, and no engine default is used in its place ([The build steps](#the-build-steps)) <!-- wl:check guessed-step-recorded covers guessed-is-reported -->
 - [ ] A model's reading never moves a verdict; a conflict it reports is recorded as a corpus finding and settles nothing; an answer writing a test path, a plan-fixed name or a file outside the repair set is refused with its reason ([What the model may not do](#what-the-model-may-not-do)) <!-- wl:check model-bounded covers model-reads-are-advice conflict-is-proposed model-output-bounded -->
 - [ ] Every sentence of every model prompt is an instruction file's folded text or a labelled declared input, and the action records each instruction's ref, version and digest ([Instructions](#instructions)) <!-- wl:check prompts-are-corpus-text covers no-engine-sentences instruction-revision-recorded -->

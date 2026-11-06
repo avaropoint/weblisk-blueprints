@@ -134,10 +134,10 @@ def judge(name, path, vectors):
     if b["module"].get("manifest") != lay.get("manifest"):
         faults.append(f"{name}: module manifest is not the layout's")
     tc = b["toolchain"]
-    for k in ("version", "probe", "build", "build_component", "run"):
+    for k in ("version", "probe", "build", "build_component", "build_package", "run"):
         if k not in tc:
             faults.append(f"{name}: toolchain names no {k}")
-    cmds = [tc.get(k) for k in ("build", "build_component", "run", "vet")] + list(tc.get("prepare") or []) \
+    cmds = [tc.get(k) for k in ("build", "build_component", "build_package", "run", "vet")] + list(tc.get("prepare") or []) \
         + [(tc.get("probe") or {}).get("command"), b["tests"].get("command")] \
         + list((b["diagnostics"].get("dependency_fault") or {}).get("fix") or [])
     for c in cmds:

@@ -53,7 +53,7 @@ def signed(d, keys):
 def change_broken(c):
     b, st, a = set(), c.get("state"), c.get("approval")
     if not HEX32.match(str(c.get("id", ""))): b.add("change-id")
-    if c.get("kind") not in ("adopt", "upgrade", "remove", "revert"): b.add("change-kind")
+    if c.get("kind") not in ("adopt", "upgrade", "remove", "revert", "fresh"): b.add("change-kind")
     if not c.get("request") or not all(ref_ok(r, True) and not r.startswith((".", "/")) for r in c["request"]): b.add("change-request")
     if ("reverts" in c) != (c.get("kind") == "revert"): b.add("change-reverts")
     base = c.get("base", {})

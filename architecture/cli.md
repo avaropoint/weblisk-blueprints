@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.2.1
+version: 5.3.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -464,6 +464,8 @@ them, and [Renamed commands](#renamed-commands) says what each becomes.
 ### Changes
 
 `weblisk change plan --adopt|--upgrade|--remove <ref>… [--strict] [--resolve-only] [--json]`,
+`weblisk change plan --fresh [--json]` (every component again, in layers:
+[`architecture/engine`](engine.md#a-fresh-build)),
 then `change list`, `show`, `approve`, `reject`, `apply`, `verify` and
 `revert`, against [`/v1/admin/changes`](admin.md#changes-and-builds). Where
 each runs, and so where its act happens, is [`schemas/change`](../schemas/change.md#executors)'s

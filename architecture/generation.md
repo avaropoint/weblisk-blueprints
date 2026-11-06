@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: generation
-version: 3.1.0
+version: 3.2.0
 requires: [protocol/spec, protocol/types, architecture/testing]
 platform: any
 tier: free
@@ -309,8 +309,12 @@ generated. It MUST be rejected, with what is missing, when:
 5. A file has no purpose.
 6. A path belongs to another component of the same target — its module, its
    entry point, or a file another component's manifest claims.
-7. A file is in a directory the package plan does not give this component, or
-   is a component's entry anywhere but the layout's `entry`.
+7. A file is in a directory the package plan does not give this unit, or is a
+   component's entry anywhere but the layout's `entry`. A component's package
+   plan gives it its own package and its entry; the contract package and the
+   library packages are units of their own layers
+   ([`architecture/engine`](engine.md#shared-code)), and are in a component's
+   package plan only as what it imports.
 8. A name the layout's `contract.holds` names (a declared type, an enum
    constant, a path constant, a request or response type, an error code) is
    placed in a file outside the contract package.
@@ -760,32 +764,34 @@ A union of four roots' context is 1.56 MB, and a file-level transitive closure
 what one component is answerable for.
 
 **Each thing is resolved once.** A blueprint is read once per run, a component
-planned once however often it is asked for, and an output two components need
-(the protocol types package) has one owner: the first in topological order.
-Its run statement records every root that needed it.
+planned once however often it is asked for, and an output every component
+needs (the contract package, and each library package) is a unit of its own,
+built once per change in the layer [`architecture/engine`](engine.md#build-order)
+gives it. Its run statement records every root that needed it.
 
-**A shared package is added to, never re-declared.** The contract package
-holds every component's declared names, so a component built after another
-plans its own declared names into the contract package beside the files the
-other wrote there. Those new files are its own; it never edits the other's,
-and a name already declared there is imported, never declared again
-(rule 9).
+**Shared code is a unit, built first, and never by a component.** The
+contract package is generated once per change, as layer 0, from the union of
+the declared names of every component the tenant holds once the change is
+applied, and each library package as a unit of the same layer after it, before any
+component ([`architecture/engine`](engine.md#shared-code),
+`contract-once-per-change`, `library-unit-once`). A component's plan places no
+file in either: a name the contract holds is imported from it (rule 9), and a
+name it lacks is a fault of layer 0, recorded there, never added beside it by
+the component that needed it. This replaces a later component adding its own
+declared names to the contract package beside the files another wrote: that
+rule made every component's rebuild a rewrite of the package the others link
+against, and one adoption of the development tenant rebuilt the orchestrator,
+then admin and content, for no change of their own.
 
-**Shared code is built first.** The shared packages — what the protocol
-blueprints (`protocol/*`) generate, the types and helpers every component
-imports — belong to the component whose run wrote them, in a tenant usually
-the orchestrator. When a plan builds any component against a corpus in which
-a protocol blueprint that owner was built from has moved by a version (a
+When a change's moved inputs reach the contract package or a library (a
 `changed` input of [`schemas/programme`](../schemas/programme.md#version-and-version_hash-are-not-alternatives)'s
-table), the owner is regenerated first, `regenerate` because
-`reached-by-change`, its `detail` naming the shared inputs that moved; then
-every other component the tenant has generated is built again after it,
-`regenerate` with `added_by` the owner, so that each links against the shared
-packages as they now are. Building again keeps every file no change reached
-(row six above) and repairs what no longer builds against the new packages.
-A service generated at a newer corpus into a tenant whose shared packages
-are older otherwise meets types it was never told of, and its repair loop
-patches around a mismatch that is not its own. An input that moved without
+table, or a component added whose declared names the contract does not yet
+hold), that unit is rebuilt, `regenerate` because `reached-by-change`, its
+`detail` naming the inputs that moved; and every component that binds what
+moved is built again after it, `regenerate` with `added_by` the unit, keeping
+every file no change reached (row six above). Which units that is, and which
+are tested again without being rebuilt, is
+[`architecture/engine`](engine.md#incremental)'s. An input that moved without
 its version is `review`, as everywhere, and regenerates nothing.
 
 **What a run reads is fixed for the whole run.** Every blueprint source a
@@ -1185,8 +1191,10 @@ The files a completion may edit are bounded:
   names: the file that declares it, or for a name nothing declares yet, the
   file whose names share the longest leading run of words with it. A package
   is shared when it is under the module, a file of the repair imports it, the
-  component holds none of its files, and no other component's record claims
-  any. **A shared file MAY only be added to.** An edit that removes or changes
+  component holds none of its files, and no other unit's record claims any; the
+  contract package and every library package are claimed by their own units
+  ([`architecture/engine`](engine.md#shared-code)), so a component's repair
+  never edits them, and a name one of them lacks is that unit's fault. **A shared file MAY only be added to.** An edit that removes or changes
   any line it has is refused, because other components import it and the
   component's build does not compile them. A shared file is written and undone
   with the tree, and it is never returned, banked or recorded as the
@@ -2113,6 +2121,63 @@ An `accepted` tree MUST be recorded with each gap on its criterion
 the per-class counts on its verdict, and MUST NOT be shown or counted as
 `established`. <!-- wl:id accepted-is-not-established -->
 
+#### The development gate
+
+A recorded exception, decided by the owner on 2026-11-05, for a tenant whose
+`hub.environment` is `development` ([`schemas/config`](../schemas/config.md#the-environment-and-the-development-tenant))
+and for no other: the code is built first, and the full gate applies once the
+checks it needs exist. Most S and J criteria are not yet settled by a declared
+check, so rule 3 above refutes every fresh build of a tenant, and nothing can
+be built to test against. Measured: about 95% of the admin gateway's 126 S and
+J criteria cannot be settled in a sealed run, because no first operator could
+be brought up there ([`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#the-development-exception)).
+
+Under it, rule 3 is replaced, and a tree is build-accepted when, besides 1, 2
+and 4, every check `development_gate` names that applies to the component
+passed on it, which is to say:
+
+- every component of its layer starts from the layer's build, and each that
+  registers registers with the accepted orchestrator and is listed with a live
+  lease;
+- each answers its declared probes as the `probes` block of
+  [`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz) says;
+- each refuses a request carrying no token on every protected route it serves
+  ([`schemas/blocks`](../schemas/blocks.md#which-endpoints-are-protected)), with
+  `401`;
+- no declared check that passed on the component's last accepted tree fails on
+  this one.
+
+```yaml
+development_gate:
+  environment: development
+  checks:
+    - architecture/testing:l1-01-probes
+    - architecture/testing:l1-07-protected-endpoints
+    - architecture/testing:l4-01-registers-with-real-orchestrator
+```
+
+A check here is a declared check of `architecture/testing`, by its full ref,
+owed by a component as its own `applies_to` says. One that applies and did not
+pass, unread included, refuses the tree: under the gate what it shows is the
+whole of what is shown.
+
+The engine MUST apply the development gate only where the tenant's
+configuration says `hub.environment: development`, read from the tenant as
+`schemas/config` says and never from a flag, a variable or a name; everywhere
+else the gate above applies unchanged. <!-- wl:id development-gate-only-in-development -->
+
+Under the development gate, every S and J criterion not settled as met MUST be
+recorded as a gap with its class, exactly as rule 4 records the others, and
+the verdict MUST be `accepted`, never `established`; nothing is passed that was
+not settled. <!-- wl:id development-gate-records-gaps -->
+
+Under the development gate, a declared check that passed on the component's
+last accepted tree and fails on this one MUST refute the tree. <!-- wl:id development-gate-no-regression -->
+
+The exception ends when every S and J criterion the services table's
+components owe is settled by a declared check: from then on rule 3 applies in
+development as everywhere, and this section is removed in the same change.
+
 Whether an accepted tree may start, and exposed to whom, is runtime
 acceptance, a person's signed decision, and is ACCEPTANCE_PLAN's until it
 lands in [`architecture/cli`](cli.md) and [`schemas/change`](../schemas/change.md).
@@ -2244,7 +2309,8 @@ and "nothing contradicted it".
 
 - [ ] A generator derives the package plan from the language blueprint's `layout` block before any model call, gives it and the layout's rules to the planner, and asks the model only how each package's work is divided into files ([The plan](#the-plan), [What the model still decides](#what-the-model-still-decides)) <!-- wl:check generator-derives-package-plan-language -->
 - [ ] A plan placing a file outside the package plan's directories, a contract name outside the contract package, a contract name or a library's exported name in a second package, or an import its package's role does not admit, is rejected, citing the layout rule ([Validating a plan](#validating-a-plan) rules 7 to 10) <!-- wl:check plan-placing-file-outside-package-plans -->
-- [ ] A component built after another plans its declared names into the contract package in files of its own, edits none of the other's files there, and imports a name already declared there rather than declaring it again ([Resolving a request of many roots](#resolving-a-request-of-many-roots)) <!-- wl:check component-built-after-another-plans-declared -->
+- [ ] In a tenant whose `hub.environment` is `development`, a tree that builds, starts, registers with the accepted orchestrator, answers its probes and refuses a token-less request on each protected route with 401 is `accepted` with every unsettled S and J criterion recorded as a gap, never `established`; a declared check that passed on the last accepted tree and fails now refutes it; and the same tree in a tenant of any other environment is held to rule 3 ([The development gate](#the-development-gate)) <!-- wl:check development-gate-in-development-only covers development-gate-only-in-development development-gate-records-gaps development-gate-no-regression -->
+- [ ] A change generates the contract package once, before any component, from the union of every component's declared names; a component's plan placing any file in the contract package or a library package is rejected citing rule 9, and a name the contract lacks is recorded against the contract unit, never added by the component that needed it ([Resolving a request of many roots](#resolving-a-request-of-many-roots)) <!-- wl:check contract-unit-before-components -->
 - [ ] A plan omitting a type the protocol enumerates is rejected, naming the type ([Validating a plan](#validating-a-plan) rule 1) <!-- wl:check plan-omitting-type-protocol-enumerates-rejected -->
 - [ ] A plan omitting an endpoint the protocol defines is rejected, naming the endpoint ([Validating a plan](#validating-a-plan) rule 2) <!-- wl:check plan-omitting-endpoint-protocol-defines-rejected -->
 - [ ] A plan declaring one symbol in two files is rejected ([Validating a plan](#validating-a-plan) rule 3) <!-- wl:check plan-declaring-symbol-two-files-rejected -->

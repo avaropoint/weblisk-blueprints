@@ -1,7 +1,8 @@
 # Schema: Change
 
 One act of changing what a tenant is built from: adopting a blueprint,
-upgrading one, removing one, or reverting an earlier change. A change is
+upgrading one, removing one, reverting an earlier change, or building the
+whole hub fresh. A change is
 planned, approved by a person, applied in the tenant and verified, and it is
 the one record of each of those steps.
 
@@ -60,7 +61,7 @@ The file they write is this one.
 ```yaml
 change:
   id: <32 hex>
-  kind: adopt | upgrade | remove | revert
+  kind: adopt | upgrade | remove | revert | fresh   # fresh: architecture/engine, A fresh build
   request: [<ref or citation>]     # what was asked for, as asked
   reverts: <change id>             # kind revert only
   requested_by: <identity id>      # the operator who asked
@@ -282,7 +283,7 @@ rules:
   - id: change-id
     rule: id is 32 lowercase hex characters
   - id: change-kind
-    rule: kind is adopt, upgrade, remove or revert
+    rule: kind is adopt, upgrade, remove, revert or fresh
   - id: change-request
     rule: request is non-empty, and each entry is a ref or citation in the grammar of schemas/names.md; a path is refused, because a path is a coordinate on one host
   - id: change-reverts

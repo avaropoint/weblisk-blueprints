@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.5.0
+version: 1.6.0
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -280,6 +280,7 @@ toolchain:
   prepare: [[<arg>, ...], ...]    # run at module_root, in order, before a build and after any import change
   build: [<arg>, ...]             # every component in the module
   build_component: [<arg>, ...]   # one component; its binary at the path run names
+  build_package: [<arg>, ...]     # one package, {package}, and what it imports; a unit with no entry (architecture/engine, Build order)
   run: [<arg>, ...]               # one component; the starter appends its flags
   vet: [<arg>, ...]               # optional: a static check the build gate also runs
   env: {<name>: <value>}          # set for prepare, build and test only, never for a component
@@ -287,6 +288,11 @@ toolchain:
     probe: [<arg>, ...]           # asks the host's policy, in the host's own environment
     never: <regex>                # an answer matching it means the toolchain never switches
 ```
+
+`build` compiles every package of the module, so it is never run while a
+change is still building a layer ([`architecture/engine`](../architecture/engine.md#within-a-layer),
+`no-cross-layer-compile`); a layer is compiled with `build_package` for each
+unit that has no entry and `build_component` for each component.
 
 `switching` is for a toolchain that, given a module declaring a newer
 version than the one installed, obtains and uses that version itself. Where

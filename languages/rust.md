@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: rust
-version: 5.1.0
+version: 5.2.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: rust
 tier: free
@@ -400,6 +400,7 @@ toolchain:
   prepare: [[cargo, generate-lockfile]]
   build: [cargo, build, --release, --workspace, --message-format=json]
   build_component: [cargo, build, --release, -p, "{service}", --message-format=json]
+  build_package: [cargo, build, --release, --manifest-path, "{package}/Cargo.toml", --message-format=json]
   run: ["target/release/{service}"]
   vet: [cargo, clippy, --workspace, --all-targets, --message-format=json, --, -D, warnings]
   env: {CARGO_TERM_COLOR: never}
