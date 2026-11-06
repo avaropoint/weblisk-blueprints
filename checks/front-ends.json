@@ -3,14 +3,14 @@
   "front_ends": {
     "cli": {
       "repository": "weblisk-tools (today weblisk-cli)",
-      "commit": "299695d",
+      "commit": "91a76f2",
       "manifest": "front-ends/cli.json"
     },
     "studio": {
       "repository": "weblisk-studio",
-      "commit": "2d39bfdb",
+      "commit": "a112aa58",
       "manifest": "front-ends/studio.json",
-      "engine": "weblisk-cli 299695d, through go.mod's replace to ../weblisk-cli/engine"
+      "engine": "weblisk-cli 91a76f2, through go.mod's replace to ../weblisk-cli/engine"
     }
   },
   "executors": [
@@ -22,10 +22,8 @@
     "cli: the catalogue's cache prune is missing",
     "cli: the catalogue's cache status is missing",
     "cli: the catalogue's change apply is missing",
-    "cli: the catalogue's change approve is missing",
     "cli: the catalogue's change list is missing",
     "cli: the catalogue's change plan is missing",
-    "cli: the catalogue's change reject is missing",
     "cli: the catalogue's change revert is missing",
     "cli: the catalogue's change show is missing",
     "cli: the catalogue's change verify is missing",
@@ -35,10 +33,8 @@
     "studio: the catalogue's cache prune is missing",
     "studio: the catalogue's cache status is missing",
     "studio: the catalogue's change apply is missing",
-    "studio: the catalogue's change approve is missing",
     "studio: the catalogue's change list is missing",
     "studio: the catalogue's change plan is missing",
-    "studio: the catalogue's change reject is missing",
     "studio: the catalogue's change revert is missing",
     "studio: the catalogue's change show is missing",
     "studio: the catalogue's change verify is missing",
@@ -50,8 +46,6 @@
     "change list": "cli-in-tenant until a tenant runs its change service (ENGINE_PLAN T1): the act runs on the tenant's own host, and labelling it tenant-api would send a client to routes no tenant serves yet (architecture/cli, Until a tenant runs a change service). The engine lists it as cli-in-tenant, which the leg's executors leave out.",
     "change show": "cli-in-tenant until a tenant runs its change service (ENGINE_PLAN T1): the act runs on the tenant's own host, and labelling it tenant-api would send a client to routes no tenant serves yet (architecture/cli, Until a tenant runs a change service). The engine lists it as cli-in-tenant, which the leg's executors leave out.",
     "change apply": "cli-in-tenant until a tenant runs its change service (ENGINE_PLAN T1): the act runs on the tenant's own host, and labelling it tenant-api would send a client to routes no tenant serves yet (architecture/cli, Until a tenant runs a change service). The engine lists it as cli-in-tenant, which the leg's executors leave out.",
-    "change approve": "not built: until the change service runs (T1) the tools refuse it by name; a decision is the signed ChangeDecision of architecture/change-service, which no client can send before a tenant serves its route.",
-    "change reject": "not built: as change approve.",
     "change verify": "not built: until the change service runs (T1) the tools refuse it by name; verify is a build run in the tenant (architecture/change-service).",
     "change revert": "not built: until the change service runs (T1) the tools refuse it by name; a revert is a change plan of kind revert (architecture/change-service).",
     "cache status": "cli-in-tenant until T1: the generation cache is the tenant host's, where change apply runs today; the catalogue's local cache is the one a client keeps once builds run in the tenant.",

@@ -383,6 +383,64 @@
       "summary": "Regenerate what a planned change names, at the corpus it read"
     },
     {
+      "operation": "change approve",
+      "executor": "tenant-api",
+      "capability": "change:decide",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "Approve a planned change, signed by your sign-records key on your own device"
+    },
+    {
+      "operation": "change reject",
+      "executor": "tenant-api",
+      "capability": "change:decide",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "Reject a planned change, with a reason, signed by your sign-records key on your own device"
+    },
+    {
       "operation": "change show",
       "executor": "cli-in-tenant",
       "capability": "change:read",

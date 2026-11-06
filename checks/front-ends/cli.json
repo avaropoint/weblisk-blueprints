@@ -197,7 +197,7 @@
         },
         {
           "name": "root",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "backend=path"
@@ -237,7 +237,7 @@
       "parameters": [
         {
           "name": "ref",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "positional"
         },
@@ -268,14 +268,14 @@
         },
         {
           "name": "driver",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "kind.backend=driver"
         },
         {
           "name": "replace-edited",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "path=why"
@@ -325,7 +325,7 @@
         "gap"
       ],
       "records": "tenant",
-      "summary": "Plan an upgrade or an adoption, written to .weblisk/changes/\u003cid\u003e.json"
+      "summary": "Plan an upgrade or an adoption, written to .weblisk/changes/<id>.json"
     },
     {
       "operation": "change apply",
@@ -381,6 +381,64 @@
       ],
       "records": "tenant",
       "summary": "Regenerate what a planned change names, at the corpus it read"
+    },
+    {
+      "operation": "change approve",
+      "executor": "tenant-api",
+      "capability": "change:decide",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "Approve a planned change, signed by your sign-records key on your own device"
+    },
+    {
+      "operation": "change reject",
+      "executor": "tenant-api",
+      "capability": "change:decide",
+      "parameters": [
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "form": "positional"
+        },
+        {
+          "name": "orch",
+          "type": "string",
+          "required": false,
+          "form": "flag",
+          "value": "url"
+        },
+        {
+          "name": "json",
+          "type": "boolean",
+          "required": false,
+          "form": "flag"
+        }
+      ],
+      "events": [],
+      "records": "tenant",
+      "summary": "Reject a planned change, with a reason, signed by your sign-records key on your own device"
     },
     {
       "operation": "change show",
@@ -1177,7 +1235,7 @@
       "summary": "Re-fetch every blueprint clone now"
     },
     {
-      "operation": "\u003cfamily\u003e validate",
+      "operation": "<family> validate",
       "executor": "local",
       "capability": "always",
       "parameters": [
@@ -1214,7 +1272,7 @@
       "summary": "Validate blueprint compliance, or report what one repository holds"
     },
     {
-      "operation": "\u003cfamily\u003e list",
+      "operation": "<family> list",
       "executor": "local",
       "capability": "always",
       "parameters": [
@@ -1240,7 +1298,7 @@
       "summary": "Every file of a family, as its declaration matches them"
     },
     {
-      "operation": "\u003cfamily\u003e show",
+      "operation": "<family> show",
       "executor": "local",
       "capability": "always",
       "parameters": [
@@ -1272,7 +1330,7 @@
       "summary": "One file of a family, walked"
     },
     {
-      "operation": "\u003cfamily\u003e walk",
+      "operation": "<family> walk",
       "executor": "local",
       "capability": "always",
       "parameters": [
@@ -1356,7 +1414,7 @@
         },
         {
           "name": "holder-opt",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "key=value"
@@ -1429,7 +1487,7 @@
         },
         {
           "name": "holder-opt",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "key=value"
@@ -2073,13 +2131,13 @@
       "summary": "One kind's fields, operations, verbs and events"
     },
     {
-      "operation": "\u003ckind\u003e list",
+      "operation": "<kind> list",
       "executor": "tenant-api",
       "capability": "admin:read",
       "parameters": [
         {
           "name": "where",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "field=value"
@@ -2132,7 +2190,7 @@
       "summary": "A declared kind's items"
     },
     {
-      "operation": "\u003ckind\u003e show",
+      "operation": "<kind> show",
       "executor": "tenant-api",
       "capability": "admin:read",
       "parameters": [
@@ -2177,13 +2235,13 @@
       "summary": "One item of a declared kind"
     },
     {
-      "operation": "\u003ckind\u003e create",
+      "operation": "<kind> create",
       "executor": "tenant-api",
       "capability": "admin:*",
       "parameters": [
         {
           "name": "set",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "field=value"
@@ -2236,7 +2294,7 @@
       "summary": "Create an item of a declared kind"
     },
     {
-      "operation": "\u003ckind\u003e update",
+      "operation": "<kind> update",
       "executor": "tenant-api",
       "capability": "admin:*",
       "parameters": [
@@ -2248,7 +2306,7 @@
         },
         {
           "name": "set",
-          "type": "list\u003cstring\u003e",
+          "type": "list<string>",
           "required": false,
           "form": "flag",
           "value": "field=value"
@@ -2308,7 +2366,7 @@
       "summary": "Update an item of a declared kind; the write carries If-Match"
     },
     {
-      "operation": "\u003ckind\u003e delete",
+      "operation": "<kind> delete",
       "executor": "tenant-api",
       "capability": "admin:*",
       "parameters": [
@@ -2366,7 +2424,7 @@
       "summary": "Delete an item of a declared kind; the write carries If-Match"
     },
     {
-      "operation": "\u003ckind\u003e \u003cverb\u003e",
+      "operation": "<kind> <verb>",
       "executor": "tenant-api",
       "capability": "admin:*",
       "parameters": [
@@ -2423,7 +2481,7 @@
       "summary": "A verb the kind declares"
     },
     {
-      "operation": "\u003ckind\u003e watch",
+      "operation": "<kind> watch",
       "executor": "tenant-api",
       "capability": "admin:read",
       "parameters": [
