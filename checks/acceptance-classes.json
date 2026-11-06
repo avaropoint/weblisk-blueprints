@@ -4,7 +4,7 @@
  "counts": {
   "S": 490,
   "J": 94,
-  "B": 2622,
+  "B": 2626,
   "E": 93,
   "F": 57
  },
@@ -5097,6 +5097,14 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:files-in-flight": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:files-in-flight-bounded": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:fresh-change-replaces-generated-only": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5254,6 +5262,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:one-suite": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:prepare-only-when-moved": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:prepare-when-moved": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

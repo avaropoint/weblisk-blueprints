@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.5.0
+version: 1.6.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -836,6 +836,41 @@ component's tree outside generation, such as wiring a route the platform
 provides into it, MUST run only once that component's layer and every layer
 below it are complete. <!-- wl:id no-cross-layer-compile -->
 
+### Concurrency
+
+The files of one unit's plan are generated level by level: a level is every
+file whose in-plan dependencies are all in lower levels, so the files of one
+level are independent of each other by construction, and each is given what
+the contract package, the plan's declared names and the lower levels hold.
+The repairs one round asks for are likewise each written from the tree the
+round started on. How many of those model calls are in flight at once is
+declared here, and is the engine's whole bound on it.
+
+```yaml
+concurrency:
+  files_in_flight: 4
+```
+
+`files_in_flight` is a positive integer: the most files of one level the
+engine generates at once, and the most repairs of one round it asks for at
+once. Where the corpus declares no `concurrency` block, or `files_in_flight`
+is not a positive integer, the bound is 1: every call waits for the one
+before it.
+
+The engine MUST NOT have more than `files_in_flight` generation or repair
+calls of one unit in flight at once, and MUST take their results in the
+plan's order, so that what a run produces, banks and records does not depend
+on the order calls answered in. A file of a level MUST be given only what
+lower levels and the plan hold, never what another file of its own level
+returned. <!-- wl:id files-in-flight -->
+
+A unit's prepare step, such as the language's dependency resolution, MUST be
+run again before a build only where the module's manifest, or an import of
+the tree that neither the module itself nor the language's standard library
+satisfies, has changed since its last run that succeeded; otherwise the last
+run's result stands, and a layer whose units bring no new dependency resolves
+once. Where the engine cannot read a source's imports, prepare runs. <!-- wl:id prepare-when-moved -->
+
 ### Gating
 
 A layer starts when every unit of every layer below it has ended. A unit in it
@@ -1246,6 +1281,8 @@ is consulted, and nothing about the model's answer is.
 - [ ] After the last layer the whole hub is started from accepted builds in order, each answers its `live` probe, and every `topology` check and every check starting `orchestrator: built` or `with` runs against it; a failure there is the change's integration verdict and moves no component's own ([Integration](#integration)) <!-- wl:check whole-hub-run-after-last-layer covers whole-hub-integration -->
 - [ ] A `fresh` change plans every component in layers from the corpus, lists every recorded file it removes and every unrecorded file it keeps, removes nothing under `.weblisk/` and no file no generation wrote, and removes a unit's files only as that unit's layer begins ([A fresh build](#a-fresh-build)) <!-- wl:check fresh-change-replaces-generated-only covers fresh-replaces-generated-keeps-tenant -->
 - [ ] A change in which one library blueprint moved rebuilds that library, the libraries above it that require it and the components that require one of them, re-tests every component that needs a rebuilt one running first against its new accepted build, and rebuilds nothing else ([Incremental](#incremental)) <!-- wl:check incremental-rebuilds-reached-layers covers incremental-by-layer -->
+- [ ] With `files_in_flight` N, a unit's generation and one repair round never have more than N model calls in flight; the files, the bank and the record are the same as with N = 1 under the same answers; and a file of a level is given nothing another file of its level returned ([Concurrency](#concurrency)) <!-- wl:check files-in-flight-bounded covers files-in-flight -->
+- [ ] A build whose module manifest and unsatisfied imports are what its last successful prepare left does not run prepare again; one that imports a package neither the module nor the standard library holds, or whose manifest moved, does ([Concurrency](#concurrency)) <!-- wl:check prepare-only-when-moved covers prepare-when-moved -->
 - [ ] A step whose corpus declaration is missing is recorded as guessed, naming what it lacked, and no engine default is used in its place ([The build steps](#the-build-steps)) <!-- wl:check guessed-step-recorded covers guessed-is-reported -->
 - [ ] A model's reading never moves a verdict; a conflict it reports is recorded as a corpus finding and settles nothing; an answer writing a test path, a plan-fixed name or a file outside the repair set is refused with its reason ([What the model may not do](#what-the-model-may-not-do)) <!-- wl:check model-bounded covers model-reads-are-advice conflict-is-proposed model-output-bounded -->
 - [ ] Every sentence of every model prompt is an instruction file's folded text or a labelled declared input, and the action records each instruction's ref, version and digest ([Instructions](#instructions)) <!-- wl:check prompts-are-corpus-text covers no-engine-sentences instruction-revision-recorded -->
