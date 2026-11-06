@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.2.0
+version: 5.2.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1823,13 +1823,17 @@ Generate a domain controller implementation from its spec.
 
 ```bash
 $ weblisk domain create seo --platform go
-$ weblisk domain create seo --from marketplace
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
-| `--from marketplace` | Generate from a purchased marketplace asset |
+
+It has no `--from marketplace`: generating from a purchased asset left the
+tools with `marketplace *` ([Renamed commands](#renamed-commands)). An asset's
+blueprints reach a tenant as any blueprint does, from a
+[blueprint source](#where-blueprints-come-from), and a domain built from them
+is a change: `weblisk change plan --adopt <ref>` ([Changes](#changes)).
 
 ### `weblisk domain start`
 
