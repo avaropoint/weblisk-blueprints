@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.12.1
+version: 4.13.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -1145,11 +1145,12 @@ verifies:
     expect:
       includes: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
 - id: type-channel-grant-has-keys
-  covers: [channelgrant-names-target-url-where-orchestrator]
+  covers: ['protocol/types:channelgrant-carries-field-channelgrant-marks']
   check: structure
   assertion: The contract's ChannelGrant carries the wire keys channel_id, channel_token, target_url,
-    target_pub_key, expires_at; the key the language writes on the wire is authority, not the field's
-    name.
+    target_pub_key and expires_at, target_url too because the type declares it, although a grant names
+    it only for a declared address; the key the language writes on the wire is authority, not the
+    field's name. It shows the type's shape, not which grants name an address.
   structure:
     query: type-wire-keys
     args: {type: ChannelGrant}
@@ -1291,13 +1292,22 @@ verifies:
 - id: channel-needs-agent-message
   covers: [post-v1-channel-requires-agent-message]
   check: exchange
-  assertion: "POST /v1/channel is refused 403 for a registration whose capabilities do not name agent:message, before the target is looked up: asked for a channel to an agent nobody registered, it answers 403 without agent:message, and 404 NOT_FOUND once the same agent registers with agent:message (Channel Brokering, steps 4 and 5). A target that is registered cannot be used, since no grant may name an address the tenant did not declare and no tenant can declare one yet."
+  assertion: "POST /v1/channel is refused 403 for a registration whose capabilities do not name agent:message, before the target is looked up: asked for a channel to an agent nobody registered, it answers 403 without agent:message, and 404 NOT_FOUND once the same agent registers with agent:message (Channel Brokering, steps 4 and 5). The target is one nobody registered, so the refusal is the capability's alone; what a grant to a registered target carries is channel-grant-names-no-undeclared-address's."
   exchange:
     steps:
     - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {without: /token}}
     - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${without}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 403}}
     - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, now with agent:message', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}, {name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {with: /token}}
     - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${with}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 404, code: NOT_FOUND}}
+- id: channel-grant-names-no-undeclared-address
+  covers: [channelgrant-names-target-url-where-orchestrator]
+  check: exchange
+  assertion: "A grant to a registered target whose address is self-asserted names no target_url, and carries the channel token and the target's public key: no tenant can declare an address yet, so every registered address is self-asserted, and a grant naming one would be the orchestrator vouching for an address nobody declared (Presenting a credential to a component; Channel Brokering, step 10)."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {agent: /token}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${agent}'}, body: {from_agent: test-agent, to_agent: test-domain, purpose: conformance, token: '${agent}'}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 200, has: [/channel_id, /channel_token, /target_pub_key], lacks: [/target_url]}}
 - id: agent-token-refused-under-admin
   covers: [token-type-not-operator-agent-token]
   check: exchange
@@ -1706,7 +1716,12 @@ that issued it, is ever given one, whatever host it shares with the gateway.
 publish as `declared`.** A grant carries the orchestrator's signature over
 `target_url`, which is the orchestrator vouching for the address rather than
 repeating a claim — and vouching for an address nobody declared is exactly the
-conflation this section exists to stop, moved into a stronger envelope.
+conflation this section exists to stop, moved into a stronger envelope. So a
+grant to a target whose address is `self-asserted` carries no `target_url`:
+it names no address, and its holder presents its token only at an address on
+its anchor's host, where presenting it tells no new party anything. That is why a grant naming a
+foreign `self-asserted` address is never issued, rather than issued and
+refused.
 
 **A grant narrows and never widens.** Its capabilities MUST be the intersection
 of what the requester holds and what the target's registered manifest declares,
@@ -1721,8 +1736,9 @@ declares, and it expires, because a credential's blast radius on theft is
 everything it authorises and a second host is a second place to lose it from.
 
 > **Gap — an external client cannot obtain a grant.** `POST /v1/channel`
-> already has the right shape: `ChannelGrant` carries `target_url` and
-> `target_pub_key` inside the orchestrator's signature with a scoped, expiring
+> already has the right shape: `ChannelGrant` carries `target_pub_key`, and
+> `target_url` where that address is declared, inside the orchestrator's
+> signature with a scoped, expiring
 > token. But it verifies `from_agent` against `token.sub` and requires
 > `agent:message`, so it serves one registered component addressing another and
 > nothing else. An operator console holding an operator token has no path to a
@@ -2959,7 +2975,9 @@ never block.
    - cid: channelID
 8. Store active channel: {channelID, from, to, purpose, createdAt, expiresAt}
 9. Log audit entry
-10. Build ChannelGrant with target URL, target public key, channel token
+10. Build ChannelGrant with target public key and channel token, and with
+    target URL only where the target's address_provenance is declared or
+    verified (Presenting a credential to a component)
 11. Sign the grant with orchestrator's private key
 12. Respond with ChannelGrant
 ```
