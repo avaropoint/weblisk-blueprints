@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.8.0
+version: 3.9.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -208,7 +208,7 @@ These are the files a tool may name there:
 
 | File | Holds | Written by |
 |---|---|---|
-| `<name>.key` | A registering service's private key, as a `weblisk-key-v1` envelope ([Private Key Format](#private-key-format)), where `<name>` is the name it registers under. The orchestrator's token-signing key is `orchestrator.key`. `hub` names the hub key below, so a service registering as `hub` could not keep its key here, and no blueprint registers so: [`agents/listings`](../agents/listings.md) registered as `hub` until 5.0.0 and keeps its key in `listings.key` | the service, at its first start ([Key Loading Flow](#key-loading-flow)) |
+| `<name>.key` | A registering service's private key, as a `weblisk-key-v1` envelope ([Private Key Format](#private-key-format)), where `<name>` is the name it registers under. The orchestrator's token-signing key is `orchestrator.key`. `hub` names the hub key below, so a service registering as `hub` could not keep its key here, and no blueprint registers so: [`agents/listings`](../agents/listings.md) registered as `hub` until 5.0.0 and keeps its key in `listings.key` | the service, at its first start ([Key Loading Flow](#key-loading-flow)); or, where the component's section names `key_passphrase`, `weblisk server start` before that first start, sealed under argon2id by that passphrase and never over a key already there ([`architecture/cli`](../architecture/cli.md#weblisk-server-start)) |
 | `hub.key` | The key the orchestrator was first created with, whose fingerprint is the hub's `hub_id` ([`architecture/orchestrator`](../architecture/orchestrator.md#startup-sequence) step 1). Kept after the orchestrator's key rotates, to sign `weblisk/hub-proof/v1` and nothing else ([Recommended Rotation Schedule](#recommended-rotation-schedule)) | the orchestrator, at its first start |
 | `hub.pub` | The public half of `hub.key`, base64url-encoded on one line, so that the hub's `hub_id` can be read without opening an encrypted key | whoever holds `hub.key` open, below |
 | `admin-gateway.key`, `admin-gateway.pub` | The admin gateway's registration key and its public half | [`architecture/admin`](../architecture/admin.md#registration-lease-and-identity) |
