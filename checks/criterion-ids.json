@@ -1046,7 +1046,8 @@
    "incremental-from-record",
    "component-owes",
    "front-end-own-commands",
-   "handoff-answer-verified"
+   "handoff-answer-verified",
+   "criteria-are-the-register"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",
@@ -1673,7 +1674,11 @@
    "tests-run-against-http-endpoints-black",
    "test-tokens-minted",
    "fixture-key-start",
-   "fixture-config-start"
+   "fixture-config-start",
+   "key-fixture-start",
+   "files-placed",
+   "harness-records",
+   "probe-behind-enforcement"
   ],
   "architecture/threat-model.md": [
    "auth-endpoints-enforce-per-ip-rate",
@@ -2118,7 +2123,8 @@
    "log-level-filtering-works-debug-disabled",
    "sensitive-data-tokens-keys-pii-never",
    "custom-log-types-follow-naming-convention",
-   "log-lines-stay-within-size-implementation"
+   "log-lines-stay-within-size-implementation",
+   "security-event-line"
   ],
   "patterns/messaging.md": [
    "events-published-required-field-envelope-fields",

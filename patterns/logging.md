@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: logging
-version: 2.0.3
+version: 2.1.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -246,6 +246,30 @@ owner alone.
 | `auth.denied` | warn | Authorization failed | `{action, required, actual}` |
 | `auth.override` | info | Manual override applied | `{operator, action, reason}` |
 
+#### Security Events
+
+| Log Type | Level | When | Required Details |
+|----------|-------|------|-----------------|
+| `security` | `warn`; `error` where its threat level is `high` or `critical` | A blueprint says an act is logged as a security event | `{event, threat_level, route, method}`, and `identity_id` where a token or signature named one |
+
+A **security event** is one `LogEntry` line whose `log_type` is `security`.
+Its `error_code` is the registered code the act was refused with, where it was
+refused. Its `details.event` is the event's name from
+[`patterns/security`](security.md#standard-security-events)'s Standard
+Security Events, or, where none of them names it, that code in lower case;
+`details.threat_level` is that table's level for it, or `medium` where it has
+none. `details.route` and `details.method` are the request's path and method,
+and `details.identity_id` the identity the presented token or signature
+claimed, never the token, the signature or any credential itself. Wherever a
+blueprint says a refusal is *logged as a security event*, this is the line it
+means, written once per refusal. <!-- wl:id security-event-record -->
+
+So a check matches one as `{/log_type: security, /error_code: <code>}`
+([`schemas/blocks`](../schemas/blocks.md#assertions-acts-and-observations)),
+and the bus event of the same name that
+[`patterns/security`](security.md#security-event-format) publishes is that
+pattern's, not this line.
+
 #### Audit Events
 
 | Log Type | Level | When | Required Details |
@@ -363,6 +387,7 @@ whose records must be redacted points here.
 - [ ] Standard `process.*` log types emit at correct points (`process.startup`, `process.ready`, `process.shutdown`, `process.stopped`) — [Process Events](#process-events) <!-- wl:check standard-process-log-types-emit-correct -->
 - [ ] Standard action log types emit for every action (received, completed, failed) — [Action Events](#action-events) <!-- wl:check standard-action-log-types-emit-action -->
 - [ ] No standard log type's first segment is an event namespace a component owns — [Standard Log Types](#standard-log-types) <!-- wl:check no-standard-log-types-first-segment -->
+- [ ] Every act a blueprint says is logged as a security event writes one `security` line with the refusal's `error_code`, `details.event`, `details.threat_level`, `details.route` and `details.method`, and never the token, signature or credential presented — [Security Events](#security-events) <!-- wl:check security-event-line covers security-event-record -->
 - [ ] Error logs include error code and message — [Fields](#fields) <!-- wl:check error-logs-include-error-code-message -->
 - [ ] Log level filtering works (debug disabled by default) — [Level Configuration](#level-configuration), [`schemas/config`](../schemas/config.md#observability) <!-- wl:check log-level-filtering-works-debug-disabled -->
 - [ ] Sensitive data (tokens, keys, PII) is never logged, and a record is redacted where it is emitted (`redaction-at-emission`) — [Sensitive Data](#sensitive-data), [Contracts](#contracts) <!-- wl:check sensitive-data-tokens-keys-pii-never -->

@@ -663,14 +663,31 @@ mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
 python3 - "$tmp/ck/valid.yaml" <<'PY'
 import sys, yaml
 v = yaml.safe_load(open("vectors/check-kinds/valid.yaml", encoding="utf-8"))
-v["verifies"] = [e for e in v["verifies"] if e.get("check") != "topology"]
+v["verifies"] = [e for e in v["verifies"] if e.get("check") != "drive"]
 yaml.safe_dump(v, open(sys.argv[1], "w", encoding="utf-8"))
 PY
-expect 1 "check-kinds control: vectors with no topology example fail" python3 checks/check-kinds.py --vectors "$tmp/ck"
-if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "no example of kind 'topology'" "$tmp/out"; then
+expect 1 "check-kinds control: vectors with no drive example fail" python3 checks/check-kinds.py --vectors "$tmp/ck"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "no example of kind 'drive'" "$tmp/out"; then
 	echo "ok   check-kinds control: exactly one finding, the missing kind"
 else
 	echo "FAIL check-kinds control: want exactly one finding, the missing kind"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+# Every construct the vocabulary declares has an example: a copy of the valid
+# vectors without the one join manifest expectation must be reported with it.
+mkdir -p "$tmp/ck2" && cp vectors/check-kinds/invalid.yaml "$tmp/ck2/"
+python3 - "$tmp/ck2/valid.yaml" <<'PY'
+import sys, yaml
+v = yaml.safe_load(open("vectors/check-kinds/valid.yaml", encoding="utf-8"))
+v["verifies"] = [e for e in v["verifies"] if e.get("id") != "manifest-example"]
+yaml.safe_dump(v, open(sys.argv[1], "w", encoding="utf-8"))
+PY
+expect 1 "check-kinds control: vectors with no join manifest example fail" python3 checks/check-kinds.py --vectors "$tmp/ck2"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "no example of field manifest" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the missing construct"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the missing construct"
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi

@@ -4,8 +4,8 @@
  "counts": {
   "S": 489,
   "J": 94,
-  "B": 2589,
-  "E": 93,
+  "B": 2602,
+  "E": 94,
   "F": 57
  },
  "criteria": {
@@ -5069,6 +5069,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:criteria-are-the-register": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:criterion-digest-covers-citations": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5078,6 +5082,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:criterion-id-frozen": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:criterion-set-is-the-register": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -7709,6 +7717,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/testing:files-placed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/testing:fixture-config-start": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -7717,11 +7729,31 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/testing:fixture-files-placed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:fixture-key-forms": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/testing:fixture-key-start": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/testing:fixture-key-written": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:harness-records": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:harness-records-received": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:key-fixture-start": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -7750,6 +7782,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/testing:mock-orchestrator-start-accept-registrations": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:probe-agent-behind-enforcement": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:probe-behind-enforcement": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -9350,6 +9390,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "patterns/logging:no-standard-log-types-first-segment": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "patterns/logging:security-event-line": {
+   "class": "E",
+   "class_by": "rule 5: a record (logged)"
+  },
+  "patterns/logging:security-event-record": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -12242,6 +12290,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "schemas/blocks:catalogue-closed": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/blocks:check-proves-whole-criterion": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "schemas/blocks:check-vocabulary-closed": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

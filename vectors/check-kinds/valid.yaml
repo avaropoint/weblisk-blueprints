@@ -87,3 +87,207 @@ verifies:
     check: structure
     assertion: No versioned path literal appears outside the contract package.
     structure: {query: path-literal, scope: outside-contract, expect: none}
+
+  # The constructs schemas/blocks 1.6.0 added. Each is a generic capability;
+  # these examples exist to exercise one of each, not to be checks anyone owes.
+
+  - id: headers-and-token-variants-example
+    covers: [example-refusal]
+    check: exchange
+    assertion: An expired pass is refused 401 with a WWW-Authenticate challenge and no Set-Cookie, a pass whose signature is a byte short is refused with an empty-bodied 401 or a JSON one, and the address each step reached is recorded.
+    applies_to: [any]
+    except: [orchestrator]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - id: expired-pass
+          as: test-agent
+          request: {method: GET, path: /v1/services, token: pass, token_alter: {iat: -120, exp: -60}}
+          expect: {status: 401, headers: {WWW-Authenticate: "^Bearer"}, headers_lack: [Set-Cookie]}
+          capture: {reached: "@address", challenge: "@header/WWW-Authenticate"}
+        - as: test-agent
+          request: {method: GET, path: /v1/services, token: work, token_alter: {claims: {aud: "${fixture/test-domain/fingerprint}"}, signature: truncated}}
+          expect: {status: 401, empty: false, includes: {/error: [PASS_AUDIENCE_MISMATCH, INVALID_SIGNATURE]}}
+        - as: test-agent
+          request: {method: POST, path: /v1/message, token: own, bearer: none, body: {token: "${token}"}}
+          expect: {status: [401, 403], excludes: {/details/*/value: ["${token}"]}}
+
+  - id: assertions-example
+    covers: [example-signature]
+    check: exchange
+    assertion: A directory pushed as the test orchestrator signed it, as a fixed-form statement over its updated_at and digest, is accepted, and the token the agent then answers with decodes to the claims a registration token carries, its directory digest matches, and its key change is signed by both keys.
+    applies_to: [agent]
+    exchange:
+      start: {orchestrator: mock}
+      steps:
+        - as: test-orchestrator
+          request:
+            method: POST
+            path: /v1/services
+            token: own
+            body: {agents: [], updated_at: "${now}"}
+            sign:
+              form: fixed-form
+              prefix: weblisk/directory/v2
+              fields: ["${body/updated_at}", {digest-of: {value: "${body}", form: jcs, without: [signature]}}]
+              into: /signature
+          expect: {status: 200}
+        - as: test-agent
+          request:
+            method: POST
+            path: /v1/rotate-key
+            token: own
+            body: {agent_id: conformance-probe, new_public_key: "${fixture/test-agent-next/public_key}"}
+            sign:
+              - {over: "", without: [current_signature, new_signature], into: /current_signature}
+              - {over: "", without: [current_signature, new_signature], into: /new_signature, key: test-agent-next}
+          expect:
+            status: [200, 404]
+            assert:
+              - decodes-as: {value: /token, as: wlt, expect: {has: [/claims/identity_id], equals: {/header/alg: ML-DSA-65}, length: {/signature: 3309}}, capture: claims}
+              - digest-of: {value: /services, form: jcs, equals: /services_digest}
+              - verifies-under: {signature: /signature, key: "${fixture/test-orchestrator/public_key}", form: fixed-form, prefix: weblisk/directory/v2, fields: ["${body/updated_at}", {digest-of: {value: "", form: jcs, without: [signature]}}]}
+
+  - id: acts-example
+    covers: [example-replay]
+    check: topology
+    assertion: A sealed log survives a restart with its chain intact, a stored line altered out of band breaks the chain at that line and is refused at the next start, a key file the process wrote is mode 0600 and argon2id, and a destination whose line another party moved is reported diverged.
+    applies_to: [content]
+    topology:
+      start:
+        keys: test-agent-sealed
+        config: content-git-remote
+        files: {.weblisk/passphrase: conformance-passphrase}
+        stand_up:
+          remote: {role: git-remote, kex: [mlkem768x25519-sha256], lines: {main: {files: {README.md: conformance-passphrase}}}}
+      instances:
+        - {name: a}
+      acts:
+        - {act: start, instance: a, expect: ready, within: 20s}
+        - act: send
+          step: {as: test-writer, request: {method: GET, path: /v1/content/repositories, token: pass}, expect: {status: 200}}
+        - {act: stop, instance: a}
+        - act: read
+          instance: a
+          path: .weblisk/keys/content.key
+          capture: keyfile
+          mode: "0600"
+          assert: [{decodes-as: {value: "${keyfile}", as: weblisk-key-v1, expect: {equals: {/kdf: argon2id}}}}]
+        - act: read
+          instance: a
+          path: .weblisk/data/content/log.jsonl
+          capture: log
+          assert: [{chain-links: {lines: "${log}"}}]
+        - {act: alter, instance: a, path: .weblisk/data/content/log.jsonl, alter: flip-byte, at: 2}
+        - {act: start, instance: a, expect: refuses-start, within: 20s}
+        - {act: remove, instance: a, path: .weblisk/data/content/log.jsonl}
+        - {act: place, instance: a, path: documents/families/conformance-note.md, fixture: document-family}
+        - {act: make-unreadable, instance: a, path: .weblisk/keys/content.key}
+        - {act: restart, instance: a, expect: refuses-start, within: 20s}
+        - {act: rotate-key, instance: a, fixture: test-agent-next}
+        - {act: remote, remote: remote, line: main, change: move-back}
+        - {act: wait, for: 2s}
+        - {act: kill, instance: a}
+      steps:
+        - as: test-writer
+          instance: a
+          request: {method: GET, path: /v1/content/repositories/docs/remotes, token: pass}
+          expect: {status: 200, equals: {/remotes/0/state: diverged}, received: [{service: remote, count: 0}]}
+
+  - id: received-example
+    covers: [example-refusal]
+    check: exchange
+    assertion: A completion above the provider's ceiling is refused, and nothing reaches the model backend or the orchestrator.
+    applies_to: [orchestrator]
+    exchange:
+      start:
+        config: orchestrator-gateway
+        files: {.weblisk/model.json: model-config}
+        stand_up:
+          model: {role: responder, answers: [{method: POST, path: /v1/*, status: 200, body: {ok: true}}]}
+      steps:
+        - as: test-agent
+          request: {method: POST, path: /v1/model/complete, token: own, body: {scope: restricted}}
+          expect:
+            status: 403
+            code: SCOPE_CEILING_EXCEEDED
+            received:
+              - {service: model, count: 0}
+              - {service: model, method: POST, path: /v1/chat, count: 0, expect: {excludes: {/body/messages/*/content: [restricted]}}, within: 1s}
+
+  - id: websocket-example
+    covers: [example-refusal]
+    check: exchange
+    assertion: The admin feed opened without a credential answers one frame naming the refusal.
+    applies_to: [admin]
+    exchange:
+      steps:
+        - request: {method: GET, path: /v1/admin/ws, listener: admin, websocket: {send: [{type: subscribe}], receive: 1, within: 5s}}
+          expect: {frames: [{equals: {/type: error}, has: [/code]}]}
+
+  - id: probe-example
+    covers: [example-refusal]
+    check: exchange
+    assertion: A storage write by an agent of internal scope to a restricted resource is denied with ENFORCEMENT_SCOPE_VIOLATION and never reaches the storage layer.
+    applies_to: [content]
+    exchange:
+      start: {orchestrator: mock, probe: {as: test-content-client, boundaries: [storage]}}
+      steps:
+        - from: probe
+          request: {probe: {boundary: storage, input: {operation: {type: create, resource_path: conformance/restricted, resource_scope: restricted, payload_size: 1}}}}
+          expect: {equals: {/decision: deny, /violation/code: ENFORCEMENT_SCOPE_VIOLATION}}
+
+  - id: security-event-example
+    covers: [example-audited]
+    check: record
+    assertion: An operator token presented to a component is refused PASS_REQUIRED, the refusal is logged as one security event, and no log line carries the token.
+    applies_to: [registers]
+    except: [admin]
+    record:
+      start: {orchestrator: mock}
+      steps:
+        - id: refused
+          as: test-agent
+          request: {method: GET, path: /v1/services, token: operator}
+          expect: {status: 401, code: PASS_REQUIRED}
+          capture: {status: "@status"}
+      record:
+        source: log
+        match: {/log_type: security, /error_code: PASS_REQUIRED}
+        matches: {/details/route: "^/v1/services$"}
+        lacks_text: ["${token}"]
+        count: 1
+        within: 5s
+
+  - id: manifest-example
+    covers: [example-joins]
+    check: join
+    assertion: The manifest a component registers declares no capability protocol/types marks person-only.
+    applies_to: [registers]
+    join:
+      start: {orchestrator: built}
+      observe: [registered, listed]
+      within: lease
+      manifest: {excludes: {/capabilities/*/name: ["content:decide", "content:attest", "content:hold"]}}
+
+  - id: structure-excludes-example
+    covers: [example-form]
+    check: structure
+    assertion: The component's source holds no path literal of a retired route.
+    structure: {query: path-literal, scope: component, expect: {excludes: [/v1/directory]}}
+
+  - id: drive-example
+    covers: [example-signature]
+    check: drive
+    assertion: Asked to sign, the CLI signs only what it read and showed, and never registers itself at the hub it is pointed at.
+    applies_to: [cli]
+    drive:
+      stand_up:
+        hub: {role: responder, answers: [{method: GET, path: /v1/admin/*, status: 200, body: {}}]}
+      invoke:
+        - operation: operator connect
+          parameters: {url: "${stood/hub/address}"}
+          as: test-writer
+          expect:
+            outcome: refused
+            received: [{service: hub, method: POST, path: /v1/register, count: 0}]

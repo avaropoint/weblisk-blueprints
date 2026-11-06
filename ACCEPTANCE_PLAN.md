@@ -284,6 +284,45 @@ class is S or J and that no declared check covers is **unsettled**, and an
 unsettled S or J requirement is unmet for acceptance. That is the honest gap:
 the build says *"this security requirement has no check"*, not *"satisfied"*.
 
+### What the vocabulary can now say, and what each addition unblocks
+
+[`schemas/blocks`](schemas/blocks.md#assertions-acts-and-observations) 1.6.0
+and [`architecture/testing`](architecture/testing.md#harness-roles) 2.4.0 grew
+the vocabulary by the gaps the check lanes measured. Each addition is a
+generic capability the engine implements once; none is a check. The counts
+are S and J criteria whose text names what the addition reaches, read by
+keyword over the classes register at this revision, so they brief the next
+lanes and settle nothing: a criterion may need more than one addition, and a
+keyword can miss one.
+
+| Gap | Now written as | S/J criteria it reaches (≈) | Mostly in | For example |
+|---|---|---|---|---|
+| 1 security events | the `security` log record, [`patterns/logging`](patterns/logging.md#security-events) `security-event-record`; matched `{/log_type: security, /error_code: <code>}` | 21 | admin 10, orchestrator 3, identity 3 | `protocol/identity:component-orchestrator-admin-gateway-refuses`, `architecture/admin:key-change-unknown-or-foreign` |
+| 2 sealed logs, chains, signatures | `assert`: `digest-of`, `verifies-under`, `chain-links`, `decodes-as` | 31 | admin 12, storage 11, content 5 | `architecture/storage` "Verifying a sealed log", `architecture/admin:step-up-minted-only-on-proof` |
+| 3 acts, and their order | `topology-act`: `alter`, `remove`, `place`, `read`, `make-unreadable` on a path, `rotate-key`, `remote`; `send` between acts | 18 | admin 7, content 5 | `architecture/admin:bootstrap-secret-replaced`, `architecture/admin:credential-stored-form`, content C9, C12 |
+| 4 token and key fixtures | `token_alter` and test_tokens' `signature_forms`; key fixtures (`test-agent-sealed`, argon2id with a `file:` passphrase, `conformance-passphrase-wrong`); `read` of a key file; `sign` with `form: fixed-form` and `key` | 78 | admin 47, orchestrator 9, identity 8 | `architecture/admin:operator-token-from-credential`, `architecture/admin:passphrase-and-token-unwritten` |
+| 5 configuration fixtures | `orchestrator-gateway`, `model-config`, `model-agreement`, `document-family`, `content-git-remote`; `start.files`; `stand_up` a `git-remote` with `kex` and `${stood/<name>/host_key}` | 29 | orchestrator 9, content 4, api-ai 4 | `architecture/admin:exchange-admits-declared-gateway-alone`, `patterns/content-git:destination-host-key-not-host-keys` |
+| 6 expectations | token claims (`decodes-as: wlt`); `record.lacks_text`, `record.matches`; `join.manifest`; `includes`/`excludes`/`length` with `*`; structure `excludes` and `@paired` | 33 | admin 16, orchestrator 3 | `architecture/admin:registration-answers`, content C2 |
+| 7 behind enforcement | `start.probe` and steps `from: probe` ([The probe agent](architecture/testing.md#the-probe-agent)) | 29 | enforcement 18, federation 4 | `architecture/enforcement:storage-boundary-blocks-scope-violations-agent` |
+| 8 `applies_to` exclusion | `except` | 1 by wording; every "every component but" check | identity | `protocol/identity:component-orchestrator-admin-gateway-refuses` |
+| 9 an instance's address, the probe responder | `${address}`, `${harness/source}`, capture `@address`; `stand_up` a `responder` | 45 | admin 23, orchestrator 7, cli 4 | `architecture/admin:uniform-address-carried`, `architecture/orchestrator:sixth-request-within-minute-source-six` |
+| 10 partial checks | requirement `check-proves-whole-criterion`, refused by `checks/check-kinds.py`; `l1-06` now verifies the TaskResult's signature | `protocol/spec:agent-returns-signed-taskresult-post-v1` | testing | — |
+| admin 1 headers, empty body | `expect.headers`, `headers_lack`, `empty` | 11 | admin 11 | `architecture/admin:gateway-returns-step-up` |
+| admin 2 nothing forwarded | `expect.received` at the mock orchestrator, the mock agent or a stood service, `count: 0` | 19 | admin 12 | `architecture/admin:orchestrator-routes-forwarded`, `architecture/admin:undeclared-route-unavailable` |
+| admin 3 two signatures | `sign` as a list, each with its `key` | 11 | admin 9 | `architecture/admin:key-change-applied` |
+| admin 4 the address reached | capture `@address` | with gap 9 | admin | — |
+| admin 5 WebSocket | `request.websocket`, `expect.frames` | 4 | admin 4 | `architecture/admin:feed-delivers` |
+| admin 6 `${token}` beside another bearer; claims | `request.bearer`; `token_alter.claims` (`cid: null`, `step_up_at`) | 33 | admin 25 | `architecture/admin:cid-required-refused` |
+| admin 7 fingerprints | `${fixture/<name>/fingerprint}` | every check that hard-codes one | admin | — |
+| admin 8 consoles and clients | client kinds `cli`, `console` ([`schemas/kinds`](schemas/kinds.md#client-kinds)) and the `drive` kind | 32 | admin 25, identity 5 | `architecture/admin:console-holds-no-sign-records` |
+| admin 9 one definition of criterion | [`architecture/engine`](architecture/engine.md#the-unit-is-a-criterion) `criterion-set-is-the-register` | every requirement an item also covers | engine | — |
+
+Still out of reach: an operator enrolled at a built orchestrator (the
+`wt/build-order` lane's bring-up); a completion that must succeed, since the
+corpus declares no backend kind a responder can stand in for; and a
+`rotate-key` act on a component whose blueprint declares no way to start its
+own key's rotation, which reports unread.
+
 ### Where checks live
 
 Beside the requirement, in the blueprint that declares it, in its `verifies`

@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.10.0
+version: 1.11.0
 noun: kinds
 capabilities: [author, versioned]
 ---
@@ -380,6 +380,30 @@ component_kinds:
 A singleton's library directory belongs to its one component, which is what
 the CLI's list of singletons was standing in for. A kind added to the services
 table is added here in the same change, with its count.
+
+### Client kinds
+
+A **client** is a front end of the engine
+([`architecture/engine`](../architecture/engine.md#parity-the-cli-and-studio-are-interchangeable)): it runs on a
+person's machine, holds a person's credentials and drives a tenant through
+its routes, and it is no component. It never registers, has no lease, and
+counts toward no tenant's `count`. Some obligations bind a client, not a
+hub: a console must not register itself, a signer must build what it signs.
+A check of those is a `drive` check ([`schemas/blocks`](blocks.md#checks)),
+addressed by `applies_to` to a client kind or the selector `client`.
+
+```yaml
+client_kinds:
+  kinds:
+    cli:     {blueprint: architecture/cli, text: the command-line front end}
+    console: {blueprint: architecture/admin, text: "a console: any front end a person signs in to, Studio among them"}
+  selectors:
+    client: {text: every client kind}
+```
+
+A client kind is never a component kind, and the two blocks never name one
+name: `checks/check-kinds.py` refuses a `drive` check addressed to a
+component and any other check addressed to a client.
 
 ## Platform, provider, integration: three things that are not each other
 
