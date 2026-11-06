@@ -4,7 +4,7 @@
  "counts": {
   "S": 489,
   "J": 94,
-  "B": 2589,
+  "B": 2591,
   "E": 93,
   "F": 57
  },
@@ -2085,10 +2085,6 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
-  "architecture/admin:more-instance-answers-hub-token-request-jti": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
   "architecture/admin:no-factor-claim": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -2128,10 +2124,6 @@
   "architecture/admin:operator-role-admin-names": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:operator-roles (architecture/threat-model, vector 4.3)"
-  },
-  "architecture/admin:operator-stores-durable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
   },
   "architecture/admin:operator-token-cap-always": {
    "class": "S",
@@ -2560,18 +2552,6 @@
   "architecture/admin:step-up-vectors": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:operator-token-issuance (architecture/threat-model, vector 4.4)"
-  },
-  "architecture/admin:store-credentials-durable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/admin:store-jti-durable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
-  },
-  "architecture/admin:store-operators-durable": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
   },
   "architecture/admin:tenant-grant-confers-nothing": {
    "class": "S",
@@ -6869,6 +6849,10 @@
    "class": "E",
    "class_by": "rule 5: a record (audit entry)"
   },
+  "architecture/orchestrator:more-instance-answers-hub-token-request-jti": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/orchestrator:operates-holding-international-code-outside-iso": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -6876,6 +6860,10 @@
   "architecture/orchestrator:operation-creates-auditentry-persisted-jsonl": {
    "class": "E",
    "class_by": "rule 5: a record (AuditEntry)"
+  },
+  "architecture/orchestrator:operator-stores-durable": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
   },
   "architecture/orchestrator:operator-token-cap-empty-list-viewer": {
    "class": "S",
@@ -7116,6 +7104,18 @@
   "architecture/orchestrator:sixth-request-within-minute-source-six": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/orchestrator#auth-middleware (architecture/threat-model, vector 4.3)"
+  },
+  "architecture/orchestrator:store-credentials-durable": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/orchestrator:store-jti-durable": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/orchestrator:store-operators-durable": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
   },
   "architecture/orchestrator:stores-record-they-not-enforce-request": {
    "class": "B",
@@ -11478,6 +11478,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:hub-pub-written-by-holder": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:key-envelope-encoding": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:key-envelope-vectors": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.10.0
+version: 5.11.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -3175,71 +3175,16 @@ A sign-records credential is listed beside the ones that sign in, with its
 
 ## Operator Storage
 
-The orchestrator stores operator records alongside agent records:
-
-### Store: Operators
-
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts <!-- wl:id store-operators-durable -->
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutOperator | `(op Operator) → error` | Create or update operator |
-| GetOperator | `(name string) → (Operator, error)` | Retrieve by name |
-| RevokeOperator | `(name string) → error` | Set status `revoked`, keeping the record. The name is not reused |
-| ListOperators | `() → ([]Operator, error)` | List all operators, revoked included |
-
-### Store: Credentials
-
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts. A revoked credential is kept, so its key
-is never accepted again <!-- wl:id store-credentials-durable -->
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| PutCredential | `(c Credential) → error` | Create a credential, or replace an active one's attestation |
-| GetCredential | `(id string) → (Credential, error)` | Retrieve by id, the fingerprint of its public key |
-| ListCredentials | `(identityID string) → ([]Credential, error)` | Every credential one identity attested here, revoked included |
-| RevokeCredential | `(id string) → error` | Set status revoked, keeping the record |
-
-`Credential` is [`patterns/principal-identity`](../patterns/principal-identity.md)'s
-type.
-
-### Store: Token request jtis
-
-**Owner:** Orchestrator
-**Durability:** MUST survive restarts. IF more than one instance answers for
-this hub: MUST be one store every instance checks and writes, its
-`RecordTokenRequest` atomic across them. A record lives until its request's `timestamp` leaves
-the 300-second replay window, at most 600 seconds, and is then deleted <!-- wl:id store-jti-durable -->
-
-| Operation | Signature | Description |
-|-----------|-----------|-------------|
-| RecordTokenRequest | `(identityID string, jti string, until time) → (recorded bool, error)` | One atomic check-and-put: `false` where the pair is already recorded and unexpired, which is `TOKEN_REQUEST_REPLAYED`. An error refuses the request with `STORAGE_ERROR` and issues no token |
-| ExpireTokenRequests | `(now time) → error` | Delete every record whose `until` has passed |
-
-**IF more than one instance answers for this hub, how the record is shared.**
-`server start` refuses a second instance, so a tenant the CLI starts never
-meets this premise ([`architecture/cli`](cli.md#weblisk-server-start),
-`start-one-instance`); it is stated so that the obligation has a mechanism and
-not only an outcome. The record is one table in the backend every instance
-opens, keyed by the pair `(identity_id, jti)` with `until`, and
-`RecordTokenRequest` is one conditional insert on that key: it inserts where no
-row holds the key, or where the row that holds it has an `until` that has
-passed, which it replaces in the same statement, and it answers `recorded`
-from whether a row was written. It is never a read followed by a write, and no
-instance holds a copy of the table it consults instead. A backend that cannot
-make that insert atomic for every process that opens it, as a JSONL file
-cannot, cannot hold this store for more than one instance, and a configuration
-that would start a second instance on it is refused before either starts.
-
-The rules are `attestation-token-issuance`'s, in [Contracts](#contracts),
-including the bound `auth-route-rate-limit` puts on what one source can make
-this store hold.
-
-A challenge nonce is not stored here: it lives at most 300 seconds, and an
-orchestrator MAY keep it in memory only, so a restart discards the outstanding
-ones and a client asks again.
+The orchestrator holds the operator records, so it owns the stores that keep
+them, and they are declared in its own Storage section, where
+[`architecture/storage`](storage.md#a-component-implements-only-the-stores-it-owns)
+says a store is declared: [Store: Operators](orchestrator.md#store-operators),
+[Store: Credentials](orchestrator.md#store-credentials) and
+[Store: Token request jtis](orchestrator.md#store-token-request-jtis). This
+document declares the operator surface those stores serve, and the rules they
+keep for it are its own: `attestation-token-issuance`, in
+[Contracts](#contracts), and the bound `auth-route-rate-limit` puts on what one
+source can make the `jti` store hold.
 
 ### Operator Record
 
@@ -3247,7 +3192,7 @@ The record is [`protocol/types`](../protocol/types.md#operator)'s `Operator`,
 and its status is `pending`, `approved` or `revoked`
 ([`OperatorStatus`](../protocol/types.md#operatorstatus)). It holds no token:
 nothing a hub issues is stored by the hub, and a credential is a record of its
-own, above.
+own, in the orchestrator's [Store: Credentials](orchestrator.md#store-credentials).
 
 ---
 
@@ -3703,8 +3648,8 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] The signature is verified against the public key in the orchestrator's OWN operator record, never a directory ([Operator Identity](#operator-identity); [Contracts](#contracts), `attestation-token-issuance`) <!-- wl:check signature-against-own-record covers directory-never-authenticates -->
 - [ ] A token request outside the replay window is refused ([Contracts](#contracts), `attestation-token-issuance`) <!-- wl:check token-request-window covers attestation-request-signed -->
 - [ ] A token request with no `jti`, or one that does not decode to between 16 and 64 bytes, is refused with `400` `INVALID_REQUEST` before its signature is checked; the same signed request sent twice is answered once and then refused with `TOKEN_REQUEST_REPLAYED`, issuing no token, and logged as a security event; of two concurrent requests carrying one `jti` exactly one is answered; a request whose signature does not verify records no `jti`, so the operator's own request with that `jti` is still answered ([Contracts](#contracts), `attestation-token-issuance`; [`protocol/types`](../protocol/types.md#error-handling)) <!-- wl:check token-request-jti covers attestation-jti-form attestation-replay -->
-- [ ] A token request whose signature verifies, at a hub whose `jti` record cannot be read or written, is refused with `500` `STORAGE_ERROR` and issues no token, and the record survives a restart of the orchestrator ([Contracts](#contracts), `attestation-token-issuance`; [Store: Token request jtis](#store-token-request-jtis); [`protocol/types`](../protocol/types.md#errorresponse)) <!-- wl:check jti-record-durable covers attestation-replay store-jti-durable -->
-- [ ] IF more than one instance answers for the hub: a token request answered by one instance is refused as a replay by another instance answering for the same hub ([Contracts](#contracts), `attestation-token-issuance`; [Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check more-instance-answers-hub-token-request -->
+- [ ] A token request whose signature verifies, at a hub whose `jti` record cannot be read or written, is refused with `500` `STORAGE_ERROR` and issues no token, and the record survives a restart of the orchestrator ([Contracts](#contracts), `attestation-token-issuance`; [`architecture/orchestrator`](orchestrator.md#store-token-request-jtis); [`protocol/types`](../protocol/types.md#errorresponse)) <!-- wl:check jti-record-durable covers attestation-replay -->
+- [ ] IF more than one instance answers for the hub: a token request answered by one instance is refused as a replay by another instance answering for the same hub ([Contracts](#contracts), `attestation-token-issuance`; [`architecture/orchestrator`](orchestrator.md#store-token-request-jtis)) <!-- wl:check more-instance-answers-hub-token-request -->
 - [ ] Two token requests from one identity in the same second carry different `jti`s and so different signed bytes, and both are answered ([Contracts](#contracts), `attestation-token-issuance`) <!-- wl:check jti-per-request covers attestation-jti-form -->
 - [ ] A signed token request first refused with `CREDENTIAL_FOREIGN_HUB`, `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED`, sent again to the same hub inside the replay window, is refused with `TOKEN_REQUEST_REPLAYED` ([Contracts](#contracts), `attestation-token-issuance`) <!-- wl:check refused-request-replayed covers attestation-replay -->
 - [ ] A token request for a pending operator is refused with 403 `OPERATOR_NOT_APPROVED`, distinctly from an unknown operator (`OPERATOR_UNKNOWN`) ([Contracts](#contracts), `attestation-token-issuance`; [`protocol/types`](../protocol/types.md#errorresponse)) <!-- wl:check pending-distinct-from-unknown covers attestation-status-after-signature -->
@@ -3853,8 +3798,6 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] A role carrying `admin:*` does not thereby carry `model:attest`, `telemetry:read`, `action:invoke`, `scope:admit` or `work:authorise` ([Contracts](#contracts), `operator-roles`) <!-- wl:check admin-wildcard-bounded covers admin-wildcard-excludes -->
 - [ ] Removing or demoting the last active admin is refused, and every role change is audited with the previous and new role ([Contracts](#contracts), `operator-roles`) <!-- wl:check last-admin-protected covers last-admin-kept role-change-audited -->
 - [ ] A client that registers reads the answer's `status`, asks for an attestation token only for an approved operator, and reports a pending registration as pending, never as connected ([The registration response](#the-registration-response)) <!-- wl:check registration-status-read covers client-reads-status -->
-- [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator ([Store: Operators](#store-operators), [Store: Credentials](#store-credentials) and [Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
-- [ ] IF more than one instance answers for the hub: the token-request `jti` records are one store every instance checks and writes ([Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check more-instance-answers-hub-token-request-jti -->
 - [ ] The CLI accepts an identity by a label and resolves and reports its location itself; the label is never the operator's name and never appears verbatim in the path ([Bootstrap without a shell](#bootstrap-without-a-shell), rule 2) <!-- wl:check identity-label covers identity-by-label label-not-name label-not-in-path -->
 - [ ] A client holding a pin for the admin gateway's address refuses a certificate with another key, reports it as a pin that did not match and not as unreachable, and never falls back to the system's roots, to unverified TLS or to HTTP, at a loopback address too; given an admin gateway address whose scheme is not `https`, a client refuses it before sending anything, at a loopback address too; one holding no pin refuses a certificate its roots do not verify, names `create`'s result, and the tenant's operator reading it from the certificate on the gateway's host, as where a pin comes from, and never prints, offers or records the presented certificate's pin ([Certificate](#certificate)) <!-- wl:check gateway-pin-held covers client-pins-gateway-key -->
 - [ ] `weblisk operator connect --json` and `weblisk operator register --json` carry the `tls_pin` the registration records for the address, and no `tls_pin` where it records none; a console that makes its own requests to the gateway and was given a `tls_pin` verifies every connection to that address against it and refuses another key, and one given none verifies under the system's roots, refuses a certificate they do not verify, and records no pin from the connection ([Certificate](#certificate)) <!-- wl:check console-pin-kept covers console-keeps-pin -->

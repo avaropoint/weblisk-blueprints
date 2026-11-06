@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: identity
-version: 3.7.0
+version: 3.8.0
 requires: [protocol/types]
 platform: any
 tier: free
@@ -267,8 +267,20 @@ weblisk-key-v1
 | Magic | `weblisk-key-v1` | Format identifier |
 | Algorithm | `ml-dsa-65` | Key algorithm |
 | KDF | `argon2id` or `none` | Key derivation function |
-| KDF Params | Base64url JSON | `{salt, time, memory, parallelism}` or `{}` |
-| Ciphertext | Base64url | AES-256-GCM encrypted private key (or plaintext if KDF = none) |
+| KDF Params | Base64url JSON | `{salt, time, memory, parallelism}`, or `{}` (written `e30`) when KDF = none |
+| Ciphertext | Base64url | The base64url of the AES-256-GCM ciphertext and tag of the key text below, or of the key text itself when KDF = none |
+
+Every field is base64url without padding (RFC 4648 §5), and each of the five
+lines ends with a line feed. The **key text** is the 4,032-byte ML-DSA-65
+private key, FIPS 204's encoding of it, written as 8,064 lowercase hexadecimal
+digits in ASCII. It is what the last field carries in both forms: encrypted
+under `argon2id`, as it is under `none`. So under `none` the last field is
+`base64url(key text)`, never the hex itself and never the base64url of the
+4,032 key bytes, and a reader decodes the field and then the hex. A field that
+does not decode as base64url without padding, or decodes to anything but 8,064
+lowercase hexadecimal digits, is refused. The worked envelope, and the forms a
+reader refuses, are
+[`vectors/key-envelope.json`](../vectors/key-envelope.json). <!-- wl:id key-envelope-encoding -->
 
 ### Encryption Scheme
 
@@ -276,7 +288,7 @@ When `kdf = argon2id`:
 
 ```
 1. passphrase → Argon2id(passphrase, salt, time=3, memory=65536, parallelism=4) → 32-byte key
-2. AES-256-GCM(derived_key, nonce=first_12_bytes_of_salt, plaintext=private_key_hex) → ciphertext
+2. AES-256-GCM(derived_key, nonce=first_12_bytes_of_salt, plaintext=key text) → ciphertext
 3. Store ciphertext + tag as base64url
 ```
 
@@ -290,7 +302,8 @@ terminal will prompt; a runtime without one — a Worker, a container, a schedul
 task — cannot, and a specification that says "prompt" has excluded it.
 
 When `kdf = none`:
-- The private key is stored as hex (no encryption)
+- The key text is stored unencrypted, as `base64url(key text)` in the last
+  field (Private Key Format)
 - Used ONLY for automated service keys in environments where passphrase
   input is impossible (containers, CI, headless servers), and ONLY in
   development (rule 6). Never for an operator key (rule 1)
@@ -1896,6 +1909,7 @@ Implementation MUST:
 - [ ] A signer that refuses what its key does not sign admits every statement [Which key signs what](#which-key-signs-what) gives that key, in the form its row gives: a component's registered key signs its registration manifest under Sign JSON as well as any `weblisk/log-key/v2` and `weblisk/log-succession/v1` statement, and only a log key's signer admits `weblisk/log-checkpoint/v2` alone ([Which key signs what](#which-key-signs-what)) <!-- wl:check signer-refuses-what-key-not-sign covers which-key-signs-what log-authority-is-registered-key restriction-is-per-key -->
 - [ ] A proof of an identity to a service that is not a hub is the `weblisk/auth/v1` signature [Proving an identity to a service that is not a hub](#proving-an-identity-to-a-service-that-is-not-a-hub) gives, over a nonce spent and expiring as that section says; the service rebuilds those bytes and never verifies the nonce alone, and no hub accepts one <!-- wl:check proof-identity-service-not-hub-weblisk -->
 - [ ] Parse the weblisk-key-v1 format correctly, every field [Private Key Format](#private-key-format) gives <!-- wl:check parse-weblisk-key-v1-format-correctly -->
+- [ ] A `weblisk-key-v1` envelope's last field is the base64url, without padding, of the key text (the 4,032-byte private key in lowercase hex), under `kdf = none` as under `argon2id`, and a reader opens [`vectors/key-envelope.json`](../vectors/key-envelope.json)'s valid envelope to its key and refuses each invalid one ([Private Key Format](#private-key-format)) <!-- wl:check key-envelope-vectors covers key-envelope-encoding -->
 - [ ] Never store passphrase on disk — only hold in memory during decrypt ([Key Categories](#key-categories), rule 4) <!-- wl:check never-store-passphrase-disk-hold-memory -->
 - [ ] A failed passphrase fails the operation immediately — no retry loop, no passphrase enumeration — and the platform blueprint states how that is signalled ([Key Categories](#key-categories), rule 5) <!-- wl:check failed-passphrase-fails-operation-immediately -->
 - [ ] Verify all signatures before trusting data, using the signature algorithm's verification primitive ([Verify Signature](#verify-signature)) <!-- wl:check verify-signatures-before-trusting-data-using -->

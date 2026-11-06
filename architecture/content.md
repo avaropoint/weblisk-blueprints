@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.11.0
+version: 5.12.0
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -486,27 +486,37 @@ body through unchanged.
 
 ```yaml
 interfaces:
+  # Every endpoint says what a request must carry to reach it, as its auth
+  # (schemas/blocks, Which endpoints are protected). Each content route takes
+  # a bearer token, a person's pass or this service's registration token, so
+  # its auth is token; which capability each method needs is the capability
+  # table's (Registration and Standalone Operation), its one home, and is not
+  # repeated here.
   endpoints:
     - path: /v1/content
       methods: [GET]
       description: List entries beneath a path in a repository, cursor-paginated
       served_by: content-service
+      auth: token
 
     - path: /v1/content/entry
       methods: [GET, PUT, DELETE]
       description: Read, write or remove one entry. PUT requires if_match
       served_by: content-service
+      auth: token
 
     - path: /v1/content/stat
       methods: [GET]
       description: Identity and metadata for one entry without transferring bytes
       served_by: content-service
+      auth: token
 
     - path: /v1/content/walk
       methods: [GET]
       description: One entry's walk projection, against the document family
         the tenant holds for it, under the entry's own read check
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories
       methods: [GET, POST]
@@ -516,6 +526,7 @@ interfaces:
         and declares it; adopt takes on one that already holds bytes and
         requires if_match over a census the service issued
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories/{repository}/remotes
       methods: [GET, POST]
@@ -524,6 +535,7 @@ interfaces:
         would leave and declares nothing; with it, it reserves the remote,
         creates its credential, demonstrates the destination and confirms
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories/{repository}/remotes/{remote}
       methods: [DELETE]
@@ -531,12 +543,14 @@ interfaces:
         credential is destroyed, its record stays, and nothing at its
         destination is deleted
       served_by: content-service
+      auth: token
 
     - path: /v1/content/reconcile
       methods: [POST]
       description: Compare recorded digests against current bytes for a shared
         repository and record observations. Shared custody only
       served_by: content-service
+      auth: token
 
     - path: /v1/content/proposals
       methods: [GET, POST]
@@ -544,12 +558,14 @@ interfaces:
         and writes nothing. GET lists proposals in the caller's scope,
         cursor-paginated
       served_by: content-service
+      auth: token
 
     - path: /v1/content/proposals/{id}
       methods: [GET]
       description: Read one proposal, with the bytes it proposes, for a caller
         the enforcement storage proxy allows to read the entry it would change
       served_by: content-service
+      auth: token
 
     - path: /v1/content/proposals/{id}/decision
       methods: [POST]
@@ -558,6 +574,7 @@ interfaces:
         proposal whose base has moved on is recorded stale and nothing is
         written
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories/{repository}/log
       methods: [GET]
@@ -565,6 +582,7 @@ interfaces:
         stored, from a sequence number. Refused whole unless the caller may
         read the highest scope the log records, and never filtered
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories/{repository}/log/head
       methods: [GET]
@@ -572,12 +590,14 @@ interfaces:
         entry that introduced its key, and the count of unsealed entries.
         Names no path
       served_by: content-service
+      auth: token
 
     - path: /v1/content/repositories/{repository}/log/checkpoint
       methods: [POST]
       description: Issue a checkpoint now, where the tip has moved since the
         last one, and return the log's head
       served_by: content-service
+      auth: token
 
     - path: /v1/content/attestations
       methods: [GET, POST]
@@ -585,112 +605,153 @@ interfaces:
         an entry, signed or witnessed. GET lists attestations in scope, each
         under its entry's own read check
       served_by: content-service
+      auth: token
 
     - path: /v1/content/attestations/{id}
       methods: [GET]
       description: One attestation
       served_by: content-service
+      auth: token
 
     - path: /v1/content/attestation-requests
       methods: [GET, POST]
       description: POST asks named positions or operators to attest one
         version, resolving positions to holders as it asks. GET lists requests
       served_by: content-service
+      auth: token
 
     - path: /v1/content/attestation-requests/{id}
       methods: [GET]
       description: One request, with who was asked and who has answered
       served_by: content-service
+      auth: token
 
     - path: /v1/content/attestation-requests/{id}/withdraw
       methods: [POST]
       description: Withdraw an open request
       served_by: content-service
+      auth: token
 
     - path: /v1/content/document-requests
       methods: [GET, POST]
       description: POST asks named positions or operators to supply an
         entry, answered by a proposal. GET lists requests
       served_by: content-service
+      auth: token
 
     - path: /v1/content/document-requests/{id}
       methods: [GET]
       description: One document request
       served_by: content-service
+      auth: token
 
     - path: /v1/content/document-requests/{id}/withdraw
       methods: [POST]
       description: Withdraw an open request
       served_by: content-service
+      auth: token
 
     - path: /v1/content/comments
       methods: [GET, POST]
       description: POST opens a thread on an entry or replies to one. GET
         lists comments on one entry, under its own read check
       served_by: content-service
+      auth: token
 
     - path: /v1/content/comments/{id}
       methods: [GET]
       description: One comment
       served_by: content-service
+      auth: token
 
     - path: /v1/content/comments/{id}/resolve
       methods: [POST]
       description: Resolve a thread
       served_by: content-service
+      auth: token
 
     - path: /v1/content/comments/{id}/reopen
       methods: [POST]
       description: Reopen a resolved thread
       served_by: content-service
+      auth: token
 
     - path: /v1/content/comments/{id}/retract
       methods: [POST]
       description: Its author withdraws a comment's body from every answer
       served_by: content-service
+      auth: token
 
     - path: /v1/content/retention
       methods: [GET, POST]
       description: POST declares a retention schedule. GET lists schedules,
         those adopted programme specs declare among them
       served_by: content-service
+      auth: token
 
     - path: /v1/content/retention/{id}
       methods: [GET]
       description: One retention schedule
       served_by: content-service
+      auth: token
 
     - path: /v1/content/retention/{id}/retire
       methods: [POST]
       description: Retire a schedule declared here
       served_by: content-service
+      auth: token
 
     - path: /v1/content/holds
       methods: [GET, POST]
       description: POST places a legal hold, with a step-up. GET lists holds
       served_by: content-service
+      auth: token
 
     - path: /v1/content/holds/{id}
       methods: [GET]
       description: One legal hold
       served_by: content-service
+      auth: token
 
     - path: /v1/content/holds/{id}/release
       methods: [POST]
       description: Release a hold, with a step-up
       served_by: content-service
+      auth: token
 
     - path: /v1/content/disposals
       methods: [GET]
       description: Each covered entry of one repository with its disposal
         date or why it has none, and the holds covering it. Removes nothing
       served_by: content-service
+      auth: token
 
     - path: /v1/services
       methods: [POST]
       description: Accept the signed service directory the orchestrator
         pushes, as protocol/spec POST /v1/services specifies. Never answered 404
       served_by: content-service
+      auth: identity
+
+    - path: /v1/admin/records/content/snapshot
+      methods: [GET]
+      description: Every store this service owns at one instant, as a ustar
+        archive led by a RecordSnapshot (architecture/storage, The snapshot
+        route). On a pass that can use admin:*
+      served_by: content-service
+      auth: "admin:*"
+
+    - path: /livez
+      methods: [GET]
+      description: Liveness, served with or without an orchestrator
+      served_by: content-service
+      auth: none
+
+    - path: /readyz
+      methods: [GET]
+      description: Readiness, served with or without an orchestrator
+      served_by: content-service
+      auth: none
 
   methods:
     - name: ListEntries

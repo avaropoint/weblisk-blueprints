@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: types
-version: 6.10.0
+version: 6.11.0
 requires: []
 platform: any
 tier: free
@@ -3286,8 +3286,8 @@ types:
       target_url:
         name: TargetURL
         type: string
-        required: true
-        description: "Target agent's URL"
+        required: false
+        description: "The target's address, present only where the target's `ServiceEntry.address_provenance` is `declared` or `verified`: the orchestrator signs it, so it vouches for it, and it never vouches for an address nobody declared. Absent, the grant names no address, and its holder presents its token only at an address on its anchor's host (architecture/orchestrator, Presenting a credential to a component)"
       target_pub_key:
         name: TargetPubKey
         type: string

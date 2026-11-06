@@ -20,9 +20,11 @@ Platform defaults to `go`.
 
 ```
 weblisk domain create billing --platform go
-weblisk domain create billing --from marketplace
 weblisk domain start billing
 ```
+
+There is no `--from marketplace`; a domain built from someone else's
+blueprints is a change, `weblisk change plan --adopt <ref>`.
 
 Do not write a domain controller by hand. The command reads the domain
 blueprint (and `architecture/domain.md`) and assembles the prompt.

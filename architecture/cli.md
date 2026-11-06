@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.1.0
+version: 5.2.1
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -707,9 +707,14 @@ command_surface:
 
 ### Renamed commands
 
-Each old spelling lives for one release as an alias that prints the new form,
-and an alias that stands for a one-ref `change plan` produces a plan byte for
-byte identical to it.
+Each command on the left is renamed when its new form is built, and its old
+spelling goes in the same release. No front end keeps it as an alias: a front
+end holds no command but the manifest's operations and the three front-end-only
+ones ([`architecture/engine`](engine.md#front-end-only-commands),
+`front-end-only-three`), and an old spelling is neither. The manifest lists the
+new form alone, and this table is where a person finds what an old spelling
+became. Until the new form is built the old one is the command, and
+[The Command Surface](#the-command-surface) lists it under that name.
 
 | Today | Becomes |
 |---|---|
@@ -1818,13 +1823,17 @@ Generate a domain controller implementation from its spec.
 
 ```bash
 $ weblisk domain create seo --platform go
-$ weblisk domain create seo --from marketplace
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--platform <p>` | Target platform: `go`, `cloudflare`, `node`, `rust` (default: `go`) |
-| `--from marketplace` | Generate from a purchased marketplace asset |
+
+It has no `--from marketplace`: generating from a purchased asset left the
+tools with `marketplace *` ([Renamed commands](#renamed-commands)). An asset's
+blueprints reach a tenant as any blueprint does, from a
+[blueprint source](#where-blueprints-come-from), and a domain built from them
+is a change: `weblisk change plan --adopt <ref>` ([Changes](#changes)).
 
 ### `weblisk domain start`
 

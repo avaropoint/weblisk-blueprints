@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: hub
-version: 3.0.4
+version: 3.0.5
 requires: [protocol/federation, protocol/identity, protocol/types, architecture/agent, architecture/gateway, patterns/namespace]
 platform: any
 tier: free
@@ -867,7 +867,8 @@ Sellers access analytics through the admin API:
    For installable assets:
      - Seller's hub provides download URL (time-limited, signed)
      - Buyer downloads blueprint files
-     - Buyer generates into their hub: weblisk domain create seo --from marketplace
+     - Buyer adds the files to a blueprint source and adopts them as a
+       change: weblisk change plan --adopt <ref> (architecture/cli, Changes)
    
    For live capabilities:
      - Federation peering flow initiates automatically
@@ -1061,9 +1062,12 @@ Buyer Hub                Registry Hub              Seller Hub
     c. Verifies file integrity
        (SHA-256 hash in receipt)
 
-13. CLI generates into hub:
-    weblisk domain create forecast
-    --from marketplace
+13. The buyer adopts it as a
+    change (architecture/cli,
+    Changes):
+    weblisk change plan
+    --adopt <ref>, then
+    change apply
     a. Generates domain controller
     b. Generates agent stubs
     c. Registers with orchestrator

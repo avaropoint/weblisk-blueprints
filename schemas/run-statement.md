@@ -371,8 +371,8 @@ criterion:
     reaches: [<component ref>]     # components in this tenant that bind what it governs
   readings:                        # a model's readings of the criterion: advice, never counted
     - action: <action id>          # the accept action that read it
-      says: met | unmet | unsure
-      reason: <the model's reason, as it gave it>
+      says: met | unmet | unsure   # the reading's first word, as instructions/advise asks for it
+      reason: <the model's reasons, as it gave them>
 ```
 
 - **The digest** is [`architecture/engine`](../architecture/engine.md#the-unit-is-a-criterion)'s:

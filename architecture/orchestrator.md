@@ -1,8 +1,8 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.12.0
-requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/scope, patterns/logging]
+version: 4.14.0
+requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/principal-identity, patterns/scope, patterns/logging]
 platform: any
 tier: free
 -->
@@ -215,6 +215,17 @@ declaration:
             methods: [POST]
             request_type: TokenExchangeRequest
             response_fields: [issued, code, pass, expires_at, capabilities]
+      on_change:
+        compatible: validate-and-adopt
+        breaking: version-bump
+        removed: halt-immediately
+    - blueprint: patterns/principal-identity
+      # The type the Credentials store keeps (Storage, The operator stores)
+      version: ">=2.0.0 <3.0.0"
+      bindings:
+        types:
+          - name: Credential
+            fields_used: [credential_public_key, algorithm, form, device_bound, identity_id, attestation, status, last_used_at]
       on_change:
         compatible: validate-and-adopt
         breaking: version-bump
@@ -1145,11 +1156,12 @@ verifies:
     expect:
       includes: [agent_id, token, expires_at, services, lease, orchestrator, protocol_version]
 - id: type-channel-grant-has-keys
-  covers: [channelgrant-names-target-url-where-orchestrator]
+  covers: ['protocol/types:channelgrant-carries-field-channelgrant-marks']
   check: structure
   assertion: The contract's ChannelGrant carries the wire keys channel_id, channel_token, target_url,
-    target_pub_key, expires_at; the key the language writes on the wire is authority, not the field's
-    name.
+    target_pub_key and expires_at, target_url too because the type declares it, although a grant names
+    it only for a declared address; the key the language writes on the wire is authority, not the
+    field's name. It shows the type's shape, not which grants name an address.
   structure:
     query: type-wire-keys
     args: {type: ChannelGrant}
@@ -1291,13 +1303,22 @@ verifies:
 - id: channel-needs-agent-message
   covers: [post-v1-channel-requires-agent-message]
   check: exchange
-  assertion: "POST /v1/channel is refused 403 for a registration whose capabilities do not name agent:message, before the target is looked up: asked for a channel to an agent nobody registered, it answers 403 without agent:message, and 404 NOT_FOUND once the same agent registers with agent:message (Channel Brokering, steps 4 and 5). A target that is registered cannot be used, since no grant may name an address the tenant did not declare and no tenant can declare one yet."
+  assertion: "POST /v1/channel is refused 403 for a registration whose capabilities do not name agent:message, before the target is looked up: asked for a channel to an agent nobody registered, it answers 403 without agent:message, and 404 NOT_FOUND once the same agent registers with agent:message (Channel Brokering, steps 4 and 5). The target is one nobody registered, so the refusal is the capability's alone; what a grant to a registered target carries is channel-grant-names-no-undeclared-address's."
   exchange:
     steps:
     - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {without: /token}}
     - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${without}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 403}}
     - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, now with agent:message', url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'file:read', resources: []}, {name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {with: /token}}
     - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${with}'}, body: {from_agent: test-agent, to_agent: conformance-absent, purpose: conformance}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 404, code: NOT_FOUND}}
+- id: channel-grant-names-no-undeclared-address
+  covers: [channelgrant-names-target-url-where-orchestrator]
+  check: exchange
+  assertion: "A grant to a registered target whose address is self-asserted names no target_url, and carries the channel token and the target's public key: no tenant can declare an address yet, so every registered address is self-asserted, and a grant naming one would be the orchestrator vouching for an address nobody declared (Presenting a credential to a component; Channel Brokering, step 10)."
+  exchange:
+    steps:
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {agent: /token}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${agent}'}, body: {from_agent: test-agent, to_agent: test-domain, purpose: conformance, token: '${agent}'}, sign: {over: '', members: [from_agent, to_agent, purpose], into: /signature}}, expect: {status: 200, has: [/channel_id, /channel_token, /target_pub_key], lacks: [/target_url]}}
 - id: agent-token-refused-under-admin
   covers: [token-type-not-operator-agent-token]
   check: exchange
@@ -1706,7 +1727,12 @@ that issued it, is ever given one, whatever host it shares with the gateway.
 publish as `declared`.** A grant carries the orchestrator's signature over
 `target_url`, which is the orchestrator vouching for the address rather than
 repeating a claim — and vouching for an address nobody declared is exactly the
-conflation this section exists to stop, moved into a stronger envelope.
+conflation this section exists to stop, moved into a stronger envelope. So a
+grant to a target whose address is `self-asserted` carries no `target_url`:
+it names no address, and its holder presents its token only at an address on
+its anchor's host, where presenting it tells no new party anything. That is why a grant naming a
+foreign `self-asserted` address is never issued, rather than issued and
+refused.
 
 **A grant narrows and never widens.** Its capabilities MUST be the intersection
 of what the requester holds and what the target's registered manifest declares,
@@ -1721,8 +1747,9 @@ declares, and it expires, because a credential's blast radius on theft is
 everything it authorises and a second host is a second place to lose it from.
 
 > **Gap — an external client cannot obtain a grant.** `POST /v1/channel`
-> already has the right shape: `ChannelGrant` carries `target_url` and
-> `target_pub_key` inside the orchestrator's signature with a scoped, expiring
+> already has the right shape: `ChannelGrant` carries `target_pub_key`, and
+> `target_url` where that address is declared, inside the orchestrator's
+> signature with a scoped, expiring
 > token. But it verifies `from_agent` against `token.sub` and requires
 > `agent:message`, so it serves one registered component addressing another and
 > nothing else. An operator console holding an operator token has no path to a
@@ -2959,7 +2986,9 @@ never block.
    - cid: channelID
 8. Store active channel: {channelID, from, to, purpose, createdAt, expiresAt}
 9. Log audit entry
-10. Build ChannelGrant with target URL, target public key, channel token
+10. Build ChannelGrant with target public key and channel token, and with
+    target URL only where the target's address_provenance is declared or
+    verified (Presenting a credential to a component)
 11. Sign the grant with orchestrator's private key
 12. Respond with ChannelGrant
 ```
@@ -3351,7 +3380,7 @@ See [Storage](#storage) for the stores this orchestrator owns,
 ## Storage
 
 The stores this orchestrator owns, and the operations each provides, by name
-([`architecture/storage`](storage.md#interfaces)). It provides these four and no
+([`architecture/storage`](storage.md#interfaces)). It provides these seven and no
 other component's ([`architecture/storage`](storage.md#a-component-implements-only-the-stores-it-owns)).
 
 ### Store: Agent Registry
@@ -3431,6 +3460,75 @@ how it is held open and kept in segments are
 [`architecture/storage`](storage.md#chained-logs)'s, and bind it as they bind
 every chained log.
 
+### The operator stores
+
+[`architecture/admin`](admin.md) declares the operator surface, and this
+orchestrator binds it and serves its routes, so the operator records are held
+here. The three stores that keep them are this orchestrator's, and are declared
+here alone.
+
+### Store: Operators
+
+**Durability:** MUST survive restarts <!-- wl:id store-operators-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutOperator | `(op Operator) → error` | Create or update operator |
+| GetOperator | `(name string) → (Operator, error)` | Retrieve by name |
+| RevokeOperator | `(name string) → error` | Set status `revoked`, keeping the record. The name is not reused |
+| ListOperators | `() → ([]Operator, error)` | List all operators, revoked included |
+
+### Store: Credentials
+
+**Durability:** MUST survive restarts. A revoked credential is kept, so its key
+is never accepted again <!-- wl:id store-credentials-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| PutCredential | `(c Credential) → error` | Create a credential, or replace an active one's attestation |
+| GetCredential | `(id string) → (Credential, error)` | Retrieve by id, the fingerprint of its public key |
+| ListCredentials | `(identityID string) → ([]Credential, error)` | Every credential one identity attested here, revoked included |
+| RevokeCredential | `(id string) → error` | Set status revoked, keeping the record |
+
+`Credential` is [`patterns/principal-identity`](../patterns/principal-identity.md)'s
+type.
+
+### Store: Token request jtis
+
+**Durability:** MUST survive restarts. IF more than one instance answers for
+this hub: MUST be one store every instance checks and writes, its
+`RecordTokenRequest` atomic across them. A record lives until its request's `timestamp` leaves
+the 300-second replay window, at most 600 seconds, and is then deleted <!-- wl:id store-jti-durable -->
+
+| Operation | Signature | Description |
+|-----------|-----------|-------------|
+| RecordTokenRequest | `(identityID string, jti string, until time) → (recorded bool, error)` | One atomic check-and-put: `false` where the pair is already recorded and unexpired, which is `TOKEN_REQUEST_REPLAYED`. An error refuses the request with `STORAGE_ERROR` and issues no token |
+| ExpireTokenRequests | `(now time) → error` | Delete every record whose `until` has passed |
+
+**IF more than one instance answers for this hub, how the record is shared.**
+`server start` refuses a second instance, so a tenant the CLI starts never
+meets this premise ([`architecture/cli`](cli.md#weblisk-server-start),
+`start-one-instance`); it is stated so that the obligation has a mechanism and
+not only an outcome. The record is one table in the backend every instance
+opens, keyed by the pair `(identity_id, jti)` with `until`, and
+`RecordTokenRequest` is one conditional insert on that key: it inserts where no
+row holds the key, or where the row that holds it has an `until` that has
+passed, which it replaces in the same statement, and it answers `recorded`
+from whether a row was written. It is never a read followed by a write, and no
+instance holds a copy of the table it consults instead. A backend that cannot
+make that insert atomic for every process that opens it, as a JSONL file
+cannot, cannot hold this store for more than one instance, and a configuration
+that would start a second instance on it is refused before either starts.
+
+The rules are `attestation-token-issuance`'s, in
+[`architecture/admin`](admin.md#contracts)'s Contracts,
+including the bound `auth-route-rate-limit` puts on what one source can make
+this store hold.
+
+A challenge nonce is not stored here: it lives at most 300 seconds, and an
+orchestrator MAY keep it in memory only, so a restart discards the outstanding
+ones and a client asks again.
+
 ---
 
 ## Configuration
@@ -3496,6 +3594,23 @@ types:
         type: LeaseRenewal
         required: false
         description: "The last renewal received (protocol/types, LeaseRenewal). Absent until the first renewal, when the entry reads `not_ready`"
+```
+
+### AgentFilter
+
+How [ListAgents](#store-agent-registry) is asked for entries. It filters by
+what the registry stores, and so never by a lease's state, which is derived
+when an entry is read ([Data Structures](#data-structures)).
+
+```yaml
+types:
+  AgentFilter:
+    fields:
+      type:
+        name: Type
+        type: string
+        required: false
+        description: "Only entries whose `manifest.type` is this, as the manifest wrote it (empty = all)"
 ```
 
 ### AuditFilter
@@ -4103,3 +4218,5 @@ agents hold, which is theirs.
 - [ ] A freshly started orchestrator owns the `system` namespace and its `GET /readyz` answers ready ([Store: Namespace Registry](#store-namespace-registry), [`protocol/types`](../protocol/types.md#readiness)) <!-- wl:check freshly-started-orchestrator-owns-system -->
 - [ ] Audit entries are retained for at least the period [Store: Audit Log](#store-audit-log) gives <!-- wl:check audit-entries-retained-least-period-store -->
 - [ ] Expired channels are cleaned up automatically ([Store: Channels](#store-channels), [`architecture/storage`](storage.md#contracts), `retention`) <!-- wl:check expired-channels-cleaned-up-automatically -->
+- [ ] Operator records, credentials and token-request `jti` records survive a restart of the orchestrator ([Store: Operators](#store-operators), [Store: Credentials](#store-credentials) and [Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check operator-stores-durable covers store-operators-durable store-credentials-durable store-jti-durable -->
+- [ ] IF more than one instance answers for the hub: the token-request `jti` records are one store every instance checks and writes ([Store: Token request jtis](#store-token-request-jtis)) <!-- wl:check more-instance-answers-hub-token-request-jti -->

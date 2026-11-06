@@ -1,7 +1,7 @@
 <!-- blueprint
 type: protocol
 name: spec
-version: 4.3.0
+version: 4.4.0
 requires: [protocol/types, protocol/identity, protocol/conventions]
 platform: any
 tier: free
@@ -647,8 +647,11 @@ The orchestrator MUST:
 4. Look up `to_agent` in registry (404 if not found)
 5. Generate channel ID and time-limited channel token (1-hour TTL)
 6. Store active channel
-7. Sign the grant with orchestrator's private key
-8. Respond with `ChannelGrant`
+7. Name the target's address as `target_url` only where the target's
+   `address_provenance` is `declared` or `verified`, and otherwise omit it
+   ([`architecture/orchestrator`](../architecture/orchestrator.md#presenting-a-credential-to-a-component))
+8. Sign the grant with orchestrator's private key
+9. Respond with `ChannelGrant`
 
 ### POST /v1/rotate-key
 

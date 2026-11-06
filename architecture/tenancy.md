@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: tenancy
-version: 4.1.2
+version: 4.1.3
 requires: [protocol/types, protocol/identity, architecture/orchestrator, architecture/storage, patterns/principal-identity, patterns/versioning, patterns/namespace]
 platform: any
 tier: free
@@ -377,7 +377,7 @@ the holder brings.
 | **The record stores** — each service's own records: the operator, credential and namespace registries, the organisations, projects and grants ([`architecture/orchestrator`](orchestrator.md#the-tenants-organisations-and-projects)) and the audit log; the content service's repository registry, change logs, proposals, pseudonym map, anchors and record mirror; programme adoptions and installed items; execution's schedules and runs; notification's preferences; the fabric's ledger | each service's own store ([`architecture/storage`](storage.md)) under `.weblisk/data/` | the tenant | each captured at a consistent point by its store's `backup-restore`: through its service's snapshot route while the tenant runs ([`architecture/storage`](storage.md#backing-up-a-record-store)), or copied while the tenant is stopped where a person asked for that ([A stopped-tenant export](#a-stopped-tenant-export)) |
 | **The keys** — the orchestrator's, whose fingerprint is the hub identity; each service key; the admin gateway's registration key and its TLS key and certificate; each remote's credential | `.weblisk/keys/`, `.weblisk/tls/`, or a secret source ([`patterns/secrets`](../patterns/secrets.md)) | a secret source, or the operator's own backup of the encrypted key ([`protocol/identity`](../protocol/identity.md#key-backup-policy)) | never; each named by its fingerprint and where it is held. The certificate, being public, is copied |
 | **The references to secrets** — every `key_passphrase` and every other `<source>:<reference>` the configuration holds | `.weblisk/config.yaml` | the secret source each names | the references only, never what they open |
-| **The operators** — each name, identity id, role and status | the orchestrator's operator store ([`architecture/admin`](admin.md#operator-storage)) | the tenant holds the records; each operator holds their own private key | listed, and carried in the orchestrator's record store |
+| **The operators** — each name, identity id, role and status | the orchestrator's operator store ([`architecture/orchestrator`](orchestrator.md#store-operators)) | the tenant holds the records; each operator holds their own private key | listed, and carried in the orchestrator's record store |
 
 **The change log is not in git.** A repository's history on its line is a copy
 of the record for a reader who has only git
