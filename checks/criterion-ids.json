@@ -2722,7 +2722,8 @@
    "signer-own-surface",
    "signer-refuses-unknown-hub",
    "signer-checks-record",
-   "signer-keeps-own-credentials"
+   "signer-keeps-own-credentials",
+   "key-envelope-vectors"
   ],
   "protocol/secret-source.md": [
    "caller-resolves-source-registry-weblisk-secret",

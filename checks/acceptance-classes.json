@@ -4,7 +4,7 @@
  "counts": {
   "S": 489,
   "J": 94,
-  "B": 2589,
+  "B": 2591,
   "E": 93,
   "F": 57
  },
@@ -11478,6 +11478,14 @@
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:hub-pub-written-by-holder": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:key-envelope-encoding": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:key-envelope-vectors": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },

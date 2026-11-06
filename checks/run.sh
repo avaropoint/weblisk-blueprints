@@ -956,6 +956,20 @@ else
 	echo "ok   mapping-coverage control: four UNFILLED classes fail the count assertion"
 fi
 
+# The kdf-none weblisk-key-v1 envelope (protocol/identity, Private Key
+# Format): the vector is what the rule writes for a key OpenSSL derives from
+# its seed, and a reader that accepts every envelope must report every invalid
+# one.
+expect 0 "key-envelope: the kdf-none envelope vectors agree with protocol/identity's rule" python3 checks/key-envelope.py
+expect 1 "key-envelope control: a reader that accepts every envelope fails" python3 checks/key-envelope.py --stub
+ninv=$(python3 -c 'import json; print(len(json.load(open("vectors/key-envelope.json"))["invalid"]))')
+if [ "$(grep -c '^invalid ' "$tmp/out")" -eq "$ninv" ]; then
+	echo "ok   key-envelope control: all $ninv invalid envelopes reported"
+else
+	echo "FAIL key-envelope control: want all $ninv invalid envelopes reported"
+	fails=$((fails + 1))
+fi
+
 # Every fixed-form statement vector verifies with three ML-DSA
 # implementations outside every Weblisk tool: OpenSSL (statements.py), circl
 # (ml-dsa/main.go, which also makes both vector files again and must write
