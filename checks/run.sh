@@ -659,6 +659,40 @@ else
 	sed 's/^/     /' "$tmp/out"
 	fails=$((fails + 1))
 fi
+# A block of checks or fixtures the engine's YAML grammar refuses is refused
+# here, before any build reads it as no checks at all: a copy of the suite
+# whose verifies block shares a value through a YAML anchor, and a copy whose
+# fixtures block writes a key twice, must each be reported with exactly that.
+python3 - "$tmp/testing-anchor.md" "$tmp/testing-twice.md" <<'PY'
+import sys
+t = open("architecture/testing.md", encoding="utf-8").read()
+first = "    applies_to: [any]\n    live: safe\n    exchange:\n      steps:\n        - request: {method: GET, path: /livez}"
+assert t.count(first) == 1
+a = t.replace(first, first.replace("applies_to: [any]", "applies_to: &every [any]"), 1)
+later = "    applies_to: [any]\n    live: safe\n    exchange:\n      start: {orchestrator: mock}\n      for_each: protected-endpoint"
+assert a.count(later) >= 1
+a = a.replace(later, later.replace("applies_to: [any]", "applies_to: *every"), 1)
+open(sys.argv[1], "w", encoding="utf-8").write(a)
+seed = '  test-orchestrator:\n    seed: "0000000000000000000000000000000000000000000000000000000000000001"\n'
+assert t.count(seed) == 1
+open(sys.argv[2], "w", encoding="utf-8").write(t.replace(seed, seed + seed.split("\n")[1] + "\n", 1))
+PY
+expect 1 "check-kinds control: a verifies block using a YAML anchor fails" python3 checks/check-kinds.py --file "$tmp/testing-anchor.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "the verifies block uses a YAML anchor, which the engine's YAML grammar refuses" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the anchored verifies block"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the anchored verifies block"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
+expect 1 "check-kinds control: a fixtures block writing a key twice fails" python3 checks/check-kinds.py --file "$tmp/testing-twice.md" --as architecture/testing.md
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "the fixtures block uses a key written twice, 'seed'" "$tmp/out"; then
+	echo "ok   check-kinds control: exactly one finding, the key written twice"
+else
+	echo "FAIL check-kinds control: want exactly one finding, the key written twice"
+	sed 's/^/     /' "$tmp/out"
+	fails=$((fails + 1))
+fi
 mkdir -p "$tmp/ck" && cp vectors/check-kinds/invalid.yaml "$tmp/ck/"
 python3 - "$tmp/ck/valid.yaml" <<'PY'
 import sys, yaml

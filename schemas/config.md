@@ -199,11 +199,18 @@ D25 rule 3 permits self-approval on, that a change records as
 | `admin_gateway_identity` | string | yes | — | The fingerprint ([`protocol/identity`](../protocol/identity.md#key-fingerprint)) of the key the admin gateway registers with. The orchestrator admits `token:exchange` for the registration with this identity id alone, and for none where the key is absent ([`protocol/types`](../protocol/types.md#capability)). `weblisk tenant create` makes the key and writes it ([`architecture/admin`](../architecture/admin.md#registration-lease-and-identity)) |
 
 The defaults a tool reads, rather than restates. A field here is
-`orchestrator.<field>`; its `default` is the value an orchestrator uses where
-the configuration sets none, and the engine reads it from this block wherever
-it needs the value, as a `join` check's `within: lease` does
-([`schemas/blocks`](blocks.md#definitions), `check-join`). The table above
-describes the field, and this block is the one home of its default.
+`<section>.<field>`; its `default` is the value the component that reads that
+section uses where the configuration sets none, and the engine reads it from
+this block wherever it needs the value, as a `join` check's `within: lease`
+does ([`schemas/blocks`](blocks.md#definitions), `check-join`). The tables
+describe the fields, and this block is the one home of each default.
+
+A section's field named for the orchestrator, with a default, is the address
+that component registers at when none is named. The engine reads it to give a
+component started with no orchestrator, on a build's own runs, a loopback
+address nothing answers at in place of that default, and gives a component
+whose section has none no address at all
+([`architecture/cli`](../architecture/cli.md#a-component-starts-with-a-clean-environment)).
 
 ```yaml
 config:
@@ -212,6 +219,11 @@ config:
     required: false
     default: 30s
     description: How long a registered component's lease lasts from each renewal
+  admin_gateway.orchestrator:
+    type: string
+    required: false
+    default: "http://127.0.0.1:<orchestrator.port>"
+    description: The orchestrator address the admin gateway registers at, which is its anchor
 ```
 
 ### admin_gateway
@@ -226,7 +238,7 @@ The tenant's admin gateway, built from [`architecture/admin`](../architecture/ad
 | `tls_cert` | string | no | `.weblisk/tls/admin-gateway.crt` | The admin listener's certificate. Set, it is served as it is; when the CLI makes one and when it never does is [`architecture/admin`](../architecture/admin.md#certificate)'s |
 | `tls_key` | string | no | `.weblisk/keys/admin-gateway-tls.key` | That certificate's private key. The default is under `.weblisk/keys/`, which git ignores; a path set here is held to rule 21 |
 | `allowlist` | list | no | `[127.0.0.1, ::1]` | The operator IP allowlist: the addresses and CIDR ranges a request to the admin listener may come from. Empty admits no one |
-| `orchestrator` | string | no | `http://127.0.0.1:<orchestrator.port>` | The orchestrator address the gateway registers at, which is its anchor. An `https` address is verified against the gateway's host's system roots, so an operator whose terminator presents a certificate from a private authority installs that authority there; the schema holds no pin for this hop |
+| `orchestrator` | string | no | `http://127.0.0.1:<orchestrator.port>`, declared as data above | The orchestrator address the gateway registers at, which is its anchor. An `https` address is verified against the gateway's host's system roots, so an operator whose terminator presents a certificate from a private authority installs that authority there; the schema holds no pin for this hop |
 
 ### gateway
 

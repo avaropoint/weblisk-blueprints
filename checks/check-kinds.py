@@ -23,6 +23,13 @@ and selectors schemas/kinds.md declares. A check is refused when:
   a fixture architecture/testing.md's fixtures block does not declare;
 - `applies_to` names neither a component kind nor a selector.
 
+A block the engine reads checks or fixtures from (`verifies`, `fixtures`,
+`test_tokens`) is refused, naming its file and line, where it uses a YAML
+feature the engine's grammar refuses (schemas/family.md, json-data-model):
+an anchor, an alias, a tag, a merge key or a second document, or a key
+written twice. The engine refuses such a block whole, so every check in it
+would otherwise be read as none.
+
 Every endpoint a file serves (a declaration's `serves` list, or a `serves`
 block's `http`) names its `auth` in the closed vocabulary `endpoint-auth`:
 `none`, `identity`, `token`, or a capability protocol/types' Capability
@@ -34,7 +41,7 @@ sys.dont_write_bytecode = True
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import yaml  # noqa: E402
-from families import Core, errors, yaml_blocks, text_of  # noqa: E402
+from families import Core, errors, yaml_blocks, text_of, yaml_feature  # noqa: E402
 from criterion_ids import DIRS, CORPUS  # noqa: E402
 
 BLOCKS = os.path.join(CORPUS, "schemas/blocks.md")
@@ -54,6 +61,54 @@ def verifies_blocks(text):
             continue
         if isinstance(v, dict) and list(v) == ["verifies"]:
             yield text.count("\n", 0, m.start()) + 2, v["verifies"]
+
+
+# The blocks the engine reads checks and fixtures from.
+CHECK_BLOCKS = ("verifies", "fixtures", "test_tokens")
+ROOT_KEY = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):")
+
+
+class _Unique(Core):
+    """Core, refusing a key written twice in one mapping, as the engine's grammar does."""
+
+
+def _unique_mapping(loader, node, deep=False):
+    seen = set()
+    for k, _ in node.value:
+        key = loader.construct_object(k, deep=deep)
+        if key in seen:
+            raise yaml.constructor.ConstructorError(None, None, f"a key written twice, {key!r}", k.start_mark)
+        seen.add(key)
+    return Core.construct_mapping(loader, node, deep)
+
+
+_Unique.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _unique_mapping)
+
+
+def refused_blocks(rel, text):
+    """Each block of checks or fixtures the engine's YAML grammar would refuse, with why."""
+    out = []
+    for m in FENCE.finditer(text):
+        src = m.group(1)
+        first = next((ln for ln in src.split("\n") if ln.strip() and not ln.strip().startswith("#")), "")
+        k = ROOT_KEY.match(first)
+        if not k or k.group(1) not in CHECK_BLOCKS:
+            continue
+        line = text.count("\n", 0, m.start()) + 2
+        why = None
+        try:
+            f = yaml_feature(src)
+            if f:
+                why = f"a YAML {f}"
+            else:
+                yaml.load(src, Loader=_Unique)
+        except yaml.YAMLError as e:
+            why = str(e).splitlines()[0] if "written twice" not in str(e) else next(
+                ln for ln in str(e).splitlines() if "written twice" in ln)
+        if why:
+            out.append(f"{rel}:{line}: the {k.group(1)} block uses {why}, which the engine's YAML grammar refuses "
+                       f"(schemas/family json-data-model), so none of what it declares would be read")
+    return out
 
 
 def parts_of(text):
@@ -252,7 +307,7 @@ def suite(rel, text):
 
 
 def judge_file(rel, text):
-    out, n, kinds = suite(rel, text) + serves_auth(rel, text), 0, {}
+    out, n, kinds = refused_blocks(rel, text) + suite(rel, text) + serves_auth(rel, text), 0, {}
     own = parts_of(text)
     for line, entries in verifies_blocks(text):
         for e in entries or []:
