@@ -1053,7 +1053,9 @@
    "suite-against-accepted-builds",
    "whole-hub-run-after-last-layer",
    "incremental-rebuilds-reached-layers",
-   "fresh-change-replaces-generated-only"
+   "fresh-change-replaces-generated-only",
+   "files-in-flight-bounded",
+   "prepare-only-when-moved"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",
