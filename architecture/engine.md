@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.3.0
+version: 1.4.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -180,9 +180,16 @@ manifest does not list them, they return no event stream, and parity does not
 compare them, because each front end presents them its own way (owner's
 decision, 2026-11-04).
 
+**The signer's entry point is not a front end's command.** `weblisk sign`
+([`architecture/cli`](cli.md#weblisk-sign)) is the CLI acting as the person's
+signer on a pointer ([`protocol/identity`](../protocol/identity.md#a-signer-acting-on-a-pointer)):
+it runs one of the catalogue's operations that needs a signature, as that
+operation, and is never a console's, because a console never signs
+([`architecture/admin`](admin.md#contracts), `console-never-drives-signer`).
+
 A front end MUST hold no command other than the manifest's operations and
-these three, and each of the three MUST read nothing but the manifest and the
-front end's own build. <!-- wl:id front-end-only-three -->
+these three, and, in a signer, `sign`; and each of the three MUST read nothing
+but the manifest and the front end's own build. <!-- wl:id front-end-only-three -->
 
 **Commands no corpus document drives leave the tools** until a corpus document
 defines them: `doctor`, `update`, `app *`, `marketplace *`, `deps audit` and
@@ -257,10 +264,47 @@ question:
   kind: passphrase | vault | step-up | signature | confirm | secret | choice
   about: [<full ref>]              # what the answer is for
   choices: [<text>]                # kind choice only
+  pointer:                         # kind signature only: the act, for the person's signer
+    hub_id: <the hub's hub_id>
+    operation: <the pointer's operation, as protocol/identity's pointer table names it>
+    arguments: [<text>]
+    text: weblisk sign <hub_id> <operation> <argument>...
+    link: weblisk://sign/<hub_id>/<operation>/<argument>...
+  compare: [<text>]                # kind signature only: the short forms the signer will show
 ```
 
 An answer is sent back to the invocation with the `seq` of the question it
 answers, and the stream resumes.
+
+```yaml
+answer:
+  seq: <the question's seq>
+  form: value | handoff | declined
+  value: <text>                    # form value
+  record: <full ref>               # form handoff: the owner's record of the act
+```
+
+**A signature is handed off, never carried.** Where the person is at a
+console, a `signature` question is answered by their signer
+([`protocol/identity`](../protocol/identity.md#a-signer-acting-on-a-pointer)),
+which reads the subject from its owner, shows it, signs, and submits the act
+itself; the console shows the `pointer` and the `compare` short forms, and
+answers with form `handoff` and the record's ref once the owner's record shows
+the act ([`architecture/admin`](admin.md#contracts), `console-hands-off-signing`).
+At the CLI the CLI is the signer, and answers its own question the same way.
+The engine reads the subject at its owner before it asks, on the invoking
+front end's own token, and again on a `handoff`.
+
+The engine MUST end an operation `finished` on a `handoff` answer only where
+the owner's record, read by the engine itself and never taken from the
+answer, is of the operation and subject the question was `about`; was not on
+the subject when the question was asked; names as its signer the pass's
+`identity_id`; and is `signed` — for a change, an `approval` or `rejection`
+whose `signature` verifies over the rebuilt `weblisk/change-decision/v1`
+statement under its `attestation`, whose `purpose` is `sign-records` and whose
+`identity_id` is that signer's. Any other `handoff` ends the operation refused
+naming the question, and the `records` of a finished event are the owner's
+record in both front ends. <!-- wl:id signature-handoff-answer -->
 
 When an operation needs something only a person can give, it MUST emit a
 `question` and wait for its answer. It never reads a terminal, a file or an
@@ -903,7 +947,7 @@ entry leaves that list when its literal leaves the source. <!-- wl:id no-corpus-
 | Proof | How | Control |
 |---|---|---|
 | **One catalogue** | Each front end exposes the engine's manifest unchanged: `weblisk commands --json`, and Studio's operations route. [`checks/front-end-parity.py`](../checks/front-end-parity.py) compares each with [The operation catalogue](#the-operation-catalogue) and with each other, at pinned commits | A front end missing one operation, or having one of its own, is reported |
-| **The same streams** | A parity test drives every operation through the CLI (`--json`, under a pseudo-terminal) and through Studio's stream route, against the fake corpus and a sealed fixture tenant, with the same scripted answers to each `question`. The two streams are equal once invocation ids and instants are normalised | An operation whose `question` one front end cannot answer is reported |
+| **The same streams** | A parity test drives every operation through the CLI (`--json`, under a pseudo-terminal) and through Studio's stream route, against the fake corpus and a sealed fixture tenant, with the same scripted answers to each `question`; a `signature` question is answered in both with a `handoff`, after a signer holding a vector key has made the act. The two streams are equal once invocation ids and instants are normalised | An operation whose `question` one front end cannot answer is reported |
 | **No decisions in a front end** | The neutrality check runs over both front ends' sources | Adding a posture threshold to a copy of the Studio source is reported |
 
 Every operation of the catalogue MUST be reachable from both front ends, and
@@ -953,6 +997,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] Each front end offers the manifest's operations and `version`, `help` and `commands` and nothing else; the three read only the manifest and the front end's own build; and neither front end offers `doctor`, `update`, `app *`, `marketplace *`, `deps audit` or `gateway policy *` ([Front-end-only commands](#front-end-only-commands)) <!-- wl:check front-end-own-commands covers front-end-only-three undriven-commands-absent -->
 - [ ] Driving one operation through the CLI under `--json` and through Studio's stream route, with the same scripted answers, gives streams equal byte for byte once `invocation` and `at` are normalised ([Events](#events)) <!-- wl:check streams-equal covers streams-byte-equal front-end-parity -->
 - [ ] An operation needing a passphrase emits a `question` and waits; with no answer it ends refused naming the question; and the answer appears in no event, record, transcript or log ([Questions](#questions)) <!-- wl:check questions-asked-and-kept-secret covers question-is-the-only-ask secret-answers-never-recorded unanswered-is-refused -->
+- [ ] Given the signer fixture `handoff-answer-wrong-subject`, a `handoff` whose record is another subject's ends the operation refused naming the question, as does one whose record was on the subject before the question, is another identity's, or is not signed; and a correct `handoff` ends `finished` with the same `records` in Studio's stream as in the CLI's ([Questions](#questions)) <!-- wl:check handoff-answer-verified covers signature-handoff-answer front-end-parity -->
 - [ ] A front end shows a verdict, threshold or list only as an operation's events carry it, and the neutrality check over its source reports one computed in it ([The parts, and the line between them](#the-parts-and-the-line-between-them)) <!-- wl:check front-end-computes-nothing covers front-end-decides-nothing -->
 - [ ] `change apply` emits a `step` event as each of resolve, plan, translate, generate, build, repair, accept and record begins and ends, in that order ([The build steps](#the-build-steps)) <!-- wl:check steps-ordered covers steps-in-order -->
 - [ ] A step whose corpus declaration is missing is recorded as guessed, naming what it lacked, and no engine default is used in its place ([The build steps](#the-build-steps)) <!-- wl:check guessed-step-recorded covers guessed-is-reported -->

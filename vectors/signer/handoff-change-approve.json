@@ -1,0 +1,63 @@
+{
+  "id": "handoff-change-approve",
+  "case": "a pointer for a planned change at a registered hub, confirmed on the signer's own terminal",
+  "given": {
+    "identity": "identity",
+    "sign_records_key": "sign-records",
+    "registrations": [
+      "46a63b176eb4866da8d8a51ca4291f87b641f301cc2559280974461ee3e5cd01"
+    ],
+    "clock": "2026-01-01T00:08:00.000Z",
+    "pointer": [
+      "46a63b176eb4866da8d8a51ca4291f87b641f301cc2559280974461ee3e5cd01",
+      "change-approve",
+      "4e9b720987f81b0808b1c1ce510036b9"
+    ],
+    "surface": {
+      "terminal": true,
+      "answers": [
+        "approve"
+      ]
+    },
+    "owner": {
+      "changes": [
+        {
+          "id": "4e9b720987f81b0808b1c1ce510036b9",
+          "kind": "adopt",
+          "request": [
+            "programmes/document-control"
+          ],
+          "requested_by": "5b21355830075c632c17d3a7d69674ff3567c77a3b0c5eb27a5d8eccbb1f6710",
+          "requested_at": "2026-01-01T00:00:00.000Z",
+          "strict": false,
+          "state": "planned",
+          "base": {
+            "corpus": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3",
+            "lock": "sha256:abababababababababababababababababababababababababababababababab",
+            "fabric_tip": "unreported",
+            "pins": [
+              {
+                "kind": "core",
+                "origin": "https://git.example.com/weblisk-blueprints.git",
+                "revision": "f2b61ba0c4d5e6f708192a3b4c5d6e7f8091a2b3"
+              }
+            ]
+          },
+          "shown_roots": [
+            "blueprint://weblisk/architecture/content"
+          ],
+          "plan": [
+            {
+              "unit": "blueprint://weblisk/architecture/content",
+              "phase": "R",
+              "verdict": "build",
+              "because": "absent"
+            }
+          ],
+          "plan_digest": "sha256:2f26936c203c56ea2886505db0917162a26cccabd4cee94cff1d77fafe824e62"
+        }
+      ],
+      "records": "as-sent"
+    }
+  }
+}

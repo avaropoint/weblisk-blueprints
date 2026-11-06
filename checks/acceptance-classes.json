@@ -2,9 +2,9 @@
  "derived_by": "checks/acceptance-classes.py",
  "rules": "architecture/generation#how-a-criterion-gets-its-class",
  "counts": {
-  "S": 469,
+  "S": 489,
   "J": 94,
-  "B": 2591,
+  "B": 2589,
   "E": 93,
   "F": 57
  },
@@ -1349,6 +1349,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/admin:console-builds-no-record-statement": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
+  },
   "architecture/admin:console-credential-lifetime": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
@@ -1369,6 +1373,14 @@
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
   },
+  "architecture/admin:console-drives-no-signer": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
+  },
+  "architecture/admin:console-hands-off-signing": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
+  },
   "architecture/admin:console-holds-no-sign-records": {
    "class": "S",
    "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
@@ -1376,6 +1388,10 @@
   "architecture/admin:console-keeps-pin": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/admin:console-never-drives-signer": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:console-credential-use (architecture/threat-model, vector 4.9)"
   },
   "architecture/admin:console-no-agent-token": {
    "class": "S",
@@ -5113,6 +5129,10 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "architecture/engine:handoff-answer-verified": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
   "architecture/engine:incremental-from-record": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
@@ -5218,6 +5238,10 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/engine:secret-answers-never-recorded": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/engine:signature-handoff-answer": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
@@ -9882,8 +9906,8 @@
    "class_by": "rule 6: nothing above matched"
   },
   "patterns/principal-identity:one-key-one-purpose": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "S",
+   "class_by": "rule 1: control ref patterns/principal-identity:record-signing (architecture/threat-model, vector 4.14)"
   },
   "patterns/principal-identity:passkey-relying-party": {
    "class": "B",
@@ -11438,8 +11462,8 @@
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:generate-ml-dsa-65-key-pairs": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity#post-quantum-cryptography (architecture/threat-model, vector 4.15)"
   },
   "protocol/identity:hub-pub-declared": {
    "class": "B",
@@ -11478,8 +11502,8 @@
    "class_by": "rule 1: control ref protocol/identity#key-categories (architecture/threat-model, vector 4.1)"
   },
   "protocol/identity:no-identity-token-attestation-signed-record": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity#post-quantum-cryptography (architecture/threat-model, vector 4.15)"
   },
   "protocol/identity:operator-private-key-written-handed-secret": {
    "class": "S",
@@ -11530,8 +11554,8 @@
    "class_by": "rule 6: nothing above matched"
   },
   "protocol/identity:reject-identity-key-attestation-record-signature": {
-   "class": "B",
-   "class_by": "rule 6: nothing above matched"
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity#post-quantum-cryptography (architecture/threat-model, vector 4.15)"
   },
   "protocol/identity:removing-operator-revokes-none-work": {
    "class": "B",
@@ -11553,9 +11577,57 @@
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
+  "protocol/identity:signer-builds-from-what-it-read": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-builds-from-what-it-read (architecture/threat-model, vector 4.10)"
+  },
+  "protocol/identity:signer-checks-record": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-submits-and-checks (architecture/threat-model, vector 4.11)"
+  },
+  "protocol/identity:signer-holds-own-credentials": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-holds-own-credentials (architecture/threat-model, vector 4.14)"
+  },
+  "protocol/identity:signer-keeps-own-credentials": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-holds-own-credentials (architecture/threat-model, vector 4.14)"
+  },
+  "protocol/identity:signer-known-hub": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-known-hub (architecture/threat-model, vector 4.13)"
+  },
+  "protocol/identity:signer-never-driven": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-never-driven (architecture/threat-model, vector 4.12)"
+  },
+  "protocol/identity:signer-own-surface": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-own-surface-confirms (architecture/threat-model, vector 4.10)"
+  },
+  "protocol/identity:signer-own-surface-confirms": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-own-surface-confirms (architecture/threat-model, vector 4.10)"
+  },
+  "protocol/identity:signer-reads-every-field": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-takes-a-pointer (architecture/threat-model, vector 4.10)"
+  },
+  "protocol/identity:signer-refuses-unknown-hub": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-known-hub (architecture/threat-model, vector 4.13)"
+  },
   "protocol/identity:signer-refuses-what-key-not-sign": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
+  },
+  "protocol/identity:signer-submits-and-checks": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-submits-and-checks (architecture/threat-model, vector 4.11)"
+  },
+  "protocol/identity:signer-takes-a-pointer": {
+   "class": "S",
+   "class_by": "rule 1: control ref protocol/identity:signer-takes-a-pointer (architecture/threat-model, vector 4.10)"
   },
   "protocol/identity:step-up-at-only-on-reconfirmation": {
    "class": "B",

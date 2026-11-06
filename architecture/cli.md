@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.0.0
+version: 5.1.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -498,9 +498,14 @@ approval or run an apply. Until one does:
   `.weblisk/changes/<change id>.json` in the shape the service will write
   ([`schemas/change`](../schemas/change.md#shape)). They are the
   [Command Surface](#the-command-surface)'s rows with that executor.
-- **`change approve`, `reject`, `verify` and `revert` are refused by name.**
-  Each is the service's act, or a person's act recorded by it, and a CLI that
-  performed one would be a second change service nobody admitted.
+- **`change verify` and `revert` are refused by name.** Each is the
+  service's act, and a CLI that performed one would be a second change
+  service nobody admitted. **`change approve` and `reject` are the person's
+  act, made by the signer** ([`weblisk sign`](#weblisk-sign)) against a
+  tenant that runs a change service, with `--orch`; where none runs, the hub's
+  answer is reported, and in a tenant's own directory they are refused by
+  name, because a decision is recorded by the service and never written to a
+  change file.
 - **`change apply` of a change no person approved requires
   `--without-approval`**, the operator's word in place of the approval nothing
   can yet record, and the change records it as `without_approval: true`. Without
@@ -2803,6 +2808,87 @@ vectors this corpus publishes
 ([`protocol/identity`](../protocol/identity.md#fixed-form-statements)). So a
 credential this verb vouches for can mint at the hub it was attested for, as
 soon as the program holding it signs as those vectors test.
+
+### `weblisk sign`
+
+The CLI as the person's signer
+([`protocol/identity`](../protocol/identity.md#a-signer-acting-on-a-pointer)):
+it makes, on this device, an act a console points at and cannot make.
+
+```bash
+$ weblisk sign <hub_id> change-approve <change id>
+$ weblisk sign <hub_id> change-reject <change id>
+$ weblisk sign 'weblisk://sign/<hub_id>/change-approve/<change id>'
+```
+
+It takes a pointer — the text a console shows, or its `weblisk://` link —
+and nothing else. It is not an operation of the engine's catalogue: it runs
+the one the pointer names, `change approve` or `change reject`, on this
+device, and is the one way either is made ([`architecture/engine`](engine.md#front-end-only-commands)).
+`approval-accept`, `approval-reject` and `attest` are pointers it knows and
+does not yet sign, and each says why: a content decision's statement is
+optional and its route is not driven yet, and `weblisk/content-attestation/v1`
+has no vectors.
+
+1. **The pointer.** Each argument is checked against the pointer table:
+   the `hub_id` 64 lowercase hex, the operation one of the table's, and
+   exactly the arguments it names — for a change, its id, 32 lowercase hex.
+   Anything more, a flag included, is refused before anything is read
+   (`signer-takes-a-pointer`).
+2. **The hub.** The `hub_id` must be one this identity holds a registration
+   for; it is reached at the address that registration records, never at one
+   the pointer or the link names. Otherwise `not_registered`, with nothing
+   read or sent (`signer-known-hub`).
+3. **Its own token.** It mints a token with this device's authenticate
+   credential for that hub, as every command does
+   ([Authentication Flow](#authentication-flow)), never one another program
+   hands it.
+4. **The read.** `GET /v1/admin/changes/{id}` on that token. A change that is
+   not `planned` is refused with its state. A change naming an
+   `approver_position` is decided as that position, read from the change and
+   shown; whether the person holds it is the change service's to judge.
+5. **The screen.** On this device's terminal — `/dev/tty`, never standard
+   input or output — it shows the hub, the change's id, kind, request, roots, plan entries
+   and `plan_digest` (`sha256:` and the first 12 hex characters, and the
+   whole digest beneath), the position and the decision, and asks the person
+   to type the decision's word, `approve` or `reject`. Anything else, or no
+   answer, cancels and signs nothing. A rejection's reason is typed there
+   too (`signer-own-surface-confirms`).
+6. **The key.** This device's sign-records key for that hub, ML-DSA-65,
+   generated here the first time it is asked to sign for that hub, and
+   attested by the identity with `purpose` `sign-records` and a `not_after`
+   of 30 days by default, 90 at most, through the route every credential is
+   attested at ([`architecture/admin`](admin.md#attesting-a-credential)). It is
+   kept as the authenticate credential is: in the platform keychain where
+   this machine has one, behind its user-presence check where the platform
+   lets a program set one, else in the `weblisk-key-v1` envelope under a
+   passphrase the person chooses on the same terminal
+   (`signer-holds-own-credentials`). Its record, with the attestation, sits
+   beside that hub's credential, and never authenticates.
+7. **The act.** It builds `weblisk/change-decision/v1` from what it read and
+   the person chose, `signed_at` from this device's clock, signs it and sends
+   the `ChangeDecision` to `POST /v1/admin/changes/{id}/decision` on its own
+   token ([`architecture/change-service`](change-service.md#verifying-a-decision)).
+8. **The read back.** It reads the change again and reports `signed` only
+   where its `approval` or `rejection` carries this signature and this
+   attestation; otherwise it reports the act unsigned, with what the record
+   holds (`signer-submits-and-checks`).
+
+**It is never driven** (`signer-never-driven`). It reads no confirmation,
+reason or passphrase from standard input, with or without `--json`; it takes
+no `--yes`, `--confirm` or any other flag but `--json`, and is refused naming
+one; a variable named `WL_SIGN_*`, `WEBLISK_SIGN_*`, `WL_YES` or `WL_CONFIRM`
+in its environment is refused by name; and with no terminal of its own it
+refuses, signing nothing. `--json` changes only what it prints: one result on
+standard output, with `outcome` `signed`, `unsigned`, `refused` or
+`cancelled`, the change id, and `code` where refused. A program that holds
+the pseudo-terminal this command runs on can type into it as a person would;
+that is the device compromised, and the console rule that forbids it is
+[`architecture/admin`](admin.md#contracts)'s `console-never-drives-signer`.
+
+`weblisk change approve <id> --orch <url>` and `change reject <id> --orch
+<url>` are this command with the pointer built from the hub that address's
+registration names, under every rule above.
 
 ### `weblisk operator rotate`
 

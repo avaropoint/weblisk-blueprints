@@ -449,7 +449,9 @@
    "exchange-admits-declared-gateway-alone",
    "exchange-judges-subject-as-operator-route",
    "exchange-pass-within-scope-and-person",
-   "exchange-mints-pass-audits-each"
+   "exchange-mints-pass-audits-each",
+   "console-builds-no-record-statement",
+   "console-drives-no-signer"
   ],
   "architecture/agent.md": [
    "post-v1-describe-returns-agent-manifest",
@@ -1043,7 +1045,8 @@
    "actions-reused",
    "incremental-from-record",
    "component-owes",
-   "front-end-own-commands"
+   "front-end-own-commands",
+   "handoff-answer-verified"
   ],
   "architecture/execution.md": [
    "route-endpoints-put-delete-schedule-three",
@@ -2714,7 +2717,12 @@
    "no-identity-token-attestation-signed-record",
    "hub-pub-declared",
    "registration-rotation-task-result-message-signed",
-   "signer-refuses-what-key-not-sign"
+   "signer-refuses-what-key-not-sign",
+   "signer-reads-every-field",
+   "signer-own-surface",
+   "signer-refuses-unknown-hub",
+   "signer-checks-record",
+   "signer-keeps-own-credentials"
   ],
   "protocol/secret-source.md": [
    "caller-resolves-source-registry-weblisk-secret",
