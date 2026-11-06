@@ -345,6 +345,27 @@ A tree is **build-accepted** when, on the tree the repair loop returns:
 A refuted tree is still banked in the cache as the best tree, as now. It is
 never kept as built.
 
+### The development exception
+
+**Recorded by the owner on 2026-11-05: build the code first, and write the
+full tests once the code is complete.** Rule 3 refutes every fresh build of a
+tenant today, because most S and J criteria have no declared check yet and
+some cannot be settled in a sealed run at all (about 95% of the admin
+gateway's 126, for want of a first operator there). A hub that cannot be built
+cannot be tested against, so nothing above the orchestrator was ever tested.
+
+For a tenant whose `hub.environment` is `development`, and never elsewhere, a
+layer is accepted when it compiles, every component starts, registers with the
+accepted orchestrator, answers its declared probes and refuses an
+unauthenticated request on its protected routes, and no declared check that
+passed before now fails. Every other S and J criterion is recorded as a gap on
+the run statement, and the verdict is `accepted`, never `established`.
+
+**It ends** when every S and J criterion the services table's components owe
+is settled by a declared check; the full gate then applies in development too,
+and the exception is removed from where it is normative:
+[`architecture/generation`](architecture/generation.md#the-development-gate).
+
 ### Runtime acceptance: may it start here, exposed to whom?
 
 Decided by a **person**. The CLI (later the change service) computes a proposed
@@ -442,6 +463,15 @@ threat model already requires.
 ## Order
 
 ### What is built, in what order
+
+> **Landed:** normative in [`architecture/engine`](architecture/engine.md#build-order),
+> Build order — the layers (contract, libraries by `requires`, components by
+> what each needs running first), generate-compile-test within a layer, gating,
+> the contract package built once per change, the test environment of accepted
+> builds, the whole-hub integration run, and incremental change by layer; and
+> how accepted dependencies are brought up, a first operator included, in
+> [`architecture/testing`](architecture/testing.md#bringing-up-accepted-dependencies).
+> Where this section and those disagree, those are right.
 
 The services table in [`schemas/programme`](schemas/programme.md#the-services-in-the-order-they-are-built)
 is the one home of component order: orchestrator; admin and content, which need
@@ -686,3 +716,8 @@ Decided by the owner on 2026-11-03.
    the one wanted.
 8. **First tranche:** the S and J items from this run first, then the whole S
    and J set of the foundations, once `acceptance-classes.py` has measured it.
+9. **Development exception (2026-11-05):** in `development` only, a layer is
+   accepted on compile, start, registration, probes, refusing an
+   unauthenticated request and no regression, with every other S and J
+   criterion a recorded gap, until the S and J checks exist
+   ([The development exception](#the-development-exception)).

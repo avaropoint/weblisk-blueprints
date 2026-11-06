@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.4.0
+version: 2.5.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -305,6 +305,8 @@ fixtures:
         - {name: "content:describe", resources: []}
         - {name: "content:propose", resources: []}
       max_concurrent: 5
+  test-operator:
+    seed: "0000000000000000000000000000000000000000000000000000000000000016"
   test-overreach:
     seed: "0000000000000000000000000000000000000000000000000000000000000015"
     manifest:
@@ -509,6 +511,101 @@ directory, so a store it declares lives and dies with the run. <!-- wl:id fixtur
 A component that, given that file, does not read it, or reads another, has
 failed the check that named `start.config`, as one that ignores `start.keys`
 has.
+
+### Bringing up accepted dependencies
+
+A component's suite runs against the accepted builds of what it needs running
+first ([`architecture/engine`](engine.md#the-test-environment),
+`tested-against-accepted`). Before the component under test starts, the
+harness brings each of them up the way a person brings up a hub: it starts
+the orchestrator, claims it with a first operator, and starts every other
+dependency pointed at it. Every value of that is declared here, and the
+engine performs it as mechanics.
+
+```yaml
+bring_up:
+  keys: test-orchestrator
+  operator: test-operator
+  steps:
+    - id: bootstrap-secret
+      read: {file: .weblisk/bootstrap, capture: bootstrap_secret, within: 10s}
+    - id: register-first-operator
+      as: test-operator
+      request:
+        method: POST
+        path: /v1/admin/operators/register
+        body:
+          name: test-operator
+          public_key: "${fixture/test-operator/public_key}"
+          role: admin
+          timestamp: "${now}"
+          bootstrap_secret: "${bootstrap_secret}"
+        sign: {over: "", members: [name, public_key, role, timestamp], into: /signature, timestamp: /timestamp}
+      expect: {status: 200, equals: {/status: approved}, has: [/token, /hub_id, /identity_id]}
+      capture: {attestation_token: /token, hub_id: /hub_id, operator_identity: /identity_id}
+    - id: observer-registers
+      as: test-agent
+      request:
+        method: POST
+        path: /v1/register
+        body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: "1", description: Conformance observer, url: "http://localhost:9710", public_key: "${fixture/test-agent/public_key}", capabilities: [{name: "agent:message", resources: []}]}}
+        sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+      expect: {status: 200, has: [/token]}
+      capture: {observer_token: /token}
+  directory:
+    request: {method: GET, path: /v1/services, headers: {Authorization: "Bearer ${observer_token}"}}
+    entries: /services
+    name: /name
+    lease_state: /lease_state
+    lease_expires_at: /lease_expires_at
+    current: [ready, not_ready]
+```
+
+| Key | Means |
+|---|---|
+| `keys` | The identity fixture whose key the orchestrator is started with, written as [Starting a component with a fixture key](#starting-a-component-with-a-fixture-key) writes one, `hub.key` and `hub.pub` included. It is `test_tokens`' `signed_by`, so every token the harness mints for a dependant's checks verifies at the accepted orchestrator as at the mock |
+| `operator` | The identity fixture the first operator is |
+| `steps` | Run in order against the orchestrator once it listens. A step is an `exchange` step ([`schemas/blocks`](../schemas/blocks.md#definitions), `exchange-step`), or a `read` |
+| `read` | Reads `file`, relative to the working directory the orchestrator was started in, once it exists and is not empty, waiting at most `within`; its contents, trimmed, are captured as `capture`. It is how the harness, as whoever started the orchestrator, reads what the orchestrator emitted only to them ([`architecture/admin`](admin.md#bootstrap-flow)) |
+| `directory` | How the harness reads the accepted orchestrator's directory, as the registration `observer-registers` made for itself: the request, where its entries are, and in each entry the pointers to the registered name, the lease state and the lease's expiry; `current` are the lease states L4-01 reads as current. A `join` check's `registered`, `listed`, `lease-current`, `lease-renewed` and `readyz-agrees` are read through it ([`schemas/blocks`](../schemas/blocks.md#definitions), `check-join`) |
+
+The steps' captures are held for the run: a dependant's check may name any of
+them as `${name}`, and `attestation_token` is the first operator's
+attestation token.
+
+The harness MUST start a component's dependencies from their accepted builds,
+in the services table's order, each in a working directory of its own with
+`WL_DEV=1`: the orchestrator with `bring_up.keys`' key and no orchestrator address,
+and every other dependency with the orchestrator's address and no fixture key,
+so it registers as it would in a tenant. Each MUST be listening and answer its
+`live` probe ([`protocol/spec`](../protocol/spec.md#get-livez-and-get-readyz))
+before the next is started; whether each that registers is listed with a live
+lease is L4-01's to judge, on the dependant's own run. <!-- wl:id dependencies-started-in-order -->
+
+Once the orchestrator listens, the harness MUST run `bring_up.steps` against
+it, in order, before any other dependency or the component under test starts.
+A step that fails or cannot be read MUST end the bring-up, and the dependant's
+run is unsettled, naming the step and why; the harness never continues with a
+hub that has no first operator. <!-- wl:id first-operator-bootstrapped -->
+
+The bootstrap secret MUST be read only from the file the orchestrator wrote
+in its own working directory, and MUST NOT appear in any event, record,
+evidence or log of the run. <!-- wl:id bootstrap-secret-kept-in-run -->
+
+The first operator obtains operator tokens the way every operator does: it
+attests a credential and mints with it ([`architecture/admin`](admin.md#obtaining-a-token)).
+Those two acts are signed over fixed-form statements, which a step expresses
+only once [`schemas/blocks`](../schemas/blocks.md#definitions) declares how a
+step signs one. Until it does, they are not steps here, and a check that needs
+an operator token the hub minted, rather than the `operator` test token, is
+unread, naming the missing form; it is never run with a token the harness
+made up.
+
+The orchestrator a dependant's checks name as `orchestrator: built` is this
+one: the accepted build, brought up as above. A component that *is* the
+orchestrator, under test, is started as
+[`schemas/blocks`](../schemas/blocks.md#checks) says for the orchestrator
+under test, with `bring_up.keys`' key and no bring-up beneath it.
 
 ## Mock Orchestrator
 
@@ -1324,6 +1421,8 @@ security:
 - [ ] Each `token` value of an exchange step other than `none` and `captured` is minted as its `test_tokens` entry gives it, signed by the `test-orchestrator` fixture's key, with exactly that entry's claims ([Test tokens as data](#test-tokens-as-data)) <!-- wl:check test-tokens-minted covers test-tokens-declared -->
 - [ ] A check naming `start.keys` starts the component with the fixture's key written as `.weblisk/keys/<name>.key`, `kdf = none`, mode 0600, under `WL_DEV=1`, and the component registers with that key's public half; one that registers with another key fails the check ([Starting a component with a fixture key](#starting-a-component-with-a-fixture-key)) <!-- wl:check fixture-key-start covers fixture-key-written -->
 - [ ] A check naming `start.config` starts the component with the fixture's value written as `.weblisk/config.yaml` in its working directory, `${instance}` replaced by that directory's absolute path; a component that reads another configuration fails the check ([Starting a component with a fixture configuration](#starting-a-component-with-a-fixture-configuration)) <!-- wl:check fixture-config-start covers fixture-config-written -->
+- [ ] A dependant's sealed run starts its dependencies from their accepted builds in the services table's order: the orchestrator with `bring_up.keys`' key and no orchestrator address, then each other dependency pointed at it, each listening and answering its `live` probe before the next starts ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check dependencies-brought-up-in-order covers dependencies-started-in-order -->
+- [ ] Before anything else starts beside it, the accepted orchestrator is claimed by `bring_up.operator` with the bootstrap secret read from its own working directory, and its attestation token is captured; a bring-up step that fails leaves the dependant's run unsettled naming the step, and the secret appears in no event, record, evidence or log ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check first-operator-claims-accepted-hub covers first-operator-bootstrapped bootstrap-secret-kept-in-run -->
 - [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes)) <!-- wl:check tests-run-against-http-endpoints-black -->
 
 ### A check that cannot read the artifact MUST say so

@@ -1,7 +1,7 @@
 <!-- blueprint
 type: language
 name: go
-version: 5.4.0
+version: 5.5.0
 requires: [protocol/identity, protocol/types, architecture/orchestrator, architecture/agent, architecture/domain, architecture/lifecycle, architecture/storage, architecture/gateway, patterns/deployment]
 language: go
 tier: free
@@ -485,6 +485,7 @@ toolchain:
   prepare: [[go, mod, tidy]]
   build: [go, build, ./...]
   build_component: [go, build, -o, "bin/{service}", "./cmd/{service}"]
+  build_package: [go, build, "./{package}"]
   run: ["bin/{service}"]
   vet: [go, vet, ./...]
   env: {GOFLAGS: "-gcflags=all=-e"}

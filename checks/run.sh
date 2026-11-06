@@ -709,6 +709,27 @@ else
 	fails=$((fails + 1))
 fi
 
+# architecture/testing's bring_up block is data the engine can perform; a
+# copy whose hub keys are not test_tokens' signer, and one whose step names a
+# capture no earlier step made, must each be reported with exactly that.
+expect 0 "bring-up: the bring_up block is data the engine can perform" python3 checks/bring-up.py
+sed 's/^  keys: test-orchestrator$/  keys: test-agent/' architecture/testing.md >"$tmp/bu-keys.md"
+expect 1 "bring-up control: hub keys other than the token signer fail" python3 checks/bring-up.py --file "$tmp/bu-keys.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "signed_by" "$tmp/out"; then
+	echo "ok   bring-up control: exactly one finding, the hub keys"
+else
+	echo "FAIL bring-up control: want exactly one finding, the hub keys"
+	fails=$((fails + 1))
+fi
+sed 's/bootstrap_secret: "${bootstrap_secret}"/bootstrap_secret: "${bootstrap}"/' architecture/testing.md >"$tmp/bu-cap.md"
+expect 1 "bring-up control: a placeholder no step captured fails" python3 checks/bring-up.py --file "$tmp/bu-cap.md"
+if [ "$(wc -l <"$tmp/out")" -eq 1 ] && grep -q "captured by no earlier step" "$tmp/out"; then
+	echo "ok   bring-up control: exactly one finding, the uncaptured placeholder"
+else
+	echo "FAIL bring-up control: want exactly one finding, the uncaptured placeholder"
+	fails=$((fails + 1))
+fi
+
 # Every language declares its layout, module, toolchain, diagnostics and
 # tests, and reads its own toolchain's real output as vectors/languages
 # expects. A copy of rust.md without its diagnostics block, and a copy of
