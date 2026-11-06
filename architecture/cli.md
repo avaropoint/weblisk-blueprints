@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.3.0
+version: 5.4.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -1627,24 +1627,50 @@ out, and is refused whole as below, naming `weblisk component admin init`:
 the orchestrator alone is what an absent file means, never what a present one
 that omits the door means.
 
-- **Order.** The orchestrator first, and each sibling only once the
-  orchestrator's `GET /livez` answers live and then its `GET /readyz` answers
-  ready, passed `--orch` with the address it actually bound, as an IP
-  literal and never `localhost`, which the admin gateway would refuse
+- **Order.** In layers, as a change builds them
+  ([`architecture/engine`](engine.md#build-order)): a component's layer is
+  one above the highest of the components it needs running first, which are
+  [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)'s
+  "needs running first", a service of a kind that runs in another's process
+  ([`schemas/kinds`](../schemas/kinds.md), `runs_with`) being a need on its
+  host — so the model service is a need on the orchestrator. The
+  orchestrator alone is the first layer. Every component of a layer is
+  started together, and the next layer begins only once each answers
+  `GET /livez` live and then `GET /readyz` ready, or is known not to. Each
+  is passed `--orch` with the address the orchestrator actually bound, as an
+  IP literal and never `localhost`, which the admin gateway would refuse
   (rule 19 of [`schemas/config`](../schemas/config.md#validation-rules)).
-  The admin gateway next, which `admin_gateway` declares, passed its
-  internal listener's port as `--port` and `WL_PORT` and waited on there
+  The admin gateway is passed its internal listener's port as `--port` and
+  `WL_PORT` and waited on there
   ([`architecture/admin`](admin.md#a-start-and-a-builds-own-run),
-  `gateway-port-is-internal`). Then the content
-  service; then the services a programme runs on that the file declares,
-  in [`schemas/programme`](../schemas/programme.md#the-services-in-the-order-they-are-built)'s
-  order — execution, notification, the prompt worker, the programme service
-  and the fabric service ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on)),
-  each on its section's port or its conventional one; then the change
-  service, which `change_service` declares
-  ([`schemas/config`](../schemas/config.md#change_service)); then domains,
-  agents, and the application gateway last. `weblisk server stop` stops them in the
-  reverse order, and `weblisk server status` reports each declared one.
+  `gateway-port-is-internal`). Each service is on its section's port or its
+  conventional one ([`schemas/config`](../schemas/config.md#the-services-a-programme-runs-on)).
+  Components the services table does not order — domains, agents, the
+  application gateway — follow its layers one at a time, in that order.
+  For the services table as it stands that is: the orchestrator; the admin
+  gateway, content, execution and the change service; notification, the
+  prompt worker and the fabric service; the programme service.
+- **A layer that does not come up.** A component that is not running and
+  answering live once its wait ends holds back every component that needs it,
+  at any depth: those are reported not started, naming the need, and
+  everything that needs nothing that failed still starts. The command exits
+  non-zero. An orchestrator that does not come up starts nothing beside it.
+  A component that is live and not ready when its wait ends is reported
+  started and not ready, and holds nothing back.
+- **Keys.** A component whose section names `key_passphrase` and whose key
+  file `.weblisk/keys/<name>.key` is absent, `<name>` being the name it
+  registers under ([`protocol/identity`](../protocol/identity.md#key-files)),
+  has a key minted there before its first start: a new ML-DSA-65 key pair in
+  the `weblisk-key-v1` envelope with `kdf = argon2id`, sealed by the
+  passphrase the start already fetched for it, mode 0600, created
+  exclusively. A key file already there is never replaced, and nothing of a
+  key is printed but its fingerprint. The orchestrator's key is its hub key,
+  made by its own first start, and the admin gateway's is the gateway's
+  ([`architecture/admin`](admin.md#registration-lease-and-identity)); neither
+  is minted here.
+
+`weblisk server stop` stops them in the reverse order of the layers, the last
+layer first, and `weblisk server status` reports each declared one.
 - **Certificate.** Before it starts the admin gateway, it makes a new
   certificate from the gateway's own TLS key where the certificate the CLI
   made has fewer than 30 days left, so its pin holds. A certificate the
@@ -1674,8 +1700,10 @@ that omits the door means.
   ([`schemas/config`](../schemas/config.md#service-key-passphrases)) is given
   its key's passphrase on its standard input when it starts, as one line ended
   by a line feed, and its standard input is then closed. The CLI gets it from
-  the named source with `get` — `field: "passphrase"` where the source lists
-  `named_fields`, and no field otherwise
+  the named source with `get` — at the field the reference names, for a
+  source whose references name one (1Password's `op://<vault>/<item>/<field>`),
+  else `field: "passphrase"` where the source lists `named_fields`, and no
+  field otherwise
   ([`protocol/secret-source`](../protocol/secret-source.md#actions)) — once for
   each distinct reference, before anything starts, so a source that asks a
   person asks once. It is never placed in an argument, an environment variable
@@ -1697,7 +1725,16 @@ that omits the door means.
 
 `weblisk server stop` with no `--component` stops every component this CLI has
 a record of, siblings before the orchestrator, so nothing is left registered
-with a registry that has gone.
+with a registry that has gone. Each is stopped as the process group its
+detached start made it lead: the group is asked to shut down, and once the
+component has gone, or after a grace, whatever remains of its group is
+killed, so a run command that wraps a component, or a child it spawned, does
+not outlive it.
+
+`weblisk server restart` is `weblisk server stop` followed by
+`weblisk server start --detach`. What could not be stopped is said and does
+not hold the start back; the start refuses a second instance of whatever is
+still running (`start-one-instance`).
 
 ### `weblisk server status`
 
@@ -1718,7 +1755,13 @@ runs when things are wrong.
 
 With `--json` it prints one object: the run state of the orchestrator, or of
 the component `--component` names, and `hub`, which says which hub the
-directory holds. A client that holds a hub's `hub_id` from a registration
+directory holds. Each run state carries `state`: `running`, `exited`
+(recorded, its process gone) or `not-started`. Without `--component` the
+object also carries `components`: every component the configuration declares
+or this CLI has a record of, in start order, each its run state with
+`declared`, `layer` (its start layer, where the declaration can be arranged),
+`port` (where declared), `key_file` (its key's path under the tenant) and
+`key_present`; nothing of any key is read for it. A client that holds a hub's `hub_id` from a registration
 answer ([A credential for each hub](#a-credential-for-each-hub)) compares the
 two to learn whether a directory on this host is that hub's, which is the
 only way it learns that without reading the directory itself.
