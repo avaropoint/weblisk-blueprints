@@ -118,6 +118,23 @@ change:
     attestation: <Attestation>
   without_approval: true           # applied with no approval, on the operator's word
   applied_run: <run id>            # the run statement apply wrote
+  layers:                          # the layers it is built in (architecture/engine, Build order)
+    - layer: <integer>             # 0: the contract package and the libraries
+      units:
+        - unit: <unit key>         # a component's key, or <role>:<package> for layer 0
+          role: contract | library | component
+          build: <bool>            # false: kept, and gated on its standing
+          retest: <bool>           # tested again against a rebuilt dependency
+          needs_running: [<component ref>]
+          requires: [<unit key>]
+  integration:                     # the whole-hub run after the last layer
+    ran: <bool>
+    passed: <bool>
+    components: [<component ref>]
+    findings: [<text>]
+  fresh:                           # kind fresh only, from the plan
+    removes: [<path>]              # every file a generation recorded, removed as its layer begins
+    keeps_unrecorded: [<path>]     # beside them, recorded by no generation, kept
   outcomes:                        # one per component apply built or tried to, in build order
     - component: <component ref>
       result: built | failed | refused | skipped
