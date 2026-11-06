@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: cli
-version: 5.1.0
+version: 5.2.0
 requires: [protocol/spec, protocol/identity, protocol/secret-source, protocol/types, architecture/orchestrator, architecture/admin, patterns/command]
 platform: any
 tier: free
@@ -707,9 +707,14 @@ command_surface:
 
 ### Renamed commands
 
-Each old spelling lives for one release as an alias that prints the new form,
-and an alias that stands for a one-ref `change plan` produces a plan byte for
-byte identical to it.
+Each command on the left is renamed when its new form is built, and its old
+spelling goes in the same release. No front end keeps it as an alias: a front
+end holds no command but the manifest's operations and the three front-end-only
+ones ([`architecture/engine`](engine.md#front-end-only-commands),
+`front-end-only-three`), and an old spelling is neither. The manifest lists the
+new form alone, and this table is where a person finds what an old spelling
+became. Until the new form is built the old one is the command, and
+[The Command Surface](#the-command-surface) lists it under that name.
 
 | Today | Becomes |
 |---|---|
