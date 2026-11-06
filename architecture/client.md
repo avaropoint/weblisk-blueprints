@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: client
-version: 2.1.0
+version: 2.1.1
 requires: [protocol/types, protocol/identity, architecture/gateway, architecture/agent, patterns/scope]
 platform: any
 tier: free
@@ -1128,8 +1128,9 @@ types:
         type: bool
         description: Whether a second factor was satisfied for this session
       sec:
-        type: int
-        description: Seconds since the session was established, for re-authentication decisions
+        type: string
+        enum: [standard, elevated, critical]
+        description: The session's security level, as the Claim Definitions table declares it; re-authentication raises it
 ```
 
 ---
