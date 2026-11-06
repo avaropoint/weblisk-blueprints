@@ -544,6 +544,22 @@ bring_up:
         sign: {over: "", members: [name, public_key, role, timestamp], into: /signature, timestamp: /timestamp}
       expect: {status: 200, equals: {/status: approved}, has: [/token, /hub_id, /identity_id]}
       capture: {attestation_token: /token, hub_id: /hub_id, operator_identity: /identity_id}
+    - id: observer-registers
+      as: test-agent
+      request:
+        method: POST
+        path: /v1/register
+        body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: "1", description: Conformance observer, url: "http://localhost:9710", public_key: "${fixture/test-agent/public_key}", capabilities: [{name: "agent:message", resources: []}]}}
+        sign: {over: /manifest, into: /signature, timestamp: /timestamp}
+      expect: {status: 200, has: [/token]}
+      capture: {observer_token: /token}
+  directory:
+    request: {method: GET, path: /v1/services, headers: {Authorization: "Bearer ${observer_token}"}}
+    entries: /services
+    name: /name
+    lease_state: /lease_state
+    lease_expires_at: /lease_expires_at
+    current: [ready, not_ready]
 ```
 
 | Key | Means |
@@ -552,6 +568,7 @@ bring_up:
 | `operator` | The identity fixture the first operator is |
 | `steps` | Run in order against the orchestrator once it listens. A step is an `exchange` step ([`schemas/blocks`](../schemas/blocks.md#definitions), `exchange-step`), or a `read` |
 | `read` | Reads `file`, relative to the working directory the orchestrator was started in, once it exists and is not empty, waiting at most `within`; its contents, trimmed, are captured as `capture`. It is how the harness, as whoever started the orchestrator, reads what the orchestrator emitted only to them ([`architecture/admin`](admin.md#bootstrap-flow)) |
+| `directory` | How the harness reads the accepted orchestrator's directory, as the registration `observer-registers` made for itself: the request, where its entries are, and in each entry the pointers to the registered name, the lease state and the lease's expiry; `current` are the lease states L4-01 reads as current. A `join` check's `registered`, `listed`, `lease-current`, `lease-renewed` and `readyz-agrees` are read through it ([`schemas/blocks`](../schemas/blocks.md#definitions), `check-join`) |
 
 The steps' captures are held for the run: a dependant's check may name any of
 them as `${name}`, and `attestation_token` is the first operator's

@@ -108,6 +108,21 @@ def judge(text):
         if "as" in st and st["as"] not in identities:
             out.append(f"{where}: made as {st['as']!r}, which no identity fixture declares")
         captured |= set((st.get("capture") or {}).keys())
+    d = b.get("directory")
+    if not isinstance(d, dict):
+        out.append("bring_up: no directory, so no join check can read the orchestrator's view of a component")
+    else:
+        bad = errors(d.get("request"), DEFS["exchange-request"], BLOCKS)
+        if bad:
+            out.append(f"bring_up directory: its request is not one schemas/blocks admits, at {', '.join(p or '/' for p in bad)}")
+        for k in ("entries", "name", "lease_state", "lease_expires_at"):
+            if not (isinstance(d.get(k), str) and (d[k] == "" or d[k].startswith("/"))):
+                out.append(f"bring_up directory: {k} is not a JSON pointer")
+        if not (isinstance(d.get("current"), list) and d["current"]):
+            out.append("bring_up directory: current names no lease state")
+        for name in re.findall(r"\$\{([^}]*)\}", json.dumps(d)):
+            if name != "now" and not name.startswith("fixture/") and name not in captured:
+                out.append(f"bring_up directory: ${{{name}}} is captured by no step")
     return out
 
 
