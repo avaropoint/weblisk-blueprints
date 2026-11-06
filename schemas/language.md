@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.6.0
+version: 1.6.1
 kind: specification
 noun: language
 match: [languages/*.md]
@@ -236,11 +236,11 @@ structure:
 | Key | Means |
 |---|---|
 | `parser` | A [tree-sitter](https://tree-sitter.github.io/tree-sitter/using-parsers/queries) grammar and the versions of it the queries are written against. A query language over a grammar is data any engine can run, and it names no Weblisk concept |
-| `query` | Captures are read by name. `@value` is a value the query finds; `@exclude` is a value removed from them, by its text; `@unread` is something the query cannot judge, such as a pattern held in a constant, and makes the check unread where it occurs; a capture whose name begins `_` is the query's own. `${name}` is filled from the check's `args` |
+| `query` | Captures are read by name. `@value` is a value the query finds; `@exclude` is a value removed from them, by its text; `@unread` is something the query cannot judge, such as a pattern held in a constant, and makes the check unread where it occurs; `@paired`, captured in the same match as a `@value`, makes that value `<value>=<paired>`, so one query yields pairs, such as an error code and its status; a capture whose name begins `_` is the query's own. `${name}` is filled from the check's `args` |
 | `value` | Applied to each `@value` and `@exclude` capture's text; the first group is the value. The whole text when absent |
 
 A check's `expect` is read over the values: `none` (no `@value`), `some`,
-`includes` (every listed value found) or `subset_of` (every value is one the
+`includes` (every listed value found), `excludes` (no listed value found) or `subset_of` (every value is one the
 named query also finds). Its `scope` is the files read: the `component`'s
 package, the whole `module`, the `contract` package the layout block names, or
 every file `outside-contract`.

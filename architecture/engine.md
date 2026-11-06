@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: engine
-version: 1.6.0
+version: 1.7.0
 requires: [architecture/generation, architecture/cli, schemas/change, schemas/run-statement, schemas/instruction, schemas/kinds, schemas/family, schemas/blocks, protocol/conventions]
 platform: any
 tier: free
@@ -1001,8 +1001,15 @@ counts. <!-- wl:id one-suite -->
 
 ### The unit is a criterion
 
-A **criterion** is one checklist item, or one requirement (`wl:id`) that no
-checklist item covers. Each has a durable id and a digest.
+A **criterion** is one checklist item that carries a `wl:check` id, one
+requirement marked `wl:id`, or one entry of a `requirements` block, each keyed
+`<file path without .md>:<id>`. A requirement a checklist item covers is still
+its own criterion: the item's check settles it by naming it in `covers`, and a
+declared check may settle it by naming it alone. This is the set
+[`checks/acceptance-classes.json`](../checks/acceptance-classes.json) classes,
+and the suite derives exactly it, so every criterion the register classes is
+one a check can settle and the suite runs. Each has a durable id and a
+digest. <!-- wl:id criterion-set-is-the-register -->
 
 A criterion's id, once minted, MUST NOT be derived again or changed. A
 criterion whose text changes keeps its id and takes a new digest. <!-- wl:id criterion-id-frozen -->
@@ -1288,6 +1295,7 @@ is consulted, and nothing about the model's answer is.
 - [ ] Every sentence of every model prompt is an instruction file's folded text or a labelled declared input, and the action records each instruction's ref, version and digest ([Instructions](#instructions)) <!-- wl:check prompts-are-corpus-text covers no-engine-sentences instruction-revision-recorded -->
 - [ ] Conformance runs only the declared checks, the translated tests and the published vectors, and no tool holds a test, check or verdict rule of its own ([The one conformance suite](#the-one-conformance-suite)) <!-- wl:check suite-is-derived covers one-suite -->
 - [ ] A criterion keeps its id when its text changes; its digest moves when its text or any definition it cites changes, and not otherwise ([The unit is a criterion](#the-unit-is-a-criterion)) <!-- wl:check criterion-id-and-digest covers criterion-id-frozen criterion-digest-covers-citations -->
+- [ ] The suite's criteria are exactly the register's: every checklist item carrying a `wl:check` id, every `wl:id` requirement and every `requirements` entry, a requirement an item covers among them, so a check covering a requirement alone is run ([The unit is a criterion](#the-unit-is-a-criterion)) <!-- wl:check criteria-are-the-register covers criterion-set-is-the-register -->
 - [ ] The suite holds a component to its own blueprint's criteria and those of the library blueprints it requires, never through another component's blueprint, and to another criterion only through a check whose `applies_to` names its kind: the orchestrator is not held to `architecture/admin`'s, and every registering component is held to `architecture/testing`'s L4 checks ([What a component owes](#what-a-component-owes)) <!-- wl:check component-owes covers component-owes-own-and-libraries -->
 - [ ] A translated test counts only with all four conditions shown on the record: the translate action precedes every generate action and was given no implementation, the test failed against the stub, no generate or repair action wrote it, and its verdict is the test command's ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check translated-test-conditions covers translated-test-counts translated-apart fails-on-nothing tests-frozen verdict-is-the-runs -->
 - [ ] In production, an S or J criterion settled only by a translated test is unsettled ([What makes a translated test count](#what-makes-a-translated-test-count)) <!-- wl:check production-needs-declared covers production-s-j-declared -->

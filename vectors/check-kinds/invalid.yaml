@@ -67,3 +67,123 @@ cases:
       check: exchange
       assertion: a
       exchange: {steps: [{request: {method: POST, path: /v1/register, body: "${fixture/test-stranger/manifest}"}, expect: {status: 200}}]}
+  # The vocabulary schemas/blocks 1.6.0 added: each name is closed.
+  - id: undeclared-operator
+    fault: does not satisfy the check definition at /exchange/steps/0/expect/assert/0
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: GET, path: /livez}, expect: {assert: [{signed-by: {value: /x}}]}}]}
+  - id: undeclared-act
+    fault: does not satisfy the check definition at /topology/acts/0/act
+    check:
+      id: x
+      covers: [example-refusal]
+      check: topology
+      assertion: a
+      topology: {instances: [{name: a}], acts: [{act: corrupt, instance: a}]}
+  - id: undeclared-role
+    fault: does not satisfy the check definition at /exchange/start/stand_up/x/role
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {start: {stand_up: {x: {role: smtp-server}}}, steps: [{request: {method: GET, path: /livez}, expect: {status: 200}}]}
+  - id: undeclared-signature-form
+    fault: "token_alter signature 'scrambled', which test_tokens' signature_forms does not declare"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{as: test-agent, request: {method: GET, path: /v1/services, token: pass, token_alter: {signature: scrambled}}, expect: {status: 401}}]}
+  - id: drive-at-a-component
+    fault: "a drive check applies_to 'orchestrator', which schemas/kinds declares as no client kind"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: drive
+      assertion: a
+      applies_to: [orchestrator]
+      drive: {invoke: [{operation: tenant new, expect: {outcome: ok}}]}
+  - id: exchange-at-a-client
+    fault: "applies_to the client kind 'console', and only a drive check is run against a client"
+    check: {id: x, covers: [example-refusal], assertion: a, applies_to: [console]}
+  - id: except-alone
+    fault: does not satisfy the check definition at /applies_to
+    check: {id: x, covers: [example-refusal], assertion: a, except: [orchestrator]}
+  - id: undeclared-stood-service
+    fault: "reads ${stood/model/address}, and the check stands up no service 'model'"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: POST, path: /v1/probe, body: {to: "${stood/model/address}"}}, expect: {status: 200}}]}
+  - id: wrong-role-field
+    fault: "reads ${stood/remote/address}, and a git-remote answers no field 'address'"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {start: {stand_up: {remote: {role: git-remote}}}, steps: [{request: {method: POST, path: /v1/probe, body: {to: "${stood/remote/address}"}}, expect: {status: 200}}]}
+  - id: fixture-reads-unstood-service
+    fault: "starts with fixture 'model-config', which reads ${stood/model/address}"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {start: {files: {.weblisk/model.json: model-config}}, steps: [{request: {method: GET, path: /livez}, expect: {status: 200}}]}
+  - id: undeclared-placeholder
+    fault: "placeholder ${secret} is neither a capture the check makes nor one schemas/blocks declares"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: POST, path: /v1/probe, body: {k: "${secret}"}}, expect: {status: 200}}]}
+  - id: received-at-unknown
+    fault: "received by 'mailer', which is neither a mock nor a service the check stands up"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{request: {method: GET, path: /livez}, expect: {received: [{service: mailer, count: 0}]}}]}
+  - id: probe-not-started
+    fault: a step sent from the probe, and the check starts no probe
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {steps: [{from: probe, request: {probe: {boundary: storage, input: {}}}, expect: {equals: {/decision: deny}}}]}
+  - id: keys-not-a-fixture
+    fault: "starts with keys 'test-stranger', which is neither an identity nor a key fixture"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: a
+      exchange: {start: {keys: test-stranger}, steps: [{request: {method: GET, path: /livez}, expect: {status: 200}}]}
+  - id: rotate-to-an-identity
+    fault: "act rotate-key to 'test-agent', which is no key fixture"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: topology
+      assertion: a
+      topology: {instances: [{name: a}], acts: [{act: rotate-key, instance: a, fixture: test-agent}]}
+  - id: partial-check
+    fault: "its assertion leaves part of what it covers unsettled"
+    check:
+      id: x
+      covers: [example-refusal]
+      check: exchange
+      assertion: A refusal answers 401; that it is logged is not settled here.
+      exchange: {steps: [{request: {method: GET, path: /v1/services}, expect: {status: 401}}]}

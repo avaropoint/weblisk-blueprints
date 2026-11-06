@@ -1,7 +1,7 @@
 <!-- blueprint
 type: pattern
 name: security
-version: 1.0.6
+version: 1.1.0
 requires: [protocol/types, protocol/identity, patterns/logging]
 platform: any
 tier: free
@@ -395,7 +395,9 @@ Security events are classified by threat level to drive response:
 }
 ```
 
-Security events flow through the messaging bus on topic
+The log line a security event writes is
+[`patterns/logging`](logging.md#security-events)'s `security` record; this
+format is the event published on the bus. Security events flow through the messaging bus on topic
 `security.<event-name>`. The alerting agent subscribes to
 security events and routes notifications per severity.
 

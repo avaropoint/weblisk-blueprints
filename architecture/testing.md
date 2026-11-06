@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.5.0
+version: 2.6.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -369,6 +369,88 @@ fixtures:
       admin_gateway_identity: "384157d7e6a5d5839ac228be14e3b3386bba4f6b64cc5fdaae39991366049a74"
     admin_gateway:
       allowlist: ["127.0.0.1", "::1"]
+  test-agent-sealed:
+    key:
+      identity: test-agent
+      kdf: argon2id
+      salt: "000102030405060708090a0b0c0d0e0f"
+      passphrase: conformance-passphrase-1
+  test-agent-next:
+    key:
+      identity: test-domain
+      kdf: none
+  conformance-passphrase:
+    text: conformance-passphrase-1
+  conformance-passphrase-wrong:
+    text: conformance-passphrase-2
+  sealed-key-agent-config:
+    agents:
+      - name: "${self/name}"
+        key_passphrase: "file:${instance}/.weblisk/passphrase"
+  orchestrator-gateway:
+    orchestrator:
+      admin_addresses: ["https://admin.conformance.invalid"]
+      admin_gateway_identity: "${fixture/test-gateway/fingerprint}"
+      admin_gateway_from: ["${harness/source}"]
+  model-config:
+    provider: conformance-backend
+    model: conformance-model
+    base_url: "${stood/model/address}"
+  model-agreement:
+    party: Conformance Model Party
+    backends: [conformance-backend]
+    models: [conformance-model]
+    agreement: Conformance agreement 1
+    agreement_digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    level: confidential
+    not_after: "${now+30d}"
+  document-family:
+    text: |
+      ---
+      family: schemas/family@1
+      version: 1.0.0
+      kind: conformance-note
+      noun: conformance note
+      capabilities: [author, versioned]
+      generates: none
+      ---
+      # Conformance note
+
+      A document family a tenant declares for itself, for conformance checks.
+
+      ## Header
+
+      ```yaml
+      header:
+        schema:
+          type: object
+          properties:
+            family: {const: documents/families/conformance-note@1}
+            title: {type: string}
+            uid: {type: string}
+          required: [family, title]
+      ```
+  content-git-remote:
+    content:
+      backends:
+        - name: stores
+          driver: git
+          root: "${instance}/stores"
+          options: {default_line: main, worktree: none, object_format: sha1}
+        - name: destination
+          driver: git-remote
+          root: "${stood/remote/root}"
+          held_by: tenant
+          options:
+            host_keys: ["${stood/remote/host_key}"]
+            read_addresses: []
+      repositories:
+        - id: docs
+          scope_path: conformance/org
+          placement: {backend: stores, locator: docs}
+          custody: exclusive
+      reconcile_interval: 0s
+      checkpoint_interval: 0s
   task:
     id: conformance-task-1
     from: user
@@ -418,9 +500,24 @@ another is that token with the fields it names replaced. A step whose `token`
 is not `none` or `captured` and whose `as` is `anonymous` is a fault of the
 check, reported as such, never sent with no token.
 
+A step's `token_alter` changes the token its `token` names exactly as an
+entry `from` another does, its claims and times before it is signed and its
+signature after: `claims` replaces the
+claims it names and removes those it gives `null`, `iat` and `exp` replace the
+token's, and `signature` puts the signature in one of the `signature_forms`
+below. So an expired pass, a work pass addressed to another component, an
+operator token with no `cid` or carrying `step_up_at`, and a token whose
+signature is a byte short are each a declared token altered, and none is a
+new entry. `<fingerprint of F>` in a claim is `${fixture/F/fingerprint}`.
+
 ```yaml
 test_tokens:
   signed_by: test-orchestrator
+  signature_forms:
+    last-byte-flipped: The decoded signature's last byte changed (exclusive-or 0x01), encoded again; the length is right and it does not verify
+    truncated: The decoded signature without its last byte, encoded again; one byte shorter than ML-DSA-65's 3309
+    extended: The decoded signature with one 0x00 byte appended, encoded again; one byte longer than 3309
+    empty: No signature; the token's third part is empty
   tokens:
     own:
       means: The registration token the orchestrator issues the as identity
@@ -474,7 +571,8 @@ test_tokens:
 Every value of `token` that [`schemas/blocks`](../schemas/blocks.md#definitions)
 declares, other than `none` and `captured`, MUST have exactly one entry here,
 and a token MUST carry exactly the claims its entry gives and no other.
-`checks/check-kinds.py` holds the first. <!-- wl:id test-tokens-declared -->
+`checks/check-kinds.py` holds the first, and that every signature form a
+token or a `token_alter` names is one `signature_forms` declares. <!-- wl:id test-tokens-declared -->
 
 ### Starting a component with a fixture key
 
@@ -506,7 +604,7 @@ component, it writes that value, as YAML, to `.weblisk/config.yaml` in the
 working directory it starts the component in, with every `${instance}` in it
 replaced by that directory's absolute path, and creates nothing else. A
 configuration fixture holds no secret and names no address outside that
-directory, so a store it declares lives and dies with the run. <!-- wl:id fixture-config-written -->
+directory but as the paragraph below allows, so a store it declares lives and dies with the run. <!-- wl:id fixture-config-written -->
 
 A component that, given that file, does not read it, or reads another, has
 failed the check that named `start.config`, as one that ignores `start.keys`
@@ -606,6 +704,86 @@ one: the accepted build, brought up as above. A component that *is* the
 orchestrator, under test, is started as
 [`schemas/blocks`](../schemas/blocks.md#checks) says for the orchestrator
 under test, with `bring_up.keys`' key and no bring-up beneath it.
+A configuration fixture may name an address only through a placeholder the
+harness fills (`${harness/source}`, `${stood/<name>/<field>}`, `${address}`)
+or under the reserved top-level name `invalid` (RFC 6761), which no resolver
+answers, as `orchestrator-gateway`'s `admin_addresses` does. Its secrets are
+pointers, as every configuration's are: `sealed-key-agent-config` names a
+`file:` source under `${instance}`, which a check fills with `start.files`.
+A check of another kind sets that kind's own `key_passphrase` the same way.
+
+### Key fixtures
+
+A fixture whose value is `key` is a key file, not an identity: `identity` names
+the identity fixture whose seed it holds, and `kdf` how it is written in the
+`weblisk-key-v1` envelope ([`protocol/identity`](../protocol/identity.md#private-key-format)).
+`kdf: none` is the development key `start.keys` writes for an identity
+fixture. `kdf: argon2id` is that key encrypted under `passphrase`, with the
+`salt` given and the parameters Encryption Scheme fixes, so its bytes are the
+same at every run; the passphrase reaches the component only by the source its
+configuration names, never by the environment. A key fixture's public key and
+fingerprint are its identity's. <!-- wl:id fixture-key-forms -->
+
+So a sealed start is `start: {keys: test-agent-sealed, config:
+sealed-key-agent-config, files: {.weblisk/passphrase: conformance-passphrase}}`,
+and a start whose passphrase fails names `conformance-passphrase-wrong` there
+instead and expects `refuses-start`. A topology act `read` of
+`.weblisk/keys/<name>.key` reads the key file a process wrote, its mode and,
+through `decodes-as: weblisk-key-v1`, its `kdf`.
+
+### Placing files
+
+A check's `start.files` (and a `drive` check's `files`) maps a path relative
+to the working directory to a fixture. Before the component starts, the
+harness writes each: a fixture whose value is `text` as that text, exactly;
+any other value as JSON where the path ends `.json` and as YAML otherwise;
+each with every placeholder filled, mode 0600, under directories of mode
+0700. A topology act `place` writes one the same way while the component runs,
+which is how a file arrives out of band. So `model-config` is placed at
+`.weblisk/model.json`, a tenant's document family at
+`documents/families/conformance-note.md`, and a passphrase at the path its
+configuration names. A fixture that is a request body, such as
+`model-agreement`, is sent, never placed: what a component records through
+its own route is never written behind it. <!-- wl:id fixture-files-placed -->
+
+### Harness roles
+
+What the harness runs beside the component under test is a closed set, each
+specified here and built from this specification, as the mocks are. Every
+one records every request that reaches it, in order, as `{method, path,
+headers, body}` (body parsed where it is JSON), and a step's
+`expect.received` reads those records: `service: orchestrator` the
+mock orchestrator's, `service: mock-agent` the mock agent's, and a stood service's by
+its name. <!-- wl:id harness-records-received -->
+
+| Role | Stood up by | Reached at | Does |
+|---|---|---|---|
+| mock orchestrator | `start.orchestrator: mock` | `${address/orchestrator}` | [Mock Orchestrator](#mock-orchestrator) |
+| mock agent | `start.mock_agent` | `${address/mock-agent}` | [Mock Agent](#mock-agent) |
+| `responder` | `start.stand_up`, `role: responder` | `${stood/<name>/address}`, an `http://127.0.0.1:<port>` origin, or `https://` with `${stood/<name>/certificate}` its certificate's PEM where `tls` is set | answers each request with the first of `answers` that matches it, and every other with 404 and an `ErrorResponse`. A model backend, a webhook target, a probe of an address's provenance, or a gateway a front end is driven against |
+| `git-remote` | `start.stand_up`, `role: git-remote` | `${stood/<name>/root}`, an `ssh://127.0.0.1:<port>/<directory>/` root; `${stood/<name>/host_key}`, its host key's `known_hosts` line, made for the run | a git server over SSH that offers exactly the key exchange methods `kex` names, admits the keys `authorises` names, and holds `lines`. Its pushes are what `received` reads, each `{line, from, to, files}`; a topology act `remote` changes a line as another party would |
+| probe agent | `start.probe` | the component under test's boundaries | [The probe agent](#the-probe-agent) |
+
+`${harness/source}` is the IP address the harness's requests reach the
+component from, and `${address}` the origin it reaches the component at, so a
+check can say what a component must make of where a request came from, and
+the `@address` capture names the origin a step dialled.
+
+### The probe agent
+
+The enforcement boundaries ([`architecture/enforcement`](enforcement.md#boundary-integration))
+wrap an agent's own clients, so they are reached only by an agent behind them.
+`start.probe` starts the mock agent as the identity fixture `as` names, with
+that fixture's manifest, built in the component's language with the
+component's enforcement package wrapping its message, storage, external and
+response clients as Boundary Integration says. A step sent `from: probe`
+carries `request.probe`: a boundary and the input its interface in
+`architecture/enforcement` takes. The probe attempts that operation through
+that boundary, and the step's response is the interface's output as JSON,
+`{decision, correlation_id, violation}`, with the status the boundary's
+refusal gives where it refuses. What reached the far side is read with
+`received`. A component whose language declares no enforcement package to
+link leaves every probe check **unread**. <!-- wl:id probe-agent-behind-enforcement -->
 
 ## Mock Orchestrator
 
@@ -628,6 +806,7 @@ Implements only the endpoints agents call during their lifecycle.
 - Accepts all valid signatures (verifies format but uses the provided public key)
 - Issues tokens with 24h TTL using test orchestrator keys
 - Stores registrations in memory
+- Records every request it receives, for `expect.received` ([Harness roles](#harness-roles))
 - Does NOT forward tasks (mock only)
 
 ### What the mock cannot establish
@@ -1010,8 +1189,8 @@ interop runs, and `weblisk test conformance`), whose ids contradicted each
 other and this document.
 
 Where the vocabulary cannot yet say what a test needs, the check is
-`translated`, and its assertion says what is missing: L1-09, whose directory
-push is signed as a fixed-form statement, and L3-01 to L3-05, which need the
+`translated`, and its assertion says what is missing: L1-09, whose effect on
+the agent's internal list is seen only in what it does next, and L3-01 to L3-05, which need the
 published workflow, task and lifecycle agents started beside a domain and an
 observation of the events they publish. Each is unsettled until the
 vocabulary grows or a translated test is promoted, never passed.
@@ -1096,14 +1275,20 @@ verifies:
   - id: l1-06-execute-task
     covers: ["protocol/spec:agent-returns-signed-taskresult-post-v1", "architecture/agent:post-v1-execute-parses-taskrequest-calls", level-1-tests-pass-protocol-compliance]
     check: exchange
-    assertion: A TaskRequest carrying a valid token is answered 200 with a TaskResult whose task_id is the request's id and whose agent_name is the agent's name.
+    assertion: A TaskRequest carrying a valid token is answered 200 with a TaskResult whose task_id is the request's id, whose agent_name is the agent's name, and whose signature verifies, under Sign JSON over the result without its signature member, by the key the agent describes itself with.
     applies_to: [agent]
     exchange:
       start: {orchestrator: mock}
       steps:
         - as: test-orchestrator
           request: {method: POST, path: /v1/execute, token: own, body: "${fixture/task}"}
-          expect: {status: 200, json: true, equals: {/task_id: conformance-task-1, /agent_name: "${self/name}"}}
+          expect:
+            status: 200
+            json: true
+            has: [/signature]
+            equals: {/task_id: conformance-task-1, /agent_name: "${self/name}"}
+            assert:
+              - verifies-under: {signature: /signature, key: "${self/public_key}", form: jcs, without: [signature]}
 
   - id: l1-07-protected-endpoints
     covers: ["protocol/spec:protected-endpoints-reject-requests", level-1-tests-pass-protocol-compliance]
@@ -1143,7 +1328,7 @@ verifies:
 
   - id: l1-09-service-directory-update
     covers: ["protocol/spec:agent-accepts-post-v1-services-updates", level-1-tests-pass-protocol-compliance]
-    assertion: A directory pushed to POST /v1/services, signed by the orchestrator as protocol/spec gives, is answered 200 and replaces the agent's internal service list. Translated, because the push is signed as a fixed-form statement, which the exchange vocabulary's sign (canonical JSON) does not yet express, and because the internal list is observable only through what the agent does next.
+    assertion: A directory pushed to POST /v1/services, signed by the orchestrator as protocol/spec gives, is answered 200 and replaces the agent's internal service list. Translated, because the internal list is observable only through what the agent does next; the signed push itself is now expressible, as test-orchestrator signing weblisk/directory/v2 with sign's fixed-form.
     applies_to: [agent, domain]
 
   - id: l1-10-error-response-format
@@ -1295,7 +1480,7 @@ verifies:
   - id: l4-02-manifest-accepted
     covers: ["protocol/spec:protocol-version-compared-equality-wire-version", "protocol/spec:subscription-scope-delivery-scope-never", level-1-tests-pass-protocol-compliance]
     check: join
-    assertion: A real orchestrator accepts the component's own registration, so its capabilities, subscription scopes and protocol_version are what the orchestrator admits, and it is never refused INVALID_REQUEST. That the manifest carries no field outside AgentManifest is not settled here, since an orchestrator preserves such a field.
+    assertion: A real orchestrator accepts the component's own registration, so its capabilities, subscription scopes and protocol_version are what the orchestrator admits, and it is never refused INVALID_REQUEST. Whether the manifest carries a field outside AgentManifest is no part of what it covers, since an orchestrator preserves such a field.
     applies_to: [registers]
     join:
       start: {orchestrator: built}
@@ -1423,6 +1608,10 @@ security:
 - [ ] A check naming `start.config` starts the component with the fixture's value written as `.weblisk/config.yaml` in its working directory, `${instance}` replaced by that directory's absolute path; a component that reads another configuration fails the check ([Starting a component with a fixture configuration](#starting-a-component-with-a-fixture-configuration)) <!-- wl:check fixture-config-start covers fixture-config-written -->
 - [ ] A dependant's sealed run starts its dependencies from their accepted builds in the services table's order: the orchestrator with `bring_up.keys`' key and no orchestrator address, then each other dependency pointed at it, each listening and answering its `live` probe before the next starts ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check dependencies-brought-up-in-order covers dependencies-started-in-order -->
 - [ ] Before anything else starts beside it, the accepted orchestrator is claimed by `bring_up.operator` with the bootstrap secret read from its own working directory, and its attestation token is captured; a bring-up step that fails leaves the dependant's run unsettled naming the step, and the secret appears in no event, record, evidence or log ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check first-operator-claims-accepted-hub covers first-operator-bootstrapped bootstrap-secret-kept-in-run -->
+- [ ] A check naming a key fixture in `start.keys` starts the component with that fixture's key file as its `kdf` gives it, an `argon2id` key under its passphrase and fixed salt, the passphrase reaching it only by the source its configuration names ([Key fixtures](#key-fixtures)) <!-- wl:check key-fixture-start covers fixture-key-forms -->
+- [ ] Each `start.files` entry is written before the component starts, a `text` fixture exactly and any other as JSON or YAML by its extension, mode 0600; an act `place` writes one the same way while it runs; a request-body fixture is sent and never placed ([Placing files](#placing-files)) <!-- wl:check files-placed covers fixture-files-placed -->
+- [ ] The mock orchestrator, the mock agent and every stood service record each request that reaches them, in order, and a step's `expect.received` is judged over those records alone ([Harness roles](#harness-roles)) <!-- wl:check harness-records covers harness-records-received -->
+- [ ] A step sent `from: probe` is attempted by the mock agent through the named boundary of the component's own enforcement package, and a component whose language names no such package leaves the check unread ([The probe agent](#the-probe-agent)) <!-- wl:check probe-behind-enforcement covers probe-agent-behind-enforcement -->
 - [ ] Tests run against HTTP endpoints only (black-box) ([Overview](#overview), [Implementation Notes](#implementation-notes)) <!-- wl:check tests-run-against-http-endpoints-black -->
 
 ### A check that cannot read the artifact MUST say so
