@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.3.1
+version: 1.4.0
 kind: reference
 noun: position
 match: [positions/*.md]
@@ -104,6 +104,34 @@ overstates the job by about double.
 Judgement. What to do first. What a good version of this job looks like. How it
 goes wrong. What the trade calls it. None of that is derivable from a programme,
 and none of it changes when a programme does.
+
+## What stops without the holder
+
+The derived half names the work that has **no second path** — the part of a
+role brief worth reading first, and the one a hand-written guide could never
+keep current. Three absences, and they are genuinely different:
+
+```yaml
+absence_shapes:
+  no-escalation:
+    when: an obligation the position is responsible for declares no escalate.to
+    heading: These escalate to nobody
+    says: the programme declares no escalation, so being late is invisible until somebody looks.
+  sole-adopter:
+    when: an artifact's approved_by names this position and no other
+    heading: Only you can put these in force
+    says: no other position is named, so the document is not in force until you accept it.
+  sole-approver:
+    when: a register's approvers name this position and no other
+    heading: Only you can approve these
+    says: no other position is named as an approver, so every submission waits on you.
+```
+
+A client derives each from the programmes the organisation has adopted, and
+renders the `heading` and `says` declared here, never wording of its own. A
+shape it derives that is not declared here is shown by its name, as
+undeclared. Where every one of a category is an absence — most registers name
+one approver — the brief may say so in one line rather than list them.
 
 ---
 

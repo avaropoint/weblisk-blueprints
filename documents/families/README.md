@@ -32,7 +32,7 @@ keys a client reads from a document header — `family`, `title`, `kind`,
 | `uid` | the document's own identity, minted when it is created and never changed; records join on it, so a family never refuses it |
 | `approver`, `approved_by` | who approved the version |
 | `effective`, `effective_date` | when the version takes effect |
-| `review_cycle`, `last_reviewed`, `last_review` | when it is next due for review, and when it last was |
+| `review_cycle`, `last_reviewed`, `last_review` | when it is next due for review, and when it last was. `review_cycle` is a word of the [cadence vocabulary](../../schemas/programme.md#cadence--how-often) an obligation uses — `quarterly`, `annually`, `each month` — and `last_reviewed` (or `last_review`) an ISO 8601 date; a client derives the next review from the two. A cycle outside that vocabulary has no next review, and is said to be undeclared rather than guessed |
 | `classification` | how it may be handled and shared |
 | `frameworks` | the frameworks it is written against |
 
