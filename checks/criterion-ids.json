@@ -449,7 +449,8 @@
    "exchange-pass-within-scope-and-person",
    "exchange-mints-pass-audits-each",
    "console-builds-no-record-statement",
-   "console-drives-no-signer"
+   "console-drives-no-signer",
+   "bootstrap-file-exact"
   ],
   "architecture/agent.md": [
    "post-v1-describe-returns-agent-manifest",
@@ -1692,7 +1693,8 @@
    "key-fixture-start",
    "files-placed",
    "harness-records",
-   "probe-behind-enforcement"
+   "probe-behind-enforcement",
+   "named-listener-sent-over-pin"
   ],
   "architecture/threat-model.md": [
    "auth-endpoints-enforce-per-ip-rate",
