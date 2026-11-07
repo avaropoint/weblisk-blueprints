@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: orchestrator
-version: 4.14.0
+version: 4.15.0
 requires: [protocol/identity, protocol/types, architecture/storage, architecture/admin, patterns/principal-identity, patterns/scope, patterns/logging]
 platform: any
 tier: free
@@ -798,12 +798,17 @@ criteria ([`ACCEPTANCE_PLAN.md`](../ACCEPTANCE_PLAN.md#classes)). Each one
 covers a criterion only where it proves the whole of it. A check that proved
 only part would let the part stand for the whole, because a criterion that any
 declared check covers is no longer translated. They reach what a sealed run can
-arrange with the identity fixtures alone: signed registrations, the
-registration tokens those earn, and a token from a second orchestrator. No
-channel token can be earned there: no grant may name an address the tenant did
-not declare, and no tenant can declare one yet. A criterion that needs an
-operator, attestation, channel, pass or work-pass token, a configuration
-setting, or a token's claims to be read is left to its translated test. A route
+arrange with the fixtures of [`architecture/testing`](testing.md#test-fixtures):
+signed registrations and the registration tokens those earn, a token from a
+second orchestrator, the tokens the harness mints with the `test-orchestrator`
+key the orchestrator under test is started with (`test_tokens`: altered,
+expired, attestation-typed, channel, pass, work-pass and operator tokens), a
+configuration fixture, and a responder the harness stands up. A harness-minted
+operator token names an operator and a credential this orchestrator does not
+hold, so it is judged by Auth Middleware step 6 outside `/v1/admin/*` and
+refused at step 7 under it: a criterion that needs an operator this
+orchestrator holds live, or a work authorisation one made, is left to its
+translated test until a check can bring one about. A route
 probe (`routed-*`) covers the route's refusal of a request with no token, which
 is part of what it proves, and no criterion of which it proves only that the
 route exists. Where a check names every protected route, it lists them from the
@@ -1494,6 +1499,674 @@ verifies:
   exchange:
     steps:
     - {request: {method: POST, path: /v1/admin/operators/token, body: {}}, expect: {status_not: [401, 403, 404, 405], json: true}}
+- id: broken-or-expired-token-refused
+  covers: [token-signature-not-verify-refused-401]
+  check: exchange
+  assertion: "A token whose signature does not verify is refused 401 INVALID_SIGNATURE, and one past its exp 401 TOKEN_EXPIRED, at every route Auth Middleware covers: the declaration's serves entries whose auth is token or a capability, less the two model audit routes, which from outside the process are answered 404. A signature a byte short, a byte long or empty is refused INVALID_SIGNATURE as a malformed token. The tokens are the as identity's registration token, minted by the harness with the test-orchestrator key the orchestrator under test is started with, so each is refused for its signature or its expiry alone. Written route by route because the engine does not yet read for_each protected-endpoint."
+  exchange:
+    start: {keys: test-orchestrator}
+    steps:
+    - {as: test-agent, request: {method: DELETE, path: /v1/register, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/register, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/rotate-key, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/rotate-key, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/work, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/work, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/work/authorisations, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/work/authorisations, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/lease, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/lease, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/audit, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/audit, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/work-authorisations, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/work-authorisations, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/overview, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/overview, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit/export, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit/export, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/model, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/model, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/providers, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/providers, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/complete, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/complete, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/model/agreements, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/model/agreements, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/agreements, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/agreements, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/ceiling, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/ceiling, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/model/ceiling, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/model/ceiling, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/resources, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/resources, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/agent, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/agent, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/lease, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/lease, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/organisation, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/organisation, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/project, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/project, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: bad-signature, body: {}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: expired, body: {}}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/grant, token: bad-signature}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/grant, token: expired}, expect: {status: 401, code: TOKEN_EXPIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: own, token_alter: {signature: truncated}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: own, token_alter: {signature: truncated}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: own, token_alter: {signature: extended}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: own, token_alter: {signature: extended}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: own, token_alter: {signature: empty}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: own, token_alter: {signature: empty}}, expect: {status: 401, code: INVALID_SIGNATURE}}
+- id: attestation-token-refused
+  covers: [token-type-attestation-refused-auth-middleware]
+  check: exchange
+  assertion: "A token whose type is attestation is refused 401 CREDENTIAL_REQUIRED at every route Auth Middleware covers but CredentialAttest, GET /v1/audit and POST /v1/channel among them, and at CredentialAttest for an operator other than its sub is refused 403 OPERATOR_SUBJECT_MISMATCH. The routes are the declaration's serves entries whose auth is token or a capability, less the two model audit routes, which from outside the process are answered 404. Written route by route because the engine does not yet read for_each protected-endpoint."
+  exchange:
+    start: {keys: test-orchestrator}
+    steps:
+    - {as: test-agent, request: {method: DELETE, path: /v1/register, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/rotate-key, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/work, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/work/authorisations, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/lease, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/audit, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: wrong-type, body: {}}, expect: {status: 403, code: OPERATOR_SUBJECT_MISMATCH}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/work-authorisations, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/overview, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit/export, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/model, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/providers, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/complete, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/model/agreements, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/agreements, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/ceiling, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/model/ceiling, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/resources, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/agent, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/lease, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/organisation, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/project, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: wrong-type, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/grant, token: wrong-type}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+- id: channel-token-confined
+  covers: [channel-token-refused-forbidden-route-outside]
+  check: exchange
+  assertion: "A channel token is refused 403 FORBIDDEN at every route outside /v1/admin/* that requires a token, and 401 CREDENTIAL_REQUIRED at every one under it: the declaration's serves entries whose auth is token or a capability, less the two model audit routes, which from outside the process are answered 404. Written route by route because the engine does not yet read for_each protected-endpoint."
+  exchange:
+    start: {keys: test-orchestrator}
+    steps:
+    - {as: test-agent, request: {method: DELETE, path: /v1/register, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: GET, path: /v1/services, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/channel, token: channel-self, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/rotate-key, token: channel-self, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: channel-self, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/work, token: channel-self, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: GET, path: /v1/work/authorisations, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/lease, token: channel-self, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: GET, path: /v1/audit, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: GET, path: /v1/model/ceiling, token: channel-self}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/work-authorisations, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/overview, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/audit/export, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PUT, path: /v1/admin/model, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/providers, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/complete, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/model/agreements, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/agreements, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/model/ceiling, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/resources, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/agent, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/lease, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/organisation, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/project, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: channel-self, body: {}}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+    - {as: test-agent, request: {method: GET, path: /v1/admin/events/grant, token: channel-self}, expect: {status: 401, code: CREDENTIAL_REQUIRED}}
+- id: operator-token-refused-outside-admin
+  covers: [operator-token-refused-forbidden-before-handler]
+  check: record
+  assertion: "An operator token is refused 403 FORBIDDEN at every route outside /v1/admin/* that requires a token, before any handler: DELETE /v1/register on an operator token whose sub is a registered agent's name leaves that agent listed, and GET /v1/audit answers no entries. Each refusal is logged as one security event naming the token by the identity_id its claims carry, and no log line holds the token. Written route by route because the engine does not yet read for_each protected-endpoint."
+  record:
+    start: {keys: test-orchestrator}
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {agent: /token}}
+    - {as: test-agent, request: {method: DELETE, path: /v1/register, token: operator}, expect: {status: 403, code: FORBIDDEN}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 200, equals: {/services/0/name: test-agent}}}
+    - {as: test-operator, request: {method: GET, path: /v1/services, token: operator}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: POST, path: /v1/channel, token: operator, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: POST, path: /v1/rotate-key, token: operator, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: POST, path: /v1/token/exchange, token: operator, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: POST, path: /v1/token/work, token: operator, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: GET, path: /v1/work/authorisations, token: operator}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: operator}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: POST, path: /v1/lease, token: operator, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {as: test-operator, request: {method: GET, path: /v1/audit, token: operator}, expect: {status: 403, code: FORBIDDEN, lacks: [/entries]}}
+    - {as: test-operator, request: {method: GET, path: /v1/model/ceiling, token: operator}, expect: {status: 403, code: FORBIDDEN}}
+    record:
+      source: log
+      match: {/log_type: security, /error_code: FORBIDDEN}
+      matches: {/details/identity_id: '^[0-9a-f]{64}$'}
+      lacks_text: ['${token}']
+      count: 11
+      within: 5s
+- id: pass-and-work-pass-refused
+  covers: [pass-work-pass-presented-route-orchestrator]
+  check: record
+  assertion: "A pass and a work pass, each addressed to the orchestrator under test, are refused 401 PASS_AUDIENCE_MISMATCH at every route Auth Middleware covers, and each refusal is logged as one security event. The routes are the declaration's serves entries whose auth is token or a capability, less the two model audit routes, which from outside the process are answered 404; the routes Auth Middleware does not cover take no token. Written route by route because the engine does not yet read for_each protected-endpoint."
+  record:
+    start: {keys: test-orchestrator}
+    steps:
+    - {as: test-writer, request: {method: DELETE, path: /v1/register, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/register, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/services, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/services, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/channel, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/channel, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/rotate-key, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/rotate-key, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/exchange, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/exchange, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/work, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/work, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/work/authorisations, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/work/authorisations, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/work/authorisations/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/lease, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/lease, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/audit, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/audit, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/operators/conformance-probe/credentials, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators/conformance-probe/credentials, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/operators/conformance-probe/credentials/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/operators/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/operators/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PUT, path: /v1/admin/operators/conformance-probe/role, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/work-authorisations, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/work-authorisations, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/work-authorisations, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/work-authorisations, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/work-authorisations/conformance-probe/renew, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/work-authorisations/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/agents, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/agents, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/agents/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/agents/conformance-probe/deregister, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/overview, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/overview, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/audit, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/audit, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/audit/export, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/audit/export, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/records/orchestrator/snapshot, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PUT, path: /v1/admin/model, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PUT, path: /v1/admin/model, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/providers, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/providers, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/complete, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/complete, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/model/agreements, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/model/agreements, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/agreements, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/agreements, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: DELETE, path: /v1/admin/model/agreements/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/ceiling, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/model/ceiling, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/model/ceiling, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/model/ceiling, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/resources, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/resources, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/lease, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/lease, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/lease/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/agent, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/agent, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/lease, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/lease, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/organisation, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/organisation, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/organisation/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PATCH, path: /v1/admin/r/organisation/conformance-probe, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/retire, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/organisation/conformance-probe/restore, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/organisation, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/organisation, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/project, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/project, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/project/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: PATCH, path: /v1/admin/r/project/conformance-probe, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project/conformance-probe/retire, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/project/conformance-probe/restore, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/project, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/project, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/grant, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/grant, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/grant, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/grant, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/r/grant/conformance-probe, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: pass, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: POST, path: /v1/admin/r/grant/conformance-probe/revoke, token: work, body: {}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/grant, token: pass}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    - {as: test-writer, request: {method: GET, path: /v1/admin/events/grant, token: work}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH}}
+    record:
+      source: log
+      match: {/log_type: security, /error_code: PASS_AUDIENCE_MISMATCH}
+      count: 124
+      within: 5s
+- id: registration-token-names-its-key
+  covers: [registration-token-carries-identity-id]
+  check: exchange
+  assertion: "The registration token a registration is answered with carries identity_id, the fingerprint of the public key its manifest names, for each of two registrants with different keys."
+  exchange:
+    steps:
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, assert: [{decodes-as: {value: /token, as: wlt, expect: {equals: {/claims/identity_id: '${fixture/test-agent/fingerprint}'}}}}]}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, assert: [{decodes-as: {value: /token, as: wlt, expect: {equals: {/claims/identity_id: '${fixture/test-domain/fingerprint}'}}}}]}}
+- id: gateway-token-confined
+  covers: [admin-gateways-registration-token-cap-names]
+  check: exchange
+  assertion: "The declared admin gateway's registration token, whose cap names token:exchange, is admitted at GET /v1/services, POST /v1/lease and POST /v1/token/exchange, where an empty body is judged by the route as 400 INVALID_REQUEST, and refused 403 FORBIDDEN at GET /v1/audit, POST /v1/channel, GET /v1/model/ceiling, DELETE /v1/register and POST /v1/rotate-key."
+  exchange:
+    start: {keys: test-orchestrator, config: orchestrator-gateway}
+    steps:
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, assert: [{decodes-as: {value: /token, as: wlt, expect: {includes: {/claims/cap: ['token:exchange']}}}}]}, capture: {gw: /token}}
+    - {request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${gw}'}}, expect: {status: 200}}
+    - {request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${gw}'}, body: {ready: true, timestamp: '${now}'}}, expect: {status: 200}}
+    - {request: {method: POST, path: /v1/token/exchange, headers: {Authorization: 'Bearer ${gw}'}, body: {}}, expect: {status: 400, code: INVALID_REQUEST}}
+    - {request: {method: GET, path: /v1/audit, headers: {Authorization: 'Bearer ${gw}'}}, expect: {status: 403, code: FORBIDDEN}}
+    - {request: {method: POST, path: /v1/channel, headers: {Authorization: 'Bearer ${gw}'}, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {request: {method: GET, path: /v1/model/ceiling, headers: {Authorization: 'Bearer ${gw}'}}, expect: {status: 403, code: FORBIDDEN}}
+    - {request: {method: DELETE, path: /v1/register, headers: {Authorization: 'Bearer ${gw}'}}, expect: {status: 403, code: FORBIDDEN}}
+    - {request: {method: POST, path: /v1/rotate-key, headers: {Authorization: 'Bearer ${gw}'}, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+- id: exchange-declared-gateway-only
+  covers: [exchange-only-declared-gateway]
+  check: topology
+  assertion: "A registration naming token:exchange is refused 403 CAPABILITY_GATEWAY_ONLY and recorded nowhere at an orchestrator that declares no admin gateway, whatever its key, and at one that declares the test-gateway fixture's key, from any other key; under the declared key it is admitted. At that orchestrator POST /v1/token/exchange refuses 403 FORBIDDEN a registration token naming the admitted gateway and carrying token:exchange whose identity_id is another key's fingerprint, and admits the same token carrying the declared fingerprint, whose empty body the route then refuses 400 INVALID_REQUEST."
+  topology:
+    start: {keys: test-orchestrator}
+    instances:
+    - {name: undeclared}
+    - {name: declared, config: orchestrator-gateway}
+    acts:
+    - {act: start, instance: undeclared, expect: live, within: 20s}
+    - {act: start, instance: declared, expect: live, within: 20s}
+    steps:
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_GATEWAY_ONLY, lacks: [/token]}, instance: undeclared}
+    - {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9710', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, equals: {/services/services/0/name: test-agent}, lacks: [/services/services/1]}, instance: undeclared}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe declaring token:exchange, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 403, code: CAPABILITY_GATEWAY_ONLY, lacks: [/token]}, instance: declared}
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, has: [/token], equals: {/services/services/0/name: admin-gateway}, lacks: [/services/services/1]}, instance: declared}
+    - {instance: declared, as: test-gateway, request: {method: POST, path: /v1/token/exchange, token: own, token_alter: {claims: {sub: admin-gateway, cap: ['token:exchange'], identity_id: '${fixture/test-agent/fingerprint}'}}, body: {}}, expect: {status: 403, code: FORBIDDEN}}
+    - {instance: declared, as: test-gateway, request: {method: POST, path: /v1/token/exchange, token: own, token_alter: {claims: {sub: admin-gateway, cap: ['token:exchange'], identity_id: '${fixture/test-gateway/fingerprint}'}}, body: {}}, expect: {status: 400, code: INVALID_REQUEST}}
+- id: exchange-caller-from-header
+  covers: [post-v1-token-exchange-reads-callers]
+  check: exchange
+  assertion: "POST /v1/token/exchange reads the caller's token from the Authorization header alone: with no header it answers 401 though the body carries the declared gateway's own registration token as token and as subject_token, and on that token in the header a body with no subject_token, or no audience, is refused 400 INVALID_REQUEST."
+  exchange:
+    start: {keys: test-orchestrator, config: orchestrator-gateway}
+    steps:
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {gw: /token}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}}
+    - {request: {method: POST, path: /v1/token/exchange, body: {token: '${gw}', subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 401}}
+    - {request: {method: POST, path: /v1/token/exchange, headers: {Authorization: 'Bearer ${gw}'}, body: {audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 400, code: INVALID_REQUEST}}
+    - {request: {method: POST, path: /v1/token/exchange, headers: {Authorization: 'Bearer ${gw}'}, body: {subject_token: '${gw}', scope: ['content:read']}}, expect: {status: 400, code: INVALID_REQUEST}}
+- id: exchange-refuses-non-operator-subject
+  covers: [post-v1-token-exchange-asked-exchange]
+  check: exchange
+  assertion: "POST /v1/token/exchange, called by the declared admin gateway, answers 200 issued false with CREDENTIAL_REQUIRED, and no pass, where the subject_token is a pass, a registration token or a channel token, so a pass is never exchanged again."
+  exchange:
+    start: {keys: test-orchestrator, config: orchestrator-gateway}
+    steps:
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {gw: /token}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {domain: /token}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/exchange, token: pass, bearer: gw, body: {subject_token: '${token}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 200, equals: {/issued: false, /code: CREDENTIAL_REQUIRED}, lacks: [/pass]}}
+    - {request: {method: POST, path: /v1/token/exchange, headers: {Authorization: 'Bearer ${gw}'}, body: {subject_token: '${domain}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 200, equals: {/issued: false, /code: CREDENTIAL_REQUIRED}, lacks: [/pass]}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: channel-self, bearer: gw, body: {subject_token: '${token}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 200, equals: {/issued: false, /code: CREDENTIAL_REQUIRED}, lacks: [/pass]}}
+- id: exchange-refuses-other-callers
+  covers: [post-v1-token-exchange-called-operator]
+  check: record
+  assertion: "POST /v1/token/exchange refuses as its caller, each with an error body that carries no issued and no pass: an operator token, a channel token, and the registration token of a registered component that does not declare token:exchange, 403 FORBIDDEN; a pass, 401 PASS_AUDIENCE_MISMATCH, logged as one security event naming the route; and an attestation token, 401 CREDENTIAL_REQUIRED."
+  record:
+    start: {keys: test-orchestrator, config: orchestrator-gateway}
+    steps:
+    - {as: test-gateway, request: {method: POST, path: /v1/register, body: {manifest: {name: admin-gateway, type: infrastructure, version: 1.0.0, protocol_version: '1', description: Conformance admin gateway, url: 'http://127.0.0.1:9720', public_key: '${fixture/test-gateway/public_key}', capabilities: [{name: 'token:exchange', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {gw: /token}}
+    - {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {domain: /token}}
+    - {as: test-operator, request: {method: POST, path: /v1/token/exchange, token: operator, body: {subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: channel-self, body: {subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}}
+    - {request: {method: POST, path: /v1/token/exchange, headers: {Authorization: 'Bearer ${domain}'}, body: {subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 403, code: FORBIDDEN, lacks: [/issued, /pass]}}
+    - {as: test-writer, request: {method: POST, path: /v1/token/exchange, token: pass, body: {subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 401, code: PASS_AUDIENCE_MISMATCH, lacks: [/issued, /pass]}}
+    - {as: test-agent, request: {method: POST, path: /v1/token/exchange, token: wrong-type, body: {subject_token: '${gw}', audience: '${fixture/test-domain/fingerprint}', scope: ['content:read']}}, expect: {status: 401, code: CREDENTIAL_REQUIRED, lacks: [/issued, /pass]}}
+    record:
+      source: log
+      match: {/log_type: security, /error_code: PASS_AUDIENCE_MISMATCH}
+      matches: {/details/route: '^/v1/token/exchange$'}
+      count: 1
+      within: 5s
+- id: token-free-routes-rate-limited
+  covers: [sixth-request-within-minute-source-six]
+  check: topology
+  assertion: "Each of the six administrative routes served without a token admits five requests a minute from one source, each route counted on its own, and refuses the sixth 429 RATE_LIMITED with a Retry-After of whole seconds, before anything is judged: at an orchestrator that names no admin gateway address the source is the connection's address, so five requests each naming a different X-Forwarded-For are one source's; at one whose admin_gateway_from names the harness's address the source is the X-Forwarded-For address, so a sixth request naming a second client is admitted while a sixth naming the first is refused."
+  topology:
+    start: {keys: test-orchestrator}
+    instances:
+    - {name: untrusting}
+    - {name: trusting, config: orchestrator-gateway}
+    acts:
+    - {act: start, instance: untrusting, expect: live, within: 20s}
+    - {act: start, instance: trusting, expect: live, within: 20s}
+    steps:
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.3}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.4}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.5}, body: {}}, expect: {status_not: [429]}}
+    - {instance: untrusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.6}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/register, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/challenge, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/credentials/token, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/operators/conformance-probe/key, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.2}, body: {}}, expect: {status_not: [429]}}
+    - {instance: trusting, request: {method: POST, path: /v1/admin/hub/proof, headers: {X-Forwarded-For: 192.0.2.1}, body: {}}, expect: {status: 429, code: RATE_LIMITED, headers: {Retry-After: '^[1-9][0-9]*$'}}}
+- id: provenance-not-from-a-probe
+  covers: [address-provenance-never-reported-verified]
+  check: topology
+  assertion: "A component registered at an address where a responder answers GET /livez and GET /readyz healthy, without authentication, is never reported verified: neither in the directory its registration is answered with nor at GET /v1/services after the orchestrator has had time to probe it."
+  topology:
+    start:
+      keys: test-orchestrator
+      stand_up:
+        component: {role: responder, answers: [{method: GET, path: /livez, status: 200, body: {status: live}}, {method: GET, path: /readyz, status: 200, body: {status: ready}}, {method: POST, path: /v1/services, status: 200, body: {}}, {method: POST, path: /v1/event, status: 200, body: {}}]}
+    instances:
+    - {name: hub}
+    acts:
+    - {act: start, instance: hub, expect: live, within: 20s}
+    - act: send
+      step: {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: '${stood/component/address}', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, excludes: {/services/services/*/address_provenance: [verified]}}, capture: {agent: /token}, instance: hub}
+    - {act: wait, for: 5s}
+    - act: send
+      step: {instance: hub, request: {method: GET, path: /v1/services, headers: {Authorization: 'Bearer ${agent}'}}, expect: {status: 200, has: [/services/0/address_provenance], excludes: {/services/*/address_provenance: [verified]}}}
+- id: registered-event-published
+  covers: [system-agent-registered-published]
+  check: topology
+  assertion: "system.agent.registered reaches a subscriber after a first registration, after a registration with a changed manifest, after a re-registration with an unchanged manifest over a lapsed lease, and after one over a lease from before the orchestrator last started; a re-registration with an unchanged manifest over a current lease publishes nothing."
+  topology:
+    start:
+      keys: test-orchestrator
+      stand_up:
+        subscriber: {role: responder, answers: [{method: POST, path: /v1/event, status: 200, body: {}}, {method: POST, path: /v1/services, status: 200, body: {}}]}
+    instances:
+    - {name: hub, config: orchestrator-short-lease}
+    acts:
+    - {act: start, instance: hub, expect: live, within: 20s}
+    - act: send
+      step: {as: test-agent, request: {method: POST, path: /v1/register, body: {manifest: {name: test-agent, type: agent, version: 1.0.0, protocol_version: '1', description: Conformance subscriber, url: '${stood/subscriber/address}', public_key: '${fixture/test-agent/public_key}', capabilities: [{name: 'agent:message', resources: []}, {name: 'event:observe', resources: []}], subscriptions: [{pattern: system.agent.registered, scope: '*'}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200}, capture: {sub: /token}, instance: hub}
+    - act: send
+      step: {instance: hub, request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${sub}'}, body: {ready: true, timestamp: '${now}'}}, expect: {status: 200}}
+    - {act: wait, for: 3s}
+    - act: send
+      step: {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, received: [{service: subscriber, method: POST, path: /v1/event, count: 1, expect: {equals: {/body/topic: system.agent.registered}}, within: 3s}]}, instance: hub}
+    - act: send
+      step: {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: Conformance probe, url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, received: [{service: subscriber, method: POST, path: /v1/event, count: 0, within: 3s}]}, instance: hub}
+    - act: send
+      step: {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, changed', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, received: [{service: subscriber, method: POST, path: /v1/event, count: 1, expect: {equals: {/body/topic: system.agent.registered}}, within: 3s}]}, instance: hub}
+    - {act: wait, for: 7s}
+    - act: send
+      step: {instance: hub, request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${sub}'}, body: {ready: true, timestamp: '${now}'}}, expect: {status: 200}}
+    - act: send
+      step: {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, changed', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, received: [{service: subscriber, method: POST, path: /v1/event, count: 1, expect: {equals: {/body/topic: system.agent.registered}}, within: 3s}]}, instance: hub}
+    - {act: restart, instance: hub, expect: live, within: 20s}
+    - act: send
+      step: {instance: hub, request: {method: POST, path: /v1/lease, headers: {Authorization: 'Bearer ${sub}'}, body: {ready: true, timestamp: '${now}'}}, expect: {status: 200}}
+    - act: send
+      step: {as: test-domain, request: {method: POST, path: /v1/register, body: {manifest: {name: test-domain, type: domain, version: 1.0.0, protocol_version: '1', description: 'Conformance probe, changed', url: 'http://localhost:9700', public_key: '${fixture/test-domain/public_key}', capabilities: [{name: 'agent:message', resources: []}]}}, sign: {over: /manifest, into: /signature, timestamp: /timestamp}}, expect: {status: 200, received: [{service: subscriber, method: POST, path: /v1/event, count: 1, expect: {equals: {/body/topic: system.agent.registered}}, within: 3s}]}, instance: hub}
 ```
 
 ---
