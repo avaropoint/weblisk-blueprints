@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.7.0
+version: 2.8.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -669,6 +669,42 @@ A component that, given that file, does not read it, or reads another, has
 failed the check that named `start.config`, as one that ignores `start.keys`
 has.
 
+### Reaching a listener a check names
+
+A check's request is sent to the component's public listener, the port the
+harness passes it as `--port` and `WL_PORT`, unless its `listener`
+([`schemas/blocks`](../schemas/blocks.md#definitions), `exchange-request`)
+names another. A component whose blueprint gives it another listener binds
+that one, under `WL_DEV=1`, to an unused loopback port the harness does not
+choose, and says where it is in one line of its own output, before it serves
+there:
+
+```
+[dev] <listener> listener https://127.0.0.1:<port> tls_pin sha256:<hex>
+```
+
+`<listener>` is the name a check's `listener` gives it, and `tls_pin` is
+[`architecture/admin`](admin.md#certificate)'s pin of the certificate the
+listener serves. [`architecture/admin`](admin.md#a-start-and-a-builds-own-run)'s
+`dev-run-admin-listener` is that line for the admin gateway's admin listener.
+The line reaches the harness over the process's own output, not over the
+connection it verifies, so a listener whose address and key are its own
+word is still verified against something it did not say on that connection. <!-- wl:id named-listener-line -->
+
+For a request naming a listener, the harness MUST read the last such line the
+started instance has written for that listener, waiting at most 10 seconds
+after the instance listens on its public port, and MUST send the request to
+that origin over TLS, verifying the certificate's key against the pin and
+nothing else, as a client holding a pin does
+([`architecture/admin`](admin.md#certificate), `client-pins-gateway-key`).
+It MUST NOT skip that verification, fall back to the system's roots or send
+the request over HTTP. An instance that prints no such line, prints one whose
+origin is not `https` or whose pin is not a pin's form, or serves a
+certificate whose key does not match the pin it printed, has failed the step;
+the request is never sent elsewhere. A restarted instance is read again,
+since its port is chosen anew. A live tenant's component prints nothing to
+the harness, so a step naming another listener is unread there. <!-- wl:id named-listener-reached -->
+
 ### Bringing up accepted dependencies
 
 A component's suite runs against the accepted builds of what it needs running
@@ -726,9 +762,10 @@ bring_up:
 | `read` | Reads `file`, relative to the working directory the orchestrator was started in, once it exists and is not empty, waiting at most `within`; its contents, trimmed, are captured as `capture`. It is how the harness, as whoever started the orchestrator, reads what the orchestrator emitted only to them ([`architecture/admin`](admin.md#bootstrap-flow)) |
 | `directory` | How the harness reads the accepted orchestrator's directory, as the registration `observer-registers` made for itself: the request, where its entries are, and in each entry the pointers to the registered name, the lease state and the lease's expiry; `current` are the lease states L4-01 reads as current. A `join` check's `registered`, `listed`, `lease-current`, `lease-renewed` and `readyz-agrees` are read through it ([`schemas/blocks`](../schemas/blocks.md#definitions), `check-join`) |
 
-The steps' captures are held for the run: a dependant's check may name any of
-them as `${name}`, and `attestation_token` is the first operator's
-attestation token.
+The steps' captures are held for the run: a dependant's check, of any kind,
+may name any of them as `${name}` in its steps, but what a `read` captured,
+which stays in the bring-up (`bootstrap-secret-kept-in-run`). `attestation_token`
+is the first operator's attestation token and `hub_id` the hub's.
 
 The harness MUST start a component's dependencies from their accepted builds,
 in the services table's order, each in a working directory of its own with
@@ -1667,6 +1704,7 @@ security:
 - [ ] A check naming `start.config` starts the component with the fixture's value written as `.weblisk/config.yaml` in its working directory, `${instance}` replaced by that directory's absolute path; a component that reads another configuration fails the check ([Starting a component with a fixture configuration](#starting-a-component-with-a-fixture-configuration)) <!-- wl:check fixture-config-start covers fixture-config-written -->
 - [ ] A dependant's sealed run starts its dependencies from their accepted builds in the services table's order: the orchestrator with `bring_up.keys`' key and no orchestrator address, then each other dependency pointed at it, each listening and answering its `live` probe before the next starts ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check dependencies-brought-up-in-order covers dependencies-started-in-order -->
 - [ ] Before anything else starts beside it, the accepted orchestrator is claimed by `bring_up.operator` with the bootstrap secret read from its own working directory, and its attestation token is captured; a bring-up step that fails leaves the dependant's run unsettled naming the step, and the secret appears in no event, record, evidence or log ([Bringing up accepted dependencies](#bringing-up-accepted-dependencies)) <!-- wl:check first-operator-claims-accepted-hub covers first-operator-bootstrapped bootstrap-secret-kept-in-run -->
+- [ ] A request naming a listener other than the public one is sent to the origin the started instance last printed for it in `[dev] <listener> listener <origin> tls_pin <pin>`, over TLS verified against that pin and never under the system's roots, unverified or over HTTP; an instance that prints no such line, one naming no `https` origin or no pin, or a certificate whose key does not match, fails the step, and nothing is sent to its public port instead ([Reaching a listener a check names](#reaching-a-listener-a-check-names)) <!-- wl:check named-listener-sent-over-pin covers named-listener-line named-listener-reached -->
 - [ ] A check naming a key fixture in `start.keys` starts the component with that fixture's key file as its `kdf` gives it, an `argon2id` key under its passphrase and fixed salt, the passphrase reaching it only by the source its configuration names ([Key fixtures](#key-fixtures)) <!-- wl:check key-fixture-start covers fixture-key-forms -->
 - [ ] Each `start.files` entry is written before the component starts, a `text` fixture exactly and any other as JSON or YAML by its extension, mode 0600; an act `place` writes one the same way while it runs; a request-body fixture is sent and never placed ([Placing files](#placing-files)) <!-- wl:check files-placed covers fixture-files-placed -->
 - [ ] The mock orchestrator, the mock agent and every stood service record each request that reaches them, in order, and a step's `expect.received` is judged over those records alone ([Harness roles](#harness-roles)) <!-- wl:check harness-records covers harness-records-received -->

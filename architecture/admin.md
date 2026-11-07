@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.12.0
+version: 5.13.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -930,8 +930,10 @@ that run alone, held in memory and never written, as the start environment's
 `WL_DEV=1` holds no persistent store. It MUST print, before it serves, one
 line `[dev] admin listener https://127.0.0.1:<port> tls_pin sha256:<hex>`,
 where the run reads the admin listener's address and the pin it verifies that
-listener against: the line reaches the run over the process's own output, not
-over the connection it verifies. Its registration key is likewise made for the
+listener against, as
+[`architecture/testing`](testing.md#reaching-a-listener-a-check-names) reads
+the line for any listener a check names: the line reaches the run over the
+process's own output, not over the connection it verifies. Its registration key is likewise made for the
 run and never written, and with no orchestrator it reports not ready at
 `/readyz`, never refusing to start. <!-- wl:id dev-run-admin-listener --> A
 `WL_DEV=1` start never makes, renews or writes a file the
@@ -1025,6 +1027,8 @@ contracts:
         - An orchestrator whose operator store is empty MUST generate a bootstrap secret of at least 256 bits from a cryptographically secure random source, and emit it once, where only whoever started the orchestrator can read it
         # <!-- wl:id bootstrap-secret-written -->
         - It MUST write the secret to .weblisk/bootstrap, readable only by the user the orchestrator runs as, and MAY show it on a terminal only when its standard error is one. It MUST NOT write the secret to a log file, a system journal, or any output stream that is not a terminal, because an orchestrator started detached or by a boot unit has its output captured where others can read it, and kept after the secret is claimed
+        # <!-- wl:id bootstrap-file-form -->
+        - The file MUST hold the secret and nothing else - exactly the text a registration presents as bootstrap_secret, with no line ending and nothing before or after it - and that text holds no whitespace. What is read from the file is what is presented, so a reader that takes its exact bytes claims the hub. A client MAY remove whitespace around what it reads, so a file a person copied or edited still claims it; the orchestrator writes it exact
         # <!-- wl:id bootstrap-secret-never-shown -->
         - The bootstrap secret MUST NOT appear in an audit entry or in any response
         # <!-- wl:id bootstrap-secret-presented -->
@@ -3204,7 +3208,8 @@ When an orchestrator starts with no registered operators:
 1. Orchestrator starts and detects empty operator store
 2. It generates a bootstrap secret and emits it once, where only whoever
    started it can read it: in .weblisk/bootstrap, readable only by the user
-   it runs as, and on its terminal when its standard error is one. Never in
+   it runs as and holding the secret alone, with no line ending, and on its
+   terminal when its standard error is one. Never in
    a log file, a journal or captured output, which outlive the claim
 3. It prints how to claim it:
    "Run: weblisk operator init && weblisk operator register --bootstrap <file>"
@@ -3697,6 +3702,7 @@ content; it says the read was rate-limited and when it can ask again
 - [ ] Every administrative route authorises against the capabilities the operator's role carries now narrowed to the token's `cap`, never against the role alone ([Contracts](#contracts), `token-status-on-use`; [Auth Middleware](#auth-middleware)) <!-- wl:check role-now-and-cap covers role-now-narrowed-by-cap -->
 - [ ] `POST /v1/admin/operators/token` with a signature that does not verify is refused with `INVALID_SIGNATURE` for a pending or a revoked operator, and only a request whose signature verifies is told `OPERATOR_NOT_APPROVED` or `OPERATOR_REVOKED` ([Contracts](#contracts), `attestation-token-issuance`) <!-- wl:check post-v1-admin-operators-token-signature -->
 - [ ] The bootstrap secret is written to `.weblisk/bootstrap` readable only by the user the orchestrator runs as; an orchestrator whose standard error is not a terminal, such as one started detached or by a boot unit, writes it to no log, journal or output stream ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-written-privately covers bootstrap-secret-written -->
+- [ ] `.weblisk/bootstrap` holds the bootstrap secret and nothing else, exactly the text a registration presents as `bootstrap_secret` with no line ending, so that text read from the file claims the hub ([Contracts](#contracts), `first-operator-claim`) <!-- wl:check bootstrap-file-exact covers bootstrap-file-form -->
 - [ ] A console uses a person's credential only while that person has a live AAL2 session with it, never for work nobody is present for, and discards a person's tokens when their session ends ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-session-bound covers console-credential-live-session console-no-unattended-work console-discards-tokens -->
 - [ ] A console gives no agent a token minted with a person's credential, with or without `cap`. For a run whose person holds a live AAL2 session it sends only reads of the tenant's content and completions through the model route, each to the tenant's admin gateway on that person's token; it sends nothing for the run once that session ends; and a write, proposal or decision an agent prepared reaches a hub only in a request the person submits ([Contracts](#contracts), `console-credential-use`) <!-- wl:check console-no-agent-token covers console-no-agent-token -->
 - [ ] A console presents a person's token to the tenant's admin gateway alone. The content service receives a console's read on a pass whose `aud` is the content service and whose `cap` names only `content:read` or `content:describe`, never on the person's token, and never carrying an `admin:` capability ([Contracts](#contracts), `console-credential-use`, `admin-gateway-authorization`) <!-- wl:check console-token-to-gateway covers console-token-at-gateway -->
@@ -3834,26 +3840,22 @@ covers a criterion only where it proves the whole of it, because a criterion
 that any declared check covers is no longer translated.
 
 They reach only what a sealed run can arrange. A hub is claimed by the
-bootstrap secret, which the orchestrator writes to `.weblisk/bootstrap`. A
-topology act `read` reaches that file, and a `sign` of `form: fixed-form`
-makes the credential's answer, so the vocabulary can now claim a hub, attest
-a credential and mint. It does not yet do so soundly. `read` captures the
-file's exact text, [Contracts](#contracts) (`first-operator-claim`) does not
-say whether the file ends in a line ending, and the CLI and
-[`architecture/testing`](testing.md#bringing-up-accepted-dependencies)'s
-`bring_up` both trim what they read. A check that presented the captured text
-would fail an orchestrator that writes a newline, which nothing forbids. So a
-sealed run holds no operator, no credential, no attestation token, and no
-operator token whose operator this hub records. Every criterion that needs one
-is left to its translated test. What remains is the routes that take no token,
-what an operator route makes of a test token's shape, the exchange's judgement
-of its caller and its body, and the admin gateway's internal listener.
+bootstrap secret, which the orchestrator writes to `.weblisk/bootstrap` holding
+the secret alone, with no line ending ([Contracts](#contracts),
+`first-operator-claim`, `bootstrap-file-form`). A topology act `read` captures
+that file's exact text, which is therefore what a registration presents, and a
+`sign` of `form: fixed-form` makes the credential's answer, so a check claims
+a hub, attests a credential and mints, as `bootstrap-file-claims-then-mints`
+does. A check that holds no operator of its own still has the routes that take
+no token, what an operator route makes of a test token's shape, the
+exchange's judgement of its caller and its body, and the admin gateway's
+internal listener.
 
-A check is sent to a component's public listener alone. A step that names
-`listener: admin` is unread until the admin listener's address is declared
-where the engine reads it, so `hub-proof-carried-without-token` runs once that
-is so. The internal listener is where the engine reaches the admin gateway
-today.
+A step that names `listener: admin` is sent to the admin listener at the
+address and pin the gateway prints for it under `WL_DEV=1`, as
+[`architecture/testing`](testing.md#reaching-a-listener-a-check-names) says,
+over TLS verified against that pin. `hub-proof-carried-without-token` and
+`unspecified-groups-unavailable-at-admin-listener` are sent there.
 
 The exchange check starts the orchestrator with the `test-orchestrator` key, so
 a test token verifies there. It also uses the `admin-gateway-declared`
@@ -4117,4 +4119,129 @@ verifies:
     - as: anonymous
       request: {method: POST, path: /v1/admin/hub/proof, body: {}}
       expect: {status: 404}
+- id: bootstrap-file-claims-then-mints
+  covers: [bootstrap-file-exact, registration-answers]
+  check: topology
+  applies_to: [orchestrator]
+  assertion: "An orchestrator started with an empty operator store writes .weblisk/bootstrap, and its exact text, line ending and all, presented as bootstrap_secret by a registration asking for the viewer role, claims the hub: the answer is status approved with an attestation token, which is a WLT of type attestation carrying no cid, hub_id and identity_id. A later registration, presenting no secret, is answered status pending with hub_id and identity_id and no token. The first operator then obtains an operator token as every operator does: its attestation token attests a credential, the credential is challenged, and its answer over weblisk/credential-auth/v1 mints a token of type operator carrying a cid, which reaches GET /v1/admin/operators, an admin:* route, so the claim made the first operator an admin whatever role it asked for."
+  topology:
+    instances:
+    - {name: hub, keys: test-orchestrator}
+    acts:
+    - {act: start, instance: hub, expect: live, within: 20s}
+    - {act: read, instance: hub, path: .weblisk/bootstrap, capture: bootstrap}
+    steps:
+    - instance: hub
+      as: test-operator
+      request:
+        method: POST
+        path: /v1/admin/operators/register
+        body:
+          name: test-operator
+          public_key: "${fixture/test-operator/public_key}"
+          role: viewer
+          timestamp: "${now}"
+          bootstrap_secret: "${bootstrap}"
+        sign: {over: "", members: [name, public_key, role, timestamp], into: /signature, timestamp: /timestamp}
+      expect:
+        status: 200
+        json: true
+        equals: {/status: approved}
+        has: [/token, /hub_id, /identity_id]
+        assert:
+        - decodes-as: {value: /token, as: wlt, expect: {equals: {/claims/type: attestation}, lacks: [/claims/cid]}}
+      capture: {attestation: /token, hub_id: /hub_id, operator_identity: /identity_id}
+    - instance: hub
+      as: test-gateway
+      request:
+        method: POST
+        path: /v1/admin/operators/register
+        body:
+          name: conformance-second
+          public_key: "${fixture/test-gateway/public_key}"
+          role: admin
+          timestamp: "${now}"
+        sign: {over: "", members: [name, public_key, role, timestamp], into: /signature, timestamp: /timestamp}
+      expect:
+        status: 200
+        json: true
+        equals: {/status: pending}
+        has: [/hub_id, /identity_id]
+        lacks: [/token]
+    - instance: hub
+      as: test-operator
+      request:
+        method: POST
+        path: /v1/admin/operators/test-operator/credentials
+        bearer: attestation
+        body:
+          identity_id: "${operator_identity}"
+          identity_public_key: "${fixture/test-operator/public_key}"
+          credential_public_key: "${fixture/test-agent/public_key}"
+          hub_id: "${hub_id}"
+          device_label: conformance
+          not_after: "${now+30d}"
+        sign: {over: "", into: /signature}
+      expect: {status: 200, json: true, has: [/cid]}
+      capture: {cid: /cid}
+    - instance: hub
+      as: anonymous
+      request: {method: POST, path: /v1/admin/credentials/challenge, body: {cid: "${cid}"}}
+      expect: {status: 200, json: true, equals: {/hub_id: "${hub_id}"}, has: [/nonce]}
+      capture: {nonce: /nonce}
+    - instance: hub
+      as: anonymous
+      request:
+        method: POST
+        path: /v1/admin/credentials/token
+        body: {cid: "${cid}", nonce: "${nonce}"}
+        sign: {form: fixed-form, prefix: weblisk/credential-auth/v1, fields: ["${hub_id}", "${nonce}"], into: /signature, key: test-agent}
+      expect:
+        status: 200
+        json: true
+        has: [/token]
+        assert:
+        - decodes-as: {value: /token, as: wlt, expect: {equals: {/claims/type: operator}, has: [/claims/cid]}}
+      capture: {minted: /token}
+    - instance: hub
+      request: {method: GET, path: /v1/admin/operators, bearer: minted}
+      expect: {status: 200, json: true}
+- id: unspecified-groups-unavailable-at-admin-listener
+  covers: [unspecified-groups-unavailable]
+  check: exchange
+  applies_to: [admin]
+  assertion: "At the admin gateway's admin listener, reached at the address and pin it prints under WL_DEV=1 and verified against that pin, a request carrying an operator token for a group no deployed component's blueprint specifies, /v1/admin/domains, /v1/admin/workflows, /v1/admin/federation/peers, /v1/admin/metrics and /v1/admin/agents/{name}/metrics, is answered 503 ADMIN_GROUP_UNAVAILABLE, never with an empty result, and none is forwarded to the orchestrator or sent to it as a POST /v1/message action."
+  exchange:
+    start: {orchestrator: mock, keys: test-gateway}
+    steps:
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/domains, listener: admin, token: operator}
+      expect:
+        status: 503
+        code: ADMIN_GROUP_UNAVAILABLE
+        received: [{service: orchestrator, method: GET, path: /v1/admin/domains, count: 0}, {service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/workflows, listener: admin, token: operator}
+      expect:
+        status: 503
+        code: ADMIN_GROUP_UNAVAILABLE
+        received: [{service: orchestrator, method: GET, path: /v1/admin/workflows, count: 0}, {service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/federation/peers, listener: admin, token: operator}
+      expect:
+        status: 503
+        code: ADMIN_GROUP_UNAVAILABLE
+        received: [{service: orchestrator, method: GET, path: /v1/admin/federation/peers, count: 0}, {service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/metrics, listener: admin, token: operator}
+      expect:
+        status: 503
+        code: ADMIN_GROUP_UNAVAILABLE
+        received: [{service: orchestrator, method: GET, path: /v1/admin/metrics, count: 0}, {service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/agents/conformance-probe/metrics, listener: admin, token: operator}
+      expect:
+        status: 503
+        code: ADMIN_GROUP_UNAVAILABLE
+        received: [{service: orchestrator, method: GET, path: /v1/admin/agents/conformance-probe/metrics, count: 0}, {service: orchestrator, method: POST, path: /v1/message, count: 0}]
 ```

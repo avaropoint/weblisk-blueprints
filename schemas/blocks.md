@@ -1,6 +1,6 @@
 ---
 family: schemas/family@1
-version: 1.6.0
+version: 1.6.1
 noun: block
 ---
 # Schema: Blocks
@@ -639,7 +639,7 @@ defs:
       replay: {$ref: "#/$defs/part-id", description: "Send again the exact bytes an earlier step with this id sent."}
       path: {type: string, pattern: "^/", description: "The path as sent; a placeholder ${name} is filled from an earlier capture or a fixture."}
       operation: {$ref: "#/$defs/ref", description: "An operation a serves block or Endpoints table declares; its method and path, in place of path."}
-      listener: {enum: [public, admin], default: public}
+      listener: {enum: [public, admin], default: public, description: "The listener the request is sent to: public, the port the harness passes as --port; any other, the origin and pin the component prints for it under WL_DEV=1, over TLS verified against that pin (architecture/testing, Reaching a listener a check names)."}
       token: {enum: [none, own, expired, bad-signature, wrong-type, channel-self, channel-other, pass, pass-other, operator, work, captured], default: none, description: "The bearer token. none: no token; captured: the value an earlier step captured as token; every other value is minted as architecture/testing's test_tokens block declares it (Test tokens as data): own, a registration token for the as identity; expired, own past its exp; bad-signature, own with its signature broken; wrong-type, own carrying a type the route does not take; channel-self and channel-other, a channel token to the component under test or to another target; pass and pass-other, a person's pass for the as identity addressed to the component under test or to another component; operator, the as identity's operator token; work, a work pass addressed to the component under test on the as identity's authority."}
       token_alter: {$ref: "#/$defs/token-alter"}
       bearer: {type: string, description: "The Authorization bearer, in place of the token token names: none, or the name of an earlier capture. ${token} still reads the token token names, so a body can carry one token while another is the bearer."}

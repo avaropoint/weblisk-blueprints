@@ -2,9 +2,9 @@
  "derived_by": "checks/acceptance-classes.py",
  "rules": "architecture/generation#how-a-criterion-gets-its-class",
  "counts": {
-  "S": 490,
+  "S": 492,
   "J": 94,
-  "B": 2639,
+  "B": 2642,
   "E": 94,
   "F": 57
  },
@@ -1200,6 +1200,14 @@
   "architecture/admin:bootstrap-event-first-operator-registration": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/admin:bootstrap-file-exact": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:first-operator-claim (architecture/threat-model, vector 4.7)"
+  },
+  "architecture/admin:bootstrap-file-form": {
+   "class": "S",
+   "class_by": "rule 1: control ref architecture/admin:first-operator-claim (architecture/threat-model, vector 4.7)"
   },
   "architecture/admin:bootstrap-refusal-named": {
    "class": "S",
@@ -7926,6 +7934,18 @@
    "class_by": "rule 6: nothing above matched"
   },
   "architecture/testing:mock-orchestrator-start-accept-registrations": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:named-listener-line": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:named-listener-reached": {
+   "class": "B",
+   "class_by": "rule 6: nothing above matched"
+  },
+  "architecture/testing:named-listener-sent-over-pin": {
    "class": "B",
    "class_by": "rule 6: nothing above matched"
   },
