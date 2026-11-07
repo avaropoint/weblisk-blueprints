@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: admin
-version: 5.11.0
+version: 5.12.0
 requires: [protocol/spec, protocol/identity, protocol/types, patterns/principal-identity, architecture/observability, patterns/logging, architecture/gateway, architecture/client]
 platform: any
 tier: free
@@ -3834,14 +3834,26 @@ covers a criterion only where it proves the whole of it, because a criterion
 that any declared check covers is no longer translated.
 
 They reach only what a sealed run can arrange. A hub is claimed by the
-bootstrap secret, which the orchestrator writes to `.weblisk/bootstrap` and
-nowhere a check can read it. An operator token is minted only over the
-fixed-form `weblisk/credential-auth/v1`, which no `sign` makes. So a sealed run
-holds no operator, no credential, no attestation token, and no operator token
-whose operator this hub records. Every criterion that needs one is left to its
-translated test. What remains is the routes that take no token, the exchange's
-judgement of its caller and its body, and what the admin gateway carries
-without a token.
+bootstrap secret, which the orchestrator writes to `.weblisk/bootstrap`. A
+topology act `read` reaches that file, and a `sign` of `form: fixed-form`
+makes the credential's answer, so the vocabulary can now claim a hub, attest
+a credential and mint. It does not yet do so soundly. `read` captures the
+file's exact text, [Contracts](#contracts) (`first-operator-claim`) does not
+say whether the file ends in a line ending, and the CLI and
+[`architecture/testing`](testing.md#bringing-up-accepted-dependencies)'s
+`bring_up` both trim what they read. A check that presented the captured text
+would fail an orchestrator that writes a newline, which nothing forbids. So a
+sealed run holds no operator, no credential, no attestation token, and no
+operator token whose operator this hub records. Every criterion that needs one
+is left to its translated test. What remains is the routes that take no token,
+what an operator route makes of a test token's shape, the exchange's judgement
+of its caller and its body, and the admin gateway's internal listener.
+
+A check is sent to a component's public listener alone. A step that names
+`listener: admin` is unread until the admin listener's address is declared
+where the engine reads it, so `hub-proof-carried-without-token` runs once that
+is so. The internal listener is where the engine reaches the admin gateway
+today.
 
 The exchange check starts the orchestrator with the `test-orchestrator` key, so
 a test token verifies there. It also uses the `admin-gateway-declared`
@@ -4019,4 +4031,90 @@ verifies:
       expect:
         status_not: [401, 403, 404, 405, 503]
         json: true
+- id: operator-token-needs-cid
+  covers: [cid-required-refused]
+  check: exchange
+  applies_to: [orchestrator]
+  assertion: "An operator token whose claims carry no cid is refused 401 CREDENTIAL_REQUIRED at every kind of operator route, a viewer+ route, an auditor route, an admin route and a route only the named operator may use, before the operator it names is looked up. The same token carrying its cid is refused there 401 OPERATOR_UNKNOWN, since this hub records no such operator, so the first refusal is for the missing cid and nothing else."
+  exchange:
+    start: {keys: test-orchestrator}
+    steps:
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/operators, token: operator, token_alter: {claims: {cid: null}}}
+      expect: {status: 401, code: CREDENTIAL_REQUIRED, json: true}
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/audit, token: operator, token_alter: {claims: {cid: null}}}
+      expect: {status: 401, code: CREDENTIAL_REQUIRED, json: true}
+    - as: test-operator
+      request: {method: POST, path: /v1/admin/operators/conformance-probe/approve, token: operator, token_alter: {claims: {cid: null}}, body: {}}
+      expect: {status: 401, code: CREDENTIAL_REQUIRED, json: true}
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/operators/test-operator/credentials, token: operator, token_alter: {claims: {cid: null}}}
+      expect: {status: 401, code: CREDENTIAL_REQUIRED, json: true}
+    - as: test-operator
+      request: {method: GET, path: /v1/admin/operators, token: operator}
+      expect: {status: 401, code: OPERATOR_UNKNOWN, json: true}
+- id: gateway-internal-listener
+  covers: [gateway-manifest]
+  check: exchange
+  applies_to: [admin]
+  assertion: "On the admin gateway's internal listener, the one the engine reaches it at, POST /v1/describe answers with no token a manifest of type infrastructure carrying no subscriptions, no publishes and no pass_routes (an empty optional list is left out of the JSON, protocol/types), whose url is that listener's origin, which is the default http://127.0.0.1:<internal_port> with the port it was started on. GET /livez and GET /readyz answer as protocol/spec's probes. POST /v1/services is answered 200. POST /v1/execute, POST /v1/message and POST /v1/event are answered 403 FORBIDDEN with no token and with a registration token alike, and none sends anything to the orchestrator. No /v1/admin/ route is served there: each is answered 404."
+  exchange:
+    start: {orchestrator: mock, keys: test-gateway}
+    steps:
+    - as: anonymous
+      request: {method: POST, path: /v1/describe, body: {}}
+      expect:
+        status: 200
+        json: true
+        equals: {/type: infrastructure, /url: "${address}"}
+        lacks: [/subscriptions, /publishes, /pass_routes]
+    - as: anonymous
+      request: {method: GET, path: /livez}
+      expect: {status: [200, 503], json: true, has: [/live]}
+    - as: anonymous
+      request: {method: GET, path: /readyz}
+      expect: {status: [200, 503], json: true, has: [/ready]}
+    - as: anonymous
+      request: {method: POST, path: /v1/services, body: {services: [], updated_at: "${now}"}}
+      expect: {status: 200}
+    - as: anonymous
+      request: {method: POST, path: /v1/execute, body: {}}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        received: [{service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: test-agent
+      request: {method: POST, path: /v1/execute, token: own, body: "${fixture/task}"}
+      expect: {status: 403, code: FORBIDDEN}
+    - as: test-agent
+      request: {method: POST, path: /v1/message, token: own, body: "${fixture/message}"}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        received: [{service: orchestrator, method: POST, path: /v1/message, count: 0}]
+    - as: anonymous
+      request: {method: POST, path: /v1/message, body: {}}
+      expect: {status: 403, code: FORBIDDEN}
+    - as: test-agent
+      request: {method: POST, path: /v1/event, token: own, body: {}}
+      expect:
+        status: 403
+        code: FORBIDDEN
+        received: [{service: orchestrator, method: POST, path: /v1/event, count: 0}]
+    - as: anonymous
+      request: {method: POST, path: /v1/event, body: {}}
+      expect: {status: 403, code: FORBIDDEN}
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/overview}
+      expect: {status: 404}
+    - as: anonymous
+      request: {method: GET, path: /v1/admin/resources}
+      expect: {status: 404}
+    - as: anonymous
+      request: {method: POST, path: /v1/admin/operators/register, body: {}}
+      expect: {status: 404}
+    - as: anonymous
+      request: {method: POST, path: /v1/admin/hub/proof, body: {}}
+      expect: {status: 404}
 ```
