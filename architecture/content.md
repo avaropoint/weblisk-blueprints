@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: content
-version: 5.12.0
+version: 5.12.1
 requires: [protocol/types, protocol/identity, patterns/content-identity, patterns/repository, patterns/scope, patterns/contract, patterns/principal-identity, patterns/approval, patterns/secrets, architecture/enforcement, architecture/storage, architecture/admin]
 platform: any
 tier: free
@@ -6416,7 +6416,9 @@ ceiling is therefore `internal` whatever is demonstrated
 `aGVsbG8K`, whose identity is
 `sha256:5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03`, and
 `world\n` as `d29ybGQK`. Where two checks cover one criterion, it is settled
-only when both pass.
+only when both pass. A check started with another configuration fixture,
+`content-git-claims` or `content-git-copy`, says in its assertion what that
+fixture configures.
 
 ```yaml
 verifies:
@@ -7787,5 +7789,440 @@ verifies:
         status: 200
         json: true
         equals: {/seq: '${sealed}', /sealed_through: '${tip}', /unsealed: 0}
+- id: write-without-if-match-refused
+  covers: [write-submitted-without-match-refused-content]
+  check: exchange
+  assertion: A write carrying no if_match is refused with 400 CONTENT_IF_MATCH_REQUIRED and a structured ErrorResponse, and nothing is appended to the log; the same write with if_match the empty string then creates the entry, so the refusal wrote nothing at the path.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - id: before
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {seq0: /seq}
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: blind.md, bytes: aGVsbG8K}
+      expect:
+        status: 400
+        code: CONTENT_IF_MATCH_REQUIRED
+        json: true
+        has: [/code, /error]
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        equals: {/seq: '${seq0}'}
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: blind.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+- id: written-digest-is-raw-bytes
+  covers: [digest-recorded-after-write-equals-digest]
+  check: exchange
+  assertion: 'Bytes that are not valid UTF-8 (ff fe 00 0d 0a 80 0a, sent as //4ADQqACg==) are recorded on the change entry with after the SHA-256 of exactly those bytes, a25964dbc684417dced6a007f7ddb50df57263e136399834b0186748cf866fa3; and a write whose if_match is that digest is then accepted, so the digest the Precondition Gate reads back from the backend is the same one.'
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: raw.bin, bytes: //4ADQqACg==, if_match: ''}
+      expect:
+        status: [200, 201]
+    - id: head
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {tip: /seq}
+    - as: test-writer
+      request: {method: GET, path: '/v1/content/repositories/docs/log?from=${tip}&limit=1', token: pass}
+      expect:
+        status: 200
+        json: true
+        has: [/lines/0]
+        lacks: [/lines/1]
+        assert:
+        - decodes-as:
+            value: /lines/0
+            as: json
+            expect:
+              equals:
+                /act: change
+                /change/path: raw.bin
+                /change/operation: create
+                /change/after/algorithm: sha256
+                /change/after/digest: a25964dbc684417dced6a007f7ddb50df57263e136399834b0186748cf866fa3
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: raw.bin, bytes: aGVsbG8K, if_match: 'sha256:a25964dbc684417dced6a007f7ddb50df57263e136399834b0186748cf866fa3'}
+      expect:
+        status: [200, 201]
+- id: direct-write-names-no-proposal
+  covers: [contentchange-put-v1-content-entry-carries]
+  check: exchange
+  assertion: The change entry a PUT /v1/content/entry appends carries a ContentChange holding no on_behalf_of, approved_by, proposal or separation.
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: direct.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - id: head
+      as: test-content-client
+      request: {method: GET, path: /v1/content/repositories/docs/log/head, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/seq]
+      capture: {tip: /seq}
+    - as: test-writer
+      request: {method: GET, path: '/v1/content/repositories/docs/log?from=${tip}&limit=1', token: pass}
+      expect:
+        status: 200
+        json: true
+        has: [/lines/0]
+        lacks: [/lines/1]
+        assert:
+        - decodes-as:
+            value: /lines/0
+            as: json
+            expect:
+              equals: {/act: change, /change/path: direct.md}
+              lacks: [/change/on_behalf_of, /change/approved_by, /change/proposal, /change/separation]
+- id: log-page-lines-as-stored
+  covers: [lines-logpage-decode-exactly-stored-lines]
+  check: exchange
+  assertion: 'After two writes and a checkpoint, the page of lines 1 to the seq the checkpoint covers is a chain that verifies with SHA-256 alone from 64 zeros, and every line in it is pinned to its stored bytes: the first by the log id, which is the SHA-256 of the declare entry''s stored line; each later one by the previous_digest the service recorded over the stored line when it appended the next; and the last by the checkpoint''s tip, the SHA-256 of that entry''s stored line.'
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git}
+    steps:
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: chain-a.md, bytes: aGVsbG8K, if_match: ''}
+      expect:
+        status: [200, 201]
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: docs, path: chain-b.md, bytes: d29ybGQK, if_match: ''}
+      expect:
+        status: [200, 201]
+    - id: seal
+      as: test-content-client
+      request: {method: POST, path: /v1/content/repositories/docs/log/checkpoint, token: own}
+      expect:
+        status: 200
+        json: true
+        has: [/log, /sealed_through, /checkpoint/tip]
+      capture: {logid: /log, through: /sealed_through, tipdigest: /checkpoint/tip}
+    - as: test-writer
+      request: {method: GET, path: '/v1/content/repositories/docs/log?from=1&limit=${through}', token: pass}
+      expect:
+        status: 200
+        json: true
+        equals: {/log: '${logid}'}
+        assert:
+        - chain-links: {lines: /lines}
+        - digest-of: {value: /lines/0, form: line, encoding: hex, equals: '${logid}'}
+    - as: test-writer
+      request: {method: GET, path: '/v1/content/repositories/docs/log?from=${through}&limit=1', token: pass}
+      expect:
+        status: 200
+        json: true
+        has: [/lines/0]
+        lacks: [/lines/1]
+        assert:
+        - digest-of: {value: /lines/0, form: line, encoding: hex, equals: '${tipdigest}'}
+- id: standalone-not-ready-and-says-why
+  covers: [no-orchestrator-url-configured-get-readyz]
+  check: record
+  assertion: Started with no orchestrator configured, GET /readyz answers 503 not ready and GET /livez 200 live, and the service writes a log record saying that no orchestrator is configured.
+  applies_to: [content]
+  record:
+    steps:
+    - as: anonymous
+      request: {method: GET, path: /livez}
+      expect:
+        status: 200
+        json: true
+        equals: {/live: true}
+    - as: anonymous
+      request: {method: GET, path: /readyz}
+      expect:
+        status: 503
+        json: true
+        equals: {/ready: false}
+    record:
+      source: log
+      matches: {/msg: '(?i)orchestrator'}
+      within: 20s
+- id: established-store-survives-restart
+  covers: [successful-establish-leaves-store-get-v1]
+  check: topology
+  applies_to: [content]
+  assertion: A repository established through POST /v1/content/repositories is listed by GET /v1/content as an empty page with no next cursor; after the service restarts in the same directory it is listed the same way, and a write with if_match the empty string then succeeds against it with no further step.
+  topology:
+    start: {orchestrator: mock, config: content-git}
+    instances:
+    - name: a
+    acts:
+    - {act: start, instance: a, expect: ready, within: 30s}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: POST
+          path: /v1/content/repositories
+          token: pass
+          body:
+            id: fresh
+            scope_path: conformance/org
+            placement: {backend: stores, locator: fresh}
+            custody: exclusive
+            disposition: establish
+        expect:
+          status: [200, 201]
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request: {method: GET, path: '/v1/content?repository=fresh', token: pass}
+        expect:
+          status: 200
+          json: true
+          equals: {/entries: []}
+          lacks: [/next_cursor]
+    - {act: restart, instance: a, expect: ready, within: 30s}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request: {method: GET, path: '/v1/content?repository=fresh', token: pass}
+        expect:
+          status: 200
+          json: true
+          equals: {/entries: []}
+          lacks: [/next_cursor]
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: PUT
+          path: /v1/content/entry
+          token: pass
+          body: {repository: fresh, path: first.md, bytes: aGVsbG8K, if_match: ''}
+        expect:
+          status: [200, 201]
+- id: claimed-attestations-resolve-false
+  covers: [attestation-declared-configuration]
+  check: exchange
+  assertion: 'The content-git-claims fixture configures one shared repository, claims, claiming all three attestations, of which a git store never demonstrates enumerable_principals or attributable_writes (patterns/content-git, git-custody). Both are listed false, and the ceiling follows the demonstrated set: internal, not the restricted the claim would give, so a write declaring confidential is refused with 403 CONTENT_CUSTODY_CEILING_EXCEEDED naming both levels and one declaring internal is written.'
+  applies_to: [content]
+  exchange:
+    start: {orchestrator: mock, config: content-git-claims}
+    steps:
+    - as: test-content-client
+      request: {method: GET, path: /v1/content/repositories, token: own}
+      expect:
+        status: 200
+        json: true
+        includes:
+          /*/*/attestations/enumerable_principals: [false]
+          /*/*/attestations/attributable_writes: [false]
+          /*/*/ceiling: [internal]
+        excludes:
+          /*/*/attestations/enumerable_principals: [true]
+          /*/*/attestations/attributable_writes: [true]
+          /*/*/ceiling: [restricted, confidential]
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: claims, path: claimed.md, bytes: aGVsbG8K, if_match: '', scope: confidential}
+      expect:
+        status: 403
+        code: CONTENT_CUSTODY_CEILING_EXCEEDED
+        json: true
+        matches: {/error: '(?s)(internal.*confidential|confidential.*internal)'}
+    - as: test-writer
+      request:
+        method: PUT
+        path: /v1/content/entry
+        token: pass
+        body: {repository: claims, path: claimed.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+      expect:
+        status: [200, 201]
+- id: unreadable-entry-observed-unknown
+  covers: [unreadable-entry-yields-state-unknown-never]
+  check: topology
+  applies_to: [content]
+  assertion: In the shared repository claims, whose store has a working tree, an entry made unreadable out of band is reported by POST /v1/content/reconcile as an observation of state unknown, never changed or removed, and no observe entry is appended to the log for it.
+  topology:
+    start: {orchestrator: mock, config: content-git-claims}
+    instances:
+    - name: a
+    acts:
+    - {act: start, instance: a, expect: ready, within: 30s}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: PUT
+          path: /v1/content/entry
+          token: pass
+          body: {repository: claims, path: unread.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+        expect:
+          status: [200, 201]
+    - {act: make-unreadable, instance: a, path: shared/claims/unread.md}
+    - act: send
+      step:
+        id: before
+        instance: a
+        as: test-content-client
+        request: {method: GET, path: /v1/content/repositories/claims/log/head, token: own}
+        expect:
+          status: 200
+          json: true
+          has: [/seq]
+        capture: {seq0: /seq}
+    - act: send
+      step:
+        instance: a
+        as: test-reconciler
+        request:
+          method: POST
+          path: /v1/content/reconcile
+          token: pass
+          body: {repository: claims}
+        expect:
+          status: 200
+          json: true
+          includes: {/*/path: [unread.md], /*/state: [unknown]}
+          excludes: {/*/state: [changed, removed]}
+    - act: send
+      step:
+        instance: a
+        as: test-content-client
+        request: {method: GET, path: /v1/content/repositories/claims/log/head, token: own}
+        expect:
+          status: 200
+          equals: {/seq: '${seq0}'}
+- id: reported-copy-stays-counted
+  covers: [copy-backend-reported-once-no-longer]
+  check: topology
+  applies_to: [content]
+  assertion: 'The content-git-copy fixture configures one exclusive bare repository, held, re-verified every second. A remote placed in its git configuration out of band is a copy no remote declares; once re-verification reports it, held is listed effective_custody opaque, ceiling public and one reported copy, and a write at internal is refused with CONTENT_CUSTODY_CEILING_EXCEEDED. With the configuration put back as it was, the copy is no longer reported, yet held is still listed opaque, public and with that one reported copy, and a write at internal is still refused.'
+  topology:
+    start: {orchestrator: mock, config: content-git-copy}
+    instances:
+    - name: a
+    acts:
+    - {act: start, instance: a, expect: ready, within: 30s}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: PUT
+          path: /v1/content/entry
+          token: pass
+          body: {repository: held, path: before.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+        expect:
+          status: [200, 201]
+    - {act: place, instance: a, path: stores/held/config, fixture: git-config-copy}
+    - {act: wait, for: 5s}
+    - act: send
+      step:
+        instance: a
+        as: test-content-client
+        request: {method: GET, path: /v1/content/repositories, token: own}
+        expect:
+          status: 200
+          json: true
+          includes: {/*/*/effective_custody: [opaque], /*/*/ceiling: [public]}
+        capture: {seen: '@body'}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: PUT
+          path: /v1/content/entry
+          token: pass
+          body: {repository: held, path: during.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+        expect:
+          status: 403
+          code: CONTENT_CUSTODY_CEILING_EXCEEDED
+          json: true
+          has: [/error]
+          assert:
+          - decodes-as: {value: '${seen}', as: json, expect: {length: {/*/*/reported_copies: 1}}}
+    - {act: place, instance: a, path: stores/held/config, fixture: git-config-plain}
+    - {act: wait, for: 5s}
+    - act: send
+      step:
+        instance: a
+        as: test-content-client
+        request: {method: GET, path: /v1/content/repositories, token: own}
+        expect:
+          status: 200
+          json: true
+          includes: {/*/*/effective_custody: [opaque], /*/*/ceiling: [public]}
+          excludes: {/*/*/effective_custody: [exclusive]}
+        capture: {still: '@body'}
+    - act: send
+      step:
+        instance: a
+        as: test-writer
+        request:
+          method: PUT
+          path: /v1/content/entry
+          token: pass
+          body: {repository: held, path: after.md, bytes: aGVsbG8K, if_match: '', scope: internal}
+        expect:
+          status: 403
+          code: CONTENT_CUSTODY_CEILING_EXCEEDED
+          json: true
+          has: [/error]
+          assert:
+          - decodes-as: {value: '${still}', as: json, expect: {length: {/*/*/reported_copies: 1}}}
 
 ```

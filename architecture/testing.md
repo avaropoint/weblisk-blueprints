@@ -1,7 +1,7 @@
 <!-- blueprint
 type: architecture
 name: testing
-version: 2.6.0
+version: 2.7.0
 requires: [protocol/identity, protocol/types, architecture/agent, architecture/domain]
 platform: any
 tier: free
@@ -451,6 +451,60 @@ fixtures:
           custody: exclusive
       reconcile_interval: 0s
       checkpoint_interval: 0s
+  # Content custody checks (architecture/content, Declared checks): a shared
+  # repository whose configuration claims attestations a git store cannot
+  # demonstrate, the person who may reconcile it, and an exclusive store
+  # re-verified often enough that a copy reported out of band is seen within
+  # a check, with the git configuration that reports one and the one that
+  # does not.
+  content-git-claims:
+    content:
+      backends:
+        - name: shared-stores
+          driver: git
+          root: "${instance}/shared"
+          options: {default_line: main, worktree: attached, object_format: sha1}
+      repositories:
+        - id: claims
+          scope_path: conformance/org
+          placement: {backend: shared-stores, locator: claims}
+          custody: shared
+          attestations: {enumerable_principals: true, attributable_writes: true, tamper_evident: true}
+      reconcile_interval: 0s
+      checkpoint_interval: 0s
+  test-reconciler:
+    seed: "0000000000000000000000000000000000000000000000000000000000000021"
+    cap: ["content:read", "content:describe", "content:reconcile"]
+  content-git-copy:
+    content:
+      backends:
+        - name: stores
+          driver: git
+          root: "${instance}/stores"
+          options: {default_line: main, worktree: none, object_format: sha1}
+      repositories:
+        - id: held
+          scope_path: conformance/org
+          placement: {backend: stores, locator: held}
+          custody: exclusive
+      reconcile_interval: 0s
+      reverify_custody_interval: 1s
+      checkpoint_interval: 0s
+  git-config-copy:
+    text: |
+      [core]
+          repositoryformatversion = 0
+          filemode = true
+          bare = true
+      [remote "copy"]
+          url = https://copy.conformance.invalid/held.git
+          fetch = +refs/heads/*:refs/remotes/copy/*
+  git-config-plain:
+    text: |
+      [core]
+          repositoryformatversion = 0
+          filemode = true
+          bare = true
   task:
     id: conformance-task-1
     from: user
