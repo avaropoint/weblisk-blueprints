@@ -392,6 +392,11 @@ fixtures:
       admin_addresses: ["https://admin.conformance.invalid"]
       admin_gateway_identity: "${fixture/test-gateway/fingerprint}"
       admin_gateway_from: ["${harness/source}"]
+  # A lease short enough that a check can watch it lapse and be granted
+  # again within one run.
+  orchestrator-short-lease:
+    orchestrator:
+      lease_duration: 5s
   model-config:
     provider: conformance-backend
     model: conformance-model
