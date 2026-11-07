@@ -1,6 +1,6 @@
 ---
 family: schemas/instruction@1
-version: 1.0.0
+version: 1.0.1
 in: [plan, generate]
 ---
 # What the tenant already has
@@ -30,8 +30,10 @@ creating a project. module is its module path: import the tenant's own
 packages by it, and do not plan the module's manifest, which exists. packages
 are the packages it provides, each with its directory, its package name, the
 component that owns it, its import path, its exported names, and the
-signature of each exported function and method: import them rather than
-declaring again what they export, spell each name exactly as given, call each
+signature of each exported function and method. A name they export is
+theirs: where you need that same thing, import it; where you need a different
+thing, give it a name of its own that says what it is, never the exported name
+again. Spell each name exactly as given, call each
 function as its signature says, and plan no file in their directories. names
 are the names this component declared in its last build: that code is what
 this build replaces and may be restructured, but keep a name where the
